@@ -272,7 +272,7 @@ const BillingChart: React.FC<{
                 </select>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} barGap={period === 'day' ? 2 : 4}>
+                <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} barGap={0}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
                     <YAxis axisLine={false} tickLine={false} width={80} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} tickFormatter={(value) => formatCurrency(value).replace(',00', '')} />
@@ -281,8 +281,8 @@ const BillingChart: React.FC<{
                         contentStyle={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '1rem' }}
                         formatter={(value: number) => [formatCurrency(value), '']}
                     />
-                    <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 6 : 14} />
-                    <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 6 : 14} />
+                    <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={18} />
+                    <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} barSize={18} />
                 </BarChart>
             </ResponsiveContainer>
         </div>

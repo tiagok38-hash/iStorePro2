@@ -116,7 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
             onMouseLeave={() => setIsHovered(false)}
             className={`hidden lg:flex fixed inset-y-0 left-0 z-40 bg-[#111827] text-gray-200 flex-col h-screen border-r border-gray-800 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:sticky ${effectiveIsCollapsed ? 'lg:w-20' : 'lg:w-64'} ${isLoggingOut ? 'opacity-0 -translate-x-full' : ''}`}
         >
-            <div className="flex items-center h-16 overflow-hidden">
+            <div className="flex items-center h-20 overflow-hidden">
                 {/* Fixed Logo Container - Matches collapsed sidebar width (w-20) */}
                 {/* Logo Container */}
                 <div className={`flex items-center transition-all duration-300 ${effectiveIsCollapsed ? 'w-20 justify-center' : 'w-full px-4'}`}>
@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
                         <img
                             src="/logo_sidebar.png"
                             alt="Logo"
-                            className={`h-11 w-auto object-contain transition-all duration-300 ${effectiveIsCollapsed ? 'max-w-[140px] translate-x-[-35px]' : 'max-w-full'}`}
+                            className={`h-14 w-auto object-contain transition-all duration-300 ${effectiveIsCollapsed ? 'max-w-[140px] translate-x-[-35px]' : 'max-w-full'}`}
                         />
                     </Link>
                 </div>
