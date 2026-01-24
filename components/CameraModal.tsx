@@ -147,8 +147,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
             const canvas = canvasRef.current;
 
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                // Limit max dimension to 1200px (better quality)
-                const MAX_DIMENSION = 1200;
+                // Limit max dimension to 800px (optimized for mobile uploads)
+                const MAX_DIMENSION = 800;
                 let width = video.videoWidth;
                 let height = video.videoHeight;
 
@@ -173,8 +173,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
                     // Standard camera apps don't usually mirror the final output of rear camera.
                     context.drawImage(video, 0, 0, width, height);
 
-                    // Use JPEG with 0.8 quality
-                    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                    // Use JPEG with 0.6 quality for aggressive compression
+                    const imageData = canvas.toDataURL('image/jpeg', 0.6);
                     setCapturedImage(imageData);
                     stopCamera(); // Stop stream to save resources/battery
                 }
