@@ -187,9 +187,9 @@ const Vendas: React.FC = () => {
     const showToastRef = useRef(showToast);
     useEffect(() => { showToastRef.current = showToast; }, [showToast]);
 
-    const fetchData = useCallback(async (retryCount = 0) => {
+    const fetchData = useCallback(async (silent = false, retryCount = 0) => {
         console.log('Vendas: Iniciando carregamento de dados...');
-        setLoading(true);
+        if (!silent) setLoading(true);
         setError(null);
 
         // Helper to fetch data with individual error handling
@@ -277,33 +277,41 @@ const Vendas: React.FC = () => {
             // Auto-retry once after short delay (handles reconnection issues after idle)
             if (retryCount < 1) {
                 console.log('Vendas: Tentando reconectar automaticamente...');
-                setTimeout(() => fetchData(retryCount + 1), 2000);
+                setTimeout(() => fetchData(silent, retryCount + 1), 2000);
                 return;
             }
 
             const msg = error.message || 'Erro ao carregar dados de vendas.';
             setError(msg);
-            showToastRef.current(msg, 'error');
+            if (!silent) showToastRef.current(msg, 'error');
         } finally {
             console.log('Vendas: Finalizando estado de loading.');
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
     useEffect(() => {
         fetchData();
 
+        // Smart Reload Listener
+        const handleSmartReload = () => {
+            console.log('Vendas: Smart reload triggered');
+            fetchData(true);
+        };
+        window.addEventListener('app-reloadData', handleSmartReload);
+
         const channel = new BroadcastChannel('app_cache_sync');
         channel.onmessage = (event) => {
             if (event.data && event.data.type === 'CLEAR_CACHE') {
                 const keys = event.data.keys;
                 if (keys.includes('sales')) {
-                    fetchData();
+                    fetchData(true);
                 }
             }
         };
 
         return () => {
+            window.removeEventListener('app-reloadData', handleSmartReload);
             channel.close();
         };
     }, [fetchData]);
@@ -313,7 +321,7 @@ const Vendas: React.FC = () => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 console.log('Vendas: Aba visível novamente. Recarregando dados...');
-                fetchData();
+                fetchData(true);
             }
         };
 

@@ -31,7 +31,7 @@ const fetchWithCache = async <T>(key: string, fetcher: () => Promise<T>): Promis
     return data;
 };
 
-const clearCache = (keys: string[]) => {
+export const clearCache = (keys: string[]) => {
     const cacheKeys = Object.keys(cache);
     keys.forEach(key => {
         // Clear exact match

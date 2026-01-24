@@ -948,7 +948,8 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 });
 
 const Dashboard: React.FC = () => {
-    const { user } = useUser();
+    const { user, permissions } = useUser();
+    const canViewDashboard = permissions?.canAccessDashboard;
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
@@ -957,88 +958,75 @@ const Dashboard: React.FC = () => {
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
     const [billingPeriod, setBillingPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('year');
 
-    const fetchData = useCallback(async (retryCount = 0) => {
-        setLoading(true);
-        setError(null);
+    const fetchData = useCallback(async (silent = false, retryCount = 0) => {
+        if (!silent) setLoading(true);
+        if (!silent) setError(null);
 
         // Helper: Fetches data, logs errors, but returns fallback instead of throwing
-        const fetchResilient = async <T,>(name: string, fetcher: (uid?: string) => Promise<T>, fallback: T): Promise<T> => {
+        const fetchItem = async <T,>(name: string, fetcher: (uid?: string) => Promise<T>, fallback: T): Promise<T> => {
             try {
                 return await fetcher(user?.id);
             } catch (error: any) {
                 console.warn(`Dashboard: Falha ao carregar ${name}. Usando fallback.`, error);
-
-                // If it's a critical AbortError, we might want to know, but for Dashboard display, partial data is better than error screen.
-                if (retryCount < 2 && (error?.message?.includes('aborted') || error?.name === 'AbortError')) {
-                }
                 return fallback;
             }
         };
 
         try {
-            // STEP 1: Configs (Fastest) - Can fallback
-            const methodsData = await fetchResilient('PaymentMethods', getPaymentMethods, []);
-            setPaymentMethods(methodsData);
+            // Priority 1: Sales, Products & Customers (Core KPIs)
+            const [salesData, productsData, customersData] = await Promise.all([
+                fetchItem('Sales', () => getSales(undefined), []),
+                fetchItem('Products', getProducts, []),
+                fetchItem('Customers', getCustomers, [])
+            ]);
 
-            // STEP 2: Products (Medium) - Critical
-            // Fail loud if products fail, so user knows connection is bad
-            let productsData;
-            try {
-                productsData = await getProducts();
-            } catch (e) {
-                console.error("Dashboard: Failed critical fetch: Products", e);
-                throw e;
-            }
-            setProducts(productsData);
-
-            // STEP 3: Sales (Heavy) - Critical
-            // Fail loud if sales fail
-            let salesData;
-            try {
-                salesData = await getSales(user?.id);
-            } catch (e) {
-                console.error("Dashboard: Failed critical fetch: Sales", e);
-                throw e;
-            }
             setSales(salesData);
-
-            // STEP 4: Customers (Heavy) - Can fallback (less critical for KPI numbers usually, but good to have)
-            const customersData = await fetchResilient('Customers', getCustomers, []);
+            setProducts(productsData);
             setCustomers(customersData);
 
-        } catch (err: any) {
-            setError("Falha ao carregar os dados. Sua conexão parece instável.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+            // Priority 2: Configs
+            fetchItem('ActiveMethods', getPaymentMethods, []).then(setPaymentMethods);
 
+        } catch (error: any) {
+            console.error('Dashboard: Critical error fetching data:', error);
+            if (retryCount < 2) {
+                setTimeout(() => fetchData(silent, retryCount + 1), 2000);
+                return;
+            }
+            if (!silent) setError(error.message || 'Falha ao carregar dados do dashboard.');
+        } finally {
+            if (!silent) setLoading(false);
+        }
+    }, [user]);
 
     useEffect(() => {
-        fetchData();
-
-        const handleRefetch = () => {
-            console.log('Dashboard: Refetching data due to app focus/online event');
+        if (canViewDashboard) {
             fetchData();
-        };
+        }
 
-        window.addEventListener('app-focus-refetch', handleRefetch);
+        // Smart Reload Listener
+        const handleSmartReload = () => {
+            console.log('Dashboard: Smart reload triggered');
+            fetchData(true);
+        };
+        window.addEventListener('app-reloadData', handleSmartReload);
 
         const channel = new BroadcastChannel('app_cache_sync');
         channel.onmessage = (event) => {
             if (event.data && event.data.type === 'CLEAR_CACHE') {
                 const keys = event.data.keys;
-                if (keys.includes('sales')) {
-                    fetchData();
+                if (keys.some((k: string) => ['sales', 'products', 'customers'].some(type => k.includes(type)))) {
+                    fetchData(true);
                 }
             }
         };
 
         return () => {
+            window.removeEventListener('app-reloadData', handleSmartReload);
             channel.close();
-            window.removeEventListener('app-focus-refetch', handleRefetch);
         };
-    }, [fetchData]);
+
+    }, [fetchData, canViewDashboard]);
 
     const dashboardMetrics = React.useMemo(() => {
         const totalStock = products.reduce((acc, p) => acc + p.stock, 0);

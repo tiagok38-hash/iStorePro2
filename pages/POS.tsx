@@ -147,7 +147,7 @@ const POS: React.FC = () => {
                 return;
             }
 
-            setError(error.message || 'Falha ao carregar os dados do PDV.');
+            if (!silent) setError(error.message || 'Falha ao carregar os dados do PDV.');
         } finally {
             if (!silent) setLoading(false);
         }
@@ -159,6 +159,26 @@ const POS: React.FC = () => {
         } else {
             console.log('POS: Waiting for user session...');
         }
+
+        // Smart Reload Listener
+        const handleSmartReload = () => {
+            console.log('POS: Smart reload triggered');
+            fetchData(true);
+        };
+        window.addEventListener('app-reloadData', handleSmartReload);
+
+        const channel = new BroadcastChannel('app_cache_sync');
+        channel.onmessage = (event) => {
+            if (event.data && event.data.type === 'CLEAR_CACHE') {
+                // If anything related to POS changes (sales, sessions, products), reload
+                fetchData(true);
+            }
+        };
+
+        return () => {
+            window.removeEventListener('app-reloadData', handleSmartReload);
+            channel.close();
+        };
     }, [fetchData, user?.id]);
 
     const augmentedSessions = useMemo(() => {

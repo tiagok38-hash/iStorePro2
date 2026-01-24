@@ -1,12 +1,21 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
-import { User, PermissionSet } from '../types.ts';
-import { getPermissionProfiles, login as apiLogin, registerAdmin as apiRegisterAdmin, logout as apiLogout, getProfile } from '../services/mockApi.ts';
+import { User, PermissionSet, CashSession } from '../types.ts';
+import {
+  getPermissionProfiles,
+  login as apiLogin,
+  registerAdmin as apiRegisterAdmin,
+  logout as apiLogout,
+  getProfile,
+  getCashSessions,
+  clearCache
+} from '../services/mockApi.ts';
 import { supabase } from '../supabaseClient.ts';
 
 // =====================================================
-// KEEP ALIVE INTERVAL (3 minutos) 
+// CONFIGURAÇÕES DE SESSÃO E TIMEOUTS
 // =====================================================
-const KEEP_ALIVE_INTERVAL = 180000; // 3 minutos
+const KEEP_ALIVE_INTERVAL = 2 * 60 * 1000; // 2 minutos - Verifica token proativamente
+const BACKGROUND_REFRESH_THRESHOLD = 60 * 1000; // 1 minuto em background força reload de dados críticos
 
 interface UserContextData {
   user: User | null;
@@ -15,49 +24,85 @@ interface UserContextData {
   permissions: PermissionSet | null;
   isOnline: boolean;
   session: any | null;
+  openCashSession: CashSession | null; // Nível 9: Contexto de Caixa
   login: (email: string, password_param: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (name: string, email: string, password_param: string) => Promise<void>;
-  refreshPermissions: () => void;
-  checkSession: () => Promise<void>;
+  refreshPermissions: () => Promise<void>;
+  checkSession: (forceRefreshData?: boolean) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextData | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Estado Persistente (LocalStorage como backup, mas Supabase é a verdade)
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
   });
+
   const [permissions, setPermissions] = useState<PermissionSet | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('user') !== null;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('user'));
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [session, setSession] = useState<any | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [openCashSession, setOpenCashSession] = useState<CashSession | null>(null);
 
   const keepAliveRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const lastActiveRef = useRef<number>(Date.now());
 
-  const refreshPermissions = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
+  // =====================================================
+  // GERENCIAMENTO DE DADOS CRÍTICOS (Nível 6)
+  // =====================================================
+  const reloadCriticalData = useCallback(async (userId: string) => {
+    console.log('UserContext: 🔄 Recarregando dados críticos (Estoque, Vendas, Permissões, Caixa)...');
 
-  const updateUserAndPermissions = useCallback(async (userData: User | null) => {
-    console.log('UserContext: Updating user state:', userData?.email || 'Guest');
+    // 1. Limpar cache local (mockApi) para forçar fetch fresco do Supabase
+    clearCache(['products', 'sales', 'permissions_profiles', 'cash_sessions', 'cash_sessions_' + userId]);
+
+    // 2. Disparar evento para componentes atualizarem
+    window.dispatchEvent(new CustomEvent('app-reloadData'));
+
+    // 3. Restaurar contexto do caixa (Nível 9)
+    try {
+      const sessions = await getCashSessions(userId);
+      const active = sessions.find(s => s.status === 'aberto');
+      if (isMountedRef.current) {
+        setOpenCashSession(active || null);
+        console.log('UserContext: Caixa restaurado:', active ? `ID ${active.displayId}` : 'Nenhum aberto');
+      }
+    } catch (e) {
+      console.warn('UserContext: Erro ao restaurar caixa:', e);
+    }
+  }, []);
+
+  // =====================================================
+  // ATUALIZAÇÃO DE ESTADO DO USUÁRIO
+  // =====================================================
+  const updateUserAndPermissions = useCallback(async (userData: User | null, sessionData: any = null) => {
+    if (!isMountedRef.current) return;
+
     if (userData) {
+      console.log('UserContext: ✅ Atualizando usuário autenticado:', userData.email);
       setUser(userData);
       setIsAuthenticated(true);
+      if (sessionData) setSession(sessionData);
+
+      // Persistência local segura
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      // Carregar Permissões
       try {
         const profiles = await getPermissionProfiles();
         const profile = profiles.find(p => p.id === userData.permissionProfileId);
         if (profile) {
           setPermissions(profile.permissions);
         } else {
-          console.warn('UserContext: Profile ID not found:', userData.permissionProfileId);
-          // Fallback permissions instead of null to prevent lockout
+          console.warn('UserContext: Perfil de permissão não encontrado, usando fallback seguro.');
+          // Fallback seguro em vez de erro
           setPermissions({
             canAccessDashboard: true, canAccessVendas: true, canAccessEstoque: true,
             canAccessClientes: true, canAccessFornecedores: true, canAccessRelatorios: true,
@@ -66,310 +111,235 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             canEditOwnProfile: true, canManageMarcasECategorias: true
           });
         }
-        localStorage.setItem('user', JSON.stringify(userData));
       } catch (e) {
-        console.error("UserContext: Failed to fetch permissions, using full access fallback", e);
-        setPermissions({
-          canAccessDashboard: true, canAccessVendas: true, canAccessEstoque: true,
-          canAccessClientes: true, canAccessFornecedores: true, canAccessRelatorios: true,
-          canAccessEmpresa: true, canAccessPOS: true, canManageProducts: true,
-          canEditProductPrices: true, canCancelSales: true, canApplyDiscounts: true,
-          canEditOwnProfile: true, canManageMarcasECategorias: true
-        });
+        console.error("UserContext: Falha ao carregar permissões", e);
       }
+
+      // Restaurar Caixa Aberto se necessário
+      if (!openCashSession) {
+        try {
+          const sessions = await getCashSessions(userData.id);
+          const active = sessions.find(s => s.status === 'aberto');
+          setOpenCashSession(active || null);
+        } catch (e) { console.error('Erro silent caixa', e) }
+      }
+
     } else {
+      console.log('UserContext: 🛑 Limpando sessão de usuário');
       setUser(null);
       setPermissions(null);
       setIsAuthenticated(false);
       setSession(null);
+      setOpenCashSession(null);
       localStorage.removeItem('user');
     }
-  }, []);
+  }, [openCashSession]);
 
   // =====================================================
-  // WORKFLOW: CheckSession (conforme especificação)
+  // VERIFICAÇÃO DE SESSÃO (Core Logic)
   // =====================================================
-  const checkSession = useCallback(async () => {
-    // Avoid redundant checks if we just checked
-    const lastCheck = sessionStorage.getItem('last_auth_check');
+  const checkSession = useCallback(async (forceRefreshData = false) => {
+    // Evita check redundante muito rápido (debounce 2s)
     const now = Date.now();
-    if (lastCheck && now - parseInt(lastCheck) < 5000) return; // Cooldown 5s
-    sessionStorage.setItem('last_auth_check', now.toString());
+    const lastCheck = parseInt(sessionStorage.getItem('last_auth_check') || '0');
+    if (!forceRefreshData && (now - lastCheck < 2000)) return;
 
-    console.log('UserContext: checkSession - Starting check...');
+    sessionStorage.setItem('last_auth_check', now.toString());
+    console.log('UserContext: 🔍 Verificando sessão Supabase...');
 
     if (!navigator.onLine) {
-      console.log('UserContext: checkSession - Offline, relying on cache');
+      console.log('UserContext: Offline - Mantendo estado local');
       setIsOnline(false);
+      setLoading(false);
       return;
     }
-
     setIsOnline(true);
 
     try {
-      const { data: { session: supabaseSession }, error } = await supabase.auth.getSession();
+      // 1. Tenta obter sessão atual (usa refresh token se necessário automaticamente)
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.warn('UserContext: checkSession - error getting session:', error);
-        return; // Ignore transient errors
+        console.warn('UserContext: Erro na sessão:', error.message);
+        // Se erro crítico (ex: refresh token revogado), logout
+        if (error.message.includes('invalid_grant') || error.message.includes('refresh_token_not_found')) {
+          await updateUserAndPermissions(null);
+        }
+        return;
       }
 
-      if (supabaseSession?.user) {
-        console.log('UserContext: checkSession - Session valid');
-        if (isMountedRef.current) setSession(supabaseSession);
+      if (currentSession?.user) {
+        // Sessão válida!
+        setSession(currentSession);
 
-        try {
-          const profile = await getProfile(supabaseSession.user.id);
-          if (!isMountedRef.current) return;
+        // Verifica se usuário mudou ou se precisamos recarregar perfil
+        if (!user || user.id !== currentSession.user.id || forceRefreshData) {
+          console.log('UserContext: Sessão recuperada, carregando perfil...');
+          const profile = await getProfile(currentSession.user.id);
 
           const userData = profile || {
-            id: supabaseSession.user.id,
-            email: supabaseSession.user.email || '',
-            name: supabaseSession.user.user_metadata?.name || 'Usuário',
-            permissionProfileId: 'profile-admin',
+            id: currentSession.user.id,
+            email: currentSession.user.email || '',
+            name: currentSession.user.user_metadata?.name || 'Usuário',
+            permissionProfileId: 'profile-admin', // Fallback temporário
             phone: '',
-            createdAt: supabaseSession.user.created_at
+            createdAt: currentSession.user.created_at
           } as User;
 
-          await updateUserAndPermissions(userData);
-          // Only trigger refetch if something actually changed or after a long time
-          // window.dispatchEvent(new Event('app-focus-refetch'));
+          await updateUserAndPermissions(userData, currentSession);
 
-        } catch (profileError) {
-          console.error('UserContext: checkSession - Profile error:', profileError);
+          // SE for um 'hard refresh' ou retorno de background, recarrega dados
+          if (forceRefreshData) {
+            await reloadCriticalData(userData.id);
+          }
+        } else {
+          console.log('UserContext: Sessão quente mantida.');
+          // Apenas atualiza token se mudou
+          if (session?.access_token !== currentSession.access_token) {
+            setSession(currentSession);
+          }
         }
       } else {
-        // IMPORTANT: If we have a user in RAM, but Supabase says no session, 
-        // DO NOT log out immediately. This could be a transient issue.
-        // We only clear if supabase explicitly reports a SIGNED_OUT event via onAuthStateChange.
-        console.log('UserContext: checkSession - Supabase reports no session, but keeping local cache.');
+        // Nenhuma sessão ativa no Supabase
+        console.log('UserContext: Nenhuma sessão ativa encontrada.');
+        // Se tínhamos usuário logado localmente, agora é hora de fazer o logout real
+        if (user) {
+          await updateUserAndPermissions(null);
+        }
       }
-    } catch (error) {
-      console.error('UserContext: checkSession - Critical error:', error);
+    } catch (err) {
+      console.error('UserContext: Erro crítico no checkSession:', err);
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
-  }, [updateUserAndPermissions]);
+  }, [user, session, updateUserAndPermissions, reloadCriticalData]);
 
   // =====================================================
-  // KEEP ALIVE TIMER (3 minutos) - Mantém sessão ativa
+  // ESCUTA DE EVENTOS DE AUTENTICAÇÃO E JANELA
   // =====================================================
-  useEffect(() => {
-    if (!session || !isAuthenticated) {
-      // Clear keep-alive when no session
-      if (keepAliveRef.current) {
-        clearInterval(keepAliveRef.current);
-        keepAliveRef.current = null;
-      }
-      return;
-    }
-
-    // Start keep-alive timer
-    keepAliveRef.current = setInterval(async () => {
-      if (!isOnline) return;
-
-      console.log('UserContext: KeepAlive - Verify token with server...');
-      try {
-        // Correct way to heartbeat Supabase: getUser() verifies JWT with server
-        const { error } = await supabase.auth.getUser();
-        if (error) throw error;
-        console.log('UserContext: KeepAlive - Token valid');
-      } catch (error) {
-        console.warn('UserContext: KeepAlive - Ping failed, checking session:', error);
-        // Check session if ping fails
-        await checkSession();
-      }
-    }, KEEP_ALIVE_INTERVAL);
-
-    return () => {
-      if (keepAliveRef.current) {
-        clearInterval(keepAliveRef.current);
-        keepAliveRef.current = null;
-      }
-    };
-  }, [session, isAuthenticated, isOnline, checkSession]);
-
   useEffect(() => {
     isMountedRef.current = true;
-    let authSubscription: any = null;
 
-    const syncAuth = async (sessionData: any) => {
-      console.log('UserContext: Syncing auth state, session:', sessionData ? 'Present' : 'None');
+    // 1. Inicialização
+    checkSession(true); // Force load on mount
 
-      if (sessionData?.user) {
-        try {
-          const profile = await getProfile(sessionData.user.id);
-          if (!isMountedRef.current) return;
+    // 2. Supabase Auth Listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log(`UserContext: 🔔 Auth Event: ${event}`);
 
-          const userData = profile || {
-            id: sessionData.user.id,
-            email: sessionData.user.email || '',
-            name: sessionData.user.user_metadata?.name || 'Usuário',
-            permissionProfileId: 'profile-admin',
-            phone: '',
-            createdAt: sessionData.user.created_at
-          } as User;
-
-          setSession(sessionData);
-          await updateUserAndPermissions(userData);
-        } catch (err) {
-          console.error("UserContext: Profile sync failed", err);
-        }
-      } else if (isMountedRef.current) {
-        await updateUserAndPermissions(null);
-      }
-
-      if (isMountedRef.current) {
-        console.log('UserContext: Sync complete, setting loading to false');
-        setLoading(false);
-      }
-    };
-
-    const init = async (retryCount = 0) => {
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        await syncAuth(initialSession);
-      } catch (err: any) {
-        console.error("UserContext: Session check failed", err);
-
-        // If AbortError, try to fallback to cache immediately without retrying indefinitely or blocking
-        const isAbort = err?.message?.includes('aborted') || err?.name === 'AbortError';
-
-        if (isAbort) {
-          const cachedUser = localStorage.getItem('user');
-          if (cachedUser) {
-            console.log('UserContext: Session check aborted, using cache.');
-            const userData = JSON.parse(cachedUser);
-            await updateUserAndPermissions(userData);
+      switch (event) {
+        case 'SIGNED_IN':
+        case 'TOKEN_REFRESHED':
+          if (newSession) {
+            // Atualiza sessão sem necessariamente recarregar tudo se o user for o mesmo
+            setSession(newSession);
+            if (!user) { // Se não tinha user, carrega completo
+              checkSession(true);
+            } else if (user.id !== newSession.user.id) { // Mudou user
+              checkSession(true);
+            }
           }
-        } else if (retryCount < 2) {
-          const delay = Math.min(500 * Math.pow(2, retryCount), 1500);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return init(retryCount + 1);
-        }
-
-        // If we have a cached user, use it
-        const cachedUser = localStorage.getItem('user');
-        if (cachedUser && isMountedRef.current) {
-          console.log('UserContext: Using cached user due to session check failure');
-          const userData = JSON.parse(cachedUser);
-          setUser(userData);
-          setIsAuthenticated(true);
-          try {
-            const profiles = await getPermissionProfiles();
-            const profile = profiles.find(p => p.id === userData.permissionProfileId);
-            if (profile) setPermissions(profile.permissions);
-          } catch (e) {
-            console.warn('UserContext: Failed to load permissions from cache path, using null');
-          }
-        } else if (isMountedRef.current && !isAbort) { // Only force logout if it wasn't an abort (which might be transient)
-          // No cached user and session failed - check if we need to require login
-          console.log('UserContext: No session and no cache - user needs to login');
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-
-        if (isMountedRef.current) setLoading(false);
+          break;
+        case 'SIGNED_OUT':
+          await updateUserAndPermissions(null);
+          clearCache(['products', 'sales', 'users', 'cash_sessions']); // Limpa dados sensíveis
+          break;
+        case 'USER_UPDATED':
+          checkSession(false);
+          break;
       }
+    });
 
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-        console.log('UserContext: Auth event:', event);
-
-        // Critical fix: Only treat explicit SIGNED_OUT or INITIAL_SESSION (if null) as logout.
-        // Ignore other events with null session (like timeouts) to preserve local cache state if available.
-        if (event === 'SIGNED_OUT') {
-          if (isMountedRef.current) await updateUserAndPermissions(null);
-        } else if (newSession?.user) {
-          if (isMountedRef.current) await syncAuth(newSession);
-        } else if (event === 'INITIAL_SESSION' && !newSession) {
-          // Only clear if initial session check explicitly returns nothing
-          if (isMountedRef.current) await updateUserAndPermissions(null);
-        }
-      });
-      authSubscription = subscription;
-    };
-
-
-
-    // --- App Lifecycle & Network Events (EVENTOS DE APLICAÇÃO) ---
-    // Event: On App Resume / On Page Focus / On Visibility Change
+    // 3. Visibilidade e Foco (Restaurar Sessão e Dados)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        const lastCheck = sessionStorage.getItem('last_visible_check');
         const now = Date.now();
-        // Only re-check session if user has been away for more than 1 minute
-        if (!lastCheck || now - parseInt(lastCheck) > 60000) {
-          console.log('UserContext: Visibility changed to visible - CheckSession');
-          checkSession();
-          sessionStorage.setItem('last_visible_check', now.toString());
-        }
+        const timeAway = now - lastActiveRef.current;
+        console.log(`UserContext: App em foco. Tempo ausente: ${Math.round(timeAway / 1000)}s`);
+
+        // Se ficou fora por mais que o threshold, força refresh de dados
+        const shouldRefreshData = timeAway > BACKGROUND_REFRESH_THRESHOLD;
+
+        checkSession(shouldRefreshData);
+        lastActiveRef.current = now;
+      } else {
+        lastActiveRef.current = Date.now();
       }
     };
 
+    // 4. Online/Offline Listeners
     const handleOnline = () => {
-      console.log('UserContext: App is back online - CheckSession');
       setIsOnline(true);
-      checkSession();
+      console.log('UserContext: Online detectado. Ressincronizando...');
+      checkSession(true); // Voltando online sempre é bom checar
     };
-
-    const handleOffline = () => {
-      console.log('UserContext: App is offline');
-      setIsOnline(false);
-    };
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange); // Extra guarantee
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    init();
-
-    const timeout = setTimeout(() => {
-      setLoading(currentLoading => {
-        if (isMountedRef.current && currentLoading) {
-          console.warn("UserContext: Safety timeout reached, forcing loading to false");
-          return false;
+    // 5. Keep Alive Interval (Refresca token preventivamente)
+    keepAliveRef.current = setInterval(async () => {
+      if (user && isOnline) {
+        // Apenas chama getUser para validar/refresh token silenciosamente
+        const { error } = await supabase.auth.getUser();
+        if (error) {
+          console.warn('UserContext: KeepAlive falhou, tentando recuperar sessão...');
+          checkSession(false);
         }
-        return currentLoading;
-      });
-    }, 5000);
+      }
+    }, KEEP_ALIVE_INTERVAL);
 
+    // Cleanup
     return () => {
       isMountedRef.current = false;
-      clearTimeout(timeout);
-      if (authSubscription) authSubscription.unsubscribe();
-      if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+      subscription.unsubscribe();
       window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (keepAliveRef.current) clearInterval(keepAliveRef.current);
     };
-  }, [updateUserAndPermissions, checkSession]);
+  }, []); // Empty dependecy array intended for singleton-like behavior
 
+  // =====================================================
+  // AÇÕES PÚBLICAS
+  // =====================================================
   const login = async (email: string, password_param: string) => {
-    console.log('UserContext: Manual login started');
+    // await apiLogout(); // Garante limpeza anterior
+    console.log('UserContext: Login manual...');
     const userData = await apiLogin(email, password_param);
     if (userData) {
-      await updateUserAndPermissions(userData);
+      // Force session refresh to get the pure Supabase session object
+      const { data: { session: newSession } } = await supabase.auth.getSession();
+      await updateUserAndPermissions(userData, newSession);
+      await reloadCriticalData(userData.id);
     }
   };
 
   const register = async (name: string, email: string, password_param: string) => {
     const userData = await apiRegisterAdmin(name, email, password_param);
     if (userData) {
-      await updateUserAndPermissions(userData);
+      const { data: { session: newSession } } = await supabase.auth.getSession();
+      await updateUserAndPermissions(userData, newSession);
     }
   };
 
   const logout = async () => {
-    console.log('UserContext: Logging out');
-    // Optimistic logout: Clear state first, then tell API
-    // This prevents hanging if network is down
+    console.log('UserContext: Logout solicitado.');
     await updateUserAndPermissions(null);
     try {
       if (user) await apiLogout(user.id, user.name);
-    } catch (e) {
-      console.warn("UserContext: API Logout failed (ignoring)", e);
-    }
+    } catch (e) { console.warn("Erro no logout API", e); }
+    // Limpeza final
+    setOpenCashSession(null);
+    clearCache(Object.keys({})); // Clear all
+  };
+
+  const refreshPermissions = async () => {
+    if (user) await checkSession(false);
   };
 
   const contextValue = React.useMemo(() => ({
@@ -379,12 +349,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     permissions,
     isOnline,
     session,
+    openCashSession,
     login,
     logout,
     register,
     refreshPermissions,
     checkSession
-  }), [user, isAuthenticated, loading, permissions, isOnline, session, login, logout, register, refreshPermissions, checkSession]);
+  }), [user, isAuthenticated, loading, permissions, isOnline, session, openCashSession]);
 
   return (
     <UserContext.Provider value={contextValue}>

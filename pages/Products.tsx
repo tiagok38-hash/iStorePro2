@@ -199,8 +199,8 @@ const Products: React.FC = () => {
     const [activePeriod, setActivePeriod] = useState<'hoje' | 'semana' | 'mes'>('mes');
 
 
-    const fetchData = useCallback(async (retryCount = 0) => {
-        setLoading(true);
+    const fetchData = useCallback(async (silent = false, retryCount = 0) => {
+        if (!silent) setLoading(true);
         try {
             // 1. Fetch metadata (lighter requests)
             const [
@@ -238,30 +238,38 @@ const Products: React.FC = () => {
                 // Auto-retry once after short delay (handles reconnection issues after idle)
                 if (retryCount < 1) {
                     console.log('Products: Tentando reconectar automaticamente...');
-                    setTimeout(() => fetchData(retryCount + 1), 2000);
+                    setTimeout(() => fetchData(silent, retryCount + 1), 2000);
                     return;
                 }
 
-                showToast('Erro ao carregar dados do estoque.', 'error');
+                if (!silent) showToast('Erro ao carregar dados do estoque.', 'error');
             }
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [showToast]);
 
     useEffect(() => {
         fetchData();
 
-        const handleCompanyUpdate = () => fetchData();
+        const handleCompanyUpdate = () => fetchData(true);
         window.addEventListener('company-data-updated', handleCompanyUpdate);
+
+        // Nível 6: Evento de recarregamento inteligente
+        const handleSmartReload = () => {
+            console.log('Products: Smart reload triggered');
+            fetchData(true);
+        };
+        window.addEventListener('app-reloadData', handleSmartReload);
 
         const bc = new BroadcastChannel('app-updates');
         bc.onmessage = (event) => {
-            if (event.data === 'company-data-updated') fetchData();
+            if (event.data === 'company-data-updated') fetchData(true);
         };
 
         return () => {
             window.removeEventListener('company-data-updated', handleCompanyUpdate);
+            window.removeEventListener('app-reloadData', handleSmartReload);
             bc.close();
         };
     }, [fetchData]);
