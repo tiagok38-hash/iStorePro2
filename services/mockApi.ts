@@ -1748,8 +1748,8 @@ const mapSupplier = (s: any) => ({
     instagram: s.instagram
 });
 
-// Mapped fields list to avoid fetching 'avatar_url' which might contain massive base64 strings
-const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state';
+// Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
+const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url';
 
 export const getCustomers = async () => {
     return fetchWithCache('customers', async () => {
