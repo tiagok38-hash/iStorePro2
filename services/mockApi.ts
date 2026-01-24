@@ -1986,7 +1986,7 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
 
     // Timeout de segurança para evitar hang infinito
     const updatePromise = supabase.from('customers').update(payload).eq('id', data.id).select().single();
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao atualizar cliente no Supabase (5s)')), 5000));
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao atualizar cliente no Supabase (30s)')), 30000));
 
     let result: any;
     try {
@@ -2112,7 +2112,17 @@ export const updateSupplier = async (data: any, userId: string = 'system', userN
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
 
     console.log("mockApi: Updating supplier with payload:", payload);
-    let result = await supabase.from('suppliers').update(payload).eq('id', data.id).select().single();
+
+    // Timeout de segurança (30s) para uploads de imagem ou conexões lentas
+    const updatePromise = supabase.from('suppliers').update(payload).eq('id', data.id).select().single();
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao atualizar fornecedor no Supabase (30s)')), 30000));
+
+    let result: any;
+    try {
+        result = await Promise.race([updatePromise, timeoutPromise]);
+    } catch (err) {
+        throw err;
+    }
 
     if (result.error && payload.instagram && (result.error.code === '42703' || result.error.message?.includes('instagram'))) {
         console.warn("Instagram column missing, retrying without it...");
