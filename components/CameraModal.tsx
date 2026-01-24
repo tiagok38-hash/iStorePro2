@@ -147,8 +147,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
             const canvas = canvasRef.current;
 
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                // Limit max dimension to 800px (optimized for mobile uploads)
-                const MAX_DIMENSION = 800;
+                // Limit max dimension to 400px (optimized for mobile uploads)
+                const MAX_DIMENSION = 400;
                 let width = video.videoWidth;
                 let height = video.videoHeight;
 
