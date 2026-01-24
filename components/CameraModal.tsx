@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { CameraIcon, CheckIcon, ArrowPathRoundedSquareIcon, Cog6ToothIcon } from './icons.tsx';
+import { CameraIcon, CheckIcon, ArrowPathRoundedSquareIcon } from './icons.tsx';
 import { SpinnerIcon } from './icons.tsx';
 
 interface CameraModalProps {
