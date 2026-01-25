@@ -121,7 +121,9 @@ const SaleActionsDropdown: React.FC<{ onEdit: () => void; onView: () => void; on
                 <div ref={dropdownRef} style={style} className="rounded-md shadow-lg bg-surface ring-1 ring-black ring-opacity-5">
                     <div className="py-1">
                         <button onClick={createHandler(onView)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}><EyeIcon className="h-4 w-4" /> Visualizar</button>
-                        <button onClick={createHandler(onEdit)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}><EditIcon className="h-4 w-4" /> Editar</button>
+                        {permissions?.canEditSale && (
+                            <button onClick={createHandler(onEdit)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}><EditIcon className="h-4 w-4" /> Editar</button>
+                        )}
                         <button onClick={createHandler(onReprint)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}><PrinterIcon className="h-4 w-4" /> Reimprimir</button>
                         {permissions?.canCancelSale && (
                             <button onClick={createHandler(onCancel)} className={`${menuItemClasses} text-danger hover:bg-danger-light`}><XCircleIcon className="h-4 w-4" /> Cancelar</button>
@@ -188,7 +190,6 @@ const Vendas: React.FC = () => {
     useEffect(() => { showToastRef.current = showToast; }, [showToast]);
 
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
-        console.log('Vendas: Iniciando carregamento de dados...');
         if (!silent) setLoading(true);
         setError(null);
 
@@ -236,7 +237,6 @@ const Vendas: React.FC = () => {
                 fetchItem('Suppliers', getSuppliers, [])
             ]);
 
-            console.log(`Vendas: Dados carregados. ${salesData.length} vendas encontradas.`);
 
             const sortedSales = [...salesData].sort((a, b) => {
                 const dateA = a.date ? new Date(a.date).getTime() : 0;
@@ -269,14 +269,12 @@ const Vendas: React.FC = () => {
             usersData.forEach((u: User) => { uMap[u.id] = u; });
             setUserMap(uMap);
 
-            console.log('Vendas: Mapas de dados gerados com sucesso.');
 
         } catch (error: any) {
             console.error('Vendas: Erro ao carregar dados:', error);
 
             // Auto-retry once after short delay (handles reconnection issues after idle)
             if (retryCount < 1) {
-                console.log('Vendas: Tentando reconectar automaticamente...');
                 setTimeout(() => fetchData(silent, retryCount + 1), 2000);
                 return;
             }
@@ -285,7 +283,6 @@ const Vendas: React.FC = () => {
             setError(msg);
             if (!silent) showToastRef.current(msg, 'error');
         } finally {
-            console.log('Vendas: Finalizando estado de loading.');
             if (!silent) setLoading(false);
         }
     }, []);
@@ -295,7 +292,6 @@ const Vendas: React.FC = () => {
 
         // Smart Reload Listener
         const handleSmartReload = () => {
-            console.log('Vendas: Smart reload triggered');
             fetchData(true);
         };
         window.addEventListener('app-reloadData', handleSmartReload);
@@ -320,7 +316,6 @@ const Vendas: React.FC = () => {
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                console.log('Vendas: Aba visível novamente. Recarregando dados...');
                 fetchData(true);
             }
         };

@@ -30,6 +30,7 @@ export interface PermissionSet {
     canCreateSale: boolean;
     canCancelSale: boolean;
     canViewSalesKPIs: boolean;
+    canEditSale: boolean;
 
     // Company permissions
     canManageCompanyData: boolean;

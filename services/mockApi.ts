@@ -174,7 +174,6 @@ export const login = async (email: string, password_param: string): Promise<User
         } as User;
     }
 
-    console.log('Profile found:', profile.name);
 
     // Log login event (fire-and-forget to not block login)
     addAuditLog(
@@ -287,14 +286,11 @@ export const addUser = async (data: any) => {
 };
 
 export const updateUser = async (data: any) => {
-    console.log('mockApi: Starting updateUser for ID:', data.id);
 
     // 1. Handle password update if provided
     if (data.password) {
-        console.log('mockApi: Password change detected.');
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (currentUser && currentUser.id === data.id) {
-            console.log('mockApi: Updating password in Supabase Auth for current user...');
             const { error: authError } = await supabase.auth.updateUser({
                 password: data.password
             });
@@ -302,7 +298,6 @@ export const updateUser = async (data: any) => {
                 console.error('mockApi: Auth password update error:', authError);
                 throw authError;
             }
-            console.log('mockApi: Auth password updated successfully.');
         } else {
             console.warn('mockApi: Cannot update password for other users via client SDK.');
             throw new Error('Não é possível alterar a senha de outros usuários por aqui. O usuário deve usar "Esqueci minha senha" ou alterar no próprio perfil.');
@@ -313,7 +308,6 @@ export const updateUser = async (data: any) => {
     // We remove fields that shouldn't be updated manually or might cause conflicts
     const { id, password, createdAt, ...updateFields } = data;
 
-    console.log('mockApi: Payload for DB update:', updateFields);
     const { data: updated, error } = await supabase
         .from('users')
         .update(updateFields)
@@ -326,7 +320,6 @@ export const updateUser = async (data: any) => {
         throw error;
     }
 
-    console.log('mockApi: User updated successfully in database.');
     clearCache(['users']);
     return updated;
 };
@@ -479,7 +472,6 @@ export const addCashSession = async (data: any, odId: string = 'system', userNam
         status: 'aberto'
     };
 
-    console.log('Creating cash session with payload:', session);
 
     const { data: newSession, error } = await supabase.from('cash_sessions').insert([session]).select().single();
     if (error) {
@@ -673,7 +665,6 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     let existingProduct = null;
 
     if (imei1 || imei2 || serialNumber) {
-        console.log('[addProduct] Checking for existing product by IMEI/Serial...');
         const orConditions = [];
         if (imei1) orConditions.push(`imei1.eq.${imei1}`, `imei2.eq.${imei1}`);
         if (imei2) orConditions.push(`imei1.eq.${imei2}`, `imei2.eq.${imei2}`);
@@ -693,7 +684,6 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
 
             const result = await Promise.race([searchQuery, timeout]) as any;
             existingProduct = result.data || null;
-            console.log('[addProduct] Search result:', existingProduct ? `Found ID=${existingProduct.id}, stock=${existingProduct.stock}` : 'Not found');
         } catch (e: any) {
             if (e.message === 'SEARCH_TIMEOUT') {
                 console.warn('[addProduct] Search timed out. Proceeding as new product.');
@@ -712,7 +702,6 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
         }
 
         // ✅ REACTIVATE: Product was sold, now being repurchased
-        console.log('[addProduct] REACTIVATING existing product:', existingProduct.id);
 
         const newStockHistoryEntry = {
             id: crypto.randomUUID(),
@@ -750,7 +739,6 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
 
         if (updateError) throw updateError;
 
-        console.log('[addProduct] Product REACTIVATED successfully:', existingProduct.id);
 
         // Return the merged product data
         const reactivatedProduct = { ...existingProduct, ...updatePayload };
@@ -770,7 +758,6 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     }
 
     // ✅ NEW PRODUCT: IMEI/Serial doesn't exist, create it
-    console.log('[addProduct] Creating new product...');
 
     const { count } = await supabase.from('products').select('*', { count: 'exact', head: true });
     const nextSku = `#${(count || 0) + 1}`;
@@ -834,7 +821,6 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
 
         const result = await Promise.race([insertQuery, timeout]) as any;
         if (result.error) throw result.error;
-        console.log('[addProduct] Product created successfully');
     } catch (e: any) {
         if (e.message === 'INSERT_TIMEOUT') {
             console.warn('[addProduct] Insert timed out, but proceeding anyway (product may have been created)');
@@ -1326,7 +1312,6 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         lead_origin: data.leadOrigin || null,
     };
 
-    console.log('mockApi: Adding sale with payload:', saleData);
     const { data: insertedRows, error } = await supabase.from('sales').insert([saleData]).select();
 
     if (error) {
@@ -1414,7 +1399,6 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 };
 
 export const updateSale = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
-    console.log('mockApi: updateSale called with ID:', data.id);
 
     // STEP 0: Check if a trade-in product was removed from this sale
     if (data.payments) {
@@ -1433,7 +1417,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             for (const originalTradeIn of originalTradeIns) {
                 const productId = originalTradeIn.tradeInDetails?.productId;
                 if (productId && !newTradeInProductIds.includes(productId)) {
-                    console.log(`[updateSale] Trade-in product ${productId} was REMOVED from sale`);
 
                     // Fetch the product to check its history
                     const { data: product } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
@@ -1447,7 +1430,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
                         if (isFresh) {
                             // DELETE the product completely
-                            console.log(`[updateSale] Product ${productId} is FRESH - DELETING permanently`);
                             await supabase.from('products').delete().eq('id', productId);
 
                             await addAuditLog(
@@ -1460,7 +1442,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                             );
                         } else {
                             // Set stock to 0 (product has history, can't be deleted)
-                            console.log(`[updateSale] Product ${productId} has HISTORY - setting stock to 0`);
 
                             const newStockEntry = {
                                 id: crypto.randomUUID(),
@@ -1525,7 +1506,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     if (data.total !== undefined) updatePayload.total = data.total;
     if (data.payments) updatePayload.payments = data.payments;
 
-    console.log('mockApi: updateSale payload:', updatePayload);
 
     // RULE 5 & 6: Strict validation of ownership (EXCEPT ADMINS)
     if (userId !== 'system') {
@@ -1568,7 +1548,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     const newStatus = updated.status;
 
     if ((oldStatus === 'Pendente' || !oldStatus) && (newStatus === 'Finalizada' || newStatus === 'Editada')) {
-        console.log('mockApi: Sale finalized during update, deducting stock...');
         const paymentMethods = data.payments?.map((p: any) => p.method).join(', ') || 'N/A';
         const { data: customerData } = await supabase.from('customers').select('name').eq('id', updated.customer_id).single();
         const customerName = customerData?.name || 'Cliente';
@@ -1604,7 +1583,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
     // If sale was already finalized and is being edited, update stockHistory with new payment info
     if (newStatus === 'Editada' && data.payments) {
-        console.log('mockApi: Sale edited, updating product stockHistory with new payment info...');
         const paymentMethods = data.payments?.map((p: any) => p.method).join(', ') || 'N/A';
         const { data: customerData } = await supabase.from('customers').select('name').eq('id', updated.customer_id).maybeSingle();
         const customerName = customerData?.name || 'Cliente';
@@ -1754,7 +1732,6 @@ const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt
 export const getCustomers = async () => {
     return fetchWithCache('customers', async () => {
         return fetchWithRetry(async () => {
-            console.log('mockApi: Fetching customers from Supabase...');
             // Exclude avatar_url to prevent large payloads from crashing the app
             const { data, error } = await supabase.from('customers').select(CUSTOMER_COLUMNS);
             if (error) {
@@ -1763,7 +1740,6 @@ export const getCustomers = async () => {
             }
             return data;
         }).then(data => {
-            console.log('mockApi: Fetched customers count:', data?.length || 0);
             return (data || []).map(mapCustomer);
         });
     });
@@ -1854,7 +1830,6 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
         if (data.address.state) payload.state = data.address.state;
     }
 
-    console.log("mockApi: Adding customer with payload:", payload);
 
     // --- Validation: Check for duplicates ---
     if (payload.cpf) {
@@ -1949,7 +1924,6 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
         if (data.address.state !== undefined) payload.state = data.address.state;
     }
 
-    console.log("mockApi: Updating customer with payload:", payload, "ID:", data.id);
 
     // --- Validation: Check for duplicates (excluding self) ---
     if (payload.cpf) {
@@ -1991,7 +1965,6 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     let result: any;
     try {
         result = await Promise.race([updatePromise, timeoutPromise]);
-        console.log("mockApi: Update result received:", result);
     } catch (err: any) {
         console.error("mockApi: Exception during update race:", err);
         throw err;
@@ -2001,7 +1974,6 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
         console.warn("Instagram column missing, retrying without it...");
         delete payload.instagram;
         result = await supabase.from('customers').update(payload).eq('id', data.id).select().single();
-        console.log("mockApi: Retry result:", result);
     }
 
     const { data: updated, error } = result;
@@ -2068,7 +2040,6 @@ export const addSupplier = async (data: any, userId: string = 'system', userName
     if (data.linkedCustomerId) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram) payload.instagram = data.instagram;
 
-    console.log("mockApi: Adding supplier with payload:", payload);
     let result = await supabase.from('suppliers').insert([payload]).select().single();
 
     if (result.error && payload.instagram && (result.error.code === '42703' || result.error.message?.includes('instagram'))) {
@@ -2111,7 +2082,6 @@ export const updateSupplier = async (data: any, userId: string = 'system', userN
     if (data.linkedCustomerId !== undefined) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
 
-    console.log("mockApi: Updating supplier with payload:", payload);
 
     // Timeout de segurança (30s) para uploads de imagem ou conexões lentas
     const updatePromise = supabase.from('suppliers').update(payload).eq('id', data.id).select().single();
@@ -2228,7 +2198,6 @@ export const findOrCreateSupplierFromCustomer = async (c: Customer, retryCount =
             // Handle RLS: if no rows returned but no error, use local data
             const newSupplier = (insertedRows && insertedRows.length > 0) ? insertedRows[0] : { ...ns, id: crypto.randomUUID() };
 
-            console.log('mockApi: Supplier created successfully from customer.');
             clearCache(['suppliers']);
             return mapSupplier(newSupplier);
         } catch (err: any) {
@@ -2377,7 +2346,6 @@ export const addCategory = async (data: any, userId?: string, userName?: string)
     let lastError: any = null;
     for (const payload of payloads) {
         try {
-            console.log('addCategory: Attempting with payload:', payload);
             return await addItem('categories', payload, 'categories', userId, userName);
         } catch (error: any) {
             console.error('addCategory: Error:', error.message);
@@ -2432,7 +2400,6 @@ export const addProductModel = async (data: any, userId?: string, userName?: str
     let lastError: any = null;
     for (const payload of payloads) {
         try {
-            console.log('addProductModel: Attempting with payload:', payload);
             return await addItem('product_models', payload, 'product_models', userId, userName);
         } catch (error: any) {
             console.error('addProductModel: Error:', error.message);
@@ -2491,7 +2458,6 @@ export const addGradeValue = async (data: any, userId?: string, userName?: strin
     let lastError: any = null;
     for (const payload of payloads) {
         try {
-            console.log('addGradeValue: Attempting with payload:', payload);
             return await addItem('grade_values', payload, 'grade_values', userId, userName);
         } catch (error: any) {
             console.error('addGradeValue: Error:', error.message);
@@ -2558,7 +2524,6 @@ export const addReceiptTerm = async (data: any, userId: string = 'system', userN
     let lastError: any = null;
     for (const payload of payloads) {
         try {
-            console.log('addReceiptTerm: Attempting with payload:', payload);
             const { data: newItem, error } = await supabase.from('receipt_terms').insert([payload]).select().single();
 
             if (error) {
@@ -2611,7 +2576,6 @@ export const updateReceiptTerm = async (data: any, userId: string = 'system', us
     let lastError: any = null;
     for (const payload of payloads) {
         try {
-            console.log('updateReceiptTerm: Attempting with payload:', payload);
             const { data: updated, error } = await supabase.from('receipt_terms').update(payload).eq('id', id).select().single();
 
             if (error) {
@@ -2855,7 +2819,6 @@ export const addPurchaseOrder = async (data: any) => {
         isCustomerPurchase: data.isCustomerPurchase || false,
     };
 
-    console.log("mockApi: Adding purchase order with payload:", poData);
     const { data: newPO, error } = await supabase.from('purchase_orders').insert([poData]).select().single();
     if (error) {
         console.error("Error adding purchase order:", JSON.stringify(error, null, 2));
@@ -2866,7 +2829,6 @@ export const addPurchaseOrder = async (data: any) => {
 };
 
 export const updatePurchaseOrder = async (data: any) => {
-    console.log('mockApi: Starting updatePurchaseOrder', data);
     const { id, purchaseTerm, createdAt, displayId, locatorId, ...rest } = data; // Remove fields that shouldn't change or cause issues
 
     // Date handling similar to addPurchaseOrder

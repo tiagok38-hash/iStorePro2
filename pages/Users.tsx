@@ -37,6 +37,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
         title: 'Vendas',
         permissions: [
             { key: 'canCreateSale', label: 'Realizar Novas Vendas' },
+            { key: 'canEditSale', label: 'Editar venda' },
             { key: 'canCancelSale', label: 'Cancelar Vendas' },
             { key: 'canViewSalesKPIs', label: 'Visualizar Cards de Indicadores (KPIs)' },
         ],
@@ -237,7 +238,6 @@ const Users: React.FC = () => {
 
             // Auto-retry once after short delay (handles reconnection issues after idle)
             if (retryCount < 1) {
-                console.log('Users: Tentando reconectar automaticamente...');
                 setTimeout(() => fetchData(retryCount + 1), 2000);
                 return;
             }
