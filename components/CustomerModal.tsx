@@ -370,14 +370,17 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                         {activeTab === 'endereco' && (
                             <div className="space-y-3">
                                 {/* CEP with buttons on same line */}
-                                <div className="flex items-end gap-2">
-                                    <div className="flex-1">
-                                        <label className={labelClasses}>CEP</label>
-                                        <input name="zip" value={formData.address?.zip || ''} onChange={handleCepChange} className={`${inputClasses} ${errors.zip ? 'border-red-500' : ''}`} maxLength={8} />
-                                        <p className="text-red-600 text-[10px] mt-0.5">{errors.zip}</p>
+                                {/* CEP with buttons on same line */}
+                                <div>
+                                    <label className={labelClasses}>CEP</label>
+                                    <div className="flex gap-2 items-start">
+                                        <div className="flex-1">
+                                            <input name="zip" value={formData.address?.zip || ''} onChange={handleCepChange} className={`${inputClasses} ${errors.zip ? 'border-red-500' : ''}`} maxLength={8} />
+                                            <p className="text-red-600 text-[10px] mt-0.5 min-h-[15px]">{errors.zip}</p>
+                                        </div>
+                                        <button type="button" className="px-3 h-9 bg-green-500 text-white rounded-md text-xs flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm"><SearchIcon className="h-4 w-4" /></button>
+                                        <button type="button" onClick={handleClearAddress} className="px-3 h-9 bg-gray-200 text-gray-700 rounded-md text-xs flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm"><TrashIcon className="h-4 w-4" /></button>
                                     </div>
-                                    <button type="button" className="px-2 h-9 bg-green-500 text-white rounded-md text-xs flex items-center justify-center gap-1 whitespace-nowrap hover:bg-green-600 transition-colors"><SearchIcon className="h-4 w-4" /></button>
-                                    <button type="button" onClick={handleClearAddress} className="px-2 h-9 bg-gray-200 text-gray-700 rounded-md text-xs flex items-center justify-center gap-1 whitespace-nowrap hover:bg-gray-300 transition-colors"><TrashIcon className="h-4 w-4" /></button>
                                 </div>
                                 {/* Logradouro + Número */}
                                 <div className="grid grid-cols-2 gap-2">
