@@ -187,7 +187,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
             const file = e.target.files[0];
             try {
                 // Compress image before setting it
-                const compressedBase64 = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.7 });
+                const compressedBase64 = await compressImage(file, { maxWidth: 400, maxHeight: 400, quality: 0.7 });
                 setPhotoPreview(compressedBase64);
                 setFormData(prev => ({ ...prev, avatarUrl: compressedBase64 }));
             } catch (error) {

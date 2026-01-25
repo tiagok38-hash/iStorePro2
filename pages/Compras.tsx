@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PurchaseOrder, StockStatus, FinancialStatus, Product } from '../types.ts';
-import { getPurchaseOrders, getProducts, formatCurrency } from '../services/mockApi.ts';
+import { getPurchaseOrders, getProducts, formatCurrency, revertPurchaseLaunch } from '../services/mockApi.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import {
     SpinnerIcon, PlusIcon, PlayCircleIcon, SearchIcon, XCircleIcon, CalendarDaysIcon,
@@ -10,10 +10,6 @@ import {
     BoxIsoIcon, BoxIsoFilledIcon
 } from '../components/icons.tsx';
 import RevertStockModal from '../components/RevertStockModal.tsx';
-
-// ... (StatusTag component remains same)
-
-// ... (inside Compras component, skip to table render)
 
 // Status Tag Component
 const StatusTag: React.FC<{ text: string; type: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = ({ text, type }) => {
@@ -79,9 +75,7 @@ const Compras: React.FC = () => {
         if (!purchaseToRevert) return;
         setIsReverting(true);
         try {
-            // TODO: Implement actual revert logic in mockApi
-            // Here we just simulate a delay for now
-            await new Promise(r => setTimeout(r, 1500));
+            await revertPurchaseLaunch(purchaseToRevert.id);
             showToast("Estoque revertido com sucesso!", "success");
 
             setRevertModalOpen(false);
@@ -193,60 +187,66 @@ const Compras: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Top Bar */}
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <ShoppingCartIcon className="h-8 w-8 text-primary" />
-                    <h1 className="text-3xl font-bold text-primary">Compras</h1>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button className="px-4 py-2 bg-gray-800 text-white rounded-md font-semibold flex items-center gap-2 text-sm hover:bg-gray-700">
+            {/* BLOCO SUPERIOR ÚNICO - CONTROLE */}
+            <div className="bg-surface p-6 rounded-lg border border-border shadow-sm flex flex-col gap-6">
+
+                {/* LINHA 1: Ações e Período */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    {/* Botão Nova Compra */}
+                    <button className="px-4 py-2 bg-gray-900 text-white rounded-md font-semibold flex items-center gap-2 text-sm hover:bg-gray-800 transition-colors shadow-sm">
                         <PlusIcon className="h-5 w-5" /> Nova compra
                     </button>
-                    <button className="px-4 py-2 bg-red-600 text-white rounded-md font-semibold flex items-center gap-2 text-sm hover:bg-red-500">
-                        <PlayCircleIcon className="h-5 w-5" /> Tutoriais
-                    </button>
-                </div>
-            </div>
 
-            {/* Filters and KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                <div className="flex items-center gap-2 bg-surface p-4 rounded-lg border border-border">
-                    <div className="relative">
-                        <input type="text" value="01/09/2025" readOnly className="p-2 w-32 border rounded-md bg-surface border-border pl-9 text-sm h-10" />
-                        <CalendarDaysIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-5 w-5 text-muted" />
-                    </div>
-                    <span className="text-muted">à</span>
-                    <div className="relative">
-                        <input type="text" value="30/09/2025" readOnly className="p-2 w-32 border rounded-md bg-surface border-border pl-9 text-sm h-10" />
-                        <CalendarDaysIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-5 w-5 text-muted" />
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-surface p-4 rounded-lg border border-border">
-                        <p className="text-sm text-muted">Qtd de compras do mês</p>
-                        <div className="flex items-center gap-2 mt-1">
-                            <ShoppingCartIcon className="h-6 w-6 text-muted" />
-                            <p className="text-2xl font-bold text-primary">{kpiData.count}</p>
+                    {/* Controles de Data */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                        <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-md border border-gray-200">
+                            <div className="relative">
+                                <input type="text" value="01/01/2026" readOnly className="w-28 text-xs font-medium text-center bg-transparent border-none focus:ring-0 p-1 text-gray-600" />
+                                <CalendarDaysIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            </div>
+                            <span className="text-gray-400 text-xs">à</span>
+                            <div className="relative">
+                                <input type="text" value="31/01/2026" readOnly className="w-28 text-xs font-medium text-center bg-transparent border-none focus:ring-0 p-1 text-gray-600" />
+                                <CalendarDaysIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            </div>
                         </div>
-                    </div>
-                    <div className="bg-surface p-4 rounded-lg border border-border">
-                        <p className="text-sm text-muted">Total de compras do mês</p>
-                        <div className="flex items-center gap-2 mt-1">
-                            <CurrencyDollarIcon className="h-6 w-6 text-muted" />
-                            <p className="text-2xl font-bold text-primary">{formatCurrency(kpiData.total)}</p>
+
+                        <div className="flex bg-gray-100 p-1 rounded-md border border-gray-200">
+                            <button className="px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 rounded hover:bg-white transition-all">Hoje</button>
+                            <button className="px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 rounded hover:bg-white transition-all">Semana</button>
+                            <button className="px-3 py-1 text-xs font-bold text-white bg-gray-800 rounded shadow-sm">Mês</button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Table */}
-            <div className="bg-surface rounded-lg border border-border">
-                <div className="p-4 flex items-center gap-4">
+                {/* Divisor Visual */}
+                <hr className="border-gray-100" />
+
+                {/* LINHA 2: Métricas (KPIs) */}
+                <div className="flex flex-col sm:flex-row gap-8">
+                    <div>
+                        <p className="text-sm text-gray-500 font-medium mb-1">Qtd de compras do mês</p>
+                        <div className="flex items-center gap-2">
+                            <ShoppingCartIcon className="h-5 w-5 text-gray-400" />
+                            <span className="text-2xl font-bold text-gray-800">{kpiData.count}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500 font-medium mb-1">Total de compras do mês</p>
+                        <div className="flex items-center gap-2">
+                            <CurrencyDollarIcon className="h-5 w-5 text-gray-400" />
+                            <span className="text-2xl font-bold text-gray-800">{formatCurrency(kpiData.total)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* LINHA 3: Filtros e Busca */}
+                <div className="flex flex-col lg:flex-row items-center gap-3 w-full">
+                    {/* Filtro Status */}
                     <select
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
-                        className="p-2 border rounded-md bg-surface border-border text-sm h-10"
+                        className="w-full lg:w-48 p-2.5 border rounded-md bg-white border-gray-200 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
                     >
                         <option value="Todos">Filtrar por Status</option>
                         <option value="Pendente">Pendente</option>
@@ -254,26 +254,32 @@ const Compras: React.FC = () => {
                         <option value="Cancelada">Cancelada</option>
                         <option value="Pago">Pago</option>
                     </select>
-                    <div className="relative flex-grow">
-                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted pointer-events-none" />
+
+                    {/* Campo de Busca (Expansível) */}
+                    <div className="relative w-full flex-1">
+                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                         <input
                             type="text"
-                            placeholder="Digite para buscar..."
+                            placeholder="digite para buscar por ID da compra, Fornecedor e Codigo localizador..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full p-2 pl-10 border rounded-md bg-surface border-border text-sm pr-8 h-10"
+                            className="w-full p-2.5 pl-9 border rounded-md bg-white border-gray-200 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all h-10"
                         />
-                        {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-primary"><XCircleIcon className="h-5 w-5" /></button>}
                     </div>
+
+                    {/* Ordenação */}
                     <button
                         onClick={() => setSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                        className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 flex items-center gap-2 text-sm font-medium flex-shrink-0"
+                        className="w-full lg:w-auto px-4 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-gray-200 h-10 flex-shrink-0 min-w-[110px]"
                     >
                         <ArrowsUpDownIcon className="h-4 w-4" />
-                        <span>{sortOrder === 'newest' ? 'Recente' : 'Mais Antigo'}</span>
+                        <span>{sortOrder === 'newest' ? 'Recente' : 'Antigo'}</span>
                     </button>
                 </div>
+            </div>
 
+            {/* BLOCO DA TABELA */}
+            <div className="bg-surface rounded-lg border border-border">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-secondary uppercase bg-gray-50">

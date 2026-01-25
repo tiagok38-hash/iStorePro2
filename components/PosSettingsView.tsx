@@ -49,22 +49,25 @@ export const PosSettingsView: React.FC<PosSettingsViewProps> = ({ customers, rec
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div className="space-y-1">
-                        <label className="block text-[10px] md:text-[11px] font-black text-gray-600 uppercase tracking-wider ml-1">Cliente Padrão</label>
-                        <SearchableDropdown
-                            options={customers.map(c => ({ value: c.id, label: c.name }))}
-                            value={defCust}
-                            onChange={(val) => setDefCust(val)}
-                            placeholder="Buscar cliente..."
-                        />
-                        <p className="text-[9px] text-muted italic ml-1">Cliente pré-selecionado ao iniciar venda.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Cliente Padrão</label>
+                        <div className="h-11">
+                            <SearchableDropdown
+                                options={customers.map(c => ({ value: c.id, label: c.name }))}
+                                value={defCust}
+                                onChange={(val) => setDefCust(val)}
+                                placeholder="Buscar cliente..."
+                                className="h-full"
+                            />
+                        </div>
+                        <p className="text-[10px] text-muted font-medium">Cliente pré-selecionado ao iniciar venda.</p>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="block text-[10px] md:text-[11px] font-black text-gray-600 uppercase tracking-wider ml-1">Garantia Padrão</label>
+                    <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Garantia Padrão</label>
                         <select
-                            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs text-gray-700 h-9"
+                            className="w-full px-4 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm text-gray-700 h-11 appearance-none shadow-sm"
                             value={defWar}
                             onChange={(e) => setDefWar(e.target.value)}
                         >
@@ -73,26 +76,30 @@ export const PosSettingsView: React.FC<PosSettingsViewProps> = ({ customers, rec
                                 <option key={t.id} value={t.name}>{t.name}</option>
                             ))}
                         </select>
-                        <p className="text-[9px] text-muted italic ml-1">Termo aplicado automaticamente.</p>
+                        <p className="text-[10px] text-muted font-medium">Termo aplicado automaticamente.</p>
                     </div>
 
-                    <div className="md:col-span-2 space-y-2">
-                        <label className="block text-[10px] md:text-[11px] font-black text-gray-600 uppercase tracking-wider ml-1">Impressão Padrão</label>
-                        <p className="text-[9px] md:text-[10px] text-muted italic ml-1">Formato automático ou perguntar a cada venda.</p>
-                        <div className="grid grid-cols-2 gap-2 md:gap-4">
+                    <div className="md:col-span-2 space-y-3 pt-2">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Impressão Padrão</label>
+                            <p className="text-[10px] text-muted font-medium mb-3">Formato automático ou perguntar a cada venda.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
                             <button
-                                className={`p-2.5 md:p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 md:gap-3 ${defFmt === 'A4' ? 'border-primary bg-primary/5 text-primary shadow-sm' : 'border-gray-200 hover:bg-gray-50 text-gray-500'}`}
+                                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 relative overflow-hidden group ${defFmt === 'A4' ? 'border-primary bg-primary/5 text-primary shadow-md ring-1 ring-primary/20' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600'}`}
                                 onClick={() => setDefFmt(defFmt === 'A4' ? null : 'A4')}
                             >
-                                <DocumentTextIcon className="h-5 w-5 md:h-8 md:w-8" />
-                                <span className="text-[10px] md:text-xs font-black uppercase tracking-tight">Folha A4</span>
+                                {defFmt === 'A4' && <div className="absolute top-2 right-2 text-primary"><CheckIcon className="w-4 h-4" /></div>}
+                                <DocumentTextIcon className={`h-8 w-8 transition-transform group-hover:scale-110 ${defFmt === 'A4' ? 'text-primary' : 'text-gray-400'}`} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Folha A4</span>
                             </button>
                             <button
-                                className={`p-2.5 md:p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 md:gap-3 ${defFmt === 'thermal' ? 'border-primary bg-primary/5 text-primary shadow-sm' : 'border-gray-200 hover:bg-gray-50 text-gray-500'}`}
+                                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 relative overflow-hidden group ${defFmt === 'thermal' ? 'border-primary bg-primary/5 text-primary shadow-md ring-1 ring-primary/20' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600'}`}
                                 onClick={() => setDefFmt(defFmt === 'thermal' ? null : 'thermal')}
                             >
-                                <PrinterIcon className="h-5 w-5 md:h-8 md:w-8" />
-                                <span className="text-[10px] md:text-xs font-black uppercase tracking-tight">Térmica 80mm</span>
+                                {defFmt === 'thermal' && <div className="absolute top-2 right-2 text-primary"><CheckIcon className="w-4 h-4" /></div>}
+                                <PrinterIcon className={`h-8 w-8 transition-transform group-hover:scale-110 ${defFmt === 'thermal' ? 'text-primary' : 'text-gray-400'}`} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Térmica 80mm</span>
                             </button>
                         </div>
                     </div>

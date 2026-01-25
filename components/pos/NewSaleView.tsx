@@ -8,14 +8,13 @@ import {
 import { formatCurrency } from '../../services/mockApi.ts';
 import {
     PlusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon,
-    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon
+    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon
 } from '../icons.tsx';
 import SearchableDropdown from '../SearchableDropdown.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
 import CustomerModal from '../CustomerModal.tsx';
 import ProductModal from '../ProductModal.tsx';
 import CardPaymentModal from '../CardPaymentModal.tsx';
-import TradeInModal from '../TradeInModal.tsx';
 
 import { useSaleForm } from '../../hooks/useSaleForm.ts';
 import { getPaymentIcon } from './utils';
@@ -53,7 +52,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     const {
         saleDate, selectedCustomerId, selectedSalespersonId, cart, productSearch,
         productToConfirm, searchQuantity, globalDiscountType, globalDiscountValue,
-        cardFees, payments, warrantyTerm, observations, internalObservations,
+        payments, warrantyTerm, observations, internalObservations,
         isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
         localSuppliers, isCardPaymentModalOpen, cardTransactionType, cardMethodId,
         paymentInput, subtotal, totalItemDiscounts, globalDiscountAmount, total,
@@ -67,7 +66,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput,
         handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
         handleRequestPayment, handleConfirmPayment, handleConfirmCardPayment,
-        handleRemovePayment, handleSaveTradeInProduct, handleSaveTradeInFromModal, handleSave
+        handleRemovePayment, handleSaveTradeInProduct, handleSave
     } = actions;
 
 
@@ -118,7 +117,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
 
     return (
-        <>
+        <React.Fragment>
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-slide-up">
                 <div className="p-2.5 md:p-4 space-y-3 md:space-y-4">
                     <section>
@@ -188,7 +187,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-100/80 text-gray-800 font-black uppercase text-[10px] tracking-tighter">
                                         <tr className="text-left border-b border-gray-200">
-                                            <th className="px-4 py-3">ITEM / DESCRIÇÃO</th>
+                                            <th className="px-4 py-3 w-[40%]">ITEM / DESCRIÇÃO</th>
                                             <th className="px-4 py-3 text-center w-24">QTD.</th>
                                             <th className="px-4 py-3 text-center w-40">UNITÁRIO</th>
                                             <th className="px-4 py-3 text-right w-40">SUBTOTAL</th>
@@ -377,23 +376,26 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 </div>
                             </section>
                         </div>
-                    </fieldset >
-                </div >
+                    </fieldset>
+                </div>
 
                 <div className="flex flex-col gap-2 md:gap-3 p-2.5 md:p-4 bg-gray-50 border-t border-gray-200">
                     <div className="flex flex-col md:flex-row items-start gap-4 text-xs">
-                        <div className="flex flex-col w-full md:w-auto min-w-[200px]">
+                        <div className="flex flex-col w-full md:w-[300px] flex-none">
                             <label className={labelClasses}>Garantia</label>
-                            <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm appearance-none">
-                                {receiptTerms.map(term => (<option key={term.id} value={term.name}>{term.name}</option>))}
-                            </select>
+                            <div className="relative">
+                                <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="w-full pl-4 pr-10 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm appearance-none">
+                                    {receiptTerms.map(term => (<option key={term.id} value={term.name}>{term.name}</option>))}
+                                </select>
+                                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                            </div>
                         </div>
 
-                        <div className="flex flex-col w-full">
+                        <div className="flex flex-col flex-1 min-w-[200px]">
                             <label className={labelClasses}>Obs. Comprovante</label>
                             <input value={observations} onChange={e => setObservations(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Garantia estendida..." />
                         </div>
-                        <div className="flex flex-col w-full">
+                        <div className="flex flex-col flex-1 min-w-[200px]">
                             <label className={labelClasses}>Obs. Internas</label>
                             <input value={internalObservations} onChange={e => setInternalObservations(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Cliente exigente..." />
                             <div className="flex items-center justify-end gap-3 mt-4">
@@ -403,127 +405,128 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                             </div>
                         </div>
                     </div>
-                </div >
+                </div>
+            </div>
 
-                {isCustomerModalOpen && (
-                    <CustomerModal
-                        entity={null}
-                        initialType="Cliente"
-                        onClose={() => setIsCustomerModalOpen(false)}
-                        onSave={async (entityData, entityType, personType) => {
-                            const customerPayload: any = { name: entityData.name, email: entityData.email, phone: entityData.phone, address: entityData.address, avatarUrl: entityData.avatarUrl };
-                            if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
-                            const nc = await onAddNewCustomer(customerPayload);
-                            if (nc) setSelectedCustomerId(nc.id);
-                            setIsCustomerModalOpen(false);
-                        }}
-                    />
-                )}
-
-
-                <ProductModal
-                    product={productForTradeIn}
-                    isOpen={isTradeInProductModalOpen}
-                    isTradeInMode={true}
-                    suppliers={localSuppliers}
-                    brands={brands}
-                    categories={categories}
-                    productModels={productModels}
-                    grades={grades}
-                    gradeValues={gradeValues}
-                    customers={customers}
-                    onClose={() => setIsTradeInProductModalOpen(false)}
-                    onSave={handleSaveTradeInProduct}
-                    onAddNewSupplier={async () => null}
+            {isCustomerModalOpen && (
+                <CustomerModal
+                    entity={null}
+                    initialType="Cliente"
+                    onClose={() => setIsCustomerModalOpen(false)}
+                    onSave={async (entityData, entityType, personType) => {
+                        const customerPayload: any = { name: entityData.name, email: entityData.email, phone: entityData.phone, address: entityData.address, avatarUrl: entityData.avatarUrl };
+                        if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
+                        const nc = await onAddNewCustomer(customerPayload);
+                        if (nc) setSelectedCustomerId(nc.id);
+                        setIsCustomerModalOpen(false);
+                    }}
                 />
+            )}
 
 
-                <CardPaymentModal
-                    isOpen={isCardPaymentModalOpen}
-                    onClose={() => setIsCardPaymentModalOpen(false)}
-                    onConfirm={handleConfirmCardPayment}
-                    amountDue={balance > 0 ? balance : 0}
-                    initialTransactionType={cardTransactionType}
-                    initialMethodId={cardMethodId}
-                />
+            <ProductModal
+                product={productForTradeIn}
+                isOpen={isTradeInProductModalOpen}
+                isTradeInMode={true}
+                suppliers={localSuppliers}
+                brands={brands}
+                categories={categories}
+                productModels={productModels}
+                grades={grades}
+                gradeValues={gradeValues}
+                customers={customers}
+                onClose={() => setIsTradeInProductModalOpen(false)}
+                onSave={handleSaveTradeInProduct}
+                onAddNewSupplier={async () => null}
+            />
 
-                {
-                    productToConfirm && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-                                <div className="bg-gray-50 border-b border-gray-100 p-4">
-                                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><CheckIcon className="h-6 w-6 text-primary" />Confirmar Produto</h3>
+
+            <CardPaymentModal
+                isOpen={isCardPaymentModalOpen}
+                onClose={() => setIsCardPaymentModalOpen(false)}
+                onConfirm={handleConfirmCardPayment}
+                amountDue={balance > 0 ? balance : 0}
+                initialTransactionType={cardTransactionType}
+                initialMethodId={cardMethodId}
+            />
+
+            {
+                productToConfirm && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+                            <div className="bg-gray-50 border-b border-gray-100 p-4">
+                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><CheckIcon className="h-6 w-6 text-primary" />Confirmar Produto</h3>
+                            </div>
+                            <div className="p-5 space-y-3">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Produto / Modelo</label>
+                                    <p className="text-base font-bold text-gray-900 leading-tight">{productToConfirm.model}</p>
+                                    {productToConfirm.origin === 'Troca' && (
+                                        <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase">Aparelho de Troca</span>
+                                    )}
                                 </div>
-                                <div className="p-5 space-y-3">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Produto / Modelo</label>
-                                        <p className="text-base font-bold text-gray-900 leading-tight">{productToConfirm.model}</p>
-                                        {productToConfirm.origin === 'Troca' && (
-                                            <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase">Aparelho de Troca</span>
-                                        )}
-                                    </div>
 
-                                    {/* IMEI, S/N, Saúde da Bateria */}
-                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                        {productToConfirm.imei1 && (
-                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                                <span className="block text-[9px] font-bold text-muted uppercase">IMEI 1</span>
-                                                <span className="font-mono font-medium text-gray-700">{productToConfirm.imei1}</span>
-                                            </div>
-                                        )}
-                                        {productToConfirm.imei2 && (
-                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                                <span className="block text-[9px] font-bold text-muted uppercase">IMEI 2</span>
-                                                <span className="font-mono font-medium text-gray-700">{productToConfirm.imei2}</span>
-                                            </div>
-                                        )}
-                                        {productToConfirm.serialNumber && (
-                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                                <span className="block text-[9px] font-bold text-muted uppercase">Nº de Série</span>
-                                                <span className="font-mono font-medium text-gray-700">{productToConfirm.serialNumber}</span>
-                                            </div>
-                                        )}
-                                        {productToConfirm.batteryHealth !== undefined && productToConfirm.batteryHealth !== null && (
-                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                                <span className="block text-[9px] font-bold text-muted uppercase">Saúde Bateria</span>
-                                                <span className={`font-bold ${productToConfirm.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{productToConfirm.batteryHealth}%</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                {/* IMEI, S/N, Saúde da Bateria */}
+                                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                    {productToConfirm.imei1 && (
+                                        <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase">IMEI 1</span>
+                                            <span className="font-mono font-medium text-gray-700">{productToConfirm.imei1}</span>
+                                        </div>
+                                    )}
+                                    {productToConfirm.imei2 && (
+                                        <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase">IMEI 2</span>
+                                            <span className="font-mono font-medium text-gray-700">{productToConfirm.imei2}</span>
+                                        </div>
+                                    )}
+                                    {productToConfirm.serialNumber && (
+                                        <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase">Nº de Série</span>
+                                            <span className="font-mono font-medium text-gray-700">{productToConfirm.serialNumber}</span>
+                                        </div>
+                                    )}
+                                    {productToConfirm.batteryHealth !== undefined && productToConfirm.batteryHealth !== null && (
+                                        <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase">Saúde Bateria</span>
+                                            <span className={`font-bold ${productToConfirm.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{productToConfirm.batteryHealth}%</span>
+                                        </div>
+                                    )}
+                                </div>
 
-                                    {/* Preço, Condição, Estoque, Garantia */}
-                                    <div className="grid grid-cols-4 gap-2">
-                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Preço</span>
-                                            <span className="font-black text-sm text-primary">{formatCurrency(productToConfirm.price)}</span>
-                                        </div>
-                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Condição</span>
-                                            <span className={`text-[10px] font-bold ${productToConfirm.condition === 'Novo' ? 'text-green-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
-                                        </div>
-                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Estoque</span>
-                                            <span className="font-bold text-sm text-gray-700">{productToConfirm.stock}</span>
-                                        </div>
-                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Garantia</span>
-                                            <span className="text-[10px] font-medium text-gray-600">{productToConfirm.warranty || '-'}</span>
-                                        </div>
+                                {/* Preço, Condição, Estoque, Garantia */}
+                                <div className="grid grid-cols-4 gap-2">
+                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                        <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Preço</span>
+                                        <span className="font-black text-sm text-primary">{formatCurrency(productToConfirm.price)}</span>
                                     </div>
+                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                        <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Condição</span>
+                                        <span className={`text-[10px] font-bold ${productToConfirm.condition === 'Novo' ? 'text-green-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
+                                    </div>
+                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                        <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Estoque</span>
+                                        <span className="font-bold text-sm text-gray-700">{productToConfirm.stock}</span>
+                                    </div>
+                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                        <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Garantia</span>
+                                        <span className="text-[10px] font-medium text-gray-600">{productToConfirm.warranty || '-'}</span>
+                                    </div>
+                                </div>
 
-                                    <div className="pt-3 border-t border-gray-100">
-                                        <div className="flex gap-3">
-                                            <button onClick={() => actions.setProductToConfirm(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors text-sm">CANCELAR</button>
-                                            <button onClick={confirmAddToCart} className="flex-1 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform active:scale-95 text-sm">CONFIRMAR</button>
-                                        </div>
+                                <div className="pt-3 border-t border-gray-100">
+                                    <div className="flex gap-3">
+                                        <button onClick={() => actions.setProductToConfirm(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors text-sm">CANCELAR</button>
+                                        <button onClick={confirmAddToCart} className="flex-1 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform active:scale-95 text-sm">CONFIRMAR</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    )
-                }
-            </>
-            );
+                    </div>
+                )
+            }
+        </React.Fragment>
+    );
 };
 
-            export default React.memo(NewSaleView);
+export default React.memo(NewSaleView);

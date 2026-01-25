@@ -613,7 +613,7 @@ const Products: React.FC = () => {
                         </div>
                         <div className="relative flex-grow min-w-[250px]">
                             <label className="block text-xs font-medium text-muted mb-1">Buscar produto</label>
-                            <input type="text" placeholder="Digite aqui para buscar" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="p-2 border rounded-md w-full bg-transparent border-border pr-8 h-10" />
+                            <input type="text" placeholder="digite para buscar por SKU, descricao, IMEI, numero de serie e codigo de barras..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="p-2 border rounded-md w-full bg-transparent border-border pr-8 h-10" />
                             {searchTerm && (<button onClick={() => setSearchTerm('')} className="absolute right-2 bottom-2 text-muted hover:text-primary" aria-label="Limpar busca"><XCircleIcon className="h-5 w-5" /></button>)}
                         </div>
                     </div>
@@ -801,82 +801,99 @@ const Products: React.FC = () => {
     );
 
     const renderComprasTab = () => {
-        const periodButtonClasses = (period: string) => `px-3 py-1 rounded-md text-sm font-medium transition-colors ${activePeriod === period ? 'bg-primary text-white' : 'hover:bg-gray-200'}`;
+        const periodButtonClasses = (period: string) => `px-3 py-1 rounded-md text-sm font-medium transition-colors ${activePeriod === period ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`;
 
         return (
-            <div className="space-y-4">
-                {/* Filters and KPIs */}
-                <div className="bg-surface p-4 rounded-lg border border-border space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            {permissions?.canCreatePurchase && (
-                                <button onClick={() => setIsNewPurchaseModalOpen(true)} className="px-4 py-2 bg-gray-800 text-white rounded-md font-semibold flex items-center gap-2 text-sm hover:bg-gray-700 h-10">
-                                    <PlusIcon className="h-5 w-5" /> Nova compra
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="p-2 border rounded-md bg-surface border-border text-sm h-10" />
-                            <span className="text-muted">à</span>
-                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="p-2 border rounded-md bg-surface border-border text-sm h-10" />
-                            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+            <div className="space-y-6">
+                {/* BLOCO SUPERIOR ÚNICO - CONTROLE */}
+                <div className="bg-surface p-6 rounded-lg border border-border shadow-sm flex flex-col gap-6">
+
+                    {/* LINHA 1: Ações e Período */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        {permissions?.canCreatePurchase && (
+                            <button
+                                onClick={() => setIsNewPurchaseModalOpen(true)}
+                                className="px-4 py-2 bg-gray-900 text-white rounded-md font-semibold flex items-center gap-2 text-sm hover:bg-gray-800 transition-colors shadow-sm"
+                            >
+                                <PlusIcon className="h-5 w-5" /> Nova compra
+                            </button>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-md border border-gray-200">
+                                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-1" />
+                                <span className="text-gray-400 text-xs">à</span>
+                                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-1" />
+                            </div>
+
+                            <div className="flex bg-gray-100 p-1 rounded-md border border-gray-200">
                                 <button onClick={() => handlePeriodChange('hoje')} className={periodButtonClasses('hoje')}>Hoje</button>
                                 <button onClick={() => handlePeriodChange('semana')} className={periodButtonClasses('semana')}>Semana</button>
                                 <button onClick={() => handlePeriodChange('mes')} className={periodButtonClasses('mes')}>Mês</button>
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center justify-start gap-8 pt-4 border-t border-border">
-                        <div>
-                            <p className="text-sm text-muted">Qtd de compras do mês</p>
-                            <div className="flex items-center gap-2 mt-1">
-                                <ShoppingCartIcon className="h-5 w-5 text-muted" />
-                                <p className="text-xl font-bold text-primary">{comprasKpi.count}</p>
+
+                    <hr className="border-gray-100" />
+
+                    {/* LINHA 2: KPIs e Filtros compactados */}
+                    <div className="flex flex-col xl:flex-row justify-between items-end gap-6">
+                        {/* KPIs - Esquerda */}
+                        <div className="flex gap-8 shrink-0">
+                            <div>
+                                <p className="text-sm text-gray-500 font-medium mb-1">Qtd de compras do mês</p>
+                                <div className="flex items-center gap-2">
+                                    <ShoppingCartIcon className="h-5 w-5 text-gray-400" />
+                                    <span className="text-2xl font-bold text-gray-800">{comprasKpi.count}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 font-medium mb-1">Total de compras do mês</p>
+                                <div className="flex items-center gap-2">
+                                    <CurrencyDollarIcon className="h-5 w-5 text-gray-400" />
+                                    <span className="text-2xl font-bold text-gray-800">{formatCurrency(comprasKpi.total)}</span>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <p className="text-sm text-muted">Total de compras do mês</p>
-                            <div className="flex items-center gap-2 mt-1">
-                                <CurrencyDollarIcon className="h-5 w-5 text-muted" />
-                                <p className="text-xl font-bold text-primary">{formatCurrency(comprasKpi.total)}</p>
+
+                        {/* Filtros - Direita */}
+                        <div className="flex flex-col lg:flex-row items-center gap-3 w-full xl:w-auto xl:flex-1 justify-end">
+                            <select
+                                value={statusFilter}
+                                onChange={e => setStatusFilter(e.target.value)}
+                                className="w-full lg:w-48 p-2.5 border rounded-md bg-white border-gray-200 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
+                            >
+                                <option value="Todos">Filtrar por Status</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Lançado">Lançado</option>
+                                <option value="Cancelada">Cancelada</option>
+                                <option value="Pago">Pago</option>
+                            </select>
+
+                            <div className="relative w-full xl:max-w-3xl flex-1">
+                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    placeholder="digite para buscar por ID da compra, Fornecedor e Codigo localizador..."
+                                    value={purchaseSearchTerm}
+                                    onChange={e => setPurchaseSearchTerm(e.target.value)}
+                                    className="w-full p-2.5 pl-9 border rounded-md bg-white border-gray-200 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all h-10"
+                                />
                             </div>
+
+                            <button
+                                onClick={() => setPurchaseSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
+                                className="w-full lg:w-auto px-4 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-gray-200 h-10 flex-shrink-0 min-w-[110px]"
+                            >
+                                <ArrowsUpDownIcon className="h-4 w-4" />
+                                <span>{purchaseSortOrder === 'newest' ? 'Recente' : 'Antigo'}</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Table */}
+                {/* BLOCO DA TABELA (Sem filtros internos) */}
                 <div className="bg-surface rounded-lg border border-border">
-                    <div className="p-3 flex items-center gap-4">
-                        <select
-                            value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value)}
-                            className="p-2 border rounded-md bg-surface border-border text-sm h-10"
-                        >
-                            <option value="Todos">Filtrar por Status</option>
-                            <option value="Pendente">Pendente</option>
-                            <option value="Lançado">Lançado</option>
-                            <option value="Cancelada">Cancelada</option>
-                            <option value="Pago">Pago</option>
-                        </select>
-                        <div className="relative flex-grow">
-                            <input
-                                type="text"
-                                placeholder="Digite para buscar..."
-                                value={purchaseSearchTerm}
-                                onChange={e => setPurchaseSearchTerm(e.target.value)}
-                                className="w-full p-2 pl-3 border rounded-md bg-surface border-border text-sm pr-8 h-10"
-                            />
-                            {purchaseSearchTerm && <button onClick={() => setPurchaseSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-primary"><XCircleIcon className="h-5 w-5" /></button>}
-                        </div>
-                        <button
-                            onClick={() => setPurchaseSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                            className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 flex items-center gap-2 text-sm font-medium flex-shrink-0"
-                        >
-                            <ArrowsUpDownIcon className="h-4 w-4" />
-                            <span>{purchaseSortOrder === 'newest' ? 'Recente' : 'Mais Antigo'}</span>
-                        </button>
-                    </div>
-
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-secondary uppercase bg-gray-50">

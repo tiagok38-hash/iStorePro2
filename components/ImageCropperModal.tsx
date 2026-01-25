@@ -63,10 +63,12 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, imageUrl,
 
     const handleCrop = () => {
         const canvas = document.createElement('canvas');
-        // Render high res output (e.g. 2x)
-        const outputScale = 2;
-        canvas.width = cropWidth * outputScale;
-        canvas.height = cropHeight * outputScale;
+        // Render to target 400px width (lightweight)
+        const targetWidth = 400;
+        const scale = targetWidth / cropWidth;
+
+        canvas.width = targetWidth;
+        canvas.height = cropHeight * scale;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -106,7 +108,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, imageUrl,
             0, 0, canvas.width, canvas.height
         );
 
-        const base64 = canvas.toDataURL('image/png');
+        const base64 = canvas.toDataURL('image/jpeg', 0.7);
         onCrop(base64);
     };
 

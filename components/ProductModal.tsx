@@ -11,6 +11,8 @@ import CustomerModal from './CustomerModal.tsx';
 import CameraModal from './CameraModal.tsx';
 import Button from './Button.tsx';
 import { formatCurrency } from '../services/mockApi.ts';
+import { compressImage } from '../utils/imageUtils.ts';
+import { CameraIcon } from './icons.tsx';
 
 const appleProductHierarchy = {
     'Acessórios': {
@@ -551,6 +553,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
     // New States for Trade-In Tab
     const [activeTab, setActiveTab] = useState<'details' | 'extras' | 'checklist'>('details');
     const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleAddPhoto = (imageData: string) => {
         if ((formData.photos?.length || 0) >= 6) {
@@ -1148,7 +1152,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                         </div>
                         <div>
                             <h2 className="text-lg md:text-2xl font-black text-gray-800 tracking-tight leading-tight">
-                                {isTradeInMode ? 'Aparelho p/ Troca' : (product?.id ? 'Editar Produto' : 'Lançar Produto')}
+                                {isTradeInMode ? 'Aparelho para troca' : (product?.id ? 'Editar Produto' : 'Lançar Produto')}
                             </h2>
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
                                 {isTradeInMode ? 'Entrada de usado' : 'Cadastro de item'}
@@ -1569,6 +1573,45 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     <span className="text-[10px] font-black bg-gray-100 text-gray-500 px-3 py-1 rounded-full uppercase tracking-widest">{formData.photos?.length || 0} / 6</span>
                                 </div>
 
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={async (e) => {
+                                        if (e.target.files && e.target.files.length > 0) {
+                                            const existingCount = formData.photos?.length || 0;
+                                            const remainingSlots = 6 - existingCount;
+
+                                            // Converte para array para iterar
+                                            const files: File[] = Array.from(e.target.files).slice(0, remainingSlots) as unknown as File[];
+
+                                            if (files.length < e.target.files.length) {
+                                                showToast(`Apenas ${remainingSlots} fotos puderam ser adicionadas (limite de 6).`, 'warning');
+                                            }
+
+                                            const newPhotos: string[] = [];
+                                            for (const file of files) {
+                                                try {
+                                                    const compressed = await compressImage(file, { maxWidth: 400, maxHeight: 400, quality: 0.7 });
+                                                    newPhotos.push(compressed);
+                                                } catch (err) {
+                                                    console.error('Erro ao comprimir imagem', err);
+                                                    showToast('Erro ao processar imagem.', 'error');
+                                                }
+                                            }
+
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                photos: [...(prev.photos || []), ...newPhotos]
+                                            }));
+                                            setIsPhotoMenuOpen(false);
+                                        }
+                                        if (e.target) e.target.value = ''; // Reset input
+                                    }}
+                                />
+
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                     {(formData.photos || []).map((photo, index) => (
                                         <div key={index} className="aspect-[4/5] relative group rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
@@ -1586,16 +1629,37 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     ))}
 
                                     {(formData.photos?.length || 0) < 6 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsCameraOpen(true)}
-                                            className="aspect-[4/5] flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 hover:border-primary hover:bg-primary/5 transition-all group text-gray-400 hover:text-primary"
-                                        >
-                                            <div className="p-3 bg-gray-50 rounded-full group-hover:bg-white transition-colors shadow-sm">
-                                                <PhotographIcon className="h-6 w-6" />
-                                            </div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest">Adicionar</span>
-                                        </button>
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsPhotoMenuOpen(prev => !prev)}
+                                                className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 hover:border-primary hover:bg-primary/5 transition-all group text-gray-400 hover:text-primary relative"
+                                            >
+                                                <div className="p-3 bg-gray-50 rounded-full group-hover:bg-white transition-colors shadow-sm">
+                                                    <PhotographIcon className="h-6 w-6" />
+                                                </div>
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Adicionar</span>
+                                            </button>
+
+                                            {isPhotoMenuOpen && (
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-fade-in-up">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { fileInputRef.current?.click(); setIsPhotoMenuOpen(false); }}
+                                                        className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-50"
+                                                    >
+                                                        <PhotographIcon className="h-4 w-4 text-purple-500" /> Galeria
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setIsCameraOpen(true); setIsPhotoMenuOpen(false); }}
+                                                        className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                    >
+                                                        <CameraIcon className="h-4 w-4 text-blue-500" /> Câmera
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </section>

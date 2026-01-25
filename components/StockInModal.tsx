@@ -397,8 +397,8 @@ const StockInModal: React.FC<{
                             <th className="p-3 min-w-[130px]">Local</th>
                             <th className="p-3 w-32">Preço de Custo</th>
                             <th className="p-3 w-24 text-center">Markup %</th>
-                            <th className="p-3 w-44">Preço Venda</th>
                             <th className="p-3 w-44">Preço Atacado</th>
+                            <th className="p-3 w-44">Preço Venda</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -446,17 +446,17 @@ const StockInModal: React.FC<{
                                 </td>
                                 <td className="p-3">
                                     <CurrencyInput
-                                        value={detail.salePrice}
-                                        onChange={val => handleDetailChange(index, 'salePrice', val)}
-                                        className={`${inputClasses} h-10 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`}
-                                    />
-                                </td>
-                                <td className="p-3">
-                                    <CurrencyInput
                                         value={detail.wholesalePrice}
                                         onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
                                         className={`${inputClasses} h-10 text-orange-600`}
                                         placeholder="Opcional"
+                                    />
+                                </td>
+                                <td className="p-3">
+                                    <CurrencyInput
+                                        value={detail.salePrice}
+                                        onChange={val => handleDetailChange(index, 'salePrice', val)}
+                                        className={`${inputClasses} h-10 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`}
                                     />
                                 </td>
                             </tr>
@@ -548,20 +548,20 @@ const StockInModal: React.FC<{
             <>
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-sm min-w-[1400px]">
+                    <table className="w-full text-sm min-w-[1200px]">
                         <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0 z-10">
                             <tr>
                                 <th className="p-3 w-48">Descrição</th>
-                                <th className="p-3 w-44">IMEI 1</th>
-                                <th className="p-3 w-44">IMEI 2</th>
-                                <th className="p-3 w-44">S/N</th>
+                                <th className="p-1 w-40">IMEI 1</th>
+                                <th className="p-1 w-40">IMEI 2</th>
+                                <th className="p-1 w-40">S/N</th>
                                 <th className="p-3 min-w-[120px]">Condição</th>
                                 {hasAppleItems && <th className="p-3 w-24 text-center">Bateria %</th>}
                                 <th className="p-3 min-w-[130px]">Local</th>
                                 <th className="p-3 w-28">Custo</th>
                                 <th className="p-3 w-24">Markup %</th>
-                                <th className="p-3 w-40">Preço Venda</th>
                                 <th className="p-3 w-40">Preço Atacado</th>
+                                <th className="p-3 w-40">Preço Venda</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -570,9 +570,9 @@ const StockInModal: React.FC<{
                                     <td className="p-3 text-[10px] font-medium text-primary leading-tight">
                                         <div className="line-clamp-2 max-w-[180px]">{detail.itemDescription}</div>
                                     </td>
-                                    <td className="p-3"><input type="text" value={detail.imei1} onChange={e => handleDetailChange(index, 'imei1', e.target.value)} className={`${inputClasses} h-10 ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
-                                    <td className="p-3"><input type="text" value={detail.imei2} onChange={e => handleDetailChange(index, 'imei2', e.target.value)} className={`${inputClasses} h-10 ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
-                                    <td className="p-3"><input type="text" value={detail.serialNumber} onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)} className={`${inputClasses} h-10 ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
+                                    <td className="p-1"><input type="text" value={detail.imei1} onChange={e => handleDetailChange(index, 'imei1', e.target.value)} className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
+                                    <td className="p-1"><input type="text" value={detail.imei2} onChange={e => handleDetailChange(index, 'imei2', e.target.value)} className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
+                                    <td className="p-1"><input type="text" value={detail.serialNumber} onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)} className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
                                     <td className="p-3">
                                         <select value={detail.condition} onChange={e => handleDetailChange(index, 'condition', e.target.value)} className={`${inputClasses} h-10`}>
                                             {conditionOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -594,8 +594,8 @@ const StockInModal: React.FC<{
                                     </td>
                                     <td className="p-3 font-semibold">{formatCurrency(detail.costPrice)}</td>
                                     <td className="p-3 w-28"><input type="number" step="0.01" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className={`${inputClasses} h-10 text-right`} /></td>
-                                    <td className="p-3"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${inputClasses} h-10 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`} /></td>
                                     <td className="p-3"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className={`${inputClasses} h-10 text-orange-600`} placeholder="Opc." /></td>
+                                    <td className="p-3"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${inputClasses} h-10 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`} /></td>
                                 </tr>
                             ))}
                         </tbody>

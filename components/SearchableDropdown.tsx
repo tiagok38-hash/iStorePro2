@@ -26,11 +26,12 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
     const showDropdown = isFocused;
 
     const filteredOptions = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return options;
+        const term = searchTerm.trim();
+        if (term.length < 2) {
+            return [];
         }
         return options.filter(option =>
-            (option.label || '').toLowerCase().includes(searchTerm.toLowerCase())
+            (option.label || '').toLowerCase().includes(term.toLowerCase())
         );
     }, [options, searchTerm]);
 
@@ -133,7 +134,9 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
                     style={{ ...dropdownStyles, zIndex: 9999999 }}
                 >
                     <ul className="py-1.5">
-                        {filteredOptions.length > 0 ? (
+                        {searchTerm.trim().length < 2 ? (
+                            <li className="px-4 py-4 text-sm text-center text-muted italic">Digite 2 ou mais letras para buscar...</li>
+                        ) : filteredOptions.length > 0 ? (
                             filteredOptions.map(option => (
                                 <li
                                     key={option.value}

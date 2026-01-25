@@ -37,6 +37,7 @@ import CameraModal from '../components/CameraModal.tsx';
 import PaymentMethodModal from '../components/PaymentMethodModal.tsx';
 import Button from '../components/Button.tsx';
 import { toDateValue, formatTimeBR, formatRelativeDate } from '../utils/dateUtils.ts';
+import { compressImage } from '../utils/imageUtils.ts';
 import ImageCropperModal from '../components/ImageCropperModal.tsx';
 
 type ModalType = 'brand' | 'category' | 'model' | 'grade' | 'gradeValue';
@@ -333,29 +334,27 @@ const MarcasECategoriasTab: React.FC = () => {
     const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0] && editingPhotoModelId) {
             const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-                const base64String = reader.result as string;
+            try {
+                setLoadingMarcas(true);
+                const compressedBase64 = await compressImage(file, { maxWidth: 400, maxHeight: 400, quality: 0.7 });
+
                 const modelToUpdate = productModels.find(m => m.id === editingPhotoModelId);
                 if (modelToUpdate) {
-                    try {
-                        setLoadingMarcas(true);
-                        await updateProductModel({ ...modelToUpdate, imageUrl: base64String }, user?.id, user?.name);
-                        showToast('Foto da subcategoria atualizada!', 'success');
-                        await fetchData();
-                        window.dispatchEvent(new Event('company-data-updated'));
-                        const bc = new BroadcastChannel('app-updates'); bc.postMessage('company-data-updated'); bc.close();
-                    } catch (error) {
-                        showToast('Erro ao salvar a foto.', 'error');
-                    } finally {
-                        setLoadingMarcas(false);
-                        setEditingPhotoModelId(null);
-                    }
+                    await updateProductModel({ ...modelToUpdate, imageUrl: compressedBase64 }, user?.id, user?.name);
+                    showToast('Foto da subcategoria atualizada!', 'success');
+                    await fetchData();
+                    window.dispatchEvent(new Event('company-data-updated'));
+                    const bc = new BroadcastChannel('app-updates'); bc.postMessage('company-data-updated'); bc.close();
                 }
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                console.error('Error updating photo:', error);
+                showToast('Erro ao salvar a foto.', 'error');
+            } finally {
+                setLoadingMarcas(false);
+                setEditingPhotoModelId(null);
+                if (e.target) e.target.value = ""; // Reset file input
+            }
         }
-        if (e.target) e.target.value = ""; // Reset file input
     };
 
     // Handlers for Grades

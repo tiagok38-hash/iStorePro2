@@ -2385,7 +2385,7 @@ export const getProductModels = async () => {
         return (data || []).map((m: any) => ({
             ...m,
             categoryId: m.category_id,
-            imageUrl: m.image_url
+            imageUrl: m.image_url || m.imageUrl || m.photo_url || m.photoUrl
         }));
     });
 };
@@ -2393,6 +2393,8 @@ export const addProductModel = async (data: any, userId?: string, userName?: str
     // Try progressively simpler payloads until one works
     const payloads = [
         { name: data.name, category_id: data.categoryId, image_url: data.imageUrl },
+        { name: data.name, category_id: data.categoryId, imageUrl: data.imageUrl },
+        { name: data.name, category_id: data.categoryId, photo_url: data.imageUrl },
         { name: data.name, category_id: data.categoryId },
         { name: data.name }
     ];
@@ -2415,6 +2417,8 @@ export const addProductModel = async (data: any, userId?: string, userName?: str
 export const updateProductModel = async (data: any, userId?: string, userName?: string) => {
     const payloads = [
         { id: data.id, name: data.name, category_id: data.categoryId, image_url: data.imageUrl },
+        { id: data.id, name: data.name, category_id: data.categoryId, imageUrl: data.imageUrl },
+        { id: data.id, name: data.name, category_id: data.categoryId, photo_url: data.imageUrl },
         { id: data.id, name: data.name, category_id: data.categoryId },
         { id: data.id, name: data.name }
     ];
@@ -2932,8 +2936,23 @@ export const updatePurchaseFinancialStatus = async (id: string) => {
 };
 
 export const revertPurchaseLaunch = async (id: string) => {
-    await supabase.from('purchase_orders').update({ stockStatus: 'Pendente' }).eq('id', id);
-    await supabase.from('products').delete().eq('purchaseOrderId', id);
+    // Optimistic update
+    const { error: updateError } = await supabase.from('purchase_orders').update({ stockStatus: 'Pendente' }).eq('id', id);
+    if (updateError) throw updateError;
+
+    try {
+        const { error: deleteError } = await supabase.from('products').delete().eq('purchaseOrderId', id);
+        if (deleteError) throw deleteError;
+    } catch (error: any) {
+        // Rollback status update if delete fails (e.g. FK constraint)
+        await supabase.from('purchase_orders').update({ stockStatus: 'Lançado' }).eq('id', id);
+
+        if (error.code === '23503') { // Foreign key violation (Postgres)
+            throw new Error('Não é possível reverter esta compra pois alguns produtos já foram vendidos.');
+        }
+        throw error;
+    }
+
     clearCache(['purchase_orders', 'products']);
 };
 

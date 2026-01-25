@@ -179,17 +179,17 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                     {/* Linha 1: Tipo e Maquininha */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Tipo de Transação</label>
-                            <div className="flex p-1 bg-gray-100 rounded-xl border border-gray-200 shadow-inner">
+                            <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1 h-4 flex items-center">Tipo de Transação</label>
+                            <div className="flex p-1 bg-gray-100 rounded-xl border border-gray-200 shadow-inner h-[40px] box-border">
                                 <button
                                     onClick={() => setTransactionType('credit')}
-                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-black transition-all uppercase tracking-tighter ${transactionType === 'credit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`flex-1 rounded-lg text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'credit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     Crédito
                                 </button>
                                 <button
                                     onClick={() => setTransactionType('debit')}
-                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-black transition-all uppercase tracking-tighter ${transactionType === 'debit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`flex-1 rounded-lg text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'debit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     Débito
                                 </button>
@@ -197,17 +197,26 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Selecione o Cartão</label>
-                            <select
-                                value={selectedMethodId}
-                                onChange={e => setSelectedMethodId(e.target.value)}
-                                className="w-full p-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all shadow-sm appearance-none h-[40px]"
-                            >
-                                {methods.length === 0 && <option value="">Nenhum cartão configurado</option>}
-                                {methods.map(m => (
-                                    <option key={m.id} value={m.id}>{m.name}</option>
-                                ))}
-                            </select>
+                            <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1 h-4 flex items-center">
+                                Selecione a Maquineta de Cartão
+                            </label>
+                            <div className="relative">
+                                <select
+                                    value={selectedMethodId}
+                                    onChange={e => setSelectedMethodId(e.target.value)}
+                                    className="w-full pl-3 pr-10 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all shadow-sm appearance-none h-[40px]"
+                                >
+                                    {methods.length === 0 && <option value="">Nenhum cartão configurado</option>}
+                                    {methods.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                    <svg className="w-4 h-4 text-primary animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -215,7 +224,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                     <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200/50 space-y-3 shadow-inner">
                         <div className="flex flex-col md:flex-row gap-4 items-stretch">
                             <div className="md:w-1/2 space-y-1.5">
-                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Valor da Venda</label>
+                                <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1">Valor da Venda</label>
                                 <div className="relative group">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm group-focus-within:text-primary transition-colors">R$</span>
                                     <CurrencyInput
@@ -247,7 +256,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                     {transactionType === 'credit' && (
                         <div className="space-y-2 pt-2">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Opções de Juros</label>
+                                <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1">Opções de Juros</label>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setFeeType('noInterest')}
@@ -280,7 +289,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                     {/* Linha 4: Parcelamento */}
                     {transactionType === 'credit' && config && (
                         <div className="space-y-2 pb-2">
-                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Escolha o Parcelamento</label>
+                            <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1">Escolha o Parcelamento</label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 {(() => {
                                     const rates = feeType === 'noInterest' ? config.creditNoInterestRates : config.creditWithInterestRates;
