@@ -29,14 +29,33 @@ const Header: React.FC<HeaderProps> = () => {
         navigate('/login');
     };
 
+    const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+
+    React.useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
     return (
         <header className="bg-surface h-16 flex items-center justify-between px-4 border-b border-border lg:hidden sticky top-0 z-30">
             <Logo />
 
             <div className="flex items-center gap-3">
-                <Link to="/company?tab=perfil" className="flex items-center justify-center">
+                <Link to="/company?tab=perfil" className="flex items-center justify-center relative">
+                    <div className="absolute -bottom-0.5 -right-0.5 z-10 flex h-3 w-3">
+                        {isOnline && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                        <span className={`relative inline-flex rounded-full h-3 w-3 border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                    </div>
                     {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="Perfil" className="h-8 w-8 rounded-full border border-border" />
+                        <img src={user.avatarUrl} alt="Perfil" className="h-8 w-8 rounded-full border border-border object-cover" />
                     ) : (
                         <UserCircleIcon className="h-8 w-8 text-muted" />
                     )}

@@ -37,6 +37,7 @@ import CameraModal from '../components/CameraModal.tsx';
 import PaymentMethodModal from '../components/PaymentMethodModal.tsx';
 import Button from '../components/Button.tsx';
 import { toDateValue, formatTimeBR, formatRelativeDate } from '../utils/dateUtils.ts';
+import ImageCropperModal from '../components/ImageCropperModal.tsx';
 
 type ModalType = 'brand' | 'category' | 'model' | 'grade' | 'gradeValue';
 type Item = Brand | Category | ProductModel | Grade | GradeValue;
@@ -59,15 +60,27 @@ const DadosEmpresaTab: React.FC = () => {
 
     const canEdit = permissions?.canManageCompanyData;
 
+    const [isCropperOpen, setIsCropperOpen] = useState(false);
+    const [tempImage, setTempImage] = useState<string | null>(null);
+
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setCompanyData(prev => ({ ...prev, logoUrl: reader.result as string }));
-                showToast('Logo atualizada. Lembre-se de salvar as alterações.', 'info');
+                setTempImage(reader.result as string);
+                setIsCropperOpen(true);
+                // Reset input
+                if (logoInputRef.current) logoInputRef.current.value = '';
             };
             reader.readAsDataURL(e.target.files[0]);
         }
+    };
+
+    const handleCropSave = (croppedBase64: string) => {
+        setCompanyData(prev => ({ ...prev, logoUrl: croppedBase64 }));
+        setIsCropperOpen(false);
+        setTempImage(null);
+        showToast('Logo atualizada e recortada com sucesso!', 'info');
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -155,17 +168,17 @@ const DadosEmpresaTab: React.FC = () => {
                         />
                         <div className="relative w-40 h-40 mx-auto">
                             {companyData.logoUrl ? (
-                                <img src={companyData.logoUrl} alt={companyData.name} className="w-full h-full object-contain border border-border rounded-md p-2" />
+                                <img src={companyData.logoUrl} alt={companyData.name} className="w-full h-full object-cover border border-border rounded-full p-1" />
                             ) : (
-                                <div className="w-full h-full border-2 border-dashed border-border rounded-md flex items-center justify-center text-center">
-                                    <span className="text-muted text-sm">Adicionar Logo</span>
+                                <div className="w-full h-full border-2 border-dashed border-border rounded-full flex items-center justify-center text-center bg-gray-50">
+                                    <span className="text-muted text-sm px-2">Adicionar Logo</span>
                                 </div>
                             )}
                             {canEdit && (
                                 <button
                                     type="button"
                                     onClick={() => logoInputRef.current?.click()}
-                                    className="absolute -bottom-2 -right-2 bg-white p-2 rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+                                    className="absolute -bottom-1 -right-1 bg-white p-2.5 rounded-full shadow-lg hover:bg-gray-100 transition-colors border border-gray-100"
                                     title="Adicionar ou alterar logo"
                                 >
                                     <EditIcon className="w-5 h-5 text-primary" />
@@ -173,7 +186,7 @@ const DadosEmpresaTab: React.FC = () => {
                             )}
                         </div>
                         {(companyData.logoUrl && canEdit) && (
-                            <button onClick={() => setCompanyData(prev => ({ ...prev, logoUrl: '' }))} className="mt-4 text-sm text-danger hover:underline">Remover Logo</button>
+                            <button onClick={() => setCompanyData(prev => ({ ...prev, logoUrl: '' }))} className="mt-4 text-xs text-danger hover:underline">Remover Logo</button>
                         )}
                     </div>
                 </div>
@@ -183,6 +196,14 @@ const DadosEmpresaTab: React.FC = () => {
                     <Button onClick={handleSave} variant="success" loading={saving} icon={<CheckIcon className="h-5 w-5" />}>Salvar Alterações</Button>
                 </div>
             )}
+
+            <ImageCropperModal
+                isOpen={isCropperOpen}
+                imageUrl={tempImage}
+                onClose={() => setIsCropperOpen(false)}
+                onCrop={handleCropSave}
+                aspectRatio={1}
+            />
         </div>
     );
 };

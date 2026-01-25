@@ -111,8 +111,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         return dynamic;
     }, [paymentMethods]);
 
-    const inputClasses = "w-full px-3 border rounded-lg bg-gray-50 border-gray-300 text-sm h-9 focus:ring-2 focus:ring-success/20 outline-none transition-all font-semibold";
-    const labelClasses = "block text-[10px] font-black text-gray-600 mb-1 uppercase tracking-wider";
+    const inputClasses = "w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm box-border";
+    const labelClasses = "block text-[11px] font-black text-gray-500 mb-1.5 uppercase tracking-wider";
 
     const totalFees = useMemo(() => payments.reduce((sum, p) => sum + (p.fees || 0), 0), [payments]);
 
@@ -125,16 +125,33 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                         <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
                             <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-xs tracking-widest"><EditIcon className="h-4 w-4 text-success" /> Dados da venda</h3>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                            <div className="md:col-span-2"><label className={labelClasses}>Data</label><input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className={inputClasses} /></div>
-                            <div className="md:col-span-7">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white p-1">
+                            <div className="md:col-span-2 flex flex-col justify-end">
+                                <label className={labelClasses}>Data</label>
+                                <input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className={inputClasses} />
+                            </div>
+                            <div className="md:col-span-7 flex flex-col justify-end">
                                 <label className={labelClasses}>Cliente Selecionado*</label>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-grow"><SearchableDropdown options={customers.map(c => ({ value: c.id, label: c.name }))} value={selectedCustomerId} onChange={setSelectedCustomerId} placeholder="Busque pelo nome do cliente..." /></div>
-                                    <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="px-3 bg-success-light text-success rounded-lg hover:bg-success hover:text-white transition-all h-9"><PlusIcon className="h-5 w-5" /></button>
+                                <div className="flex items-stretch gap-2 h-12">
+                                    <div className="flex-grow h-full">
+                                        <SearchableDropdown
+                                            options={customers.map(c => ({ value: c.id, label: c.name }))}
+                                            value={selectedCustomerId}
+                                            onChange={setSelectedCustomerId}
+                                            placeholder="Busque pelo nome do cliente..."
+                                            className={!selectedCustomerId ? "bg-red-50 border-red-300 ring-2 ring-red-100 placeholder:text-red-400" : ""}
+                                        />
+                                    </div>
+                                    <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="w-12 h-full bg-success-light text-success rounded-xl hover:bg-success hover:text-white transition-all flex items-center justify-center border border-success/20 shadow-sm flex-shrink-0"><PlusIcon className="h-5 w-5" /></button>
                                 </div>
                             </div>
-                            <div className="md:col-span-3"><label className={labelClasses}>Vendedor*</label><select value={selectedSalespersonId} onChange={e => setSelectedSalespersonId(e.target.value)} className={inputClasses} disabled={!selectedCustomerId}><option value="">Selecione...</option>{users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+                            <div className="md:col-span-3 flex flex-col justify-end">
+                                <label className={labelClasses}>Vendedor*</label>
+                                <select value={selectedSalespersonId} onChange={e => setSelectedSalespersonId(e.target.value)} className={`${inputClasses} cursor-pointer appearance-none bg-no-repeat bg-[right_0.75rem_center] bg-[length:1em_1em]`} disabled={!selectedCustomerId}>
+                                    <option value="">Selecione...</option>
+                                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                            </div>
                         </div>
                     </section>
 
@@ -164,49 +181,62 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-16 md:w-20"><label className={labelClasses}>Qtd.</label><input type="number" value={searchQuantity} onChange={e => setSearchQuantity(Number(e.target.value))} min="1" className={`${inputClasses} text-center font-bold`} /></div>
+                                <div className="w-16 md:w-20 flex-shrink-0"><label className={labelClasses}>QTD.</label><input type="number" value={searchQuantity} onChange={e => setSearchQuantity(Number(e.target.value))} min="1" className={`${inputClasses} text-center font-bold`} /></div>
                             </div>
 
                             <div className="border border-gray-200 rounded-xl overflow-x-auto bg-gray-50/30">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-gray-100/80 text-gray-500 font-bold uppercase text-[10px] tracking-tighter">
+                                    <thead className="bg-gray-100/80 text-gray-800 font-black uppercase text-[10px] tracking-tighter">
                                         <tr className="text-left border-b border-gray-200">
-                                            <th className="px-4 py-3">Item / Descrição</th>
-                                            <th className="px-4 py-3 text-center">Qtd.</th>
-                                            <th className="px-4 py-3 text-right">Unitário</th>
-                                            <th className="px-4 py-3 text-right">Subtotal</th>
-                                            <th className="px-4 py-3 text-center">Ação</th>
+                                            <th className="px-4 py-3">ITEM / DESCRIÇÃO</th>
+                                            <th className="px-4 py-3 text-center w-24">QTD.</th>
+                                            <th className="px-4 py-3 text-center w-40">UNITÁRIO</th>
+                                            <th className="px-4 py-3 text-right w-40">SUBTOTAL</th>
+                                            <th className="px-4 py-3 text-center w-20">AÇÃO</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {cart.length === 0 ? (
-                                            <tr><td colSpan={5} className="px-4 py-12 text-center text-muted italic">Carrinho vazio. Adicione produtos acima.</td></tr>
+                                            <tr><td colSpan={7} className="px-4 py-12 text-center text-muted italic">Carrinho vazio. Adicione produtos acima.</td></tr>
                                         ) : cart.map(item => (
                                             <tr key={item.id} className="bg-white hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-4 py-3">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-black text-gray-900">{item.model}</span>
-
+                                                <td className="px-4 py-3 overflow-hidden">
+                                                    <div className="flex flex-col truncate">
+                                                        <span className="font-black text-gray-900 truncate" title={item.model}>{item.model}</span>
                                                         <div className="text-[10px] text-muted flex flex-col gap-0.5 mt-1">
-                                                            {item.serialNumber && <span>SN: <span className="font-mono text-gray-600">{item.serialNumber}</span></span>}
-                                                            {item.imei1 && <span>IMEI 1: <span className="font-mono text-gray-600">{item.imei1}</span></span>}
-                                                            <div className="flex items-center gap-2">
-                                                                {item.condition && <span>Condição: <span className="font-medium">{item.condition}</span></span>}
+                                                            {item.serialNumber && <span className="truncate">SN: <span className="font-mono text-gray-600">{item.serialNumber}</span></span>}
+                                                            {item.imei1 && <span className="truncate">IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></span>}
+                                                            <div className="flex items-center gap-2 truncate">
+                                                                {item.condition && <span>{item.condition}</span>}
                                                                 {item.batteryHealth !== undefined && item.batteryHealth !== null && (
-                                                                    <>
-                                                                        <span className="text-gray-300">|</span>
-                                                                        <span>Saúde Bat.: <span className={`${item.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'}`}>{item.batteryHealth}%</span></span>
-                                                                    </>
+                                                                    <span>| Bat: <span className={`${item.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'}`}>{item.batteryHealth}%</span></span>
                                                                 )}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-center font-bold">{item.quantity}</td>
-                                                <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.salePrice)}</td>
-                                                <td className="px-4 py-3 text-right font-black text-primary">{formatCurrency((item.salePrice || 0) * (item.quantity || 0))}</td>
+                                                <td className="px-4 py-3 text-center font-bold text-gray-800">{item.quantity}</td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex justify-center">
+                                                        <div className="w-32">
+                                                            <CurrencyInput
+                                                                value={item.salePrice}
+                                                                onChange={(val) => handleCartItemUpdate(item.id, 'salePrice', val || 0)}
+                                                                className="h-9 text-sm border rounded-lg bg-white border-gray-200 focus:ring-2 focus:ring-success/20 outline-none font-bold text-center"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-black text-gray-900 tabular-nums text-base">
+                                                    {formatCurrency(
+                                                        ((item.salePrice || 0) * (item.quantity || 0)) -
+                                                        (item.discountType === 'R$'
+                                                            ? item.discountValue
+                                                            : ((item.salePrice || 0) * (item.quantity || 0)) * (item.discountValue / 100))
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <button onClick={() => handleRemoveFromCart(item.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><XCircleIcon className="h-6 w-6" /></button>
+                                                    <button onClick={() => handleRemoveFromCart(item.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-full border border-red-100 transition-all shadow-sm"><XCircleIcon className="h-5 w-5" /></button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -260,10 +290,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 key={label}
                                                 type="button"
                                                 onClick={() => handleRequestPayment(label)}
-                                                className="w-full p-2 rounded-lg border border-gray-200 hover:border-success hover:bg-success-light transition-all flex flex-col items-center gap-1 group"
+                                                disabled={cart.length === 0}
+                                                className="w-full p-2 rounded-lg border border-gray-200 hover:border-success hover:bg-success-light transition-all flex flex-col items-center gap-1 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-gray-200"
                                             >
-                                                <div className="p-1.5 rounded bg-gray-50 group-hover:bg-white transition-colors">{React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5 text-gray-500 group-hover:text-success" })}</div>
-                                                <span className="text-[9px] font-black uppercase text-gray-600 group-hover:text-success text-center leading-tight">{label}</span>
+                                                <div className="p-1.5 rounded bg-gray-50 group-hover:bg-white group-disabled:bg-gray-50 transition-colors">{React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5 text-gray-500 group-hover:text-success group-disabled:text-gray-400" })}</div>
+                                                <span className="text-[9px] font-black uppercase text-gray-600 group-hover:text-success group-disabled:text-gray-400 text-center leading-tight">{label}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -346,149 +377,153 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 </div>
                             </section>
                         </div>
-                    </fieldset>
-                </div>
+                    </fieldset >
+                </div >
 
                 <div className="flex flex-col gap-2 md:gap-3 p-2.5 md:p-4 bg-gray-50 border-t border-gray-200">
-                    <div className="flex flex-col md:flex-row items-center gap-3 text-xs">
-                        <div className="flex flex-col w-full md:w-auto"><label className={labelClasses}>Garantia</label>
-                            <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="p-2.5 border rounded-lg bg-white border-gray-300 text-sm font-bold outline-none focus:ring-2 focus:ring-success/20 h-10 w-full md:min-w-[200px]">
+                    <div className="flex flex-col md:flex-row items-start gap-4 text-xs">
+                        <div className="flex flex-col w-full md:w-auto min-w-[200px]">
+                            <label className={labelClasses}>Garantia</label>
+                            <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm appearance-none">
                                 {receiptTerms.map(term => (<option key={term.id} value={term.name}>{term.name}</option>))}
                             </select>
                         </div>
 
-                        <div className="flex flex-col w-full"><label className={labelClasses}>Obs. Comprovante</label>
-                            <input value={observations} onChange={e => setObservations(e.target.value)} className="p-2 border rounded-lg bg-white border-gray-300 text-sm font-medium w-full outline-none focus:ring-2 focus:ring-success/20 h-10" placeholder="Ex: Garantia estendida..." />
+                        <div className="flex flex-col w-full">
+                            <label className={labelClasses}>Obs. Comprovante</label>
+                            <input value={observations} onChange={e => setObservations(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Garantia estendida..." />
                         </div>
-                        <div className="flex flex-col w-full"><label className={labelClasses}>Obs. Internas</label>
-                            <input value={internalObservations} onChange={e => setInternalObservations(e.target.value)} className="p-2 border rounded-lg bg-white border-gray-300 text-sm font-medium w-full outline-none focus:ring-2 focus:ring-success/20 h-10" placeholder="Ex: Cliente exigente..." />
+                        <div className="flex flex-col w-full">
+                            <label className={labelClasses}>Obs. Internas</label>
+                            <input value={internalObservations} onChange={e => setInternalObservations(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Cliente exigente..." />
+                            <div className="flex items-center justify-end gap-3 mt-4">
+                                <button onClick={props.onCancel} className="px-6 md:px-10 h-12 bg-red-100 text-red-600 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-200 transition-all">Sair</button>
+                                <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0} className="px-6 md:px-10 h-12 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase">Pendente</button>
+                                <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01} className="px-8 md:px-14 h-12 bg-slate-800 text-white rounded-xl font-black uppercase text-sm tracking-widest shadow-lg shadow-slate-300 hover:bg-slate-700 transition-all disabled:bg-gray-200 disabled:shadow-none">Finalizar</button>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                        <button onClick={props.onCancel} className="flex-1 max-w-[100px] md:max-w-[150px] h-9 md:h-11 bg-red-100 text-red-600 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-red-200 transition-all">Sair</button>
-                        <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0} className="flex-1 max-w-[100px] md:max-w-[150px] h-9 md:h-11 bg-orange-100 text-orange-600 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase">Pendente</button>
-                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01} className="flex-1 md:max-w-[200px] h-9 md:h-11 bg-success text-white rounded-lg font-black uppercase text-[10px] md:text-xs tracking-widest shadow-lg shadow-success/20 hover:bg-success/90 transition-all disabled:bg-gray-300 disabled:shadow-none">Finalizar</button>
-                    </div>
-                </div>
-            </div>
+                </div >
 
-            {isCustomerModalOpen && (
-                <CustomerModal
-                    entity={null}
-                    initialType="Cliente"
-                    onClose={() => setIsCustomerModalOpen(false)}
-                    onSave={async (entityData, entityType, personType) => {
-                        const customerPayload: any = { name: entityData.name, email: entityData.email, phone: entityData.phone, address: entityData.address, avatarUrl: entityData.avatarUrl };
-                        if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
-                        const nc = await onAddNewCustomer(customerPayload);
-                        if (nc) setSelectedCustomerId(nc.id);
-                        setIsCustomerModalOpen(false);
-                    }}
+                {isCustomerModalOpen && (
+                    <CustomerModal
+                        entity={null}
+                        initialType="Cliente"
+                        onClose={() => setIsCustomerModalOpen(false)}
+                        onSave={async (entityData, entityType, personType) => {
+                            const customerPayload: any = { name: entityData.name, email: entityData.email, phone: entityData.phone, address: entityData.address, avatarUrl: entityData.avatarUrl };
+                            if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
+                            const nc = await onAddNewCustomer(customerPayload);
+                            if (nc) setSelectedCustomerId(nc.id);
+                            setIsCustomerModalOpen(false);
+                        }}
+                    />
+                )}
+
+
+                <ProductModal
+                    product={productForTradeIn}
+                    isOpen={isTradeInProductModalOpen}
+                    isTradeInMode={true}
+                    suppliers={localSuppliers}
+                    brands={brands}
+                    categories={categories}
+                    productModels={productModels}
+                    grades={grades}
+                    gradeValues={gradeValues}
+                    customers={customers}
+                    onClose={() => setIsTradeInProductModalOpen(false)}
+                    onSave={handleSaveTradeInProduct}
+                    onAddNewSupplier={async () => null}
                 />
-            )}
 
 
-            <ProductModal
-                product={productForTradeIn}
-                isOpen={isTradeInProductModalOpen}
-                isTradeInMode={true}
-                suppliers={localSuppliers}
-                brands={brands}
-                categories={categories}
-                productModels={productModels}
-                grades={grades}
-                gradeValues={gradeValues}
-                customers={customers}
-                onClose={() => setIsTradeInProductModalOpen(false)}
-                onSave={handleSaveTradeInProduct}
-                onAddNewSupplier={async () => null}
-            />
+                <CardPaymentModal
+                    isOpen={isCardPaymentModalOpen}
+                    onClose={() => setIsCardPaymentModalOpen(false)}
+                    onConfirm={handleConfirmCardPayment}
+                    amountDue={balance > 0 ? balance : 0}
+                    initialTransactionType={cardTransactionType}
+                    initialMethodId={cardMethodId}
+                />
 
-
-            <CardPaymentModal
-                isOpen={isCardPaymentModalOpen}
-                onClose={() => setIsCardPaymentModalOpen(false)}
-                onConfirm={handleConfirmCardPayment}
-                amountDue={balance > 0 ? balance : 0}
-                initialTransactionType={cardTransactionType}
-                initialMethodId={cardMethodId}
-            />
-
-            {productToConfirm && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-                        <div className="bg-gray-50 border-b border-gray-100 p-4">
-                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><CheckIcon className="h-6 w-6 text-primary" />Confirmar Produto</h3>
-                        </div>
-                        <div className="p-5 space-y-3">
-                            <div>
-                                <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Produto / Modelo</label>
-                                <p className="text-base font-bold text-gray-900 leading-tight">{productToConfirm.model}</p>
-                                {productToConfirm.origin === 'Troca' && (
-                                    <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase">Aparelho de Troca</span>
-                                )}
-                            </div>
-
-                            {/* IMEI, S/N, Saúde da Bateria */}
-                            <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                {productToConfirm.imei1 && (
-                                    <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                        <span className="block text-[9px] font-bold text-muted uppercase">IMEI 1</span>
-                                        <span className="font-mono font-medium text-gray-700">{productToConfirm.imei1}</span>
-                                    </div>
-                                )}
-                                {productToConfirm.imei2 && (
-                                    <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                        <span className="block text-[9px] font-bold text-muted uppercase">IMEI 2</span>
-                                        <span className="font-mono font-medium text-gray-700">{productToConfirm.imei2}</span>
-                                    </div>
-                                )}
-                                {productToConfirm.serialNumber && (
-                                    <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                        <span className="block text-[9px] font-bold text-muted uppercase">Nº de Série</span>
-                                        <span className="font-mono font-medium text-gray-700">{productToConfirm.serialNumber}</span>
-                                    </div>
-                                )}
-                                {productToConfirm.batteryHealth !== undefined && productToConfirm.batteryHealth !== null && (
-                                    <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                        <span className="block text-[9px] font-bold text-muted uppercase">Saúde Bateria</span>
-                                        <span className={`font-bold ${productToConfirm.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{productToConfirm.batteryHealth}%</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Preço, Condição, Estoque, Garantia */}
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Preço</span>
-                                    <span className="font-black text-sm text-primary">{formatCurrency(productToConfirm.price)}</span>
+                {
+                    productToConfirm && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+                                <div className="bg-gray-50 border-b border-gray-100 p-4">
+                                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><CheckIcon className="h-6 w-6 text-primary" />Confirmar Produto</h3>
                                 </div>
-                                <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Condição</span>
-                                    <span className={`text-[10px] font-bold ${productToConfirm.condition === 'Novo' ? 'text-green-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
-                                </div>
-                                <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Estoque</span>
-                                    <span className="font-bold text-sm text-gray-700">{productToConfirm.stock}</span>
-                                </div>
-                                <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Garantia</span>
-                                    <span className="text-[10px] font-medium text-gray-600">{productToConfirm.warranty || '-'}</span>
-                                </div>
-                            </div>
+                                <div className="p-5 space-y-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Produto / Modelo</label>
+                                        <p className="text-base font-bold text-gray-900 leading-tight">{productToConfirm.model}</p>
+                                        {productToConfirm.origin === 'Troca' && (
+                                            <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase">Aparelho de Troca</span>
+                                        )}
+                                    </div>
 
-                            <div className="pt-3 border-t border-gray-100">
-                                <div className="flex gap-3">
-                                    <button onClick={() => actions.setProductToConfirm(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors text-sm">CANCELAR</button>
-                                    <button onClick={confirmAddToCart} className="flex-1 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform active:scale-95 text-sm">CONFIRMAR</button>
+                                    {/* IMEI, S/N, Saúde da Bateria */}
+                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                        {productToConfirm.imei1 && (
+                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                                <span className="block text-[9px] font-bold text-muted uppercase">IMEI 1</span>
+                                                <span className="font-mono font-medium text-gray-700">{productToConfirm.imei1}</span>
+                                            </div>
+                                        )}
+                                        {productToConfirm.imei2 && (
+                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                                <span className="block text-[9px] font-bold text-muted uppercase">IMEI 2</span>
+                                                <span className="font-mono font-medium text-gray-700">{productToConfirm.imei2}</span>
+                                            </div>
+                                        )}
+                                        {productToConfirm.serialNumber && (
+                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                                <span className="block text-[9px] font-bold text-muted uppercase">Nº de Série</span>
+                                                <span className="font-mono font-medium text-gray-700">{productToConfirm.serialNumber}</span>
+                                            </div>
+                                        )}
+                                        {productToConfirm.batteryHealth !== undefined && productToConfirm.batteryHealth !== null && (
+                                            <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                                                <span className="block text-[9px] font-bold text-muted uppercase">Saúde Bateria</span>
+                                                <span className={`font-bold ${productToConfirm.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{productToConfirm.batteryHealth}%</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Preço, Condição, Estoque, Garantia */}
+                                    <div className="grid grid-cols-4 gap-2">
+                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Preço</span>
+                                            <span className="font-black text-sm text-primary">{formatCurrency(productToConfirm.price)}</span>
+                                        </div>
+                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Condição</span>
+                                            <span className={`text-[10px] font-bold ${productToConfirm.condition === 'Novo' ? 'text-green-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
+                                        </div>
+                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Estoque</span>
+                                            <span className="font-bold text-sm text-gray-700">{productToConfirm.stock}</span>
+                                        </div>
+                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                            <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Garantia</span>
+                                            <span className="text-[10px] font-medium text-gray-600">{productToConfirm.warranty || '-'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-3 border-t border-gray-100">
+                                        <div className="flex gap-3">
+                                            <button onClick={() => actions.setProductToConfirm(null)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors text-sm">CANCELAR</button>
+                                            <button onClick={confirmAddToCart} className="flex-1 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform active:scale-95 text-sm">CONFIRMAR</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
-        </>
-    );
+                    )
+                }
+            </>
+            );
 };
 
-export default React.memo(NewSaleView);
+            export default React.memo(NewSaleView);

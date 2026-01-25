@@ -970,7 +970,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     </div>
 
                     {formData.origin === 'Importação' && (
-                        <div className="col-span-full grid grid-cols-2 gap-2 bg-gray-50 border border-dashed border-gray-200 p-2 rounded-lg animate-fade-in">
+                        <div className="col-span-2 grid grid-cols-2 gap-2 bg-gray-50 border border-dashed border-gray-200 p-2 rounded-lg animate-fade-in">
                             <div>
                                 <label className="text-[10px] font-bold text-muted block mb-0.5">Dólar (R$)</label>
                                 <CurrencyInput

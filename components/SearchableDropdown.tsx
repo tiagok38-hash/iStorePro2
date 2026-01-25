@@ -8,9 +8,10 @@ interface SearchableDropdownProps {
     value: string | null;
     onChange: (value: string | null) => void;
     placeholder?: string;
+    className?: string;
 }
 
-const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value, onChange, placeholder = "Buscar..." }) => {
+const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value, onChange, placeholder = "Buscar...", className = "" }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [openUpwards, setOpenUpwards] = useState(false);
@@ -100,8 +101,8 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
     };
 
     return (
-        <div className="relative w-full" ref={wrapperRef}>
-            <div className="relative group">
+        <div className="relative w-full h-full" ref={wrapperRef}>
+            <div className="relative group h-full">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-muted pointer-events-none group-focus-within:text-accent transition-colors">
                     <SearchIcon className="w-4 h-4" />
                 </span>
@@ -112,7 +113,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
                     value={searchTerm}
                     onChange={handleInputChange}
                     onFocus={handleFocus}
-                    className={`w-full p-2.5 pl-10 pr-10 border rounded-xl bg-surface border-border focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm h-11 transition-all outline-none ${selectedOption && !searchTerm ? 'placeholder:text-primary font-medium' : 'placeholder:text-muted'}`}
+                    className={`w-full p-2.5 pl-10 pr-10 border rounded-xl bg-white border-gray-300 focus:ring-2 focus:ring-success/20 focus:border-success text-sm h-full transition-all outline-none font-bold text-gray-800 shadow-sm ${selectedOption && !searchTerm ? 'placeholder:text-gray-800' : 'placeholder:text-gray-400'} ${className}`}
                 />
                 {(value || searchTerm) && (
                     <button
