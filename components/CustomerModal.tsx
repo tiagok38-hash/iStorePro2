@@ -341,21 +341,28 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div><label className={labelClasses}>Nascimento</label><input name="birthDate" type="text" placeholder="dd/mm/aaaa" value={formData.birthDate || ''} onChange={(e) => setFormData(prev => ({ ...prev, birthDate: formatBirthDate(e.target.value) }))} className={inputClasses} /></div>
+                                                <div><label className={labelClasses}>WhatsApp*</label><input name="phone" value={formData.phone || ''} onChange={handleChange} className={inputClasses} required /></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div><label className={labelClasses}>Instagram</label><input name="instagram" value={formData.instagram || ''} onChange={handleChange} className={inputClasses} /></div>
+                                                <div><label className={labelClasses}>Email</label><input name="email" type="email" value={formData.email || ''} onChange={handleChange} className={inputClasses} /></div>
                                             </div>
                                         </>
                                     ) : (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div><label className={labelClasses}>CNPJ</label><input name="cnpj" value={formData.cnpj || ''} onChange={handleChange} className={inputClasses} /></div>
-                                            <div><label className={labelClasses}>Insc. Estadual</label><input name="ie" className={inputClasses} /></div>
-                                        </div>
+                                        <>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div><label className={labelClasses}>CNPJ</label><input name="cnpj" value={formData.cnpj || ''} onChange={handleChange} className={inputClasses} /></div>
+                                                <div><label className={labelClasses}>Insc. Estadual</label><input name="ie" className={inputClasses} /></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div><label className={labelClasses}>WhatsApp*</label><input name="phone" value={formData.phone || ''} onChange={handleChange} className={inputClasses} required /></div>
+                                                <div><label className={labelClasses}>Instagram</label><input name="instagram" value={formData.instagram || ''} onChange={handleChange} className={inputClasses} /></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div><label className={labelClasses}>Email</label><input name="email" type="email" value={formData.email || ''} onChange={handleChange} className={inputClasses} /></div>
+                                            </div>
+                                        </>
                                     )}
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div><label className={labelClasses}>WhatsApp*</label><input name="phone" value={formData.phone || ''} onChange={handleChange} className={inputClasses} required /></div>
-                                        <div><label className={labelClasses}>Instagram</label><input name="instagram" value={formData.instagram || ''} onChange={handleChange} className={inputClasses} /></div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div><label className={labelClasses}>Email</label><input name="email" type="email" value={formData.email || ''} onChange={handleChange} className={inputClasses} /></div>
-                                    </div>
                                     <div className="text-right pt-2"><button type="button" onClick={() => setActiveTab('endereco')} className="px-3 py-1.5 bg-gray-700 text-white rounded-md text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors">Endereço →</button></div>
                                 </div>
                             </div>
