@@ -2047,6 +2047,9 @@ export const addSupplier = async (data: any, userId: string = 'system', userName
     if (data.contactPerson) payload.contact_person = data.contactPerson;
     if (data.email) payload.email = data.email;
     if (data.cnpj) payload.cnpj = data.cnpj;
+    if (data.cpf) payload.cpf = data.cpf;
+    if (data.rg) payload.rg = data.rg;
+    if (data.birthDate) payload.birth_date = data.birthDate;
     if (data.avatarUrl) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram) payload.instagram = data.instagram;
@@ -2090,6 +2093,9 @@ export const updateSupplier = async (data: any, userId: string = 'system', userN
     if (data.contactPerson !== undefined) payload.contact_person = data.contactPerson;
     if (data.email !== undefined) payload.email = data.email;
     if (data.cnpj !== undefined) payload.cnpj = data.cnpj;
+    if (data.cpf !== undefined) payload.cpf = data.cpf;
+    if (data.rg !== undefined) payload.rg = data.rg;
+    if (data.birthDate !== undefined) payload.birth_date = data.birthDate;
     if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId !== undefined) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;

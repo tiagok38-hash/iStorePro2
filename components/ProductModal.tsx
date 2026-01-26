@@ -1230,18 +1230,46 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-fade-in-up">
                                                     <button
                                                         type="button"
-                                                        onClick={() => { fileInputRef.current?.click(); setIsPhotoMenuOpen(false); }}
-                                                        className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-50"
+                                                        onClick={() => { fileInputRef.current?.click(); }}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 text-left transition-colors"
                                                     >
-                                                        <PhotographIcon className="h-4 w-4 text-purple-500" /> Galeria
+                                                        <PhotographIcon className="h-4 w-4" />
+                                                        Galeria
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => { setIsCameraOpen(true); setIsPhotoMenuOpen(false); }}
-                                                        className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 text-left transition-colors border-t border-gray-50"
                                                     >
-                                                        <CameraIcon className="h-4 w-4 text-blue-500" /> Câmera
+                                                        <CameraIcon className="h-4 w-4" />
+                                                        Câmera
                                                     </button>
+                                                    {(formData.photos?.length || 0) > 0 && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    handleRemovePhoto(formData.photos!.length - 1);
+                                                                    setIsPhotoMenuOpen(false);
+                                                                }}
+                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 text-left transition-colors border-t border-gray-50"
+                                                            >
+                                                                <TrashIcon className="h-4 w-4" />
+                                                                Remover última
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFormData(prev => ({ ...prev, photos: [] }));
+                                                                    setIsPhotoMenuOpen(false);
+                                                                }}
+                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50 text-left transition-colors border-t border-gray-50"
+                                                            >
+                                                                <TrashIcon className="h-4 w-4" />
+                                                                Remover todas
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1250,18 +1278,17 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             </section>
                         </div>
                     )}
-                </div>
 
-                {/* Footer Fixo */}
-                <div className="p-4 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end items-center gap-4 sticky bottom-0 z-10 flex-none pb-safe">
-                    <div className="flex gap-3 md:gap-4 w-full md:w-auto">
-                        <button type="button" onClick={onClose} className="flex-1 md:flex-none px-6 py-3.5 md:py-4 bg-white border-2 border-gray-200 text-gray-500 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-gray-100 transition-all">Cancelar</button>
-                        <button type="submit" disabled={isSaving} className="flex-1 md:flex-none px-6 md:px-12 py-3.5 md:py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:opacity-50 md:min-w-[200px]">
-                            {isSaving ? <SpinnerIcon className="h-5 w-5 mx-auto animate-spin" /> : (isTradeInMode ? 'Confirmar' : 'Salvar')}
-                        </button>
+                    {/* Footer Fixo */}
+                    <div className="p-4 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end items-center gap-4 sticky bottom-0 z-10 flex-none pb-safe">
+                        <div className="flex gap-3 md:gap-4 w-full md:w-auto">
+                            <button type="button" onClick={onClose} className="flex-1 md:flex-none px-6 py-3.5 md:py-4 bg-white border-2 border-gray-200 text-gray-500 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-gray-100 transition-all">Cancelar</button>
+                            <button type="submit" disabled={isSaving} className="flex-1 md:flex-none px-6 md:px-12 py-3.5 md:py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:opacity-50 md:min-w-[200px]">
+                                {isSaving ? <SpinnerIcon className="h-5 w-5 mx-auto animate-spin" /> : (isTradeInMode ? 'Confirmar' : 'Salvar')}
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </form>
+            </form >
 
             <CameraModal
                 isOpen={isCameraOpen}
@@ -1269,16 +1296,18 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 onCapture={handleAddPhoto}
             />
 
-            {isSupplierModalOpen && (
-                <CustomerModal
-                    entity={null}
-                    initialType="Fornecedor"
-                    onClose={() => setIsSupplierModalOpen(false)}
-                    onSave={handleSaveNewSupplier as any}
-                    isSaving={savingSupplier}
-                />
-            )}
-        </div>
+            {
+                isSupplierModalOpen && (
+                    <CustomerModal
+                        entity={null}
+                        initialType="Fornecedor"
+                        onClose={() => setIsSupplierModalOpen(false)}
+                        onSave={handleSaveNewSupplier as any}
+                        isSaving={savingSupplier}
+                    />
+                )
+            }
+        </div >
     );
 
     return ReactDOM.createPortal(modalContent, document.body);

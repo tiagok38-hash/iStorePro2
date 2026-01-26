@@ -389,7 +389,9 @@ const CustomersAndSuppliers: React.FC = () => {
         setIsSaving(true);
         try {
             const isEditing = !!entityData.id;
+            const originTab = activeTab; // 'clientes' or 'fornecedores'
 
+            // --- Lógica para Cliente ---
             if (entityType === 'Cliente' || entityType === 'Ambos') {
                 const customerPayload: any = {
                     name: entityData.name,
@@ -405,13 +407,25 @@ const CustomersAndSuppliers: React.FC = () => {
                     customerPayload.birthDate = entityData.birthDate;
                 }
 
-                if (isEditing && activeTab === 'clientes') {
+                if (isEditing && originTab === 'clientes') {
                     await updateCustomer({ ...customerPayload, id: entityData.id });
                 } else {
                     await addCustomer(customerPayload);
+
+                    // Se moveu de Fornecedor para Cliente (exclusivo), tenta apagar o fornecedor antigo
+                    if (isEditing && originTab === 'fornecedores' && entityType === 'Cliente') {
+                        try {
+                            await deleteSupplier(entityData.id);
+                            showToast('Fornecedor movido para Cliente com sucesso!', 'success');
+                        } catch (e) {
+                            console.warn("Could not delete original supplier:", e);
+                            showToast('Novo cliente criado, mas o fornecedor original não pôde ser excluído (possui vínculos).', 'warning');
+                        }
+                    }
                 }
             }
 
+            // --- Lógica para Fornecedor ---
             if (entityType === 'Fornecedor' || entityType === 'Ambos') {
                 const supplierPayload: any = {
                     name: entityData.name,
@@ -420,19 +434,48 @@ const CustomersAndSuppliers: React.FC = () => {
                     phone: entityData.phone,
                     avatarUrl: entityData.avatarUrl,
                     instagram: entityData.instagram,
+                    cpf: undefined,
+                    rg: undefined,
+                    birthDate: undefined,
+                    cnpj: undefined
                 };
-                if (personType === 'Pessoa Jurídica') {
+
+                if (personType === 'Pessoa Física') {
+                    supplierPayload.cpf = entityData.cpf;
+                    supplierPayload.rg = entityData.rg;
+                    supplierPayload.birthDate = entityData.birthDate;
+                } else {
                     supplierPayload.cnpj = entityData.cnpj;
                 }
 
-                if (isEditing && activeTab === 'fornecedores') {
+                if (entityData.address) {
+                    const addr = entityData.address;
+                    supplierPayload.address = typeof addr === 'string' ? addr :
+                        `${addr.street || ''} ${addr.number || ''}, ${addr.neighborhood || ''} - ${addr.city || ''}/${addr.state || ''}`;
+                }
+
+                if (isEditing && originTab === 'fornecedores') {
                     await updateSupplier({ ...supplierPayload, id: entityData.id });
                 } else {
                     await addSupplier(supplierPayload);
+
+                    // Se moveu de Cliente para Fornecedor (exclusivo), tenta apagar o cliente antigo
+                    if (isEditing && originTab === 'clientes' && entityType === 'Fornecedor') {
+                        try {
+                            await deleteCustomer(entityData.id);
+                            showToast('Cliente movido para Fornecedor com sucesso!', 'success');
+                        } catch (e) {
+                            console.warn("Could not delete original customer:", e);
+                            showToast('Novo fornecedor criado, mas o cliente original não pôde ser excluído (possui vendas vinculadas).', 'warning');
+                        }
+                    }
                 }
             }
 
-            showToast('Dados salvos com sucesso!', 'success');
+            if (!((isEditing && originTab === 'fornecedores' && entityType === 'Cliente') || (isEditing && originTab === 'clientes' && entityType === 'Fornecedor'))) {
+                showToast('Dados salvos com sucesso!', 'success');
+            }
+
             fetchData();
             handleCloseModal();
         } catch (error: any) {
