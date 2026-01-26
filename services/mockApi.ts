@@ -1740,6 +1740,19 @@ const mapSupplier = (s: any) => ({
 // Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
 const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url';
 
+// Helper to ensure date format is YYYY-MM-DD
+const ensureISODate = (dateStr: string | undefined | null): string | null => {
+    if (!dateStr) return null;
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr;
+    // Convert DD/MM/YYYY
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
+};
+
 export const getCustomers = async () => {
     return fetchWithCache('customers', async () => {
         return fetchWithRetry(async () => {
@@ -1919,7 +1932,7 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl || null;
     if (data.cpf !== undefined) payload.cpf = data.cpf || null;
     if (data.rg !== undefined) payload.rg = data.rg || null;
-    if (data.birthDate !== undefined) payload.birth_date = data.birthDate || null;
+    if (data.birthDate !== undefined) payload.birth_date = ensureISODate(data.birthDate) || null;
     if (data.isBlocked !== undefined) payload.is_blocked = data.isBlocked || false;
     if (data.customTag !== undefined) payload.custom_tag = data.customTag || null;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
@@ -2049,7 +2062,7 @@ export const addSupplier = async (data: any, userId: string = 'system', userName
     if (data.cnpj) payload.cnpj = data.cnpj;
     if (data.cpf) payload.cpf = data.cpf;
     if (data.rg) payload.rg = data.rg;
-    if (data.birthDate) payload.birth_date = data.birthDate;
+    if (data.birthDate) payload.birth_date = ensureISODate(data.birthDate);
     if (data.avatarUrl) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram) payload.instagram = data.instagram;
@@ -2095,7 +2108,7 @@ export const updateSupplier = async (data: any, userId: string = 'system', userN
     if (data.cnpj !== undefined) payload.cnpj = data.cnpj;
     if (data.cpf !== undefined) payload.cpf = data.cpf;
     if (data.rg !== undefined) payload.rg = data.rg;
-    if (data.birthDate !== undefined) payload.birth_date = data.birthDate;
+    if (data.birthDate !== undefined) payload.birth_date = ensureISODate(data.birthDate);
     if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId !== undefined) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
