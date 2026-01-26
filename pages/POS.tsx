@@ -157,12 +157,10 @@ const POS: React.FC = () => {
         if (user?.id) {
             fetchData();
         } else {
-            console.log('POS: Waiting for user session...');
         }
 
         // Smart Reload Listener
         const handleSmartReload = () => {
-            console.log('POS: Smart reload triggered');
             fetchData(true);
         };
         window.addEventListener('app-reloadData', handleSmartReload);
@@ -278,7 +276,6 @@ const POS: React.FC = () => {
             return;
         }
 
-        console.log('Tentando reabrir caixa:', session.id);
         // Only check if the CURRENT USER has an open session. 
         // Other users having open sessions should not prevent me from opening mine.
         const myOpenSession = sessions.find(s => s.status === 'aberto' && s.userId === user?.id);

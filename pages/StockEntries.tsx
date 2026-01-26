@@ -124,7 +124,6 @@ const Purchases: React.FC = () => {
 
     const handleDelete = async (reason: string) => {
         if (!purchaseToDelete) return;
-        console.log(`Excluindo compra #${purchaseToDelete.displayId}. Motivo: ${reason}`);
         try {
             await deletePurchaseOrder(purchaseToDelete.id, user?.id, user?.name);
             showToast('Compra excluída com sucesso!', 'success');

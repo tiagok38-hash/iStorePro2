@@ -341,7 +341,6 @@ const CustomersAndSuppliers: React.FC = () => {
 
             // Auto-retry once after short delay (handles reconnection issues after idle)
             if (retryCount < 1) {
-                console.log('Customers: Tentando reconectar automaticamente...');
                 setTimeout(() => fetchData(retryCount + 1), 2000);
                 return;
             }

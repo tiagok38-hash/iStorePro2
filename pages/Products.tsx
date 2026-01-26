@@ -237,7 +237,6 @@ const Products: React.FC = () => {
 
                 // Auto-retry once after short delay (handles reconnection issues after idle)
                 if (retryCount < 1) {
-                    console.log('Products: Tentando reconectar automaticamente...');
                     setTimeout(() => fetchData(silent, retryCount + 1), 2000);
                     return;
                 }
@@ -257,7 +256,6 @@ const Products: React.FC = () => {
 
         // Nível 6: Evento de recarregamento inteligente
         const handleSmartReload = () => {
-            console.log('Products: Smart reload triggered');
             fetchData(true);
         };
         window.addEventListener('app-reloadData', handleSmartReload);

@@ -48,16 +48,19 @@ const StockInModal: React.FC<{
     // Dynamic parameters from Empresa > Parâmetros
     const [conditionOptions, setConditionOptions] = useState<ProductConditionParameter[]>([]);
     const [locationOptions, setLocationOptions] = useState<StorageLocationParameter[]>([]);
+    const [warrantyOptions, setWarrantyOptions] = useState<WarrantyParameter[]>([]);
 
     // Fetch dynamic parameters on mount
     useEffect(() => {
         const fetchParameters = async () => {
-            const [conditions, locations] = await Promise.all([
+            const [conditions, locations, warranties] = await Promise.all([
                 getProductConditions(),
-                getStorageLocations()
+                getStorageLocations(),
+                getWarranties()
             ]);
             setConditionOptions(conditions);
             setLocationOptions(locations);
+            setWarrantyOptions(warranties);
         };
         fetchParameters();
     }, []);
@@ -306,7 +309,6 @@ const StockInModal: React.FC<{
 
         setIsSaving(true);
         try {
-            console.log('[StockInModal] Preparing products for launch...');
             const newProducts: (Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'sku'> & { purchaseItemId: string })[] = details.map(d => {
                 const originalItem = purchaseOrder.items.find(i => i.id === d.purchaseItemId);
                 if (!originalItem) {
@@ -339,7 +341,6 @@ const StockInModal: React.FC<{
                 };
             });
 
-            console.log('[StockInModal] Calling API...');
             await launchPurchaseToStock(purchaseOrder.id, newProducts);
             showToast(`Estoque da compra #${purchaseOrder.displayId} lançado com sucesso!`, 'success');
             onClose(true);
@@ -395,10 +396,11 @@ const StockInModal: React.FC<{
                             <th className="p-3 w-20 text-center">Qtd.</th>
                             <th className="p-3 min-w-[120px]">Condição</th>
                             <th className="p-3 min-w-[130px]">Local</th>
-                            <th className="p-3 w-32">Preço de Custo</th>
-                            <th className="p-3 w-24 text-center">Markup %</th>
-                            <th className="p-3 w-44">Preço Atacado</th>
-                            <th className="p-3 w-44">Preço Venda</th>
+                            <th className="p-3 w-32">P. Custo</th>
+                            <th className="p-3 w-32">Garantia</th>
+                            <th className="p-3 w-24 text-center">Mkp %</th>
+                            <th className="p-3 w-40">P. Atacado</th>
+                            <th className="p-3 w-40">P. Venda</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -435,6 +437,18 @@ const StockInModal: React.FC<{
                                     </select>
                                 </td>
                                 <td className="p-3 font-semibold">{formatCurrency(detail.costPrice)}</td>
+                                <td className="p-3">
+                                    <select
+                                        value={detail.warranty}
+                                        onChange={(e) => handleDetailChange(index, 'warranty', e.target.value)}
+                                        className={`${inputClasses} h-10`}
+                                    >
+                                        {warrantyOptions.length === 0 ? <option>Carregando...</option> : <>
+                                            {detail.warranty && !warrantyOptions.some(w => w.name.toLowerCase() === detail.warranty?.toLowerCase()) && <option value={detail.warranty}>{detail.warranty}</option>}
+                                            {warrantyOptions.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                                        </>}
+                                    </select>
+                                </td>
                                 <td className="p-3 w-28">
                                     <input
                                         type="number"
@@ -499,6 +513,16 @@ const StockInModal: React.FC<{
                                             {locationOptions.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
                                         </select>
                                     </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-[9px] font-bold text-muted uppercase mb-0.5 ml-1">Garantia</label>
+                                        <select
+                                            value={detail.warranty}
+                                            onChange={(e) => handleDetailChange(index, 'warranty', e.target.value)}
+                                            className={`${inputClassesCompact} h-8 py-0`}
+                                        >
+                                            {warrantyOptions.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div className="bg-gray-50/80 p-2 rounded border border-border/50">
@@ -551,14 +575,15 @@ const StockInModal: React.FC<{
                     <table className="w-full text-sm min-w-[1200px]">
                         <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0 z-10">
                             <tr>
-                                <th className="p-3 w-48">Descrição</th>
-                                <th className="p-1 w-40">IMEI 1</th>
-                                <th className="p-1 w-40">IMEI 2</th>
-                                <th className="p-1 w-40">S/N</th>
+                                <th className="p-3 w-40">Descrição</th>
+                                <th className="p-1 w-44">IMEI 1</th>
+                                <th className="p-1 w-44">IMEI 2</th>
+                                <th className="p-1 w-44">S/N</th>
                                 <th className="p-3 min-w-[120px]">Condição</th>
+                                <th className="p-3 min-w-[130px]">Garantia</th>
                                 {hasAppleItems && <th className="p-3 w-24 text-center">Bateria %</th>}
                                 <th className="p-3 min-w-[130px]">Local</th>
-                                <th className="p-3 w-28">Custo</th>
+                                <th className="p-3 w-24">Custo</th>
                                 <th className="p-3 w-24">Markup %</th>
                                 <th className="p-3 w-40">Preço Atacado</th>
                                 <th className="p-3 w-40">Preço Venda</th>
@@ -576,6 +601,14 @@ const StockInModal: React.FC<{
                                     <td className="p-3">
                                         <select value={detail.condition} onChange={e => handleDetailChange(index, 'condition', e.target.value)} className={`${inputClasses} h-10`}>
                                             {conditionOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                        </select>
+                                    </td>
+                                    <td className="p-3">
+                                        <select value={detail.warranty} onChange={e => handleDetailChange(index, 'warranty', e.target.value)} className={`${inputClasses} h-10`}>
+                                            {warrantyOptions.length === 0 ? <option>Carregando...</option> : <>
+                                                {detail.warranty && !warrantyOptions.some(w => w.name.toLowerCase() === detail.warranty?.toLowerCase()) && <option value={detail.warranty}>{detail.warranty}</option>}
+                                                {warrantyOptions.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+                                            </>}
                                         </select>
                                     </td>
                                     {hasAppleItems && (
@@ -662,6 +695,12 @@ const StockInModal: React.FC<{
                                             <label className="text-[9px] font-bold text-muted uppercase mb-0.5 ml-1">Local</label>
                                             <select value={detail.storageLocation} onChange={e => handleDetailChange(index, 'storageLocation', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-lg`}>
                                                 {locationOptions.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <label className="text-[9px] font-bold text-muted uppercase mb-0.5 ml-1">Garantia</label>
+                                            <select value={detail.warranty} onChange={e => handleDetailChange(index, 'warranty', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-lg`}>
+                                                {warrantyOptions.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
                                             </select>
                                         </div>
                                         {detail.isApple && detail.condition === 'Seminovo' && (

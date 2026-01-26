@@ -1006,7 +1006,6 @@ const Dashboard: React.FC = () => {
 
         // Smart Reload Listener
         const handleSmartReload = () => {
-            console.log('Dashboard: Smart reload triggered');
             fetchData(true);
         };
         window.addEventListener('app-reloadData', handleSmartReload);

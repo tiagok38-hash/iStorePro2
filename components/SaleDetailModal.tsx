@@ -115,7 +115,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                             </span>
                                                                         </>
                                                                     )}
-                                                                    {product.condition === 'Seminovo' && typeof product.batteryHealth === 'number' && (
+                                                                    {product.condition !== 'Novo' && typeof product.batteryHealth === 'number' && (
                                                                         <>
                                                                             <span className="text-gray-300">|</span>
                                                                             <span>
@@ -191,7 +191,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                             <p className="font-semibold text-primary">{payment.tradeInDetails.model}</p>
                                                             <p>
                                                                 {payment.tradeInDetails.imei1 ? `IMEI: ${payment.tradeInDetails.imei1}` : `S/N: ${payment.tradeInDetails.serialNumber}`}
-                                                                {payment.tradeInDetails.batteryHealth ? ` | Bateria: ${payment.tradeInDetails.batteryHealth}%` : ''}
+                                                                {payment.tradeInDetails.batteryHealth && (payment.tradeInDetails as any).condition !== 'Novo' ? ` | Bateria: ${payment.tradeInDetails.batteryHealth}%` : ''}
                                                             </p>
                                                         </div>
                                                     )}
@@ -220,7 +220,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                         <span>Condição: <span className="font-semibold">{legacyTradedInProduct.condition}</span></span>
                                                     </>
                                                 )}
-                                                {legacyTradedInProduct.condition === 'Seminovo' && typeof legacyTradedInProduct.batteryHealth === 'number' && (
+                                                {legacyTradedInProduct.condition !== 'Novo' && typeof legacyTradedInProduct.batteryHealth === 'number' && (
                                                     <>
                                                         <span className="text-blue-300">|</span>
                                                         <span>Bateria: <span className="font-semibold">{legacyTradedInProduct.batteryHealth}%</span></span>

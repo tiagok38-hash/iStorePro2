@@ -58,7 +58,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // GERENCIAMENTO DE DADOS CRÍTICOS (Nível 6)
   // =====================================================
   const reloadCriticalData = useCallback(async (userId: string) => {
-    console.log('UserContext: 🔄 Recarregando dados críticos (Estoque, Vendas, Permissões, Caixa)...');
 
     // 1. Limpar cache local (mockApi) para forçar fetch fresco do Supabase
     clearCache(['products', 'sales', 'permissions_profiles', 'cash_sessions', 'cash_sessions_' + userId]);
@@ -72,7 +71,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const active = sessions.find(s => s.status === 'aberto');
       if (isMountedRef.current) {
         setOpenCashSession(active || null);
-        console.log('UserContext: Caixa restaurado:', active ? `ID ${active.displayId}` : 'Nenhum aberto');
       }
     } catch (e) {
       console.warn('UserContext: Erro ao restaurar caixa:', e);
@@ -86,7 +84,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!isMountedRef.current) return;
 
     if (userData) {
-      console.log('UserContext: ✅ Atualizando usuário autenticado:', userData.email);
       setUser(userData);
       setIsAuthenticated(true);
       if (sessionData) setSession(sessionData);
@@ -125,7 +122,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
     } else {
-      console.log('UserContext: 🛑 Limpando sessão de usuário');
       setUser(null);
       setPermissions(null);
       setIsAuthenticated(false);
@@ -145,10 +141,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!forceRefreshData && (now - lastCheck < 2000)) return;
 
     sessionStorage.setItem('last_auth_check', now.toString());
-    console.log('UserContext: 🔍 Verificando sessão Supabase...');
 
     if (!navigator.onLine) {
-      console.log('UserContext: Offline - Mantendo estado local');
       setIsOnline(false);
       setLoading(false);
       return;
@@ -174,7 +168,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Verifica se usuário mudou ou se precisamos recarregar perfil
         if (!user || user.id !== currentSession.user.id || forceRefreshData) {
-          console.log('UserContext: Sessão recuperada, carregando perfil...');
           const profile = await getProfile(currentSession.user.id);
 
           const userData = profile || {
@@ -193,7 +186,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await reloadCriticalData(userData.id);
           }
         } else {
-          console.log('UserContext: Sessão quente mantida.');
           // Apenas atualiza token se mudou
           if (session?.access_token !== currentSession.access_token) {
             setSession(currentSession);
@@ -201,7 +193,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } else {
         // Nenhuma sessão ativa no Supabase
-        console.log('UserContext: Nenhuma sessão ativa encontrada.');
         // Se tínhamos usuário logado localmente, agora é hora de fazer o logout real
         if (user) {
           await updateUserAndPermissions(null);
@@ -225,7 +216,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // 2. Supabase Auth Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log(`UserContext: 🔔 Auth Event: ${event}`);
 
       switch (event) {
         case 'SIGNED_IN':
@@ -255,7 +245,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (document.visibilityState === 'visible') {
         const now = Date.now();
         const timeAway = now - lastActiveRef.current;
-        console.log(`UserContext: App em foco. Tempo ausente: ${Math.round(timeAway / 1000)}s`);
 
         // Se ficou fora por mais que o threshold, força refresh de dados
         const shouldRefreshData = timeAway > BACKGROUND_REFRESH_THRESHOLD;
@@ -270,7 +259,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 4. Online/Offline Listeners
     const handleOnline = () => {
       setIsOnline(true);
-      console.log('UserContext: Online detectado. Ressincronizando...');
       checkSession(true); // Voltando online sempre é bom checar
     };
     const handleOffline = () => setIsOnline(false);
@@ -309,7 +297,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // =====================================================
   const login = async (email: string, password_param: string) => {
     // await apiLogout(); // Garante limpeza anterior
-    console.log('UserContext: Login manual...');
     const userData = await apiLogin(email, password_param);
     if (userData) {
       // Force session refresh to get the pure Supabase session object
@@ -328,7 +315,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    console.log('UserContext: Logout solicitado.');
     await updateUserAndPermissions(null);
     try {
       if (user) await apiLogout(user.id, user.name);
@@ -339,7 +325,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const refreshPermissions = async () => {
-    if (user) await checkSession(false);
+    if (user) await checkSession(true);
   };
 
   const contextValue = React.useMemo(() => ({

@@ -323,7 +323,6 @@ const Compras: React.FC = () => {
                                             <button
                                                 title={p.stockStatus === 'Lançado' ? 'Reverter Estoque' : 'Lançar no Estoque'}
                                                 onClick={() => {
-                                                    console.log('Stock Status clicked:', p.stockStatus);
                                                     if (p.stockStatus === 'Lançado') {
                                                         handleClickRevert(p);
                                                     } else {

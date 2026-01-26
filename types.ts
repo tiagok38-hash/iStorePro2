@@ -211,6 +211,7 @@ export interface Payment {
         imei1?: string;
         imei2?: string;
         batteryHealth?: number;
+        condition?: string;
     };
 }
 

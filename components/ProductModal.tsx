@@ -675,8 +675,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
             };
 
             // Preserve these fields from product BEFORE any parsing logic
-            const preservedWarranty = product.warranty || (product as any).warranty_period || (product as any).garantia;
-            const preservedStorageLocation = product.storageLocation || (product as any).storage_location;
+            const preservedWarranty = (product.warranty || (product as any).warranty_period || (product as any).garantia || '').trim();
+            const preservedStorageLocation = (product.storageLocation || (product as any).storage_location || '').trim();
             const preservedColor = product.color;
 
             if (product.brand === 'Apple' || isTradeInMode) {
@@ -704,8 +704,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                     b.id === brandName
                 );
 
-                console.log('[ProductModal] Non-Apple product:', product.model);
-                console.log('[ProductModal] brandObj found:', brandObj?.name, brandObj?.id);
 
                 if (brandObj) {
                     initialData.brand = brandObj.id;
@@ -719,7 +717,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                         )
                     );
 
-                    console.log('[ProductModal] categoryObj found:', categoryObj?.name, categoryObj?.id);
 
                     if (categoryObj) {
                         initialData.category = categoryObj.id;
@@ -736,7 +733,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             .replace(bName, '')
                             .trim();
 
-                        console.log('[ProductModal] Cleaned model for search:', cleanModel);
 
                         // Try multiple strategies to find the model
                         let modelObj = modelsForCategory.find(m =>
@@ -757,7 +753,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             );
                         }
 
-                        console.log('[ProductModal] modelObj found:', modelObj?.name, modelObj?.id);
                         if (modelObj) {
                             initialData.model = modelObj.id;
                         } else {
@@ -776,8 +771,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
             // Explicitly ensure important fields are set in formData from the incoming product
             initialData.supplierId = product.supplierId;
-            initialData.warranty = preservedWarranty;
-            initialData.storageLocation = preservedStorageLocation;
+            initialData.warranty = preservedWarranty || (product.brand === 'Apple' ? '1 ano' : '');
+            initialData.storageLocation = preservedStorageLocation || 'Estoque Principal';
 
             setFormData(initialData);
             setIsMinimumStockEnabled(!!(initialData.minimumStock && initialData.minimumStock > 0));
@@ -797,6 +792,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
     // Normalize data casing when options become available to avoid duplicates (e.g. "1 ano" vs "1 Ano")
     useEffect(() => {
+        if (!formData.condition && !formData.warranty && !formData.storageLocation) return;
+
         setFormData(prev => {
             let next = { ...prev };
             let changed = false;
@@ -824,7 +821,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
             }
             return changed ? next : prev;
         });
-    }, [conditionOptions, warrantyOptions, locationOptions]);
+    }, [conditionOptions, warrantyOptions, locationOptions, product?.id]); // Also run when product changes to ensure normalization for each item
 
     // Separate effect for product change to avoid "size changed" error during hot reload
     useEffect(() => {
@@ -1048,7 +1045,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
         setIsSaving(true);
         try {
-            console.log('[ProductModal] Submitting data to parent...');
             // Call onSave - wrap in a race to prevent infinite loading if parent hangs
             const savePromise = (async () => {
                 const result = onSave({
@@ -1069,7 +1065,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_SAVE')), 20000))
             ]);
 
-            console.log('[ProductModal] Save completed successfully.');
         } catch (error: any) {
             if (error.message === 'TIMEOUT_SAVE') {
                 showToast('A gravação demorou muito. Verifique sua conexão ou se os dados foram salvos.', 'warning');

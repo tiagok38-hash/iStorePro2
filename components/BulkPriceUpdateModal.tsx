@@ -134,7 +134,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                     </div>
                     <div className="flex items-center gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Novo preço de Custo</label>
+                            <label className="block text-xs font-bold text-muted mb-1">Novo preço de Custo</label>
                             <CurrencyInput
                                 value={newCostPrice}
                                 onChange={setNewCostPrice}
@@ -142,18 +142,18 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Novo preço de Venda</label>
+                            <label className="block text-xs font-bold text-muted mb-1">Novo preço ATC</label>
                             <CurrencyInput
-                                value={newSalePrice}
-                                onChange={setNewSalePrice}
+                                value={newWholesalePrice}
+                                onChange={setNewWholesalePrice}
                                 className={`${currencyInputClasses} w-36`}
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Novo preço ATC</label>
+                            <label className="block text-xs font-bold text-muted mb-1">Novo preço de Venda</label>
                             <CurrencyInput
-                                value={newWholesalePrice}
-                                onChange={setNewWholesalePrice}
+                                value={newSalePrice}
+                                onChange={setNewSalePrice}
                                 className={`${currencyInputClasses} w-36`}
                             />
                         </div>

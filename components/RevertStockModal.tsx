@@ -93,7 +93,7 @@ const RevertStockModal: React.FC<RevertStockModalProps> = ({ purchase, products,
                                                 <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px]">{p.condition}</span>
                                             </td>
                                             <td className={`px-3 py-2 text-center font-bold ${getBatteryColor(p.batteryHealth)}`}>
-                                                {p.batteryHealth ? `${p.batteryHealth}%` : '-'}
+                                                {p.batteryHealth && p.condition !== 'Novo' ? `${p.batteryHealth}%` : '-'}
                                             </td>
                                             <td className="px-3 py-2 text-center text-gray-600">{p.warranty || '-'}</td>
                                             <td className="px-3 py-2 text-center text-gray-600">{p.storageLocation || '-'}</td>

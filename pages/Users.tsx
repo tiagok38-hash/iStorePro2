@@ -265,6 +265,9 @@ const Users: React.FC = () => {
             if ('id' in userData && userData.id) {
                 await updateUser(userData as User);
                 showToast('Usuário atualizado com sucesso!', 'success');
+                if (loggedInUser && userData.id === loggedInUser.id) {
+                    refreshPermissions();
+                }
             } else {
                 await addUser(userData as Omit<User, 'id' | 'createdAt'>);
                 showToast('Usuário criado com sucesso!', 'success');

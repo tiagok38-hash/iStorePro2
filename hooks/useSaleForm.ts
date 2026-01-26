@@ -184,11 +184,11 @@ export const useSaleForm = ({
             return;
         }
 
-        console.log('[useSaleForm] handleOpenTradeInModal called for customer:', customer.name);
+
 
         try {
             const supplier = await findOrCreateSupplierFromCustomer(customer);
-            console.log('[useSaleForm] Supplier created/found:', supplier.id, supplier.name);
+
             setLocalSuppliers(prev => {
                 if (!prev.some(s => s.id === supplier.id)) return [...prev, supplier];
                 return prev;
@@ -241,7 +241,7 @@ export const useSaleForm = ({
         }
 
         if (isTradeIn) {
-            console.log('[useSaleForm] handleRequestPayment: Opening trade-in modal');
+
             handleOpenTradeInModal();
         }
         else if (isCard) {
@@ -304,7 +304,8 @@ export const useSaleForm = ({
             stock: 1,
             selectedCustomerId,
             createdBy: selectedSalespersonId,
-            createdByName: salesperson?.name
+            createdByName: salesperson?.name,
+            supplierName: suppliers.find(s => s.id === productData.supplierId)?.name || 'N/A'
         };
         const tradeInValue = newProductPayload.costPrice || 0;
 
@@ -322,7 +323,8 @@ export const useSaleForm = ({
                         serialNumber: createdProduct.serialNumber,
                         imei1: createdProduct.imei1,
                         imei2: createdProduct.imei2,
-                        batteryHealth: createdProduct.batteryHealth
+                        batteryHealth: createdProduct.batteryHealth,
+                        condition: createdProduct.condition
                     }
                 };
                 setPayments(prev => [...prev, newPayment]);
@@ -333,13 +335,14 @@ export const useSaleForm = ({
         } catch (error: any) {
             showToast(error?.message || 'Erro ao criar produto de troca.', 'error');
         } finally {
+            setProductForTradeIn(null);
             setIsTradeInProductModalOpen(false);
         }
     }, [selectedCustomerId, selectedSalespersonId, users, onAddProduct, showToast]);
 
     // Wrapper function for TradeInModal which has a different signature
     const handleSaveTradeInFromModal = useCallback(async ({ tradeInValue, newProductData }: { tradeInValue: number; newProductData: any }) => {
-        console.log('[useSaleForm] handleSaveTradeInFromModal called with:', { tradeInValue, newProductData });
+
 
         if (!selectedCustomerId) {
             setIsTradeInProductModalOpen(false);
@@ -352,7 +355,8 @@ export const useSaleForm = ({
             stock: 1,
             selectedCustomerId,
             createdBy: selectedSalespersonId,
-            createdByName: salesperson?.name
+            createdByName: salesperson?.name,
+            supplierName: suppliers.find(s => s.id === newProductData.supplierId)?.name || 'N/A'
         };
 
         try {
@@ -369,7 +373,8 @@ export const useSaleForm = ({
                         serialNumber: createdProduct.serialNumber,
                         imei1: createdProduct.imei1,
                         imei2: createdProduct.imei2,
-                        batteryHealth: createdProduct.batteryHealth
+                        batteryHealth: createdProduct.batteryHealth,
+                        condition: createdProduct.condition
                     }
                 };
                 setPayments(prev => [...prev, newPayment]);
@@ -380,6 +385,7 @@ export const useSaleForm = ({
         } catch (error: any) {
             showToast(error?.message || 'Erro ao criar produto de troca.', 'error');
         } finally {
+            setProductForTradeIn(null);
             setIsTradeInProductModalOpen(false);
         }
     }, [selectedCustomerId, selectedSalespersonId, users, onAddProduct, showToast]);
@@ -410,7 +416,6 @@ export const useSaleForm = ({
         };
 
         try {
-            console.log('useSaleForm: Attempting to save sale. saleToEdit ID:', saleToEdit?.id);
             let savedSale: Sale;
             if (saleToEdit) {
                 savedSale = await updateSale(
@@ -422,7 +427,6 @@ export const useSaleForm = ({
                 savedSale = await addSale(baseSaleData as any, user?.id, user?.name);
             }
 
-            console.log('useSaleForm: Sale saved successfully:', savedSale.id);
 
             if (pendingTradeInProduct && savedSale) {
                 const salesperson = users.find(u => u.id === selectedSalespersonId);
@@ -473,7 +477,7 @@ export const useSaleForm = ({
             setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setCart, setProductSearch,
             setProductToConfirm, setSearchQuantity, setGlobalDiscountType, setGlobalDiscountValue,
             setWarrantyTerm, setObservations, setInternalObservations,
-            setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput,
+            setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput, setProductForTradeIn,
             handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
             handleOpenTradeInModal, handleRequestPayment, handleConfirmPayment,
             handleConfirmCardPayment, handleRemovePayment, handleSaveTradeInProduct, handleSaveTradeInFromModal, handleSave,

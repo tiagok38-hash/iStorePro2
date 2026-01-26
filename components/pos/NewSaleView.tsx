@@ -63,7 +63,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setProductSearch,
         setSearchQuantity, setGlobalDiscountType, setGlobalDiscountValue,
         setWarrantyTerm, setObservations, setInternalObservations,
-        setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput,
+        setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput, setProductForTradeIn,
         handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
         handleRequestPayment, handleConfirmPayment, handleConfirmCardPayment,
         handleRemovePayment, handleSaveTradeInProduct, handleSave
@@ -111,7 +111,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     }, [paymentMethods]);
 
     const inputClasses = "w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm box-border";
-    const labelClasses = "block text-[11px] font-black text-gray-500 mb-1.5 uppercase tracking-wider";
+    const labelClasses = "block text-[11px] font-black text-gray-800 mb-1.5 uppercase tracking-wider";
 
     const totalFees = useMemo(() => payments.reduce((sum, p) => sum + (p.fees || 0), 0), [payments]);
 
@@ -207,7 +207,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                             {item.imei1 && <span className="truncate">IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></span>}
                                                             <div className="flex items-center gap-2 truncate">
                                                                 {item.condition && <span>{item.condition}</span>}
-                                                                {item.batteryHealth !== undefined && item.batteryHealth !== null && (
+                                                                {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && (
                                                                     <span>| Bat: <span className={`${item.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'}`}>{item.batteryHealth}%</span></span>
                                                                 )}
                                                             </div>
@@ -387,7 +387,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="w-full pl-4 pr-10 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm appearance-none">
                                     {receiptTerms.map(term => (<option key={term.id} value={term.name}>{term.name}</option>))}
                                 </select>
-                                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary pointer-events-none" />
                             </div>
                         </div>
 
@@ -435,7 +435,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 grades={grades}
                 gradeValues={gradeValues}
                 customers={customers}
-                onClose={() => setIsTradeInProductModalOpen(false)}
+                onClose={() => {
+                    setIsTradeInProductModalOpen(false);
+                    setProductForTradeIn(null);
+                }}
                 onSave={handleSaveTradeInProduct}
                 onAddNewSupplier={async () => null}
             />
@@ -486,7 +489,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             <span className="font-mono font-medium text-gray-700">{productToConfirm.serialNumber}</span>
                                         </div>
                                     )}
-                                    {productToConfirm.batteryHealth !== undefined && productToConfirm.batteryHealth !== null && (
+                                    {productToConfirm.batteryHealth !== undefined && productToConfirm.batteryHealth !== null && productToConfirm.condition !== 'Novo' && (
                                         <div className="p-2 bg-gray-50 rounded border border-gray-100">
                                             <span className="block text-[9px] font-bold text-muted uppercase">Saúde Bateria</span>
                                             <span className={`font-bold ${productToConfirm.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{productToConfirm.batteryHealth}%</span>

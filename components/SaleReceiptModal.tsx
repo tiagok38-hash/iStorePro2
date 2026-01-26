@@ -130,7 +130,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                                         {warrantyExp && (
                                             <p className="text-[10px] text-gray-700 font-medium leading-tight mt-0.5">
                                                 Garantia válida até {warrantyExp}
-                                                {product?.batteryHealth ? ` • Saúde da Bateria: ${product.batteryHealth}%` : ''}
+                                                {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Saúde da Bateria: ${product.batteryHealth}%` : ''}
                                             </p>
                                         )}
                                     </td>

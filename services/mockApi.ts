@@ -758,6 +758,16 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     }
 
     // ✅ NEW PRODUCT: IMEI/Serial doesn't exist, create it
+    let resolvedSupplierName = data.supplier || data.supplierName;
+    if (!resolvedSupplierName && (data.supplierId || selectedCustomerId)) {
+        const sid = data.supplierId || selectedCustomerId;
+        try {
+            const { data: s } = await supabase.from('suppliers').select('name').eq('id', sid).maybeSingle();
+            if (s) resolvedSupplierName = s.name;
+        } catch (e) {
+            console.warn('[addProduct] Could not resolve supplier name:', e);
+        }
+    }
 
     const { count } = await supabase.from('products').select('*', { count: 'exact', head: true });
     const nextSku = `#${(count || 0) + 1}`;
@@ -775,7 +785,7 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
         stock: data.stock,
         sku: data.sku || nextSku,
         category: data.category,
-        supplier: data.supplier || data.supplierName,
+        supplier: resolvedSupplierName || 'N/A',
         supplierId: data.supplierId || selectedCustomerId || null,
         imei1: imei1,
         imei2: imei2,
@@ -801,11 +811,11 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
             oldStock: 0,
             newStock: data.stock || 1,
             adjustment: data.stock || 1,
-            reason: data.origin === 'Troca' ? 'Entrada via Troca' : 'Cadastro Inicial',
+            reason: data.origin === 'Troca' ? 'Entrada via Troca' : (data.origin === 'Comprado de Cliente' ? 'Compra de Cliente' : 'Cadastro Inicial'),
             timestamp: now,
             changedBy: data.createdByName || userName || 'Sistema',
-            details: data.origin === 'Troca'
-                ? `Produto recebido em troca. Fornecedor: ${data.supplierName || data.supplier || 'N/A'}. Custo: R$ ${(data.costPrice || 0).toFixed(2)}`
+            details: (data.origin === 'Troca' || data.origin === 'Comprado de Cliente')
+                ? `Produto recebido via ${data.origin === 'Troca' ? 'troca' : 'compra de cliente'}. Fornecedor: ${resolvedSupplierName || 'N/A'}. Custo: R$ ${(data.costPrice || 0).toFixed(2)}`
                 : `Produto cadastrado manualmente.`
         }]
     };
@@ -1723,7 +1733,8 @@ const mapSupplier = (s: any) => ({
     contactPerson: s.contact_person,
     avatarUrl: s.avatar_url,
     linkedCustomerId: s.linked_customer_id,
-    instagram: s.instagram
+    instagram: s.instagram,
+    address: s.address
 });
 
 // Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
@@ -2039,6 +2050,7 @@ export const addSupplier = async (data: any, userId: string = 'system', userName
     if (data.avatarUrl) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram) payload.instagram = data.instagram;
+    if (data.address) payload.address = data.address;
 
     let result = await supabase.from('suppliers').insert([payload]).select().single();
 
@@ -2081,6 +2093,7 @@ export const updateSupplier = async (data: any, userId: string = 'system', userN
     if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId !== undefined) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
+    if (data.address !== undefined) payload.address = data.address;
 
 
     // Timeout de segurança (30s) para uploads de imagem ou conexões lentas
@@ -2962,7 +2975,7 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
     // STEP 1: Get purchase order info (with timeout)
     let purchaseOrder: any = null;
     try {
-        const poQuery = supabase.from('purchase_orders').select('displayId, createdBy, supplierId').eq('id', purchaseOrderId).single();
+        const poQuery = supabase.from('purchase_orders').select('displayId, createdBy, supplierId, supplierName').eq('id', purchaseOrderId).single();
         const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_PO')), 5000));
         const result = await Promise.race([poQuery, timeout]) as any;
         purchaseOrder = result.data;
@@ -2976,6 +2989,7 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
 
     const displayId = purchaseOrder?.displayId || '???';
     const createdBy = purchaseOrder?.createdBy || 'Sistema';
+    const supplierName = purchaseOrder?.supplierName || 'N/A';
 
     // STEP 2: Get current SKU count
     const { count } = await supabase.from('products').select('*', { count: 'exact', head: true });
@@ -3022,7 +3036,7 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                     relatedId: purchaseOrderId,
                     timestamp: now,
                     changedBy: createdBy,
-                    details: `Recompra via Compra #${displayId}`
+                    details: `Recompra via Compra #${displayId}${supplierName !== 'N/A' ? ` - ${supplierName}` : ''}`
                 };
                 const existingHistory = existingProduct.stockHistory || [];
                 productsToReactivate.push({
@@ -3034,6 +3048,10 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                         wholesalePrice: p.wholesalePrice,
                         condition: p.condition,
                         storageLocation: p.storageLocation,
+                        warranty: p.warranty,
+                        batteryHealth: p.batteryHealth,
+                        supplierId: p.supplierId,
+                        origin: p.origin,
                         purchaseOrderId: purchaseOrderId,
                         updatedAt: now,
                         stockHistory: [...existingHistory, newStockHistoryEntry]
@@ -3052,7 +3070,7 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                 relatedId: purchaseOrderId,
                 timestamp: now,
                 changedBy: createdBy,
-                details: `Compra #${displayId}`
+                details: `Compra #${displayId}${supplierName !== 'N/A' ? ` - ${supplierName}` : ''}`
             }];
 
             productsToInsert.push({
