@@ -442,9 +442,10 @@ export interface PaymentMethodParameter {
 }
 
 export interface CompanyInfo {
+    id?: string;
     name: string;
     razaoSocial?: string;
-    logoUrl: string;
+    logoUrl?: string;
     cnpj?: string;
     inscricaoEstadual?: string;
     address?: string;
@@ -456,6 +457,7 @@ export interface CompanyInfo {
     cep?: string;
     email?: string;
     whatsapp?: string;
+    instagram?: string;
 }
 
 

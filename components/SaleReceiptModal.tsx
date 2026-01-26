@@ -6,6 +6,22 @@ import { CloseIcon, PrinterIcon, SpinnerIcon } from './icons.tsx';
 
 const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
+// Format CNPJ: 22.333.930/0001-08
+const formatCNPJ = (cnpj?: string): string => {
+    if (!cnpj) return '-';
+    const digits = cnpj.replace(/\D/g, '');
+    if (digits.length !== 14) return cnpj;
+    return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+};
+
+// Format CEP: 55192-245
+const formatCEP = (cep?: string): string => {
+    if (!cep) return '-';
+    const digits = cep.replace(/\D/g, '');
+    if (digits.length !== 8) return cep;
+    return digits.replace(/(\d{5})(\d{3})/, '$1-$2');
+};
+
 const getWarrantyExpiration = (saleDate: string, warrantyName: string, warranties: WarrantyParameter[]): string => {
     const date = new Date(saleDate);
     const warranty = warranties.find(w => w.name === warrantyName);
@@ -53,150 +69,193 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
         return content.split('\n').map((line, index) => {
             const parts = line.split('.');
             if (parts.length > 1 && !isNaN(parseInt(parts[0], 10))) {
-                return <li key={index} className="flex"><span className="w-6 flex-shrink-0">{parts[0]}.</span><span>{parts.slice(1).join('.').trim()}</span></li>;
+                return <li key={index} className="flex"><span className="w-4 flex-shrink-0">{parts[0]}.</span><span>{parts.slice(1).join('.').trim()}</span></li>;
             }
             return <li key={index}>{line}</li>
         });
     };
 
     return (
-        <div className="p-0 border-none font-sans text-black receipt-body" id="receipt-content">
-            <div className="flex justify-between items-center mb-1">
-                <span className="text-xs">{formatDateTime(sale.date)}</span>
-                <span className="font-semibold text-xs">Recibo #{sale.id} - {companyInfo?.name}</span>
-            </div>
-            <header className="flex justify-between items-start pb-2 border-b border-black">
+        <div className="font-sans text-black receipt-body" id="receipt-content" style={{ width: '100%', maxWidth: '195mm', margin: '0 auto' }}>
+            {/* Company Header - Logo bigger */}
+            <header className="flex justify-between items-start pb-1.5 border-b border-black">
                 <div className="flex items-center gap-4">
-                    {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-16 w-16 object-contain" />}
+                    {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-20 w-20 object-contain" />}
                     <div>
                         <h1 className="font-bold text-lg leading-tight">{companyInfo?.name}</h1>
-                        <div className="text-[10px] leading-tight space-y-0.5">
-                            <p>CNPJ: {companyInfo?.cnpj}</p>
-                            <p>{companyInfo?.address}</p>
-                            <p>{companyInfo?.city} ({companyInfo?.state}) CEP: {companyInfo?.cep}</p>
-                        </div>
+                        <p className="text-[10px] leading-tight">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
+                        <p className="text-[10px] leading-tight">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''} - {companyInfo?.bairro}</p>
+                        <p className="text-[10px] leading-tight">{companyInfo?.city} ({companyInfo?.state}) - CEP: {formatCEP(companyInfo?.cep)}</p>
+                        <p className="text-[10px] leading-tight">
+                            {companyInfo?.whatsapp && <span>WhatsApp: {companyInfo.whatsapp} </span>}
+                            {companyInfo?.instagram && <span>Instagram: {companyInfo.instagram} </span>}
+                            {companyInfo?.email && <span>Email: {companyInfo.email}</span>}
+                        </p>
                     </div>
                 </div>
+                {/* Receipt ID and Date on right side */}
+                <div className="text-right text-[10px]">
+                    <p className="font-bold text-sm">Recibo #{sale.id}</p>
+                    <p>{new Date(sale.date).toLocaleDateString('pt-BR')} às {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
             </header>
-            <section className="flex justify-between items-start border-b border-black py-1.5">
-                <div className="flex gap-4 text-xs">
-                    <div><span className="font-semibold">Data:</span> {new Date(sale.date).toLocaleDateString('pt-BR')}</div>
-                    <div><span className="font-semibold">ID:</span> #{sale.id}</div>
-                    <div><span className="font-semibold">Caixa:</span> #{sale.posTerminal.replace(/\D/g, '') || 'N/A'}</div>
+
+            {/* Sale Info Row */}
+            <section className="flex justify-between items-start border-b border-black py-1.5 text-[10px]">
+                <div className="flex gap-4">
+                    <span><b>ID:</b> #{sale.id}</span>
+                    <span><b>Caixa:</b> #{sale.posTerminal.replace(/\D/g, '') || 'N/A'}</span>
                 </div>
-                <div className="text-xs"><span className="font-semibold">Vendedor:</span> {salesperson?.name}</div>
+                <span><b>Vendedor:</b> {salesperson?.name}</span>
             </section>
-            <section className="mt-1 py-1.5 border-b border-black">
-                <h3 className="font-bold mb-0.5 text-xs">DADOS DO CLIENTE</h3>
-                <div className="flex flex-wrap gap-x-6 gap-y-0.5 text-xs">
-                    <p><span className="font-semibold">Nome:</span> {customer?.name}</p>
-                    <p><span className="font-semibold">CPF:</span> {customer?.cpf}</p>
-                    <p><span className="font-semibold">Tel:</span> {customer?.phone}</p>
-                    {customer?.email && <p><span className="font-semibold">Email:</span> {customer?.email}</p>}
+
+            {/* Customer Data - Larger font */}
+            <section className="py-1.5 border-b border-black text-[11px]">
+                <div className="flex flex-wrap gap-x-6">
+                    <span><b>Nome:</b> {customer?.name}</span>
+                    <span><b>CPF:</b> {customer?.cpf || '-'}</span>
+                    <span><b>Tel:</b> {customer?.phone}</span>
                 </div>
             </section>
-            {sale.observations && (
-                <section className="mt-1 py-1.5 border-b border-black">
-                    <h3 className="font-bold mb-0.5 text-xs">OBSERVAÇÕES</h3>
-                    <p className="text-xs">{sale.observations}</p>
-                </section>
-            )}
+
+            {/* Observations moved to just above warranty section */}
+
+            {/* Title */}
             <h2 className="font-bold text-center text-base my-2">RECIBO DE VENDA</h2>
-            <section>
-                <table className="w-full text-left border-collapse border border-black mb-2 text-xs">
+
+            {/* Products Table - Full Width */}
+            <section className="rounded-lg overflow-hidden border border-black">
+                <table className="w-full text-left border-collapse text-[10px]">
                     <thead className="bg-gray-100">
                         <tr>
-                            <th className="px-1 py-0.5 font-semibold border border-black">Descrição</th>
-                            <th className="px-1 py-0.5 font-semibold border border-black text-center w-10">Qtd</th>
-                            <th className="px-1 py-0.5 font-semibold border border-black text-right w-20">Unit.</th>
-                            <th className="px-1 py-0.5 font-semibold border border-black text-right w-20">Total</th>
+                            <th className="px-1.5 py-1 font-semibold border border-black">Descrição</th>
+                            <th className="px-1.5 py-1 font-semibold border border-black text-center" style={{ width: '40px' }}>Qtd</th>
+                            <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Unit.</th>
+                            <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {sale.items.map(item => {
                             const product = productMap[item.productId];
                             const warrantyExp = getWarrantyExpiration(sale.date, product?.warranty || '', warranties);
-
                             return (
                                 <tr key={item.productId}>
-                                    <td className="px-1 py-0.5 align-top border border-black">
-                                        <p className="font-semibold leading-tight">{`SKU:${product?.sku || ''} ${product?.model || 'Produto'}`}</p>
-                                        <div className="text-[10px] text-gray-600 leading-tight">
+                                    <td className="px-1.5 py-1 align-top border border-black">
+                                        <p className="font-semibold leading-tight text-[10px]">{`SKU:${product?.sku || ''} ${product?.model || 'Produto'}`}</p>
+                                        <div className="text-[9px] text-gray-600 leading-tight">
                                             {product?.imei1 && <span>IMEI1: {product.imei1} </span>}
                                             {product?.imei2 && <span>IMEI2: {product.imei2} </span>}
                                             {product?.serialNumber && <span>S/N: {product.serialNumber} </span>}
                                             <span>{product?.condition}</span>
                                         </div>
                                         {warrantyExp && (
-                                            <p className="text-[10px] text-gray-700 font-medium leading-tight mt-0.5">
-                                                Garantia válida até {warrantyExp}
-                                                {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Saúde da Bateria: ${product.batteryHealth}%` : ''}
+                                            <p className="text-[9px] text-gray-700 leading-tight">
+                                                Garantia até {warrantyExp}
+                                                {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Bat: ${product.batteryHealth}%` : ''}
                                             </p>
                                         )}
                                     </td>
-                                    <td className="px-1 py-0.5 text-center align-top border border-black">{item.quantity}</td>
-                                    <td className="px-1 py-0.5 text-right align-top border border-black">{formatCurrency(item.unitPrice)}</td>
-                                    <td className="px-1 py-0.5 text-right font-semibold align-top border border-black">{formatCurrency(item.unitPrice * item.quantity)}</td>
+                                    <td className="px-1.5 py-1 text-center align-top border border-black">{item.quantity}</td>
+                                    <td className="px-1.5 py-1 text-right align-top border border-black">{formatCurrency(item.unitPrice)}</td>
+                                    <td className="px-1.5 py-1 text-right font-semibold align-top border border-black">{formatCurrency(item.unitPrice * item.quantity)}</td>
                                 </tr>
                             );
                         })}
                     </tbody>
                 </table>
             </section>
-            <section className="mt-1 flex justify-between items-start gap-4 text-xs">
-                <div className="border border-black p-1.5 w-1/2 rounded">
-                    <p className="font-bold mb-0.5 text-[11px]">PAGAMENTO</p>
-                    <div className="space-y-0.5">
+
+            {/* Payment + Totals - Side by Side */}
+            <section className="mt-2 flex justify-between gap-3 text-[10px]">
+                {/* Payment Section - 58% width */}
+                <div className="border border-black p-2 rounded" style={{ width: '58%' }}>
+                    <p className="font-bold mb-1 text-[11px] border-b border-gray-300 pb-0.5">PAGAMENTO</p>
+                    <div className="space-y-1">
                         {sale.payments.map(p => {
-                            let paymentText = p.method;
-                            if (p.installments) {
-                                paymentText += ` (${p.installments}x ${formatCurrency(p.installmentsValue)})`;
+                            // Format payment line based on type
+                            let methodName = p.method;
+                            let detailsLine = '';
+                            // Calculate total value with fees: p.value + p.fees (or just p.value if fees are already included)
+                            const totalValueWithFees = p.value + (p.fees || 0);
+                            let valueText = formatCurrency(totalValueWithFees);
+
+                            // Credit card with installments: "12x de R$ 47,52 (12,31% de taxa)"
+                            if (p.installments && p.installments > 1) {
+                                const installmentValue = p.installmentsValue || totalValueWithFees / p.installments;
+                                detailsLine = `${p.installments}x de ${formatCurrency(installmentValue)}`;
+                                if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
+                                    detailsLine += ` (${p.feePercentage.toFixed(2)}% de taxa)`;
+                                }
                             }
-                            if (p.feePercentage && p.type !== 'Sem Juros') {
-                                paymentText += ` +${p.feePercentage.toFixed(2)}%`;
+                            // Debit with fee: "(Taxa débito 2,4%)"
+                            else if (p.method?.toLowerCase().includes('débito') && p.feePercentage && p.feePercentage > 0) {
+                                detailsLine = `(Taxa débito ${p.feePercentage.toFixed(2)}%)`;
+                            }
+                            // Credit single payment with fee
+                            else if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
+                                detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}%)`;
                             }
 
                             return (
-                                <div key={p.id}>
-                                    <p className="font-medium leading-none">{paymentText}</p>
-                                    {p.tradeInDetails && (
-                                        <p className="pl-1 text-gray-600 italic text-[10px] leading-tight">
-                                            Troca: {p.tradeInDetails.model}
-                                            {p.tradeInDetails.imei1 ? ` IMEI: ${p.tradeInDetails.imei1}` : ` SN: ${p.tradeInDetails.serialNumber}`}
-                                        </p>
-                                    )}
+                                <div key={p.id} className="flex justify-between items-start border-b border-dashed border-gray-200 pb-0.5 last:border-b-0">
+                                    <div className="flex-1">
+                                        <span className="font-medium">{methodName}</span>
+                                        {detailsLine && <span className="text-gray-600 ml-1 text-[9px]">{detailsLine}</span>}
+                                        {p.tradeInDetails && (
+                                            <p className="text-[9px] text-gray-600 italic leading-tight">
+                                                Troca: {p.tradeInDetails.model}
+                                                {p.tradeInDetails.imei1 ? ` IMEI: ${p.tradeInDetails.imei1}` : p.tradeInDetails.serialNumber ? ` SN: ${p.tradeInDetails.serialNumber}` : ''}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <span className="font-semibold ml-2 whitespace-nowrap">{valueText}</span>
                                 </div>
                             );
                         })}
                     </div>
                 </div>
-                <div className="w-1/3 space-y-0.5 bg-gray-50 p-1.5 rounded border border-gray-200 text-[11px]">
+
+                {/* Totals Section - 40% width */}
+                <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[10px]" style={{ width: '40%' }}>
                     <div className="flex justify-between"><span className="font-semibold">ITENS</span><span>{totalItems}</span></div>
                     <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
                     <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">TAXAS</span><span>{formatCurrency(totalFees)}</span></div>
-                    <div className="flex justify-between border-t border-black pt-0.5 mt-0.5"><span className="font-bold">TOTAL</span><span className="font-bold">{formatCurrency(sale.total)}</span></div>
-                    <div className="flex justify-between bg-black text-white px-1 rounded mt-0.5"><span className="font-bold">PAGO</span><span className="font-bold">{formatCurrency(totalPaid)}</span></div>
+                    <div className="flex justify-between"><span className="font-semibold">TAXAS CARTÃO</span><span>{formatCurrency(totalFees)}</span></div>
+                    <div className="flex justify-between border-t border-black pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">{formatCurrency(totalFees > 0 ? sale.total + totalFees : sale.total)}</span></div>
+                    {/* Highlighted PAGO section */}
+                    <div className="flex justify-between bg-black text-white px-2 py-1 rounded mt-1 border-2 border-gray-800">
+                        <span className="font-black text-[12px]">PAGO</span>
+                        <span className="font-black text-[12px]">{formatCurrency(totalPaid)}</span>
+                    </div>
                 </div>
             </section>
+
+            {/* Observations - just above warranty section */}
+            {sale.observations && (
+                <section className="mt-4 py-1.5 border border-black rounded px-2 text-[10px]">
+                    <span className="font-bold">OBSERVAÇÕES:</span> {sale.observations}
+                </section>
+            )}
+
+            {/* Warranty Terms - More spacing, larger font */}
             {activeTerm && (
-                <section className="mt-2 space-y-1">
+                <section className="mt-3 space-y-2">
                     {activeTerm.warrantyTerm?.showOnReceipt && activeTerm.warrantyTerm.content && (
                         <div>
-                            <h3 className="font-bold uppercase border-b border-black mb-0.5 text-[10px]">Garantia</h3>
-                            <p className="whitespace-pre-wrap text-justify text-[9px] leading-tight">{activeTerm.warrantyTerm.content}</p>
+                            <h3 className="font-bold uppercase text-[11px] mb-1.5">GARANTIA</h3>
+                            <p className="whitespace-pre-wrap text-justify text-[9px] leading-snug">{activeTerm.warrantyTerm.content}</p>
                         </div>
                     )}
                     {activeTerm.warrantyExclusions?.showOnReceipt && activeTerm.warrantyExclusions.content && (
-                        <div>
-                            <h3 className="font-bold uppercase border-b border-black mb-0.5 mt-1 text-[10px]">Não Coberto</h3>
-                            <ul className="list-none space-y-0 text-[9px] leading-tight">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
+                        <div className="mt-1">
+                            <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">A GARANTIA NÃO COBRE:</h3>
+                            <ul className="list-none space-y-0 text-[8px] leading-snug columns-2">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
                         </div>
                     )}
                     {activeTerm.imageRights?.showOnReceipt && activeTerm.imageRights.content && (
                         <div className="mt-1">
-                            <h3 className="font-bold uppercase border-b border-black mb-0.5 text-[10px]">Direito de Imagem</h3>
-                            <p className="whitespace-pre-wrap text-justify text-[9px] leading-tight">{activeTerm.imageRights.content}</p>
+                            <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">DIREITO DE IMAGEM</h3>
+                            <p className="whitespace-pre-wrap text-justify text-[8px] leading-snug">{activeTerm.imageRights.content}</p>
                         </div>
                     )}
                 </section>
@@ -267,7 +326,7 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
                     <div key={p.id}>
                         <div className="flex justify-between">
                             <span>{p.method}{p.installments ? ` ${p.installments}x` : ''}</span>
-                            <span>{formatCurrency(p.value)}</span>
+                            <span>{formatCurrency(p.value + (p.fees || 0))}</span>
                         </div>
                         {p.tradeInDetails && (
                             <p className="text-[10px] pl-2">
@@ -351,7 +410,8 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
 
     const customer = useMemo(() => customers.find(c => c.id === sale.customerId), [customers, sale.customerId]);
     const salesperson = useMemo(() => users.find(u => u.id === sale.salespersonId), [users, sale.salespersonId]);
-    const totalPaid = useMemo(() => sale.payments.reduce((sum, p) => sum + p.value, 0), [sale.payments]);
+    // Total paid must include the base value + fees for each payment
+    const totalPaid = useMemo(() => sale.payments.reduce((sum, p) => sum + p.value + (p.fees || 0), 0), [sale.payments]);
     const totalFees = useMemo(() => sale.payments.reduce((sum, p) => sum + (p.fees || 0), 0), [sale.payments]);
     const totalItems = useMemo(() => sale.items.reduce((sum, i) => sum + i.quantity, 0), [sale.items]);
 
@@ -376,6 +436,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         #print-container {
                             position: absolute; left: 0; top: 0; width: 100%; height: auto;
                             padding: 0; margin: 0; border: none; box-shadow: none;
+                            background: white !important;
                         }
                         .no-print { display: none !important; }
 
@@ -383,15 +444,38 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             @page { size: 80mm auto; margin: 2mm; }
                             .receipt-body { font-size: 9pt !important; color: black !important; width: 100%; }
                         ` : `
-                            @page { size: A4; margin: 10mm; }
-                            .receipt-body { font-size: 10pt !important; color: black !important; }
+                            @page { 
+                                size: A4 portrait; 
+                                margin: 8mm 7mm 8mm 7mm; 
+                            }
+                            .receipt-body { 
+                                font-size: 10pt !important; 
+                                color: black !important; 
+                                width: 100% !important;
+                                max-width: 196mm !important;
+                                margin: 0 auto !important;
+                            }
                         `}
 
                         .whitespace-pre-wrap { white-space: pre-wrap; }
+                        .columns-2 { columns: 2; column-gap: 8px; }
+                        
+                        /* Force background colors to print */
+                        * {
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                            color-adjust: exact !important;
+                        }
+                        
+                        /* Ensure PAGO section prints with dark background */
+                        .bg-black {
+                            background-color: #000000 !important;
+                            color: #ffffff !important;
+                        }
                     }
                 `}
             </style>
-            <div className={`bg-surface rounded-lg shadow-xl w-full ${format === 'A4' ? 'max-w-3xl' : 'max-w-sm'} flex flex-col`} id="print-container">
+            <div className={`bg-surface rounded-lg shadow-xl w-full ${format === 'A4' ? 'max-w-4xl' : 'max-w-sm'} flex flex-col`} id="print-container">
                 <div className="flex justify-between items-center p-4 border-b border-border no-print">
                     <h2 className="text-2xl font-bold text-primary">Recibo da Venda #{sale.id}</h2>
                     <div className="flex items-center gap-4">

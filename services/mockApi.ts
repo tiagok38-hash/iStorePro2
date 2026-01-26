@@ -758,11 +758,59 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     }
 
     // ✅ NEW PRODUCT: IMEI/Serial doesn't exist, create it
+
+    // If this is a trade-in from a customer (selectedCustomerId), find or create linked supplier
+    let resolvedSupplierId = data.supplierId;
     let resolvedSupplierName = data.supplier || data.supplierName;
-    if (!resolvedSupplierName && (data.supplierId || selectedCustomerId)) {
-        const sid = data.supplierId || selectedCustomerId;
+
+    if (selectedCustomerId && !resolvedSupplierId) {
+        // This is a trade-in from a customer - find or create a supplier linked to this customer
         try {
-            const { data: s } = await supabase.from('suppliers').select('name').eq('id', sid).maybeSingle();
+            const { data: customer } = await supabase.from('customers').select('*').eq('id', selectedCustomerId).single();
+            if (customer) {
+                // Use the findOrCreateSupplierFromCustomer function (defined later in the file)
+                // For now, inline the logic to avoid circular dependency issues
+                const { data: existingSupplier } = await supabase
+                    .from('suppliers')
+                    .select('*')
+                    .eq('linked_customer_id', selectedCustomerId)
+                    .maybeSingle();
+
+                if (existingSupplier) {
+                    resolvedSupplierId = existingSupplier.id;
+                    resolvedSupplierName = existingSupplier.name;
+                } else {
+                    // Create a new supplier linked to this customer
+                    const newSupplierData = {
+                        name: customer.name,
+                        email: customer.email || null,
+                        phone: customer.phone || null,
+                        linked_customer_id: selectedCustomerId,
+                        instagram: customer.instagram || null
+                    };
+                    const { data: createdSupplier } = await supabase
+                        .from('suppliers')
+                        .insert([newSupplierData])
+                        .select()
+                        .single();
+
+                    if (createdSupplier) {
+                        resolvedSupplierId = createdSupplier.id;
+                        resolvedSupplierName = createdSupplier.name;
+                        clearCache(['suppliers']);
+                        console.log(`[addProduct] Created supplier "${createdSupplier.name}" linked to customer "${customer.name}"`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[addProduct] Could not find/create supplier from customer:', e);
+            // Fallback to using customer ID directly
+            resolvedSupplierId = selectedCustomerId;
+        }
+    } else if (!resolvedSupplierName && resolvedSupplierId) {
+        // Just resolve the supplier name
+        try {
+            const { data: s } = await supabase.from('suppliers').select('name').eq('id', resolvedSupplierId).maybeSingle();
             if (s) resolvedSupplierName = s.name;
         } catch (e) {
             console.warn('[addProduct] Could not resolve supplier name:', e);
@@ -785,7 +833,7 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
         stock: data.stock,
         sku: data.sku || nextSku,
         category: data.category,
-        supplier_id: data.supplierId || selectedCustomerId || null, // Mapped to correct column
+        supplier_id: resolvedSupplierId || null, // Use the resolved supplier ID
         // supplier: is removed because it's not in the DB
         imei1: imei1,
         imei2: imei2,
@@ -2022,19 +2070,41 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
 export const deleteCustomer = async (id: string, userId: string = 'system', userName: string = 'Sistema') => {
     const { data: customer } = await supabase.from('customers').select('*').eq('id', id).single();
 
+    if (!customer) {
+        throw new Error('Cliente não encontrado.');
+    }
+
+    // Check if customer has any sales
+    const { count: salesCount } = await supabase
+        .from('sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('customerId', id);
+
+    if (salesCount && salesCount > 0) {
+        throw new Error(`Este cliente possui ${salesCount} venda(s) registrada(s) e não pode ser excluído. Você pode desativar o cadastro ao invés de excluir.`);
+    }
+
+    // Check if customer has any trade-in history (products where they are the supplier)
+    const { count: productsCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('supplier_id', id);
+
+    if (productsCount && productsCount > 0) {
+        throw new Error(`Este cliente possui ${productsCount} produto(s) recebido(s) via troca/compra e não pode ser excluído.`);
+    }
+
     const { error } = await supabase.from('customers').delete().eq('id', id);
     if (error) throw error;
 
-    if (customer) {
-        await addAuditLog(
-            AuditActionType.DELETE,
-            AuditEntityType.CUSTOMER,
-            id,
-            `Cliente excluído: ${customer.name}`,
-            userId,
-            userName
-        );
-    }
+    await addAuditLog(
+        AuditActionType.DELETE,
+        AuditEntityType.CUSTOMER,
+        id,
+        `Cliente excluído: ${customer.name}`,
+        userId,
+        userName
+    );
 
     clearCache(['customers']);
 };
@@ -2154,19 +2224,41 @@ export const updateSupplier = async (data: any, userId: string = 'system', userN
 export const deleteSupplier = async (id: string, userId: string = 'system', userName: string = 'Sistema') => {
     const { data: supplier } = await supabase.from('suppliers').select('*').eq('id', id).single();
 
+    if (!supplier) {
+        throw new Error('Fornecedor não encontrado.');
+    }
+
+    // Check if supplier has any products linked
+    const { count: productsCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('supplier_id', id);
+
+    if (productsCount && productsCount > 0) {
+        throw new Error(`Este fornecedor possui ${productsCount} produto(s) vinculado(s) e não pode ser excluído.`);
+    }
+
+    // Check if supplier has any purchase orders
+    const { count: ordersCount } = await supabase
+        .from('purchase_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('supplierId', id);
+
+    if (ordersCount && ordersCount > 0) {
+        throw new Error(`Este fornecedor possui ${ordersCount} pedido(s) de compra vinculado(s) e não pode ser excluído.`);
+    }
+
     const { error } = await supabase.from('suppliers').delete().eq('id', id);
     if (error) throw error;
 
-    if (supplier) {
-        await addAuditLog(
-            AuditActionType.DELETE,
-            AuditEntityType.SUPPLIER,
-            id,
-            `Fornecedor excluído: ${supplier.name}`,
-            userId,
-            userName
-        );
-    }
+    await addAuditLog(
+        AuditActionType.DELETE,
+        AuditEntityType.SUPPLIER,
+        id,
+        `Fornecedor excluído: ${supplier.name}`,
+        userId,
+        userName
+    );
 
     clearCache(['suppliers']);
 };
@@ -2729,15 +2821,57 @@ export const getCompanyInfo = async (): Promise<CompanyInfo | null> => {
         return fetchWithRetry(async () => {
             const res = await supabase.from('company_info').select('*').single();
             if (res.error) return { name: 'iStorePro' } as CompanyInfo;
-            return res.data as CompanyInfo;
+            const row = res.data;
+            // Map snake_case database columns to camelCase frontend fields
+            // Use localStorage fallback for logo if column doesn't exist
+            const logoFromDb = row.logo_url || row.logoUrl;
+            const logoFromStorage = typeof window !== 'undefined' ? localStorage.getItem('company_logo_fallback') : null;
+            return {
+                id: row.id,
+                name: row.name,
+                razaoSocial: row.razao_social,
+                logoUrl: logoFromDb || logoFromStorage || '',
+                cnpj: row.cnpj,
+                inscricaoEstadual: row.inscricao_estadual,
+                address: row.address,
+                numero: row.numero,
+                complemento: row.complemento,
+                bairro: row.bairro,
+                city: row.city,
+                state: row.state,
+                cep: row.cep,
+                email: row.email,
+                whatsapp: row.whatsapp,
+                instagram: row.instagram,
+            } as CompanyInfo;
         }, 2, 500);
     });
 };
 
 export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'system', userName: string = 'Sistema') => {
-    const payload = { ...data } as any;
+    // Map camelCase frontend fields to snake_case database columns
+    const payload: Record<string, any> = {
+        name: data.name,
+        razao_social: data.razaoSocial,
+        logo_url: data.logoUrl ?? null, // Allow null/empty to remove logo
+        cnpj: data.cnpj,
+        inscricao_estadual: data.inscricaoEstadual,
+        address: data.address,
+        numero: data.numero,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        city: data.city,
+        state: data.state,
+        cep: data.cep,
+        email: data.email,
+        whatsapp: data.whatsapp,
+        instagram: data.instagram,
+    };
 
-    if (!payload.id) {
+    // Include id if present in data
+    if (data.id) {
+        payload.id = data.id;
+    } else {
         // Try to find existing record to update
         const { data: existing } = await supabase.from('company_info').select('id').limit(1).maybeSingle();
         if (existing) {
@@ -2748,13 +2882,31 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
         }
     }
 
-    const { data: updated, error } = await supabase.from('company_info').upsert(payload).select().single();
-    if (error) throw error;
+    // Try to save with logo_url first
+    let result = await supabase.from('company_info').upsert(payload).select().single();
+
+    // If logo_url column doesn't exist, retry without it
+    if (result.error && result.error.message.includes('logo_url')) {
+        console.warn('logo_url column not found, saving without logo');
+        const { logo_url, ...payloadWithoutLogo } = payload;
+        // Store logo in localStorage as fallback
+        if (data.logoUrl) {
+            localStorage.setItem('company_logo_fallback', data.logoUrl);
+        } else {
+            localStorage.removeItem('company_logo_fallback');
+        }
+        result = await supabase.from('company_info').upsert(payloadWithoutLogo).select().single();
+    } else if (!result.error) {
+        // Logo was saved to DB successfully, clear localStorage fallback
+        localStorage.removeItem('company_logo_fallback');
+    }
+
+    if (result.error) throw result.error;
 
     await addAuditLog(
         AuditActionType.UPDATE,
         AuditEntityType.USER, // Or a dynamic SYSTEM entity
-        updated.id, // Use the ID from the updated record
+        result.data.id, // Use the ID from the updated record
         `Dados da empresa atualizados por ${userName}`,
         userId,
         userName
@@ -2762,7 +2914,7 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
 
     clearCache(['company_info']);
     window.dispatchEvent(new CustomEvent('companyInfoUpdated'));
-    return updated;
+    return result.data;
 };
 
 // --- PURCHASE ORDERS ---

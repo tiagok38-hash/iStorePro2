@@ -1278,17 +1278,18 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             </section>
                         </div>
                     )}
+                </div>
 
-                    {/* Footer Fixo */}
-                    <div className="p-4 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end items-center gap-4 sticky bottom-0 z-10 flex-none pb-safe">
-                        <div className="flex gap-3 md:gap-4 w-full md:w-auto">
-                            <button type="button" onClick={onClose} className="flex-1 md:flex-none px-6 py-3.5 md:py-4 bg-white border-2 border-gray-200 text-gray-500 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-gray-100 transition-all">Cancelar</button>
-                            <button type="submit" disabled={isSaving} className="flex-1 md:flex-none px-6 md:px-12 py-3.5 md:py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:opacity-50 md:min-w-[200px]">
-                                {isSaving ? <SpinnerIcon className="h-5 w-5 mx-auto animate-spin" /> : (isTradeInMode ? 'Confirmar' : 'Salvar')}
-                            </button>
-                        </div>
+                {/* Footer Fixo */}
+                <div className="p-4 md:p-8 border-t border-gray-100 bg-gray-50 flex justify-end items-center gap-4 sticky bottom-0 z-10 flex-none pb-safe">
+                    <div className="flex gap-3 md:gap-4 w-full md:w-auto">
+                        <button type="button" onClick={onClose} className="flex-1 md:flex-none px-6 py-3.5 md:py-4 bg-white border-2 border-gray-200 text-gray-500 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-gray-100 transition-all">Cancelar</button>
+                        <button type="submit" disabled={isSaving} className="flex-1 md:flex-none px-6 md:px-12 py-3.5 md:py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:opacity-50 md:min-w-[200px]">
+                            {isSaving ? <SpinnerIcon className="h-5 w-5 mx-auto animate-spin" /> : (isTradeInMode ? 'Confirmar' : 'Salvar')}
+                        </button>
                     </div>
-            </form >
+                </div>
+            </form>
 
             <CameraModal
                 isOpen={isCameraOpen}
@@ -1296,18 +1297,16 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 onCapture={handleAddPhoto}
             />
 
-            {
-                isSupplierModalOpen && (
-                    <CustomerModal
-                        entity={null}
-                        initialType="Fornecedor"
-                        onClose={() => setIsSupplierModalOpen(false)}
-                        onSave={handleSaveNewSupplier as any}
-                        isSaving={savingSupplier}
-                    />
-                )
-            }
-        </div >
+            {isSupplierModalOpen && (
+                <CustomerModal
+                    entity={null}
+                    initialType="Fornecedor"
+                    onClose={() => setIsSupplierModalOpen(false)}
+                    onSave={handleSaveNewSupplier as any}
+                    isSaving={savingSupplier}
+                />
+            )}
+        </div>
     );
 
     return ReactDOM.createPortal(modalContent, document.body);

@@ -104,9 +104,15 @@ const DadosEmpresaTab: React.FC = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await updateCompanyInfo(companyData as CompanyInfo);
+            // Also clear localStorage fallback if removing logo
+            if (!companyData.logoUrl) {
+                localStorage.removeItem('company_logo_fallback');
+            }
+            await updateCompanyInfo(companyData as CompanyInfo, user?.id || 'system', user?.name || 'Sistema');
             showToast('Dados da empresa salvos com sucesso!', 'success');
+            // Don't reload - keep current state values as the source of truth
         } catch (error) {
+            console.error('Erro ao salvar:', error);
             showToast('Erro ao salvar os dados da empresa.', 'error');
         } finally {
             setSaving(false);
@@ -134,9 +140,10 @@ const DadosEmpresaTab: React.FC = () => {
                     </div>
                     <div className="p-4 border rounded-lg space-y-4">
                         <h3 className="font-semibold text-primary">Contato</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div><label className={labelClasses}>WhatsApp</label><input name="whatsapp" value={companyData.whatsapp || ''} onChange={handleInputChange} className={inputClasses} maxLength={15} disabled={!canEdit} /></div>
                             <div><label className={labelClasses}>Email</label><input name="email" type="email" value={companyData.email || ''} onChange={handleInputChange} className={inputClasses} disabled={!canEdit} /></div>
+                            <div><label className={labelClasses}>Instagram</label><input name="instagram" value={companyData.instagram || ''} onChange={handleInputChange} className={inputClasses} placeholder="@suaempresa" disabled={!canEdit} /></div>
                         </div>
                     </div>
                     <div className="p-4 border rounded-lg space-y-4">

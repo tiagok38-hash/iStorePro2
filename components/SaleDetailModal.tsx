@@ -13,7 +13,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
 
     const customer = useMemo(() => customers.find(c => c.id === sale.customerId), [customers, sale.customerId]);
     const salesperson = useMemo(() => users.find(u => u.id === sale.salespersonId), [users, sale.salespersonId]);
-    const totalPaid = useMemo(() => sale.payments.reduce((sum, p) => sum + p.value, 0), [sale.payments]);
+    const totalPaid = useMemo(() => sale.payments.reduce((sum, p) => sum + p.value + (p.fees || 0), 0), [sale.payments]);
 
     const tradeInPayment = useMemo(() => sale.payments.find(p => p.method === 'Aparelho na Troca'), [sale.payments]);
 
@@ -184,7 +184,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                 <div key={payment.id} className="p-3 bg-surface-secondary rounded-md">
                                                     <div className="flex justify-between items-center">
                                                         <p className="font-medium text-primary">{payment.method}</p>
-                                                        <span className="font-semibold">{formatCurrency(payment.value)}</span>
+                                                        <span className="font-semibold">{formatCurrency(payment.value + (payment.fees || 0))}</span>
                                                     </div>
                                                     {payment.tradeInDetails && (
                                                         <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-muted space-y-0.5">
