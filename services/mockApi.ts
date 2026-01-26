@@ -785,8 +785,8 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
         stock: data.stock,
         sku: data.sku || nextSku,
         category: data.category,
-        supplier: resolvedSupplierName || 'N/A',
-        supplierId: data.supplierId || selectedCustomerId || null,
+        supplier_id: data.supplierId || selectedCustomerId || null, // Mapped to correct column
+        // supplier: is removed because it's not in the DB
         imei1: imei1,
         imei2: imei2,
         serialNumber: serialNumber,
