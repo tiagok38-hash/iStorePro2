@@ -15,7 +15,6 @@ export const GlobalLoadingOverlay: React.FC<{ show?: boolean }> = ({ show }) => 
         let timer: NodeJS.Timeout;
         if (isVisible) {
             timer = setTimeout(() => {
-                console.log('GlobalLoadingOverlay: Carregamento excedeu 3 segundos. Atualizando página...');
                 window.location.reload();
             }, 3000);
         }
@@ -115,7 +114,6 @@ export const PageLoadingWrapper: React.FC<PageLoadingWrapperProps> = ({
         let timer: NodeJS.Timeout;
         if (loading) {
             timer = setTimeout(() => {
-                console.log('PageLoadingWrapper: Carregamento excedeu 3 segundos. Atualizando página...');
                 window.location.reload();
             }, 3000);
         }
@@ -152,7 +150,6 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className }) =>
 export const SuspenseFallback: React.FC<{ fullScreen?: boolean }> = ({ fullScreen }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
-            console.log('SuspenseFallback: Carregamento excedeu 3 segundos. Atualizando página...');
             window.location.reload();
         }, 3000);
         return () => clearTimeout(timer);
@@ -175,7 +172,6 @@ export const useSessionRefresh = (onRefresh: () => void) => {
 
     useEffect(() => {
         const handleRefetch = () => {
-            console.log('useSessionRefresh: Triggered data refresh');
             onRefresh();
         };
 

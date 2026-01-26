@@ -119,34 +119,34 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     return (
         <React.Fragment>
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-slide-up">
-                <div className="p-2.5 md:p-4 space-y-3 md:space-y-4">
+                <div className="p-2 md:p-4 space-y-3 md:space-y-4">
                     <section>
-                        <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
-                            <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-xs tracking-widest"><EditIcon className="h-4 w-4 text-success" /> Dados da venda</h3>
+                        <div className="flex items-center justify-between mb-1 sm:mb-2 pb-1.5 sm:pb-2 border-b border-gray-100">
+                            <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-[10px] sm:text-xs tracking-widest"><EditIcon className="h-3.5 w-3.5 text-success" /> Dados da venda</h3>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white p-1">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 bg-white p-1">
                             <div className="md:col-span-2 flex flex-col justify-end">
                                 <label className={labelClasses}>Data</label>
-                                <input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className={inputClasses} />
+                                <input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className={`${inputClasses} h-10 sm:h-12`} />
                             </div>
                             <div className="md:col-span-7 flex flex-col justify-end">
                                 <label className={labelClasses}>Cliente Selecionado*</label>
-                                <div className="flex items-stretch gap-2 h-12">
-                                    <div className="flex-grow h-full">
+                                <div className="flex items-stretch gap-2 h-10 sm:h-12">
+                                    <div className="flex-grow h-full text-xs sm:text-sm">
                                         <SearchableDropdown
                                             options={customers.map(c => ({ value: c.id, label: c.name }))}
                                             value={selectedCustomerId}
                                             onChange={setSelectedCustomerId}
-                                            placeholder="Busque pelo nome do cliente..."
+                                            placeholder="Busque pelo nome..."
                                             className={!selectedCustomerId ? "bg-red-50 border-red-300 ring-2 ring-red-100 placeholder:text-red-400" : ""}
                                         />
                                     </div>
-                                    <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="w-12 h-full bg-success-light text-success rounded-xl hover:bg-success hover:text-white transition-all flex items-center justify-center border border-success/20 shadow-sm flex-shrink-0"><PlusIcon className="h-5 w-5" /></button>
+                                    <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="w-10 sm:w-12 h-full bg-success-light text-success rounded-xl hover:bg-success hover:text-white transition-all flex items-center justify-center border border-success/20 shadow-sm flex-shrink-0"><PlusIcon className="h-5 w-5" /></button>
                                 </div>
                             </div>
                             <div className="md:col-span-3 flex flex-col justify-end">
                                 <label className={labelClasses}>Vendedor*</label>
-                                <select value={selectedSalespersonId} onChange={e => setSelectedSalespersonId(e.target.value)} className={`${inputClasses} cursor-pointer appearance-none bg-no-repeat bg-[right_0.75rem_center] bg-[length:1em_1em]`} disabled={!selectedCustomerId}>
+                                <select value={selectedSalespersonId} onChange={e => setSelectedSalespersonId(e.target.value)} className={`${inputClasses} h-10 sm:h-12 cursor-pointer appearance-none bg-no-repeat bg-[right_0.75rem_center] bg-[length:1em_1em]`} disabled={!selectedCustomerId}>
                                     <option value="">Selecione...</option>
                                     {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                                 </select>
@@ -157,13 +157,13 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     <fieldset disabled={!selectedCustomerId || !selectedSalespersonId} className="space-y-4 disabled:opacity-50 transition-opacity">
                         <section>
                             <div className="flex items-center justify-between mb-2">
-                                <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-xs tracking-widest"><ShoppingCartIcon className="h-4 w-4 text-success" /> Carrinho</h3>
+                                <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-[10px] sm:text-xs tracking-widest"><ShoppingCartIcon className="h-4 w-4 text-success" /> Carrinho</h3>
                             </div>
                             <div className="flex items-end gap-2 mb-2">
                                 <div className="flex-grow relative">
                                     <label className={labelClasses}>Pesquisar Produto (Modelo, IMEI, SN)</label>
                                     <div className="relative">
-                                        <input ref={productSearchRef} type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Ex: iPhone 14 Pro..." className={`${inputClasses} pl-9`} />
+                                        <input ref={productSearchRef} type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Ex: iPhone 14 Pro..." className={`${inputClasses} pl-9 h-10 sm:h-12`} />
                                         <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
                                     </div>
                                     {filteredProducts.length > 0 && (
@@ -180,10 +180,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-16 md:w-20 flex-shrink-0"><label className={labelClasses}>QTD.</label><input type="number" value={searchQuantity} onChange={e => setSearchQuantity(Number(e.target.value))} min="1" className={`${inputClasses} text-center font-bold`} /></div>
+                                <div className="w-16 md:w-20 flex-shrink-0"><label className={labelClasses}>QTD.</label><input type="number" value={searchQuantity} onChange={e => setSearchQuantity(Number(e.target.value))} min="1" className={`${inputClasses} h-10 sm:h-12 text-center font-bold`} /></div>
                             </div>
 
-                            <div className="border border-gray-200 rounded-xl overflow-x-auto bg-gray-50/30">
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block border border-gray-200 rounded-xl overflow-x-auto bg-gray-50/30">
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-100/80 text-gray-800 font-black uppercase text-[10px] tracking-tighter">
                                         <tr className="text-left border-b border-gray-200">
@@ -242,58 +243,101 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {/* Mobile Card-Based View */}
+                            <div className="md:hidden space-y-2 max-h-[35vh] overflow-y-auto pr-1 -mr-1 custom-scrollbar">
+                                {cart.length === 0 ? (
+                                    <div className="p-8 text-center text-muted italic bg-gray-50 rounded-xl border border-dashed border-gray-200">Carrinho vazio.</div>
+                                ) : cart.map(item => (
+                                    <div key={item.id} className="bg-white p-2.5 rounded-xl border border-gray-200 shadow-sm space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 min-w-0 pr-2">
+                                                <h4 className="font-black text-gray-900 text-[13px] leading-tight break-words">{item.model}</h4>
+                                                <div className="text-[10px] text-muted space-y-0.5 mt-1 capitalize">
+                                                    {item.serialNumber && <p>SN: <span className="font-mono text-gray-600">{item.serialNumber}</span></p>}
+                                                    {item.imei1 && <p>IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></p>}
+                                                    <p>{item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && (
+                                                        <span className={`font-bold ${item.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>| Bat: {item.batteryHealth}%</span>
+                                                    )}</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => handleRemoveFromCart(item.id)} className="p-1 text-red-500 bg-red-50 rounded-lg flex-shrink-0"><XCircleIcon className="h-5 w-5" /></button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3 items-end pt-2 border-t border-gray-50">
+                                            <div>
+                                                <label className="block text-[9px] font-bold text-gray-400 uppercase mb-0.5">Preço Unitário</label>
+                                                <CurrencyInput
+                                                    value={item.salePrice}
+                                                    onChange={(val) => handleCartItemUpdate(item.id, 'salePrice', val || 0)}
+                                                    className="h-9 text-[13px] border rounded-lg bg-gray-50 border-gray-100 font-bold text-center"
+                                                />
+                                            </div>
+                                            <div className="text-right">
+                                                <label className="block text-[9px] font-bold text-gray-400 uppercase mb-0.5">Total (QTD: {item.quantity})</label>
+                                                <p className="font-black text-[15px] text-primary tabular-nums">
+                                                    {formatCurrency(
+                                                        ((item.salePrice || 0) * (item.quantity || 0)) -
+                                                        (item.discountType === 'R$'
+                                                            ? item.discountValue
+                                                            : ((item.salePrice || 0) * (item.quantity || 0)) * (item.discountValue / 100))
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </section>
 
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                             <section className="lg:col-span-2">
-                                <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-2 pb-1 border-b border-gray-100 uppercase text-xs tracking-widest"><CalculatorIcon className="h-4 w-4 text-success" /> Financeiro</h3>
+                                <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-2 pb-1 border-b border-gray-100 uppercase text-[10px] sm:text-xs tracking-widest"><CalculatorIcon className="h-4 w-4 text-success" /> Financeiro</h3>
 
-                                <div className="bg-white rounded-lg p-4 space-y-3 shadow-sm border border-gray-100">
+                                <div className="bg-white rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3 shadow-sm border border-gray-100">
                                     <div className="flex justify-between items-center text-gray-600">
-                                        <span className="text-sm font-bold">Subtotal</span>
-                                        <span className="text-base font-bold text-gray-800">{formatCurrency(subtotal)}</span>
+                                        <span className="text-xs sm:text-sm font-bold">Subtotal</span>
+                                        <span className="text-sm sm:text-base font-bold text-gray-800">{formatCurrency(subtotal)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-red-500 border-b border-gray-50 pb-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm font-bold">Desconto</span>
-                                            <div className="flex h-8">
-                                                <select value={globalDiscountType} onChange={e => setGlobalDiscountType(e.target.value as any)} className="bg-gray-50 text-gray-700 text-xs px-2 rounded-l border border-gray-200 focus:ring-0 outline-none font-bold">
+                                    <div className="flex justify-between items-center text-red-500 border-b border-gray-50 pb-2 sm:pb-3">
+                                        <div className="flex items-center gap-2 sm:gap-3">
+                                            <span className="text-xs sm:text-sm font-bold">Desconto</span>
+                                            <div className="flex h-7 sm:h-8">
+                                                <select value={globalDiscountType} onChange={e => setGlobalDiscountType(e.target.value as any)} className="bg-gray-50 text-gray-700 text-[10px] sm:text-xs px-1.5 sm:px-2 rounded-l border border-gray-200 focus:ring-0 outline-none font-bold">
                                                     <option>R$</option><option>%</option>
                                                 </select>
-                                                <input type="number" value={globalDiscountValue} onChange={e => setGlobalDiscountValue(Number(e.target.value))} className="bg-gray-50 text-gray-700 w-20 text-xs px-2 rounded-r border border-l-0 border-gray-200 focus:ring-0 text-right font-bold outline-none" />
+                                                <input type="number" value={globalDiscountValue} onChange={e => setGlobalDiscountValue(Number(e.target.value))} className="bg-gray-50 text-gray-700 w-16 sm:w-20 text-[10px] sm:text-xs px-1.5 sm:px-2 rounded-r border border-l-0 border-gray-200 focus:ring-0 text-right font-bold outline-none" />
                                             </div>
                                         </div>
-                                        <span className="text-base font-bold">-{formatCurrency(totalItemDiscounts + globalDiscountAmount)}</span>
+                                        <span className="text-sm sm:text-base font-bold">-{formatCurrency(totalItemDiscounts + globalDiscountAmount)}</span>
                                     </div>
                                     {totalFees > 0 && (
-                                        <div className="flex justify-between items-center text-blue-500 text-xs">
+                                        <div className="flex justify-between items-center text-blue-500 text-[10px] sm:text-xs">
                                             <span className="font-bold uppercase tracking-wider">Juros (Maquininha)</span>
                                             <span className="font-bold">{formatCurrency(totalFees)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center pt-2 mt-1 border-t border-gray-100">
-                                        <span className="text-lg uppercase font-black tracking-widest text-success">Total</span>
-                                        <span className="text-2xl md:text-3xl font-black text-gray-900">{formatCurrency(total)}</span>
+                                        <span className="text-base sm:text-lg uppercase font-black tracking-widest text-success leading-none">Total</span>
+                                        <span className="text-xl sm:text-3xl font-black text-gray-900 leading-none">{formatCurrency(total)}</span>
                                     </div>
                                 </div>
-
                             </section>
 
                             <section className="lg:col-span-3">
-
-                                <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-2 pb-1 border-b border-gray-100 uppercase text-xs tracking-widest"><CreditCardIcon className="h-4 w-4 text-success" /> Pagamento</h3>
+                                <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-2 pb-1 border-b border-gray-100 uppercase text-[10px] sm:text-xs tracking-widest"><CreditCardIcon className="h-4 w-4 text-success" /> Pagamento</h3>
                                 <div className="space-y-2">
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
                                         {paymentButtons.map(({ label, icon }) => (
                                             <button
                                                 key={label}
                                                 type="button"
                                                 onClick={() => handleRequestPayment(label)}
                                                 disabled={cart.length === 0}
-                                                className="w-full p-2 rounded-lg border border-gray-200 hover:border-success hover:bg-success-light transition-all flex flex-col items-center gap-1 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-gray-200"
+                                                className="w-full p-1.5 py-2 rounded-xl border border-gray-200 hover:border-success hover:bg-success-light transition-all flex flex-col items-center justify-center gap-1 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-gray-200 min-h-[58px] sm:min-h-[64px]"
                                             >
-                                                <div className="p-1.5 rounded bg-gray-50 group-hover:bg-white group-disabled:bg-gray-50 transition-colors">{React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5 text-gray-500 group-hover:text-success group-disabled:text-gray-400" })}</div>
-                                                <span className="text-[9px] font-black uppercase text-gray-600 group-hover:text-success group-disabled:text-gray-400 text-center leading-tight">{label}</span>
+                                                <div className="p-1 rounded bg-gray-50 group-hover:bg-white group-disabled:bg-gray-50 transition-colors">{React.cloneElement(icon as React.ReactElement, { className: "h-3.5 w-3.5 sm:h-5 sm:w-5 text-gray-500 group-hover:text-success group-disabled:text-gray-400" })}</div>
+                                                <span className="text-[7.5px] sm:text-[9px] font-black uppercase text-gray-600 group-hover:text-success group-disabled:text-gray-400 text-center leading-[1.1] sm:leading-tight line-clamp-2">{label}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -379,49 +423,54 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     </fieldset>
                 </div>
 
-                <div className="flex flex-col gap-2 md:gap-3 p-2.5 md:p-4 bg-gray-50 border-t border-gray-200">
-                    <div className="flex flex-col md:flex-row items-start gap-4 text-xs">
-                        <div className="flex flex-col w-full md:w-[300px] flex-none">
+                <div className="p-2 md:p-4 bg-gray-50 border-t border-gray-200 space-y-3 sm:space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <div className="flex flex-col col-span-2 md:col-span-1">
                             <label className={labelClasses}>Garantia</label>
                             <div className="relative">
-                                <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="w-full pl-4 pr-10 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm appearance-none">
+                                <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="w-full pl-4 pr-10 border rounded-xl bg-white border-gray-300 text-sm h-10 sm:h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm appearance-none">
                                     {receiptTerms.map(term => (<option key={term.id} value={term.name}>{term.name}</option>))}
                                 </select>
-                                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary pointer-events-none" />
+                                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                             </div>
                         </div>
 
-                        <div className="flex flex-col flex-1 min-w-[200px]">
-                            <label className={labelClasses}>Obs. Comprovante</label>
-                            <input value={observations} onChange={e => setObservations(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Garantia estendida..." />
+                        <div className="flex flex-col">
+                            <label className={labelClasses}>Obs. Recibo</label>
+                            <input value={observations} onChange={e => setObservations(e.target.value)} className="w-full px-3 border rounded-xl bg-white border-gray-300 text-xs sm:text-sm h-10 sm:h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Garantia..." />
                         </div>
-                        <div className="flex flex-col flex-1 min-w-[200px]">
-                            <label className={labelClasses}>Obs. Internas</label>
-                            <input value={internalObservations} onChange={e => setInternalObservations(e.target.value)} className="w-full px-4 border rounded-xl bg-white border-gray-300 text-sm h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Cliente exigente..." />
-                            <div className="flex items-center justify-end gap-3 mt-4">
-                                <button onClick={props.onCancel} className="px-6 md:px-10 h-12 bg-red-100 text-red-600 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-200 transition-all">Sair</button>
-                                <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0} className="px-6 md:px-10 h-12 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase">Pendente</button>
-                                <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01} className="px-8 md:px-14 h-12 bg-slate-800 text-white rounded-xl font-black uppercase text-sm tracking-widest shadow-lg shadow-slate-300 hover:bg-slate-700 transition-all disabled:bg-gray-200 disabled:shadow-none">Finalizar</button>
-                            </div>
+                        <div className="flex flex-col">
+                            <label className={labelClasses}>Obs. Interna</label>
+                            <input value={internalObservations} onChange={e => setInternalObservations(e.target.value)} className="w-full px-3 border rounded-xl bg-white border-gray-300 text-xs sm:text-sm h-10 sm:h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm placeholder:font-normal" placeholder="Ex: Cliente..." />
                         </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-gray-100 sm:border-0 sm:pt-0">
+                        <div className="grid grid-cols-2 sm:flex gap-2">
+                            <button onClick={props.onCancel} className="h-10 sm:h-12 px-4 sm:px-8 bg-red-100 text-red-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-red-200 transition-all">Sair</button>
+                            <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0} className="h-10 sm:h-12 px-4 sm:px-8 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50">Pendente</button>
+                        </div>
+                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01} className="h-12 sm:h-12 px-8 sm:px-14 bg-slate-800 text-white rounded-xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-lg hover:bg-slate-700 transition-all disabled:bg-gray-200">Finalizar Venda</button>
                     </div>
                 </div>
             </div>
 
-            {isCustomerModalOpen && (
-                <CustomerModal
-                    entity={null}
-                    initialType="Cliente"
-                    onClose={() => setIsCustomerModalOpen(false)}
-                    onSave={async (entityData, entityType, personType) => {
-                        const customerPayload: any = { name: entityData.name, email: entityData.email, phone: entityData.phone, address: entityData.address, avatarUrl: entityData.avatarUrl };
-                        if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
-                        const nc = await onAddNewCustomer(customerPayload);
-                        if (nc) setSelectedCustomerId(nc.id);
-                        setIsCustomerModalOpen(false);
-                    }}
-                />
-            )}
+            {
+                isCustomerModalOpen && (
+                    <CustomerModal
+                        entity={null}
+                        initialType="Cliente"
+                        onClose={() => setIsCustomerModalOpen(false)}
+                        onSave={async (entityData, entityType, personType) => {
+                            const customerPayload: any = { name: entityData.name, email: entityData.email, phone: entityData.phone, address: entityData.address, avatarUrl: entityData.avatarUrl };
+                            if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
+                            const nc = await onAddNewCustomer(customerPayload);
+                            if (nc) setSelectedCustomerId(nc.id);
+                            setIsCustomerModalOpen(false);
+                        }}
+                    />
+                )
+            }
 
 
             <ProductModal
@@ -455,12 +504,12 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
             {
                 productToConfirm && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-                            <div className="bg-gray-50 border-b border-gray-100 p-4">
-                                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><CheckIcon className="h-6 w-6 text-primary" />Confirmar Produto</h3>
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-2xl w-[95%] max-w-md overflow-hidden animate-scale-in">
+                            <div className="bg-gray-50 border-b border-gray-100 p-3 sm:p-4">
+                                <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2"><CheckIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />Confirmar Produto</h3>
                             </div>
-                            <div className="p-5 space-y-3">
+                            <div className="p-3 sm:p-5 space-y-2 sm:space-y-3">
                                 <div>
                                     <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Produto / Modelo</label>
                                     <p className="text-base font-bold text-gray-900 leading-tight">{productToConfirm.model}</p>
@@ -528,7 +577,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     </div>
                 )
             }
-        </React.Fragment>
+        </React.Fragment >
     );
 };
 

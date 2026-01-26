@@ -74,7 +74,6 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
                     video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: 'environment' } }
                 };
 
-                console.log('Requesting camera with constraints:', constraints);
                 const streamData = await navigator.mediaDevices.getUserMedia(constraints);
 
                 streamRef.current = streamData;
