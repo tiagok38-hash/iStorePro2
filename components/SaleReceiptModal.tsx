@@ -112,7 +112,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
             {/* Customer Data - Larger font */}
             <section className="py-1.5 border-b border-black text-[11px]">
                 <div className="flex flex-wrap gap-x-6">
-                    <span><b>Nome:</b> {customer?.name}</span>
+                    <span><b>Cliente:</b> {customer?.name}</span>
                     <span><b>CPF:</b> {customer?.cpf || '-'}</span>
                     <span><b>Tel:</b> {customer?.phone}</span>
                 </div>
@@ -179,17 +179,19 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                             const totalValueWithFees = p.value + (p.fees || 0);
                             let valueText = formatCurrency(totalValueWithFees);
 
-                            // Credit card with installments: "12x de R$ 47,52 (12,31% de taxa)"
+                            // Credit card with installments: "12x de R$ 47,52 (12,31% de taxa - Juros: R$ 70,19)"
                             if (p.installments && p.installments > 1) {
                                 const installmentValue = p.installmentsValue || totalValueWithFees / p.installments;
                                 detailsLine = `${p.installments}x de ${formatCurrency(installmentValue)}`;
                                 if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
-                                    detailsLine += ` (${p.feePercentage.toFixed(2)}% de taxa)`;
+                                    const feeAmount = p.fees || 0;
+                                    detailsLine += ` (${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
                                 }
                             }
-                            // Debit with fee: "(Taxa débito 2,4%)"
+                            // Debit with fee: "(Taxa 2,00% - Juros: R$ 2,04)"
                             else if (p.method?.toLowerCase().includes('débito') && p.feePercentage && p.feePercentage > 0) {
-                                detailsLine = `(Taxa débito ${p.feePercentage.toFixed(2)}%)`;
+                                const feeAmount = p.fees || 0;
+                                detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
                             }
                             // Credit single payment with fee
                             else if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
