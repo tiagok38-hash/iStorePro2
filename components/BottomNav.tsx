@@ -42,7 +42,7 @@ const BottomNav: React.FC = () => {
     const itemWidthClass = "flex-none w-[20%] min-w-[20%]";
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-gray-800 lg:hidden z-50 pb-1">
+        <div className="fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-gray-800 lg:hidden z-50 pb-6 pt-2">
             {/* User Name Bar - Ultra Small */}
             {/* User Name Bar removed as requested */}
 
