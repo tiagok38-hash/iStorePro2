@@ -199,7 +199,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
 
     const handleRemovePhoto = () => {
         setPhotoPreview(null);
-        setFormData(prev => ({ ...prev, avatarUrl: undefined }));
+        setFormData(prev => ({ ...prev, avatarUrl: '' }));
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }

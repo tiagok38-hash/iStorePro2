@@ -257,7 +257,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 stock: isTradeInMode ? 1 : (product.stock || 1),
                 batteryHealth: product.batteryHealth ?? 100,
                 condition: isTradeInMode ? 'Seminovo' : (product.condition || 'Novo'),
-                ...product
+                ...product,
+                photos: product.photos || []
             };
 
             // Preserve these fields from product BEFORE any parsing logic
