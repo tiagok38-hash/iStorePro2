@@ -546,9 +546,9 @@ const Vendas: React.FC = () => {
                         </div>
                         <button onClick={handleClearFilter} className="px-2 py-1 text-xs sm:text-sm text-muted hover:text-primary">Limpar</button>
                     </div>
-                    <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                    <div className="flex items-stretch gap-1.5 sm:gap-2 w-full sm:w-auto">
                         {permissions?.canCreateSale && (
-                            <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-success text-on-primary rounded-md font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm">+ NOVA VENDA</button>
+                            <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-success text-on-primary rounded-md font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center">+ NOVA VENDA</button>
                         )}
                         <button onClick={() => setIsSimulatorOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-secondary text-white rounded-md hover:bg-primary font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
                             <CreditCardIcon className="h-4 w-4" />

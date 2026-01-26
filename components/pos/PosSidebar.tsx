@@ -30,7 +30,7 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({ activeView, onViewChange
     ];
 
     return (
-        <aside className="fixed bottom-0 w-full h-16 md:static md:w-20 md:h-full bg-gray-900 flex flex-row md:flex-col items-center justify-between md:justify-start px-2 md:px-0 py-0 md:py-6 text-white shrink-0 shadow-2xl z-20">
+        <aside className="fixed bottom-0 w-full md:static md:w-20 md:h-full bg-gray-900 flex flex-row md:flex-col items-center justify-between md:justify-start px-2 md:px-0 py-0 pb-6 pt-2 md:py-6 text-white shrink-0 shadow-2xl z-20">
             <div className="hidden md:block mb-4 animate-pulse-slow">
                 <CashRegisterIcon className="h-10 w-10 text-success" />
             </div>
