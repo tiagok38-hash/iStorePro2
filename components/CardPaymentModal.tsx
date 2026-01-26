@@ -13,9 +13,10 @@ interface CardPaymentModalProps {
     amountDue: number;
     initialTransactionType?: 'credit' | 'debit';
     initialMethodId?: string;
+    isSimulator?: boolean;
 }
 
-const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, onConfirm, amountDue, initialTransactionType, initialMethodId }) => {
+const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, onConfirm, amountDue, initialTransactionType, initialMethodId, isSimulator }) => {
     const [methods, setMethods] = useState<PaymentMethodParameter[]>([]);
     const [selectedMethodId, setSelectedMethodId] = useState<string>(initialMethodId || '');
     const [transactionType, setTransactionType] = useState<'credit' | 'debit'>(initialTransactionType || 'credit');
@@ -162,8 +163,8 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                             <CreditCardIcon className="h-5 w-5" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-black text-gray-800 tracking-tight">Pagamento com Cartão</h2>
-                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Configuração de taxas e parcelas</p>
+                            <h2 className="text-lg font-black text-gray-800 tracking-tight">{isSimulator ? 'Simulador de Taxas' : 'Pagamento com Cartão'}</h2>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{isSimulator ? 'Simule o parcelamento e veja as taxas' : 'Configuração de taxas e parcelas'}</p>
                         </div>
                     </div>
                     <button
@@ -230,7 +231,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                                     <CurrencyInput
                                         value={chargeAmount}
                                         onChange={setChargeAmount}
-                                        className="w-full pl-10 pr-3 py-3 bg-white border border-gray-200 rounded-xl font-black text-xl text-gray-800 focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all shadow-sm"
+                                        className={`w-full pl-10 pr-3 py-3 bg-white border border-gray-200 rounded-xl font-black text-xl text-gray-800 focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all shadow-sm ${isSimulator ? 'border-primary/50 ring-4 ring-primary/5' : ''}`}
                                     />
                                 </div>
                             </div>
@@ -293,8 +294,19 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 {(() => {
                                     const rates = feeType === 'noInterest' ? config.creditNoInterestRates : config.creditWithInterestRates;
+
+                                    // Filter installments logic: show up to the last one with a rate > 0
+                                    let maxConfigured = 1;
+                                    for (let i = rates.length - 1; i >= 0; i--) {
+                                        if (rates[i].rate > 0) {
+                                            maxConfigured = rates[i].installments;
+                                            break;
+                                        }
+                                    }
+
                                     return rates
-                                        // Show all configured installments
+                                        // Show 1x and all configured installments up to maxConfigured
+                                        .filter(r => r.installments === 1 || r.installments <= maxConfigured)
                                         .map((rate) => {
                                             const i = rate.installments;
                                             const total = (feeType === 'withInterest') ? (chargeAmount / (1 - (rate.rate / 100))) : chargeAmount;
@@ -343,11 +355,11 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                             Cancelar
                         </button>
                         <button
-                            onClick={handleConfirm}
+                            onClick={isSimulator ? onClose : handleConfirm}
                             disabled={!calculations || !selectedMethod}
-                            className="flex-1 md:flex-none px-8 py-3 bg-gray-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            className={`flex-1 md:flex-none px-8 py-3 ${isSimulator ? 'bg-primary' : 'bg-gray-900'} text-white rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100`}
                         >
-                            Confirmar Pagamento
+                            {isSimulator ? 'Fechar Simulação' : 'Confirmar Pagamento'}
                         </button>
                     </div>
                 </div>

@@ -5,8 +5,8 @@ import { getSales, getProducts, getCustomers, getUsers, addCustomer, addProduct,
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
-import { SpinnerIcon, EllipsisVerticalIcon, CalendarDaysIcon, ChevronDownIcon, CloseIcon, PlusIcon, TrashIcon, SearchIcon, MinusIcon, EyeIcon, EditIcon, PrinterIcon, XCircleIcon, DocumentTextIcon, TicketIcon, ChevronLeftIcon, ChevronRightIcon, WhatsAppIcon } from '../components/icons.tsx';
-import CardRateSimulatorModal from '../components/CardRateSimulatorModal.tsx';
+import { SpinnerIcon, EllipsisVerticalIcon, CalendarDaysIcon, ChevronDownIcon, CloseIcon, PlusIcon, TrashIcon, SearchIcon, MinusIcon, EyeIcon, EditIcon, PrinterIcon, XCircleIcon, DocumentTextIcon, TicketIcon, ChevronLeftIcon, ChevronRightIcon, WhatsAppIcon, CreditCardIcon } from '../components/icons.tsx';
+import CardPaymentModal from '../components/CardPaymentModal.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
 import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
@@ -550,7 +550,10 @@ const Vendas: React.FC = () => {
                         {permissions?.canCreateSale && (
                             <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-success text-on-primary rounded-md font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm">+ NOVA VENDA</button>
                         )}
-                        <button onClick={() => setIsSimulatorOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-secondary text-white rounded-md hover:bg-primary font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm">Simulador</button>
+                        <button onClick={() => setIsSimulatorOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-secondary text-white rounded-md hover:bg-primary font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
+                            <CreditCardIcon className="h-4 w-4" />
+                            Simulador de cartão
+                        </button>
                     </div>
                 </div>
 
@@ -765,7 +768,15 @@ const Vendas: React.FC = () => {
                 />
             </Suspense>
 
-            {isSimulatorOpen && <CardRateSimulatorModal onClose={() => setIsSimulatorOpen(false)} />}
+            {isSimulatorOpen && (
+                <CardPaymentModal
+                    isOpen={isSimulatorOpen}
+                    onClose={() => setIsSimulatorOpen(false)}
+                    onConfirm={() => setIsSimulatorOpen(false)}
+                    amountDue={0}
+                    isSimulator={true}
+                />
+            )}
 
             {saleToView && <SaleDetailModal sale={saleToView} productMap={productMap} customers={customers} users={users} onClose={() => setSaleToView(null)} />}
 
