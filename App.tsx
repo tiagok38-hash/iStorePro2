@@ -1,5 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Outlet, useLocation } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import Sidebar from './components/Sidebar.tsx';
 import Header from './components/Header.tsx';
 import TopBar from './components/TopBar.tsx';
@@ -102,6 +103,7 @@ const App: React.FC = () => {
                     </Suspense>
                     {/* Global Online/Offline Status Indicator */}
                     <OnlineStatusIndicator />
+                    <SpeedInsights />
                 </Router>
             </UserProvider>
         </ToastProvider>
