@@ -1452,6 +1452,49 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         }
     }
 
+    // TRADE-IN STOCK MANAGEMENT: Add trade-in products to stock only when sale is Finalizada
+    const saleStatus = saleData.status;
+    if ((saleStatus === 'Finalizada' || saleStatus === 'Editada') && data.payments && Array.isArray(data.payments)) {
+        const tradeInPayments = data.payments.filter((p: any) =>
+            p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
+        );
+
+        for (const tradeInPayment of tradeInPayments) {
+            const productId = tradeInPayment.tradeInDetails.productId;
+            const { data: tradeInProduct } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
+
+            if (tradeInProduct && tradeInProduct.stock === 0) {
+                const stockHistory = tradeInProduct.stockHistory || [];
+
+                const newStockEntry = {
+                    id: crypto.randomUUID(),
+                    oldStock: 0,
+                    newStock: 1,
+                    adjustment: 1,
+                    reason: 'Entrada por Trade-In (Venda Finalizada)',
+                    relatedId: newSale.id,
+                    timestamp: now.toISOString(),
+                    changedBy: userName,
+                    details: `Produto recebido em troca - Venda #${newSale.id}`
+                };
+
+                await supabase.from('products').update({
+                    stock: 1,
+                    stockHistory: [...stockHistory, newStockEntry]
+                }).eq('id', productId);
+
+                await addAuditLog(
+                    AuditActionType.STOCK_ADJUST,
+                    AuditEntityType.PRODUCT,
+                    productId,
+                    `Produto de troca entrou no estoque (venda finalizada): ${tradeInProduct.model}. Estoque: 0 → 1`,
+                    userId,
+                    userName
+                );
+            }
+        }
+    }
+
     clearCache(['sales', 'products', 'cash_sessions']);
     return mappedSale;
 };
@@ -1667,6 +1710,105 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
     }
 
+    // TRADE-IN STOCK MANAGEMENT: Handle trade-in product stock based on sale status
+    // Trade-in products should only be in stock when sale is Finalizada
+    if (data.payments) {
+        const tradeInPayments = (data.payments || []).filter((p: any) =>
+            p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
+        );
+
+        for (const tradeInPayment of tradeInPayments) {
+            const productId = tradeInPayment.tradeInDetails.productId;
+            const { data: product } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
+
+            if (product) {
+                const wasFinalized = oldStatus === 'Finalizada' || oldStatus === 'Editada';
+                const isNowFinalized = newStatus === 'Finalizada' || newStatus === 'Editada';
+                const isNowPendingOrCancelled = newStatus === 'Pendente' || newStatus === 'Cancelada';
+
+                // Case 1: Sale was Finalized and now is Pending/Cancelled -> Remove trade-in from stock
+                if (wasFinalized && isNowPendingOrCancelled) {
+                    const stockHistory = product.stockHistory || [];
+
+                    // Check if product is "fresh" (only trade-in entry, never sold after)
+                    const isFresh = stockHistory.length <= 1 && product.stock > 0;
+
+                    if (isFresh) {
+                        // DELETE the product completely since it was never used
+                        await supabase.from('products').delete().eq('id', productId);
+
+                        await addAuditLog(
+                            AuditActionType.DELETE,
+                            AuditEntityType.PRODUCT,
+                            productId,
+                            `Produto de troca excluído (venda ${newStatus.toLowerCase()}): ${product.model}`,
+                            userId,
+                            userName
+                        );
+                    } else {
+                        // Set stock to 0 and add history entry
+                        const newStockEntry = {
+                            id: crypto.randomUUID(),
+                            oldStock: product.stock,
+                            newStock: 0,
+                            adjustment: -product.stock,
+                            reason: `Venda ${newStatus}`,
+                            relatedId: data.id,
+                            timestamp: getNowISO(),
+                            changedBy: userName,
+                            details: `Produto de troca removido do estoque (venda ${newStatus.toLowerCase()})`
+                        };
+
+                        await supabase.from('products').update({
+                            stock: 0,
+                            stockHistory: [...stockHistory, newStockEntry]
+                        }).eq('id', productId);
+
+                        await addAuditLog(
+                            AuditActionType.STOCK_ADJUST,
+                            AuditEntityType.PRODUCT,
+                            productId,
+                            `Estoque zerado (venda ${newStatus.toLowerCase()}): ${product.model}. Estoque: ${product.stock} → 0`,
+                            userId,
+                            userName
+                        );
+                    }
+                }
+
+                // Case 2: Sale was Pending and now is Finalized -> Add trade-in to stock
+                else if (!wasFinalized && isNowFinalized && product.stock === 0) {
+                    const stockHistory = product.stockHistory || [];
+
+                    const newStockEntry = {
+                        id: crypto.randomUUID(),
+                        oldStock: 0,
+                        newStock: 1,
+                        adjustment: 1,
+                        reason: 'Entrada por Trade-In (Venda Finalizada)',
+                        relatedId: data.id,
+                        timestamp: getNowISO(),
+                        changedBy: userName,
+                        details: `Produto recebido em troca - Venda #${data.id}`
+                    };
+
+                    await supabase.from('products').update({
+                        stock: 1,
+                        stockHistory: [...stockHistory, newStockEntry]
+                    }).eq('id', productId);
+
+                    await addAuditLog(
+                        AuditActionType.STOCK_ADJUST,
+                        AuditEntityType.PRODUCT,
+                        productId,
+                        `Produto de troca entrou no estoque (venda finalizada): ${product.model}. Estoque: 0 → 1`,
+                        userId,
+                        userName
+                    );
+                }
+            }
+        }
+    }
+
     clearCache(['sales', 'products']);
 
     return {
@@ -1745,8 +1887,96 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
         }
     }
 
+    // TRADE-IN STOCK MANAGEMENT: Remove trade-in products from stock when sale is cancelled
+    const tradeInAlreadySoldProducts: { model: string; sku: string }[] = [];
+
+    if (sale.payments && Array.isArray(sale.payments)) {
+        const tradeInPayments = sale.payments.filter((p: any) =>
+            p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
+        );
+
+        for (const tradeInPayment of tradeInPayments) {
+            const productId = tradeInPayment.tradeInDetails.productId;
+            const { data: tradeInProduct } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
+
+            if (tradeInProduct) {
+                const stockHistory = tradeInProduct.stockHistory || [];
+
+                // Check if product was sold in another sale (stock is 0 and has a sale entry in history)
+                const wasSoldInAnotherSale = tradeInProduct.stock === 0 &&
+                    stockHistory.some((entry: any) =>
+                        entry.reason === 'Venda' && entry.relatedId !== sale.id
+                    );
+
+                if (wasSoldInAnotherSale) {
+                    // Product was already sold - cannot be removed, just track it for notification
+                    tradeInAlreadySoldProducts.push({
+                        model: tradeInProduct.model,
+                        sku: tradeInProduct.sku
+                    });
+
+                    await addAuditLog(
+                        AuditActionType.STOCK_ADJUST,
+                        AuditEntityType.PRODUCT,
+                        productId,
+                        `Produto de troca não removido (já vendido em outra venda): ${tradeInProduct.model}`,
+                        userId,
+                        userName
+                    );
+                }
+                // Check if product is "fresh" (only trade-in entry, never sold after)
+                else if (stockHistory.length <= 1 && tradeInProduct.stock > 0) {
+                    // DELETE the product completely since it was never used
+                    await supabase.from('products').delete().eq('id', productId);
+
+                    await addAuditLog(
+                        AuditActionType.DELETE,
+                        AuditEntityType.PRODUCT,
+                        productId,
+                        `Produto de troca excluído (venda cancelada): ${tradeInProduct.model}. Motivo: ${reason}`,
+                        userId,
+                        userName
+                    );
+                } else if (tradeInProduct.stock > 0) {
+                    // Set stock to 0 and add history entry
+                    const now = getNowISO();
+                    const newStockEntry = {
+                        id: crypto.randomUUID(),
+                        oldStock: tradeInProduct.stock,
+                        newStock: 0,
+                        adjustment: -tradeInProduct.stock,
+                        reason: 'Cancelamento de Venda',
+                        relatedId: sale.id,
+                        timestamp: now,
+                        changedBy: userName,
+                        details: `Produto de troca removido do estoque (venda cancelada). Motivo: ${reason}`
+                    };
+
+                    await supabase.from('products').update({
+                        stock: 0,
+                        stockHistory: [...stockHistory, newStockEntry]
+                    }).eq('id', productId);
+
+                    await addAuditLog(
+                        AuditActionType.STOCK_ADJUST,
+                        AuditEntityType.PRODUCT,
+                        productId,
+                        `Estoque zerado (venda cancelada): ${tradeInProduct.model}. Estoque: ${tradeInProduct.stock} → 0`,
+                        userId,
+                        userName
+                    );
+                }
+            }
+        }
+    }
+
     clearCache(['sales', 'products']);
-    return updatedSale;
+
+    // Return with info about trade-in products that were already sold
+    return {
+        ...updatedSale,
+        tradeInAlreadySold: tradeInAlreadySoldProducts.length > 0 ? tradeInAlreadySoldProducts : undefined
+    };
 };
 
 export const getCustomerSales = async (customerId: string): Promise<Sale[]> => {

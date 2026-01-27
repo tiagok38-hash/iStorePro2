@@ -468,6 +468,16 @@ const Vendas: React.FC = () => {
         try {
             const canceled = await cancelSale(saleToCancel.id, reason, user?.id, user?.name);
             showToast('Venda cancelada com sucesso!', 'success');
+
+            // Check if there were trade-in products that couldn't be removed because they were already sold
+            if (canceled.tradeInAlreadySold && canceled.tradeInAlreadySold.length > 0) {
+                const productNames = canceled.tradeInAlreadySold.map((p: any) => p.model).join(', ');
+                showToast(
+                    `Atenção: O(s) aparelho(s) de troca (${productNames}) não foi(ram) removido(s) pois já foi(ram) vendido(s) em outra venda.`,
+                    'info'
+                );
+            }
+
             // Direct state update instead of refetch
             setSales(prevSales => prevSales.map(s => s.id === canceled.id ? canceled : s));
         } catch (error) {
@@ -475,7 +485,7 @@ const Vendas: React.FC = () => {
         } finally {
             setSaleToCancel(null);
         }
-    }, [saleToCancel, showToast]);
+    }, [saleToCancel, showToast, user]);
 
     const handleSaleSaved = useCallback(async (updatedSale: Sale) => {
         setIsModalOpen(false);

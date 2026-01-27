@@ -301,7 +301,7 @@ export const useSaleForm = ({
         const salesperson = users.find(u => u.id === selectedSalespersonId);
         const newProductPayload = {
             ...productData,
-            stock: 1,
+            stock: 0, // Trade-in products start with 0 stock, only added when sale is finalized
             selectedCustomerId,
             createdBy: selectedSalespersonId,
             createdByName: salesperson?.name,
@@ -352,7 +352,7 @@ export const useSaleForm = ({
         const salesperson = users.find(u => u.id === selectedSalespersonId);
         const fullProductPayload = {
             ...newProductData,
-            stock: 1,
+            stock: 0, // Trade-in products start with 0 stock, only added when sale is finalized
             selectedCustomerId,
             createdBy: selectedSalespersonId,
             createdByName: salesperson?.name,
