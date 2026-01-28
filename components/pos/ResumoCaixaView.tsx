@@ -251,10 +251,15 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                         <td className="px-6 py-4 text-right font-bold text-success">{formatCurrency(sale.total)}</td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex gap-1 justify-center items-center flex-wrap">
-                                                {sale.status !== 'Cancelada' && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-600">Finalizada</span>}
-                                                {sale.status === 'Editada' && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-600">Editada</span>}
-                                                {hasPromissoria && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Promissória</span>}
-                                                {sale.status === 'Cancelada' && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Cancelada</span>}
+                                                {sale.status === 'Cancelada' ? (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Cancelada</span>
+                                                ) : (
+                                                    <>
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-600">Finalizada</span>
+                                                        {sale.status === 'Editada' && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-600">Editada</span>}
+                                                        {hasPromissoria && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Promissória</span>}
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -288,10 +293,15 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                             <span className="font-bold text-primary text-[10px] whitespace-nowrap">#{sale.id}</span>
                                             <span className="text-[9px] text-gray-400 font-medium">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                                             <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                                                {sale.status !== 'Cancelada' && <span className="text-[7px] font-black px-1 rounded uppercase border bg-green-50 text-green-600 border-green-100 py-0.5 leading-none">FINALIZADA</span>}
-                                                {sale.status === 'Editada' && <span className="text-[7px] font-black px-1 rounded uppercase border bg-purple-50 text-purple-600 border-purple-100 py-0.5 leading-none">EDITADA</span>}
-                                                {hasPromissoria && <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none text-center">PROMISSÓRIA</span>}
-                                                {sale.status === 'Cancelada' && <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none">CANCELADA</span>}
+                                                {sale.status === 'Cancelada' ? (
+                                                    <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none">CANCELADA</span>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-[7px] font-black px-1 rounded uppercase border bg-green-50 text-green-600 border-green-100 py-0.5 leading-none">FINALIZADA</span>
+                                                        {sale.status === 'Editada' && <span className="text-[7px] font-black px-1 rounded uppercase border bg-purple-50 text-purple-600 border-purple-100 py-0.5 leading-none">EDITADA</span>}
+                                                        {hasPromissoria && <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none text-center">PROMISSÓRIA</span>}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="font-bold text-gray-800 text-[10px] truncate uppercase leading-tight">

@@ -174,6 +174,7 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[] }> = 
         'Lançamento de Estoque': 'bg-green-100 text-green-700',
         'Entrada por Compra': 'bg-purple-100 text-purple-700',
         'Entrada via Troca': 'bg-teal-100 text-teal-700',
+        'Entrou em uma troca': 'bg-teal-100 text-teal-700',
         'Cadastro Inicial': 'bg-gray-100 text-gray-600',
     };
 

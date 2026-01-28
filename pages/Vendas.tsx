@@ -189,7 +189,18 @@ const Vendas: React.FC = () => {
     const showToastRef = useRef(showToast);
     useEffect(() => { showToastRef.current = showToast; }, [showToast]);
 
+    // Ref to prevent concurrent fetches
+    const isFetchingRef = useRef(false);
+    // Debounce ref for broadcast channel
+    const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
+        // Prevent concurrent fetches
+        if (isFetchingRef.current) {
+            return;
+        }
+        isFetchingRef.current = true;
+
         if (!silent) setLoading(true);
         setError(null);
 
@@ -275,6 +286,7 @@ const Vendas: React.FC = () => {
 
             // Auto-retry once after short delay (handles reconnection issues after idle)
             if (retryCount < 1) {
+                isFetchingRef.current = false; // Allow retry
                 setTimeout(() => fetchData(silent, retryCount + 1), 2000);
                 return;
             }
@@ -283,6 +295,7 @@ const Vendas: React.FC = () => {
             setError(msg);
             if (!silent) showToastRef.current(msg, 'error');
         } finally {
+            isFetchingRef.current = false;
             if (!silent) setLoading(false);
         }
     }, []);
@@ -301,7 +314,13 @@ const Vendas: React.FC = () => {
             if (event.data && event.data.type === 'CLEAR_CACHE') {
                 const keys = event.data.keys;
                 if (keys.includes('sales')) {
-                    fetchData(true);
+                    // Debounce to prevent rapid-fire reloads
+                    if (debounceTimeoutRef.current) {
+                        clearTimeout(debounceTimeoutRef.current);
+                    }
+                    debounceTimeoutRef.current = setTimeout(() => {
+                        fetchData(true);
+                    }, 500);
                 }
             }
         };
@@ -309,20 +328,9 @@ const Vendas: React.FC = () => {
         return () => {
             window.removeEventListener('app-reloadData', handleSmartReload);
             channel.close();
-        };
-    }, [fetchData]);
-
-    // Auto-refresh when tab becomes visible again to prevent stale data/loading hang
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                fetchData(true);
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
             }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [fetchData]);
 
@@ -680,7 +688,8 @@ const Vendas: React.FC = () => {
                                                 <td className="p-2 sm:p-3">
                                                     <div className="flex gap-1 flex-wrap">
                                                         {getStatusBadge(sale.status)}
-                                                        {sale.payments.some(p => p.type === 'pending') && (
+                                                        {/* Only show Promissória tag if sale is NOT cancelled */}
+                                                        {sale.status !== 'Cancelada' && sale.payments.some(p => p.type === 'pending') && (
                                                             <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-full bg-red-50 text-red-700 border border-red-200 shadow-sm">Promissória</span>
                                                         )}
                                                     </div>

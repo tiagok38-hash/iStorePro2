@@ -430,9 +430,11 @@ export const useSaleForm = ({
 
             if (pendingTradeInProduct && savedSale) {
                 const salesperson = users.find(u => u.id === selectedSalespersonId);
-                await updateProduct({ ...pendingTradeInProduct, observations: `Troca pela venda #${savedSale.id}` }, user?.id || salesperson?.id, user?.name || salesperson?.name);
 
                 // Add explicit audit log to link product to sale for history visibility
+                // We don't call updateProduct here because it might overwrite the stock: 1 
+                // that addSale just set (since pendingTradeInProduct still has stock: 0 locally).
+                // The observations are already updated in addSale/updateSale logic or can be added there.
                 await addAuditLog(
                     AuditActionType.STOCK_LAUNCH,
                     AuditEntityType.PRODUCT,
