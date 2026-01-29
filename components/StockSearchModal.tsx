@@ -89,7 +89,7 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
                                                         {product.condition}
                                                     </span>
                                                     {product.origin === 'Troca' && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-black uppercase bg-orange-100 text-orange-700">Troca</span>
+                                                        <span className="px-1 py-0 text-[8px] font-bold rounded bg-rose-50 text-rose-400 border border-rose-100 uppercase tracking-tighter">Troca</span>
                                                     )}
                                                 </div>
                                             </div>

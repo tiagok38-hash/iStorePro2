@@ -647,20 +647,20 @@ const Products: React.FC = () => {
                     filteredProducts.length === 0 ? <p className="text-center text-muted p-6">Nenhum produto encontrado.</p> : (
                         <div className="overflow-x-auto custom-scrollbar">
                             <table className="w-full text-sm text-left text-muted whitespace-nowrap">
-                                <thead className="text-xs text-secondary uppercase bg-surface-secondary">
+                                <thead className="text-[10px] font-bold text-secondary uppercase bg-surface-secondary">
                                     <tr>
-                                        <th scope="col" className="px-2 py-2 text-center">Qtd</th>
-                                        <th scope="col" className="px-2 py-2">Descrição</th>
-                                        <th scope="col" className="px-2 py-2">Local</th>
-                                        <th scope="col" className="px-2 py-2">Forn.</th>
-                                        <th scope="col" className="px-2 py-2">Venda</th>
-                                        <th scope="col" className="px-2 py-2">ATC</th>
-                                        <th scope="col" className="px-2 py-2">Custo</th>
-                                        <th scope="col" className="px-2 py-2">Mkp</th>
-                                        <th scope="col" className="px-2 py-2 text-center">Gar.</th>
-                                        <th scope="col" className="px-2 py-2 text-center">Cond.</th>
-                                        <th scope="col" className="px-2 py-2 text-center">Cad.</th>
-                                        <th scope="col" className="px-2 py-2 text-center">Ações</th>
+                                        <th scope="col" className="px-2 py-2 text-center font-bold">ESTOQUE</th>
+                                        <th scope="col" className="px-2 py-2 font-bold">DESCRIÇÃO</th>
+                                        <th scope="col" className="px-2 py-2 font-bold">LOCAL</th>
+                                        <th scope="col" className="px-2 py-2 font-bold">FORNECEDOR</th>
+                                        <th scope="col" className="px-2 py-2 font-bold">VENDA</th>
+                                        <th scope="col" className="px-2 py-2 font-bold">ATACADO</th>
+                                        <th scope="col" className="px-2 py-2 font-bold">CUSTO</th>
+                                        <th scope="col" className="px-2 py-2 font-bold">MARKUP</th>
+                                        <th scope="col" className="px-2 py-2 text-center font-bold">GARANTIA</th>
+                                        <th scope="col" className="px-2 py-2 text-center font-bold">CONDIÇÃO</th>
+                                        <th scope="col" className="px-2 py-2 text-center font-bold">CADASTRO</th>
+                                        <th scope="col" className="px-2 py-2 text-center font-bold">AÇÕES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -683,7 +683,7 @@ const Products: React.FC = () => {
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold text-sm truncate" title={product.model}>{product.model}</span>
                                                     {product.origin === 'Troca' && (
-                                                        <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-semibold rounded-full bg-pink-100 text-pink-700 border border-pink-200">
+                                                        <span className="flex-shrink-0 px-1 py-0 text-[8px] font-bold rounded bg-rose-50 text-rose-400 border border-rose-100 uppercase tracking-tighter">
                                                             Troca
                                                         </span>
                                                     )}

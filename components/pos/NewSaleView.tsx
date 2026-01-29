@@ -543,7 +543,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Produto / Modelo</label>
                                     <p className="text-base font-bold text-gray-900 leading-tight">{productToConfirm.model}</p>
                                     {productToConfirm.origin === 'Troca' && (
-                                        <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase">Aparelho de Troca</span>
+                                        <span className="inline-block mt-1 px-1.5 py-0 text-[8px] font-bold rounded bg-rose-50 text-rose-400 border border-rose-100 uppercase tracking-tighter">Troca</span>
                                     )}
                                 </div>
 
