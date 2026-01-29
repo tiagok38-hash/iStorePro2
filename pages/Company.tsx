@@ -232,6 +232,10 @@ const MarcasECategoriasTab: React.FC = () => {
     const [subcategoryModalItem, setSubcategoryModalItem] = useState<Partial<ProductModel> | null>(null);
     const photoInputRef = useRef<HTMLInputElement>(null);
     const [editingPhotoModelId, setEditingPhotoModelId] = useState<string | null>(null);
+    const [isPhotoOptionsOpen, setIsPhotoOptionsOpen] = useState(false);
+    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+    const [isCropperModalOpen, setIsCropperModalOpen] = useState(false);
+    const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
     // State for Grades
     const [grades, setGrades] = useState<Grade[]>([]);
@@ -335,32 +339,72 @@ const MarcasECategoriasTab: React.FC = () => {
 
     const handlePhotoIconClick = (modelId: string) => {
         setEditingPhotoModelId(modelId);
-        photoInputRef.current?.click();
+        setIsPhotoOptionsOpen(true);
     };
 
-    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0] && editingPhotoModelId) {
             const file = e.target.files[0];
-            try {
-                setLoadingMarcas(true);
-                const compressedBase64 = await compressImage(file, { maxWidth: 400, maxHeight: 400, quality: 0.7 });
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setPreviewImageUrl(event.target?.result as string);
+                setIsCropperModalOpen(true);
+                setIsPhotoOptionsOpen(false);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
-                const modelToUpdate = productModels.find(m => m.id === editingPhotoModelId);
-                if (modelToUpdate) {
-                    await updateProductModel({ ...modelToUpdate, imageUrl: compressedBase64 }, user?.id, user?.name);
-                    showToast('Foto da subcategoria atualizada!', 'success');
-                    await fetchData();
-                    window.dispatchEvent(new Event('company-data-updated'));
-                    const bc = new BroadcastChannel('app-updates'); bc.postMessage('company-data-updated'); bc.close();
-                }
-            } catch (error) {
-                console.error('Error updating photo:', error);
-                showToast('Erro ao salvar a foto.', 'error');
-            } finally {
-                setLoadingMarcas(false);
-                setEditingPhotoModelId(null);
-                if (e.target) e.target.value = ""; // Reset file input
+    const handleCapturePhoto = (imageData: string) => {
+        setPreviewImageUrl(imageData);
+        setIsCameraModalOpen(false);
+        setIsCropperModalOpen(true);
+    };
+
+    const handleCropSave = async (croppedBase64: string) => {
+        if (!editingPhotoModelId) return;
+        try {
+            setLoadingMarcas(true);
+            const modelToUpdate = productModels.find(m => m.id === editingPhotoModelId);
+            if (modelToUpdate) {
+                await updateProductModel({ ...modelToUpdate, imageUrl: croppedBase64 }, user?.id, user?.name);
+                showToast('Foto atualizada com sucesso!', 'success');
+                await fetchData();
+                window.dispatchEvent(new Event('company-data-updated'));
+                const bc = new BroadcastChannel('app-updates');
+                bc.postMessage('company-data-updated');
+                bc.close();
             }
+        } catch (error) {
+            showToast('Erro ao salvar a foto.', 'error');
+        } finally {
+            setLoadingMarcas(false);
+            setIsCropperModalOpen(false);
+            setPreviewImageUrl(null);
+            setEditingPhotoModelId(null);
+        }
+    };
+
+    const handleRemovePhoto = async () => {
+        if (!editingPhotoModelId) return;
+        try {
+            setLoadingMarcas(true);
+            const modelToUpdate = productModels.find(m => m.id === editingPhotoModelId);
+            if (modelToUpdate) {
+                await updateProductModel({ ...modelToUpdate, imageUrl: null }, user?.id, user?.name);
+                showToast('Foto removida!', 'success');
+                await fetchData();
+                window.dispatchEvent(new Event('company-data-updated'));
+                const bc = new BroadcastChannel('app-updates');
+                bc.postMessage('company-data-updated');
+                bc.close();
+            }
+        } catch (error) {
+            showToast('Erro ao remover a foto.', 'error');
+        } finally {
+            setLoadingMarcas(false);
+            setIsPhotoOptionsOpen(false);
+            setEditingPhotoModelId(null);
         }
     };
 
@@ -484,6 +528,29 @@ const MarcasECategoriasTab: React.FC = () => {
 
             {gradesModal && <ManagementModal type={gradesModal.type} item={gradesModal.item} onSave={handleSaveGrades} onClose={() => setGradesModal(null)} loading={loadingGrades} />}
             <ConfirmationModal isOpen={!!gradesItemToDelete} onClose={() => setGradesItemToDelete(null)} onConfirm={handleDeleteGrades} title={`Excluir ${gradesItemToDelete?.type}`} message={`Tem certeza que deseja excluir "${gradesItemToDelete?.item.name}"?`} />
+
+            <PhotoOptionsModal
+                isOpen={isPhotoOptionsOpen}
+                onClose={() => { setIsPhotoOptionsOpen(false); setEditingPhotoModelId(null); }}
+                onTakePhoto={() => { setIsCameraModalOpen(true); setIsPhotoOptionsOpen(false); }}
+                onUploadPhoto={() => photoInputRef.current?.click()}
+                onRemovePhoto={handleRemovePhoto}
+                hasPhoto={!!productModels.find(m => m.id === editingPhotoModelId)?.imageUrl}
+            />
+
+            <CameraModal
+                isOpen={isCameraModalOpen}
+                onClose={() => setIsCameraModalOpen(false)}
+                onCapture={handleCapturePhoto}
+            />
+
+            <ImageCropperModal
+                isOpen={isCropperModalOpen}
+                imageUrl={previewImageUrl}
+                onClose={() => setIsCropperModalOpen(false)}
+                onCrop={handleCropSave}
+                aspectRatio={1}
+            />
         </div>
     );
 };
@@ -1764,6 +1831,46 @@ const ManagementModal: React.FC<ManagementModalProps> = ({ type, item, onSave, o
                     <Button type="submit" variant="success" loading={loading}>Salvar</Button>
                 </div>
             </form>
+        </div>
+    );
+};
+
+const PhotoOptionsModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onTakePhoto: () => void;
+    onUploadPhoto: () => void;
+    onRemovePhoto: () => void;
+    hasPhoto: boolean;
+}> = ({ isOpen, onClose, onTakePhoto, onUploadPhoto, onRemovePhoto, hasPhoto }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto backdrop-blur-sm">
+            <div className="bg-surface rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in animate-scale-in">
+                <div className="p-4 border-b border-border flex justify-between items-center bg-surface-secondary">
+                    <h3 className="font-semibold text-primary">Opções da Foto</h3>
+                    <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                        <XCircleIcon className="h-6 w-6 text-muted" />
+                    </button>
+                </div>
+                <div className="p-4 space-y-3">
+                    <button onClick={onTakePhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-lg border border-border hover:bg-gray-50 transition-all font-medium text-primary shadow-sm hover:shadow-md">
+                        <CameraIcon className="h-6 w-6 text-accent" />
+                        Tirar Foto
+                    </button>
+                    <button onClick={onUploadPhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-lg border border-border hover:bg-gray-50 transition-all font-medium text-primary shadow-sm hover:shadow-md">
+                        <DocumentArrowUpIcon className="h-6 w-6 text-success" />
+                        Fazer Upload
+                    </button>
+                    {hasPhoto && (
+                        <button onClick={onRemovePhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-lg border border-danger/10 text-danger hover:bg-danger/5 transition-all font-medium">
+                            <TrashIcon className="h-6 w-6" />
+                            Remover Foto
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };

@@ -974,9 +974,14 @@ const Dashboard: React.FC = () => {
 
         try {
             // Priority 1: Sales, Products & Customers (Core KPIs)
+            // ROBUSTNESS: Only fetch last 365 days of sales for dashboard to keep it fast
+            const oneYearAgo = new Date();
+            oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+            const startDate = oneYearAgo.toISOString().split('T')[0];
+
             const [salesData, productsData, customersData] = await Promise.all([
-                fetchItem('Sales', () => getSales(undefined), []),
-                fetchItem('Products', getProducts, []),
+                fetchItem('Sales', () => getSales(undefined, undefined, startDate), []),
+                fetchItem('Products', () => getProducts(), []),
                 fetchItem('Customers', getCustomers, [])
             ]);
 

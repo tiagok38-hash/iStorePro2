@@ -10,6 +10,7 @@ import CurrencyInput from './CurrencyInput.tsx';
 import SearchableDropdown from './SearchableDropdown.tsx';
 import CustomerModal from './CustomerModal.tsx';
 import CameraModal from './CameraModal.tsx';
+import ImageCropperModal from './ImageCropperModal.tsx';
 import Button from './Button.tsx';
 import { formatCurrency } from '../services/mockApi.ts';
 import { compressImage } from '../utils/imageUtils.ts';
@@ -140,6 +141,9 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const [activeTab, setActiveTab] = useState<'details' | 'extras' | 'checklist'>('details');
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false);
+    const [isCropperOpen, setIsCropperOpen] = useState(false);
+    const [tempImageForCrop, setTempImageForCrop] = useState<string | null>(null);
+    const [showErrors, setShowErrors] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleAddPhoto = (imageData: string) => {
@@ -147,11 +151,18 @@ const ProductModal: React.FC<ProductModalProps> = ({
             showToast('Limite de 6 fotos atingido.', 'error');
             return;
         }
+        setTempImageForCrop(imageData);
+        setIsCropperOpen(true);
+        setIsCameraOpen(false);
+    };
+
+    const handleCropSave = (croppedBase64: string) => {
         setFormData(prev => ({
             ...prev,
-            photos: [...(prev.photos || []), imageData]
+            photos: [...(prev.photos || []), croppedBase64]
         }));
-        setIsCameraOpen(false);
+        setIsCropperOpen(false);
+        setTempImageForCrop(null);
     };
 
     const handleRemovePhoto = (index: number) => {
@@ -565,19 +576,33 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isTradeInMode) {
+            if (activeTab !== 'details') {
+                const hasErrors = !formData.costPrice || formData.costPrice <= 0 || !formData.warranty || !formData.price || formData.price <= 0 || !formData.storageLocation;
+                if (hasErrors) {
+                    setShowErrors(true);
+                    showToast('Por favor, preencha os campos obrigatórios na aba Detalhes.', 'warning');
+                }
+                setActiveTab('details');
+                return;
+            }
+
             if (!formData.costPrice || formData.costPrice <= 0) {
+                setShowErrors(true);
                 showToast('O "Preço de Custo" (valor da troca) é obrigatório e deve ser maior que zero.', 'error');
                 return;
             }
             if (!formData.price || formData.price <= 0) {
+                setShowErrors(true);
                 showToast('O "Preço de Venda" é obrigatório e deve ser maior que zero.', 'error');
                 return;
             }
             if (!formData.warranty) {
+                setShowErrors(true);
                 showToast('Selecione o Tempo de Garantia.', 'error');
                 return;
             }
             if (!formData.storageLocation) {
+                setShowErrors(true);
                 showToast('Selecione o Local de Estoque.', 'error');
                 return;
             }
@@ -1030,7 +1055,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 )}
                                 <div className="space-y-2">
                                     <label className={labelClasses}>Tempo de Garantia*</label>
-                                    <select name="warranty" value={formData.warranty || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${!formData.warranty ? 'border-red-500' : 'border-gray-200'} rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
+                                    <select name="warranty" value={formData.warranty || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${showErrors && !formData.warranty ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
                                         <option value="">Selecione...</option>
                                         {formData.warranty && !warrantyOptions.some(w => w.name.toLowerCase() === formData.warranty?.toLowerCase()) && (
                                             <option value={formData.warranty}>{formData.warranty}</option>
@@ -1040,7 +1065,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 </div>
                                 <div className="space-y-2">
                                     <label className={labelClasses}>Local de Estoque*</label>
-                                    <select name="storageLocation" value={formData.storageLocation || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${!formData.storageLocation ? 'border-red-500' : 'border-gray-200'} rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
+                                    <select name="storageLocation" value={formData.storageLocation || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${showErrors && !formData.storageLocation ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
                                         <option value="">Selecione...</option>
                                         {formData.storageLocation && !locationOptions.some(l => l.name.toLowerCase() === formData.storageLocation?.toLowerCase()) && (
                                             <option value={formData.storageLocation}>{formData.storageLocation}</option>
@@ -1081,7 +1106,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest px-1">Custo Entrada</label>
-                                        <CurrencyInput value={formData.costPrice} onChange={handlePriceChange('costPrice')} className="w-full p-4 bg-white border border-gray-200 rounded-3xl font-black text-xl md:text-2xl text-gray-800 focus:ring-4 focus:ring-blue-100 outline-none shadow-sm" />
+                                        <CurrencyInput value={formData.costPrice} onChange={handlePriceChange('costPrice')} className={`w-full p-4 bg-white border ${showErrors && (!formData.costPrice || formData.costPrice <= 0) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-3xl font-black text-xl md:text-2xl text-gray-800 focus:ring-4 focus:ring-blue-100 outline-none shadow-sm`} />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Custo Adicional</label>
@@ -1107,7 +1132,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-success uppercase tracking-widest px-1">Preço de Venda*</label>
-                                        <CurrencyInput value={formData.price} onChange={handlePriceChange('price')} className="w-full p-4 bg-white border border-success/20 rounded-3xl font-black text-xl md:text-2xl text-success focus:ring-4 focus:ring-success/5 outline-none shadow-lg" />
+                                        <CurrencyInput value={formData.price} onChange={handlePriceChange('price')} className={`w-full p-4 bg-white border ${showErrors && (!formData.price || formData.price <= 0) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-success/20'} rounded-3xl font-black text-xl md:text-2xl text-success focus:ring-4 focus:ring-success/5 outline-none shadow-lg`} />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest px-1">Preço de Atacado</label>
@@ -1166,32 +1191,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     multiple
                                     onChange={async (e) => {
                                         if (e.target.files && e.target.files.length > 0) {
-                                            const existingCount = formData.photos?.length || 0;
-                                            const remainingSlots = 6 - existingCount;
-
-                                            // Converte para array para iterar
-                                            const files: File[] = Array.from(e.target.files).slice(0, remainingSlots) as unknown as File[];
-
-                                            if (files.length < e.target.files.length) {
-                                                showToast(`Apenas ${remainingSlots} fotos puderam ser adicionadas (limite de 6).`, 'warning');
-                                            }
-
-                                            const newPhotos: string[] = [];
-                                            for (const file of files) {
-                                                try {
-                                                    const compressed = await compressImage(file, { maxWidth: 400, maxHeight: 400, quality: 0.7 });
-                                                    newPhotos.push(compressed);
-                                                } catch (err) {
-                                                    console.error('Erro ao comprimir imagem', err);
-                                                    showToast('Erro ao processar imagem.', 'error');
-                                                }
-                                            }
-
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                photos: [...(prev.photos || []), ...newPhotos]
-                                            }));
-                                            setIsPhotoMenuOpen(false);
+                                            const file = e.target.files[0];
+                                            const reader = new FileReader();
+                                            reader.onload = (event) => {
+                                                setTempImageForCrop(event.target?.result as string);
+                                                setIsCropperOpen(true);
+                                                setIsPhotoMenuOpen(false);
+                                            };
+                                            reader.readAsDataURL(file);
                                         }
                                         if (e.target) e.target.value = ''; // Reset input
                                     }}
@@ -1295,6 +1302,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 isOpen={isCameraOpen}
                 onClose={() => setIsCameraOpen(false)}
                 onCapture={handleAddPhoto}
+            />
+
+            <ImageCropperModal
+                isOpen={isCropperOpen}
+                imageUrl={tempImageForCrop}
+                onClose={() => setIsCropperOpen(false)}
+                onCrop={handleCropSave}
+                aspectRatio={1}
             />
 
             {isSupplierModalOpen && (

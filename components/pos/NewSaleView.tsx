@@ -56,7 +56,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
         localSuppliers, isCardPaymentModalOpen, cardTransactionType, cardMethodId,
         paymentInput, subtotal, totalItemDiscounts, globalDiscountAmount, total,
-        totalPaid, balance
+        totalPaid, balance, isSaving
     } = state;
 
     const {
@@ -448,12 +448,41 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-gray-100 sm:border-0 sm:pt-0">
                         <div className="grid grid-cols-2 sm:flex gap-2">
                             <button onClick={props.onCancel} className="h-10 sm:h-12 px-4 sm:px-8 bg-red-100 text-red-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-red-200 transition-all">Sair</button>
-                            <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0} className="h-10 sm:h-12 px-4 sm:px-8 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50">Pendente</button>
+                            <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0 || isSaving} className="h-10 sm:h-12 px-4 sm:px-8 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50">Pendente</button>
                         </div>
-                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01} className="h-12 sm:h-12 px-8 sm:px-14 bg-slate-800 text-white rounded-xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-lg hover:bg-slate-700 transition-all disabled:bg-gray-200">Finalizar Venda</button>
+                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01 || isSaving} className="h-12 sm:h-12 px-8 sm:px-14 bg-slate-800 text-white rounded-xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-lg hover:bg-slate-700 transition-all disabled:bg-gray-200 flex items-center justify-center gap-2">
+                            {isSaving ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>Processando...</span>
+                                </>
+                            ) : (
+                                "Finalizar Venda"
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>
+
+            {isSaving && (
+                <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-auto">
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 max-w-xs w-full text-center animate-scale-in">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-4 border-success/20 border-t-success rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <ShoppingCartIcon className="h-6 w-6 text-success animate-pulse" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Processando Venda</h3>
+                            <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                                Estamos atualizando o estoque e registrando seu histórico. <br />
+                                <span className="text-success font-bold mt-1 block">Por favor, aguarde...</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {
                 isCustomerModalOpen && (

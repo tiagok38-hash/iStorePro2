@@ -58,6 +58,7 @@ export const useSaleForm = ({
     const [productForTradeIn, setProductForTradeIn] = useState<Partial<Product> | null>(null);
     const [pendingTradeInProduct, setPendingTradeInProduct] = useState<Product | null>(null);
     const [localSuppliers, setLocalSuppliers] = useState<Supplier[]>(suppliers);
+    const [isSaving, setIsSaving] = useState(false);
     const [isCardPaymentModalOpen, setIsCardPaymentModalOpen] = useState(false);
     const [cardTransactionType, setCardTransactionType] = useState<'credit' | 'debit'>('credit');
     const [cardMethodId, setCardMethodId] = useState<string>('');
@@ -415,6 +416,7 @@ export const useSaleForm = ({
             cashSessionDisplayId: saleToEdit?.cashSessionDisplayId || openCashSessionDisplayId || undefined,
         };
 
+        setIsSaving(true);
         try {
             let savedSale: Sale;
             if (saleToEdit) {
@@ -457,6 +459,8 @@ export const useSaleForm = ({
         } catch (error: any) {
             console.error('useSaleForm: Error in handleSave:', error);
             showToast(error.message || 'Erro ao salvar a venda.', 'error');
+        } finally {
+            setIsSaving(false);
         }
     }, [
         selectedCustomerId, selectedSalespersonId, cart, balance, subtotal,
@@ -473,7 +477,8 @@ export const useSaleForm = ({
             isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
             pendingTradeInProduct, localSuppliers, isCardPaymentModalOpen,
             cardTransactionType, cardMethodId, paymentInput,
-            subtotal, totalItemDiscounts, globalDiscountAmount, total, totalPaid, balance
+            subtotal, totalItemDiscounts, globalDiscountAmount, total, totalPaid, balance,
+            isSaving
         },
         actions: {
             setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setCart, setProductSearch,

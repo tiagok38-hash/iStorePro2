@@ -51,7 +51,7 @@ export const clearCache = (keys: string[]) => {
 // Prevents calls from hanging indefinitely when connection is stale
 const DEFAULT_TIMEOUT = 5000; // 5 seconds
 
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = DEFAULT_TIMEOUT, errorMessage?: string): Promise<T> => {
+const withTimeout = <T>(promise: Promise<T> | any, timeoutMs: number = DEFAULT_TIMEOUT, errorMessage?: string): Promise<T> => {
     return Promise.race([
         promise,
         new Promise<T>((_, reject) =>
@@ -207,14 +207,14 @@ export const logout = async (userId?: string, userName?: string) => {
 };
 
 export const getProfile = async (userId: string): Promise<User | null> => {
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-    if (error) return null;
-    return data as User;
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+        if (error) {
+            console.error('mockApi: getProfile error:', error);
+            return null;
+        }
+        return data as User;
+    });
 };
 
 export const getUsers = async (): Promise<User[]> => {
@@ -396,9 +396,9 @@ export const checkAdminExists = async (): Promise<boolean> => {
 export const getPermissionProfiles = async (): Promise<PermissionProfile[]> => {
     return fetchWithCache('permission_profiles', async () => {
         return fetchWithRetry(async () => {
-            const res = await supabase.from('permissions_profiles').select('*');
-            if (res.error) throw res.error;
-            return res.data || [];
+            const { data, error } = await supabase.from('permissions_profiles').select('*');
+            if (error) throw error;
+            return data || [];
         });
     });
 };
@@ -431,26 +431,28 @@ export const deletePermissionProfile = async (id: string) => {
 
 export const getCashSessions = async (currentUserId?: string): Promise<CashSession[]> => {
     return fetchWithCache(`cash_sessions_${currentUserId || 'all'}`, async () => {
-        let query = supabase.from('cash_sessions').select('*').order('open_time', { ascending: false });
+        return fetchWithRetry(async () => {
+            let query = supabase.from('cash_sessions').select('*').order('open_time', { ascending: false });
 
-        // RULE 7: User only sees its own cash sessions.
-        if (currentUserId) {
-            query = query.eq('user_id', currentUserId);
-        }
+            // RULE 7: User only sees its own cash sessions.
+            if (currentUserId) {
+                query = query.eq('user_id', currentUserId);
+            }
 
-        const { data, error } = await query;
-        if (error) throw error;
+            const { data, error } = await query;
+            if (error) throw error;
 
-        // Map snake_case to camelCase
-        return (data || []).map((s: any) => ({
-            ...s,
-            userId: s.user_id,
-            displayId: s.display_id,
-            openingBalance: s.opening_balance,
-            cashInRegister: s.cash_in_register,
-            openTime: s.open_time,
-            closeTime: s.close_time
-        }));
+            // Map snake_case to camelCase
+            return (data || []).map((s: any) => ({
+                ...s,
+                userId: s.user_id,
+                displayId: s.display_id,
+                openingBalance: s.opening_balance,
+                cashInRegister: s.cash_in_register,
+                openTime: s.open_time,
+                closeTime: s.close_time
+            }));
+        });
     });
 };
 
@@ -626,15 +628,25 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
 
 // --- PRODUCTS ---
 
-export const getProducts = async (): Promise<Product[]> => {
-    return fetchWithCache('products', async () => {
+export const getProducts = async (filters: { model?: string, categoryId?: string, brandId?: string, onlyInStock?: boolean } = {}): Promise<Product[]> => {
+    const cacheKey = `products_${JSON.stringify(filters)}`;
+    return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
-            const { data, error } = await supabase.from('products').select('*');
+            let query = supabase.from('products').select('*');
+
+            if (filters.model) query = query.ilike('model', `%${filters.model}%`);
+            if (filters.categoryId) query = query.eq('category', filters.categoryId); // Prop is categoryId but col is category
+            if (filters.brandId) query = query.eq('brand', filters.brandId); // Prop is brandId but col is brand
+            if (filters.onlyInStock) query = query.gt('stock', 0);
+
+            // Robustness: Always limit to a sane amount for general fetch (e.g. 1000 items)
+            // If they need more, they should use specific search functions.
+            const { data, error } = await query.order('createdAt', { ascending: false }).limit(1000);
+
             if (error) throw error;
             return (data || []).map((p: any) => ({
                 ...p,
                 supplierId: p.supplier_id || p.supplierId,
-                // Map snake_case to camelCase for fields that might be stored differently
                 storageLocation: p.storage_location || p.storageLocation,
                 costPrice: p.cost_price || p.costPrice,
                 wholesalePrice: p.wholesale_price || p.wholesalePrice,
@@ -650,6 +662,38 @@ export const getProducts = async (): Promise<Product[]> => {
                 createdByName: p.created_by_name || p.createdByName,
             }));
         });
+    });
+};
+
+// Specialized Search for high-volume data
+export const searchProducts = async (term: string): Promise<Product[]> => {
+    if (!term || term.length < 2) return [];
+
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .or(`model.ilike.%${term}%,imei1.ilike.%${term}%,imei2.ilike.%${term}%,"serialNumber".ilike.%${term}%`)
+            .limit(50);
+
+        if (error) throw error;
+        return (data || []).map((p: any) => ({
+            ...p,
+            supplierId: p.supplier_id || p.supplierId,
+            storageLocation: p.storage_location || p.storageLocation,
+            costPrice: p.cost_price || p.costPrice,
+            wholesalePrice: p.wholesale_price || p.wholesalePrice,
+            batteryHealth: p.battery_health || p.batteryHealth,
+            serialNumber: p.serial_number || p.serialNumber,
+            additionalCostPrice: p.additional_cost_price || p.additionalCostPrice,
+            stockHistory: p.stock_history || p.stockHistory,
+            priceHistory: p.price_history || p.priceHistory,
+            createdAt: p.created_at || p.createdAt,
+            updatedAt: p.updated_at || p.updatedAt,
+            minimumStock: p.minimum_stock || p.minimumStock,
+            createdBy: p.created_by || p.createdBy,
+            createdByName: p.created_by_name || p.createdByName,
+        }));
     });
 };
 
@@ -1243,8 +1287,9 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
     clearCache(['products']);
 };
 
-export const getSales = async (currentUserId?: string, cashSessionId?: string): Promise<Sale[]> => {
-    return fetchWithCache(`sales_${currentUserId || 'all'}_${cashSessionId || 'all'}`, async () => {
+export const getSales = async (currentUserId?: string, cashSessionId?: string, startDate?: string, endDate?: string): Promise<Sale[]> => {
+    const cacheKey = `sales_${currentUserId || 'all'}_${cashSessionId || 'all'}_${startDate || 'none'}_${endDate || 'none'}`;
+    return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('sales').select('*');
 
@@ -1255,23 +1300,34 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string): 
             if (cashSessionId) {
                 query = query.eq('cash_session_id', cashSessionId);
             }
-
-            // Execute query with timeout to prevent indefinite hanging
-            const executeQuery = async () => {
-                const result = await query;
-                return result;
-            };
-
-            const result = await withTimeout(
-                executeQuery(),
-                8000,
-                'Timeout ao carregar vendas'
-            );
-            if (result.error) {
-                console.error('Error fetching sales:', result.error);
-                throw result.error;
+            if (startDate) {
+                // If it's a simple YYYY-MM-DD, treat as start of day
+                const start = startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`;
+                query = query.gte('date', start);
             }
-            return result.data;
+            if (endDate) {
+                // Timezone Robustness: Brazil is UTC-3, so 21:00 Jan 28 (Local) is 00:00 Jan 29 (UTC).
+                // When the user filters for Jan 28, we MUST include early morning Jan 29 in UTC.
+                // We add a 24-hour buffer to endDate to ensure all timezone overlaps are covered.
+                if (!endDate.includes('T')) {
+                    const endObj = new Date(`${endDate}T23:59:59.999Z`);
+                    endObj.setDate(endObj.getDate() + 1); // Buffer 24h
+                    query = query.lte('date', endObj.toISOString());
+                } else {
+                    query = query.lte('date', endDate);
+                }
+            }
+
+            // ROBUSTNESS: Always limit to last 1000 sales to prevent memory overflows.
+            // For historical data beyond this, specialized reports should be used.
+            query = query.order('date', { ascending: false }).limit(1000);
+
+            const { data, error } = await query;
+            if (error) {
+                console.error('Error fetching sales:', error);
+                throw error;
+            }
+            return data;
         }).then(data => {
 
             return (data || []).map((sale: any) => {
@@ -1339,20 +1395,33 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
     const now = new Date();
 
     // Get all IDs to find the max and ensure uniqueness efficiently
-    const { data: existingIds } = await supabase.from('sales').select('id');
+    // Improved ID generation: Fetch only the most recent IDs to avoid timeouts and RLS truncation issues
+    const { data: recentIds, error: fetchError } = await supabase
+        .from('sales')
+        .select('id')
+        .order('createdAt', { ascending: false })
+        .limit(50);
+
+    if (fetchError) {
+        console.warn('mockApi: Error fetching recent IDs, falling back to sequential check. error:', fetchError);
+    }
 
     let nextNum = 1;
-    if (existingIds && existingIds.length > 0) {
-        const numbers = existingIds
+    if (recentIds && recentIds.length > 0) {
+        const numbers = recentIds
             .map((s: { id: string }) => {
                 const match = s.id.match(/^ID-(\d+)$/);
                 return match ? parseInt(match[1], 10) : 0;
             })
-            .filter((n: number) => !isNaN(n) && n < 1000000000); // Filter out timestamp-based IDs
+            .filter((n: number) => !isNaN(n) && n < 1000000000);
 
         if (numbers.length > 0) {
             nextNum = Math.max(...numbers) + 1;
         }
+    } else {
+        // If we found no IDs via created_at (maybe old records don't have it?), try a fallback or start from count
+        const { count } = await supabase.from('sales').select('*', { count: 'exact', head: true });
+        nextNum = (count || 0) + 1;
     }
 
     // Merge observations for DB storage
@@ -1383,19 +1452,36 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         lead_origin: data.leadOrigin || null,
     };
 
-    const { data: insertedRows, error } = await supabase.from('sales').insert([saleData]).select();
+    let success = false;
+    let attempts = 0;
+    const maxAttempts = 50; // Increased to handle larger gaps from other users' sales (RLS)
+    let currentSaleId = `ID-${nextNum}`;
+    let finalSale: any = null;
 
-    if (error) {
-        console.error("Error adding sale:", JSON.stringify(error, null, 2));
-        throw error;
+    while (attempts < maxAttempts && !success) {
+        attempts++;
+        const currentId = attempts === 1 ? currentSaleId : `ID-${nextNum + attempts - 1}`;
+
+        const { data: insertedRows, error } = await supabase.from('sales').insert([{ ...saleData, id: currentId }]).select();
+
+        if (error) {
+            if (error.code === '23505') { // Duplicate key
+                console.warn(`[addSale] Duplicate ID ${currentId}, retrying with next number...`);
+                continue;
+            }
+            console.error("Error adding sale:", JSON.stringify(error, null, 2));
+            throw error;
+        }
+
+        finalSale = (insertedRows && insertedRows.length > 0) ? insertedRows[0] : { ...saleData, id: currentId };
+        success = true;
     }
 
-    // Handle case where RLS hides the inserted row (returns 0 rows but no error)
-    const newSale = (insertedRows && insertedRows.length > 0) ? insertedRows[0] : saleData;
-
-    if (!insertedRows || insertedRows.length === 0) {
-        console.warn('mockApi: Sale inserted successfully but returned no data (likely RLS). Using local payload.');
+    if (!success) {
+        throw new Error('Não foi possível gerar um ID único para a venda após várias tentativas.');
     }
+
+    const newSale = finalSale;
 
     // Map back to camelCase for frontend
     const mappedSale = {
@@ -1411,37 +1497,44 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
     // Update stock and history for sold items
     if (data.items && Array.isArray(data.items)) {
-        // Fetch customer name for history
-        const { data: customerData } = await supabase.from('customers').select('*').eq('id', data.customerId).single();
-        const customerName = customerData?.name || 'Cliente';
-        const paymentMethods = data.payments?.map((p: Payment) => p.method).join(', ') || 'N/A';
+        // Fetch customer name for history (and all products at once for speed)
+        const [customerRes, productsRes] = await Promise.all([
+            supabase.from('customers').select('*').eq('id', data.customerId).single(),
+            supabase.from('products').select('*').in('id', data.items.map(i => i.productId))
+        ]);
 
-        // Add main sale audit log
-        await addAuditLog(
-            AuditActionType.SALE_CREATE,
-            AuditEntityType.SALE,
-            newSale.id,
-            `Venda criada. Cliente: ${customerName} | Total: ${formatCurrency(newSale.total)} | Pagamento: ${paymentMethods}`,
-            userId,
-            userName
-        );
+        const customerName = customerRes.data?.name || 'Cliente';
+        const paymentMethods = data.payments?.map((p: Payment) => p.method).join(', ') || 'N/A';
+        const allProducts = productsRes.data || [];
+
+        // Parallelize initial audit logs
+        const auditLogs = [
+            addAuditLog(
+                AuditActionType.SALE_CREATE,
+                AuditEntityType.SALE,
+                newSale.id,
+                `Venda criada. Cliente: ${customerName} | Total: ${formatCurrency(newSale.total)} | Pagamento: ${paymentMethods}`,
+                userId,
+                userName
+            )
+        ];
 
         for (const item of data.items) {
-            const { data: product } = await supabase.from('products').select('*').eq('id', item.productId).single();
+            const product = allProducts.find(p => p.id === item.productId);
             if (product) {
                 const currentStock = Number(product.stock);
                 const quantityToDeduct = Number(item.quantity);
                 const newStock = Math.max(0, currentStock - quantityToDeduct);
 
-                // Record History in Audit Log per product
-                await addAuditLog(
+                // Add to parallel audit logs
+                auditLogs.push(addAuditLog(
                     AuditActionType.SALE_CREATE,
                     AuditEntityType.PRODUCT,
                     item.productId,
                     `Venda #${newSale.id} - Qtd: ${quantityToDeduct} | Estoque restante: ${newStock}`,
                     userId,
                     userName
-                );
+                ));
 
                 // Add to stockHistory column
                 const existingStockHistory = product.stockHistory || [];
@@ -1457,12 +1550,16 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     details: `Cliente: ${customerName} | Pagamento: ${paymentMethods}`
                 };
 
+                // We await the product update specifically to ensure data integrity
                 await supabase.from('products').update({
                     stock: newStock,
                     stockHistory: [...existingStockHistory, newStockEntry]
                 }).eq('id', item.productId);
             }
         }
+
+        // Wait for all audit logs to complete (they were started in background)
+        await Promise.allSettled(auditLogs).catch(err => console.warn('mockApi: Audit logs partial failure', err));
     }
 
     // TRADE-IN STOCK MANAGEMENT: Add trade-in products to stock only when sale is Finalizada
@@ -2051,11 +2148,16 @@ const ensureISODate = (dateStr: string | undefined | null): string | null => {
     return dateStr;
 };
 
-export const getCustomers = async () => {
+export const getCustomers = async (): Promise<Customer[]> => {
     return fetchWithCache('customers', async () => {
         return fetchWithRetry(async () => {
             // Exclude avatar_url to prevent large payloads from crashing the app
-            const { data, error } = await supabase.from('customers').select(CUSTOMER_COLUMNS);
+            const { data, error } = await supabase
+                .from('customers')
+                .select(CUSTOMER_COLUMNS)
+                .order('name', { ascending: true })
+                .limit(3000); // Robustness limit
+
             if (error) {
                 console.error('mockApi: Error fetching customers:', error);
                 throw error;
@@ -2064,6 +2166,19 @@ export const getCustomers = async () => {
         }).then(data => {
             return (data || []).map(mapCustomer);
         });
+    });
+};
+
+export const searchCustomers = async (term: string): Promise<Customer[]> => {
+    if (!term || term.length < 2) return [];
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase
+            .from('customers')
+            .select(CUSTOMER_COLUMNS)
+            .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%`)
+            .limit(50);
+        if (error) throw error;
+        return (data || []).map(mapCustomer);
     });
 };
 
@@ -2361,9 +2476,29 @@ export const deleteCustomer = async (id: string, userId: string = 'system', user
 
 // --- SUPPLIERS ---
 
-export const getSuppliers = async () => {
+export const getSuppliers = async (): Promise<Supplier[]> => {
     return fetchWithCache('suppliers', async () => {
-        const { data, error } = await supabase.from('suppliers').select('*');
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase
+                .from('suppliers')
+                .select('*')
+                .order('name', { ascending: true })
+                .limit(3000); // Robustness limit
+
+            if (error) throw error;
+            return (data || []).map(mapSupplier);
+        });
+    });
+};
+
+export const searchSuppliers = async (term: string): Promise<Supplier[]> => {
+    if (!term || term.length < 2) return [];
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase
+            .from('suppliers')
+            .select('*')
+            .or(`name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
+            .limit(50);
         if (error) throw error;
         return (data || []).map(mapSupplier);
     });

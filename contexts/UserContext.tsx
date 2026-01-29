@@ -149,6 +149,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     setIsOnline(true);
 
+    // Safety timeout to ensure loading never stays true forever
+    const loadingTimeout = setTimeout(() => {
+      if (loading) setLoading(false);
+    }, 15000);
+
     try {
       // 1. Tenta obter sessão atual (usa refresh token se necessário automaticamente)
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
@@ -201,9 +206,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       console.error('UserContext: Erro crítico no checkSession:', err);
     } finally {
+      clearTimeout(loadingTimeout);
       if (isMountedRef.current) setLoading(false);
     }
-  }, [user, session, updateUserAndPermissions, reloadCriticalData]);
+  }, [user, session, updateUserAndPermissions, reloadCriticalData, loading]);
 
   // =====================================================
   // ESCUTA DE EVENTOS DE AUTENTICAÇÃO E JANELA

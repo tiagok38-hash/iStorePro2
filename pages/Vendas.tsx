@@ -231,10 +231,11 @@ const Vendas: React.FC = () => {
             ]);
 
             // Stage 2: Core Data (Heavy)
-            // Sales is CRITICAL and should respect user.id
+            // Sales is CRITICAL and should respect user.id and date range for performance
             let salesData: Sale[] = [];
             try {
-                salesData = await getSales(user?.id);
+                // IMPORTANT: Pass date filters to API for server-side optimization
+                salesData = await getSales(user?.id, undefined, startDate, endDate);
             } catch (err) {
                 console.error('Vendas: Failed to fetch sales:', err);
                 throw new Error('Falha ao carregar lista de vendas.');
@@ -242,13 +243,14 @@ const Vendas: React.FC = () => {
 
             // Products, Customers, Users, Suppliers - Fetch resiliently
             const [productsData, customersData, usersData, suppliersData] = await Promise.all([
-                fetchItem('Products', getProducts, []),
+                fetchItem('Products', () => getProducts(), []),
                 fetchItem('Customers', getCustomers, []),
                 fetchItem('Users', getUsers, []),
                 fetchItem('Suppliers', getSuppliers, [])
             ]);
 
 
+            // API already sorts by created_at DESC, but we keep this for extra safety with display dates
             const sortedSales = [...salesData].sort((a, b) => {
                 const dateA = a.date ? new Date(a.date).getTime() : 0;
                 const dateB = b.date ? new Date(b.date).getTime() : 0;
@@ -298,7 +300,7 @@ const Vendas: React.FC = () => {
             isFetchingRef.current = false;
             if (!silent) setLoading(false);
         }
-    }, []);
+    }, [user?.id, startDate, endDate]); // Dependencies to prevent stale closures
 
     useEffect(() => {
         fetchData();
@@ -333,6 +335,13 @@ const Vendas: React.FC = () => {
             }
         };
     }, [fetchData]);
+
+    // Re-fetch data whenever startDate or endDate changes
+    useEffect(() => {
+        if (permissions?.canAccessVendas) {
+            fetchData();
+        }
+    }, [startDate, endDate, permissions?.canAccessVendas]);
 
     const handlePeriodChange = useCallback((period: 'hoje' | '7dias' | '15dias' | '30dias') => {
         setActivePeriod(period);

@@ -220,8 +220,12 @@ const Products: React.FC = () => {
             setGradeValues(gradeValuesData);
 
             // 2. Fetch main data (heavier requests)
+            // ROBUSTNESS: Apply safety limits and date filters where appropriate
             const [productsData, customersData, purchasesData, salesData] = await Promise.all([
-                getProducts(), getCustomers(), getPurchaseOrders(), getSales()
+                getProducts(),
+                getCustomers(),
+                getPurchaseOrders(),
+                getSales(undefined, undefined, getInitialMonthStart()) // Only fetch recent sales for general context
             ]);
 
             setProducts(productsData);
