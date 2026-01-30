@@ -19,7 +19,6 @@ const Reports = lazy(() => import('./pages/Reports.tsx'));
 const Company = lazy(() => import('./pages/Company.tsx'));
 const Vendas = lazy(() => import('./pages/Vendas.tsx'));
 const Login = lazy(() => import('./pages/Login.tsx'));
-const Register = lazy(() => import('./pages/Register.tsx'));
 
 
 const MainLayout: React.FC = () => {
