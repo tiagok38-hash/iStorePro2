@@ -91,25 +91,37 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Persistência local segura
       localStorage.setItem('user', JSON.stringify(userData));
 
-      // Carregar Permissões
+      // Permissões padrão (Segurança: Deny by Default para novos recursos)
+      const defaultPermissions: PermissionSet = {
+        canAccessDashboard: true, canAccessEstoque: true, canAccessVendas: true,
+        canAccessPOS: true, canAccessClientes: true, canAccessFornecedores: true,
+        canAccessRelatorios: true, canAccessEmpresa: true,
+        canCreateProduct: true, canEditProduct: true, canDeleteProduct: true,
+        canEditStock: true,
+        canViewPurchases: true, canCreatePurchase: true, canEditPurchase: true,
+        canDeletePurchase: true, canLaunchPurchase: true,
+        canViewPurchaseKPIs: false, // Novo recurso: Desativado por padrão
+        canCreateSale: true, canCancelSale: true,
+        canViewSalesKPIs: true, canEditSale: true,
+        canManageCompanyData: true, canManageUsers: true,
+        canManagePermissions: true, canViewAudit: true,
+        canEditOwnProfile: true, canManageMarcasECategorias: true,
+      };
+
       try {
         const profiles = await getPermissionProfiles();
         const profile = profiles.find(p => p.id === userData.permissionProfileId);
+
         if (profile) {
-          setPermissions(profile.permissions);
+          // Garante que todas as chaves existam fundindo com o padrão
+          setPermissions({ ...defaultPermissions, ...profile.permissions });
         } else {
-          console.warn('UserContext: Perfil de permissão não encontrado, usando fallback seguro.');
-          // Fallback seguro em vez de erro
-          setPermissions({
-            canAccessDashboard: true, canAccessVendas: true, canAccessEstoque: true,
-            canAccessClientes: true, canAccessFornecedores: true, canAccessRelatorios: true,
-            canAccessEmpresa: true, canAccessPOS: true, canManageProducts: true,
-            canEditProductPrices: true, canCancelSales: true, canApplyDiscounts: true,
-            canEditOwnProfile: true, canManageMarcasECategorias: true
-          });
+          console.warn(`UserContext: Perfil '${userData.permissionProfileId}' não encontrado, usando padrão.`);
+          setPermissions(defaultPermissions);
         }
       } catch (e) {
         console.error("UserContext: Falha ao carregar permissões", e);
+        setPermissions(defaultPermissions);
       }
 
       // Restaurar Caixa Aberto se necessário

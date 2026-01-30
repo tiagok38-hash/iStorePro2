@@ -231,11 +231,15 @@ const Vendas: React.FC = () => {
             ]);
 
             // Stage 2: Core Data (Heavy)
-            // Sales is CRITICAL and should respect user.id and date range for performance
+            // Sales is CRITICAL and should respect permission to see all or only own sales
             let salesData: Sale[] = [];
             try {
-                // IMPORTANT: Pass date filters to API for server-side optimization
-                salesData = await getSales(user?.id, undefined, startDate, endDate);
+                // IMPORTANT: Admins or users with management permissions should see ALL sales.
+                // Sellers should only see their own sales.
+                const canSeeAllSales = permissions?.canManageUsers || permissions?.canManagePermissions || permissions?.canViewAudit;
+                const userIdToFilter = canSeeAllSales ? undefined : user?.id;
+
+                salesData = await getSales(userIdToFilter, undefined, startDate, endDate);
             } catch (err) {
                 console.error('Vendas: Failed to fetch sales:', err);
                 throw new Error('Falha ao carregar lista de vendas.');
@@ -300,7 +304,7 @@ const Vendas: React.FC = () => {
             isFetchingRef.current = false;
             if (!silent) setLoading(false);
         }
-    }, [user?.id, startDate, endDate]); // Dependencies to prevent stale closures
+    }, [user?.id, startDate, endDate, permissions]); // Dependencies to prevent stale closures
 
     useEffect(() => {
         fetchData();
@@ -341,7 +345,7 @@ const Vendas: React.FC = () => {
         if (permissions?.canAccessVendas) {
             fetchData();
         }
-    }, [startDate, endDate, permissions?.canAccessVendas]);
+    }, [startDate, endDate, permissions]);
 
     const handlePeriodChange = useCallback((period: 'hoje' | '7dias' | '15dias' | '30dias') => {
         setActivePeriod(period);

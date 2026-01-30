@@ -2769,7 +2769,7 @@ const addItem = async (table: string, data: any, cacheKey: string, userId: strin
         AuditActionType.CREATE,
         getTableEntityType(table),
         newItem.id,
-        `Item adicionado em ${table}: ${JSON.stringify(data)}`,
+        `Item adicionado em ${table}. Dados: ${JSON.stringify(data)}`,
         userId,
         userName
     );
@@ -2827,7 +2827,19 @@ const getTableEntityType = (table: string): AuditEntityType => {
         case 'sales': return AuditEntityType.SALE;
         case 'purchase_orders': return AuditEntityType.PURCHASE_ORDER;
         case 'users': return AuditEntityType.USER;
-        default: return AuditEntityType.PRODUCT; // Fallback
+        case 'payment_methods': return AuditEntityType.PAYMENT_METHOD;
+        case 'brands': return AuditEntityType.BRAND;
+        case 'categories': return AuditEntityType.CATEGORY;
+        case 'product_models': return AuditEntityType.PRODUCT_MODEL;
+        case 'grades': return AuditEntityType.GRADE;
+        case 'grade_values': return AuditEntityType.GRADE_VALUE;
+        case 'warranties': return AuditEntityType.WARRANTY;
+        case 'storage_locations': return AuditEntityType.STORAGE_LOCATION;
+        case 'product_conditions': return AuditEntityType.CONDITION;
+        case 'receipt_terms': return AuditEntityType.RECEIPT_TERM;
+        case 'permission_profiles': return AuditEntityType.PERMISSION_PROFILE;
+        case 'cash_sessions': return AuditEntityType.CASH_SESSION;
+        default: return AuditEntityType.PRODUCT;
     }
 }
 

@@ -718,7 +718,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string }> = Re
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-500 font-medium">Venda:</span>
-                                <span className="font-bold text-blue-600">{formatCurrency(stats.apple.value)}</span>
+                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{formatCurrency(stats.apple.value)}</span>
                             </div>
                             <div className="flex justify-between items-center pt-2 border-t border-gray-200/60">
                                 <span className="text-[10px] font-black text-gray-500 uppercase">Markup</span>
@@ -750,7 +750,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string }> = Re
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-500 font-medium">Venda:</span>
-                                <span className="font-bold text-blue-600">{formatCurrency(stats.others.value)}</span>
+                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{formatCurrency(stats.others.value)}</span>
                             </div>
                             <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                                 <span className="text-[10px] font-black text-gray-500 uppercase">Markup</span>

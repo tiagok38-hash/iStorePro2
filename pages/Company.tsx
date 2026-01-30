@@ -599,6 +599,18 @@ const AuditoriaTab: React.FC = () => {
             [AuditEntityType.SALE]: 'Venda',
             [AuditEntityType.PURCHASE_ORDER]: 'Compra',
             [AuditEntityType.USER]: 'Usuário',
+            [AuditEntityType.PAYMENT_METHOD]: 'Meio de Pagamento',
+            [AuditEntityType.BRAND]: 'Marca',
+            [AuditEntityType.CATEGORY]: 'Categoria',
+            [AuditEntityType.PRODUCT_MODEL]: 'Modelo',
+            [AuditEntityType.GRADE]: 'Grade',
+            [AuditEntityType.GRADE_VALUE]: 'Valor de Grade',
+            [AuditEntityType.WARRANTY]: 'Garantia',
+            [AuditEntityType.STORAGE_LOCATION]: 'Local de Estoque',
+            [AuditEntityType.CONDITION]: 'Condição',
+            [AuditEntityType.RECEIPT_TERM]: 'Termo de Recibo',
+            [AuditEntityType.PERMISSION_PROFILE]: 'Perfil de Permissão',
+            [AuditEntityType.CASH_SESSION]: 'Caixa',
         };
         return translations[entity] || entity;
     };
@@ -889,14 +901,27 @@ const AuditoriaTab: React.FC = () => {
                                             }
 
                                             // Tentar extrair nome do JSON se houver
-                                            const jsonMatch = text.match(/\{[^}]+\}/);
-                                            if (jsonMatch) {
-                                                const data = JSON.parse(jsonMatch[0]);
-                                                const itemName = data.name || data.id || '';
+                                            const jsonStart = text.indexOf('{');
+                                            if (jsonStart !== -1) {
+                                                const jsonStr = text.substring(jsonStart);
+                                                try {
+                                                    const data = JSON.parse(jsonStr);
+                                                    const itemName = data.name || data.id || '';
 
-                                                if (text.includes('adicionado')) return `${tableName || entityText} criado(a): ${itemName}`;
-                                                if (text.includes('atualizado')) return `${tableName || entityText} atualizado(a): ${itemName}`;
-                                                if (text.includes('excluído')) return `${tableName || entityText} excluído(a): ${itemName}`;
+                                                    if (text.includes('adicionado')) return `${tableName || entityText} criado(a): ${itemName}`;
+                                                    if (text.includes('atualizado')) return `${tableName || entityText} atualizado(a): ${itemName}`;
+                                                    if (text.includes('excluído')) return `${tableName || entityText} excluído(a): ${itemName}`;
+                                                } catch (e) {
+                                                    // Se falhar o parse do resto da string, tentar o match anterior como fallback
+                                                    const jsonMatch = text.match(/\{[^}]+\}/);
+                                                    if (jsonMatch) {
+                                                        const data = JSON.parse(jsonMatch[0]);
+                                                        const itemName = data.name || data.id || '';
+                                                        if (text.includes('adicionado')) return `${tableName || entityText} criado(a): ${itemName}`;
+                                                        if (text.includes('atualizado')) return `${tableName || entityText} atualizado(a): ${itemName}`;
+                                                        if (text.includes('excluído')) return `${tableName || entityText} excluído(a): ${itemName}`;
+                                                    }
+                                                }
                                             }
                                             // Se não tiver JSON, tentar extrair da própria string (ex: "Item excluído de grade_values: Azul")
                                             else {

@@ -76,13 +76,13 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
     };
 
     return (
-        <div className="font-sans text-black receipt-body" id="receipt-content" style={{ width: '100%', maxWidth: '195mm', margin: '0 auto' }}>
+        <div className="font-sans text-black receipt-body" id="receipt-content" style={{ width: '100%', maxWidth: '210mm', margin: '0' }}>
             {/* Company Header - Logo bigger */}
             <header className="flex justify-between items-start pb-1.5 border-b border-black">
                 <div className="flex items-center gap-4">
                     {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-20 w-20 object-contain" />}
                     <div>
-                        <h1 className="font-bold text-lg leading-tight">{companyInfo?.name}</h1>
+                        <h1 className="font-bold text-xl leading-tight text-black">{companyInfo?.name}</h1>
                         <p className="text-[10px] leading-tight">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
                         <p className="text-[10px] leading-tight">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''} - {companyInfo?.bairro}</p>
                         <p className="text-[10px] leading-tight">{companyInfo?.city} ({companyInfo?.state}) - CEP: {formatCEP(companyInfo?.cep)}</p>
@@ -126,7 +126,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
             {/* Products Table - Full Width */}
             <section className="rounded-lg overflow-hidden border border-black">
                 <table className="w-full text-left border-collapse text-[10px]">
-                    <thead className="bg-gray-100">
+                    <thead>
                         <tr>
                             <th className="px-1.5 py-1 font-semibold border border-black">Descrição</th>
                             <th className="px-1.5 py-1 font-semibold border border-black text-center" style={{ width: '40px' }}>Qtd</th>
@@ -218,7 +218,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                 </div>
 
                 {/* Totals Section - 40% width */}
-                <div className="bg-gray-50 p-2 rounded border border-gray-200 text-[10px]" style={{ width: '40%' }}>
+                <div className="bg-white p-2 rounded border border-black text-[10px]" style={{ width: '40%' }}>
                     <div className="flex justify-between"><span className="font-semibold">ITENS</span><span>{totalItems}</span></div>
                     <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
                     <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
@@ -448,14 +448,15 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         ` : `
                             @page { 
                                 size: A4 portrait; 
-                                margin: 8mm 7mm 8mm 7mm; 
+                                margin: 0; 
                             }
                             .receipt-body { 
                                 font-size: 10pt !important; 
                                 color: black !important; 
                                 width: 100% !important;
-                                max-width: 196mm !important;
-                                margin: 0 auto !important;
+                                max-width: 210mm !important;
+                                margin: 0 !important;
+                                padding: 5mm 10mm !important;
                             }
                         `}
 
@@ -477,7 +478,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                     }
                 `}
             </style>
-            <div className={`bg-surface rounded-lg shadow-xl w-full ${format === 'A4' ? 'max-w-4xl' : 'max-w-sm'} flex flex-col`} id="print-container">
+            <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col`} id="print-container">
                 <div className="flex justify-between items-center p-4 border-b border-border no-print">
                     <h2 className="text-2xl font-bold text-primary">Recibo da Venda #{sale.id}</h2>
                     <div className="flex items-center gap-4">
@@ -487,7 +488,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         <button onClick={onClose} className="p-1 text-muted hover:text-danger"><CloseIcon className="h-6 w-6" /></button>
                     </div>
                 </div>
-                <div className="p-2 sm:p-6">
+                <div className="p-0 sm:p-4 print:p-0">
                     {loading ? <div className="flex justify-center items-center h-64"><SpinnerIcon /></div> : (
                         format === 'A4' ? <A4Layout {...layoutProps} /> : <ThermalLayout {...layoutProps} />
                     )}

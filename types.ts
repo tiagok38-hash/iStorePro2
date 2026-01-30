@@ -25,6 +25,7 @@ export interface PermissionSet {
     canEditPurchase: boolean;
     canDeletePurchase: boolean;
     canLaunchPurchase: boolean;
+    canViewPurchaseKPIs: boolean;
 
     // Sales permissions
     canCreateSale: boolean;
@@ -390,6 +391,18 @@ export enum AuditEntityType {
     SALE = 'SALE',
     PURCHASE_ORDER = 'PURCHASE_ORDER',
     USER = 'USER',
+    PAYMENT_METHOD = 'PAYMENT_METHOD',
+    BRAND = 'BRAND',
+    CATEGORY = 'CATEGORY',
+    PRODUCT_MODEL = 'PRODUCT_MODEL',
+    GRADE = 'GRADE',
+    GRADE_VALUE = 'GRADE_VALUE',
+    WARRANTY = 'WARRANTY',
+    STORAGE_LOCATION = 'STORAGE_LOCATION',
+    CONDITION = 'CONDITION',
+    RECEIPT_TERM = 'RECEIPT_TERM',
+    PERMISSION_PROFILE = 'PERMISSION_PROFILE',
+    CASH_SESSION = 'CASH_SESSION',
 }
 
 export interface AuditLog {

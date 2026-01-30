@@ -836,27 +836,29 @@ const Products: React.FC = () => {
                         </div>
                     </div>
 
-                    <hr className="border-gray-100" />
+                    {permissions?.canViewPurchaseKPIs && <hr className="border-gray-100" />}
 
                     {/* LINHA 2: KPIs e Filtros compactados */}
                     <div className="flex flex-col xl:flex-row justify-between items-end gap-6">
                         {/* KPIs - Esquerda */}
-                        <div className="flex gap-8 shrink-0">
-                            <div>
-                                <p className="text-sm text-gray-500 font-medium mb-1">Qtd de compras do mês</p>
-                                <div className="flex items-center gap-2">
-                                    <ShoppingCartIcon className="h-5 w-5 text-gray-400" />
-                                    <span className="text-2xl font-bold text-gray-800">{comprasKpi.count}</span>
+                        {permissions?.canViewPurchaseKPIs && (
+                            <div className="flex gap-8 shrink-0">
+                                <div>
+                                    <p className="text-sm text-gray-500 font-medium mb-1">Qtd de compras do período</p>
+                                    <div className="flex items-center gap-2">
+                                        <ShoppingCartIcon className="h-5 w-5 text-gray-400" />
+                                        <span className="text-2xl font-bold text-gray-800">{comprasKpi.count}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500 font-medium mb-1">Total de compras do período</p>
+                                    <div className="flex items-center gap-2">
+                                        <CurrencyDollarIcon className="h-5 w-5 text-gray-400" />
+                                        <span className="text-2xl font-bold text-gray-800">{formatCurrency(comprasKpi.total)}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500 font-medium mb-1">Total de compras do mês</p>
-                                <div className="flex items-center gap-2">
-                                    <CurrencyDollarIcon className="h-5 w-5 text-gray-400" />
-                                    <span className="text-2xl font-bold text-gray-800">{formatCurrency(comprasKpi.total)}</span>
-                                </div>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Filtros - Direita */}
                         <div className="flex flex-col lg:flex-row items-center gap-3 w-full xl:w-auto xl:flex-1 justify-end">

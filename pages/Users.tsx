@@ -49,6 +49,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
             { key: 'canEditPurchase', label: 'Editar Compras' },
             { key: 'canDeletePurchase', label: 'Excluir Compras' },
             { key: 'canLaunchPurchase', label: 'Lançar Compras no Estoque' },
+            { key: 'canViewPurchaseKPIs', label: 'Visualizar Cards de Indicadores (KPIs)' },
         ],
     },
     {
