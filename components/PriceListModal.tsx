@@ -34,6 +34,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
     const [showStockQty, setShowStockQty] = useState(false);
     const [showBatteryHealth, setShowBatteryHealth] = useState(false);
     const [showStockLocation, setShowStockLocation] = useState(false);
+    const [groupIdentical, setGroupIdentical] = useState(false);
 
     useEffect(() => {
         const fetchMetadata = async () => {
@@ -169,55 +170,82 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
         text += `Gerada em: ${new Date().toLocaleString('pt-BR')}\n`;
         text += `==========================================\n\n`;
 
+        let processingProducts = [...filteredForStep];
+
+        // Group identical if requested
+        if (groupIdentical) {
+            const groupedMap: Record<string, Product> = {};
+            processingProducts.forEach(p => {
+                const key = `${p.model}-${p.condition}-${p.storage}-${p.color}`;
+                if (!groupedMap[key]) {
+                    groupedMap[key] = { ...p };
+                } else {
+                    groupedMap[key].stock += p.stock;
+                    // For health, we could average it or just keep first. Keeping first is safer for lists.
+                }
+            });
+            processingProducts = Object.values(groupedMap);
+        }
+
         // Grouping
-        const groups: Record<string, Product[]> = {};
+        const groups: Record<string, Record<string, Product[]>> = {};
         const groupField = selectedType === 'apple' ? 'category' : 'brand';
 
-        filteredForStep.forEach(p => {
-            const key = p[groupField] || 'Outros';
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(p);
+        processingProducts.forEach(p => {
+            const mainGroup = p[groupField] || 'Outros';
+            const conditionGroup = (selectedConditions.length === 0) ? p.condition : 'default';
+
+            if (!groups[mainGroup]) groups[mainGroup] = {};
+            if (!groups[mainGroup][conditionGroup]) groups[mainGroup][conditionGroup] = [];
+            groups[mainGroup][conditionGroup].push(p);
         });
 
-        Object.keys(groups).sort().forEach(groupName => {
-            text += `📍 ${groupName.toUpperCase()}\n`;
+        Object.keys(groups).sort().forEach(mainName => {
+            text += `📍 ${mainName.toUpperCase()}\n`;
             text += `------------------------------------------\n`;
 
-            groups[groupName].sort((a, b) => a.model.localeCompare(b.model)).forEach(p => {
-                let line = `• ${p.model}`;
-                if (p.storage) line += ` ${p.storage}GB`;
-                if (p.color) line += ` (${p.color})`;
-                if (p.condition) line += ` - ${p.condition}`;
-
-                if (showBatteryHealth && p.batteryHealth) {
-                    line += ` [Saúde: ${p.batteryHealth}%]`;
+            const conditionGroups = groups[mainName];
+            Object.keys(conditionGroups).sort().forEach(condName => {
+                if (condName !== 'default') {
+                    text += `\n[ ${condName.toUpperCase()} ]\n`;
                 }
 
-                if (showStockLocation && p.storageLocation) {
-                    line += ` | Local: ${p.storageLocation}`;
-                }
+                conditionGroups[condName].sort((a, b) => a.model.localeCompare(b.model)).forEach(p => {
+                    let line = `• ${p.model}`;
+                    if (p.storage) line += ` ${p.storage}GB`;
+                    if (p.color) line += ` (${p.color})`;
+                    if (condName === 'default' && p.condition) line += ` - ${p.condition}`;
 
-                if (showStockQty) {
-                    line += ` | Estoque: ${p.stock}`;
-                }
+                    if (showBatteryHealth && p.batteryHealth) {
+                        line += ` [Saúde: ${p.batteryHealth}%]`;
+                    }
 
-                text += line + '\n';
+                    if (showStockLocation && p.storageLocation) {
+                        line += ` | Local: ${p.storageLocation}`;
+                    }
 
-                const prices: string[] = [];
-                if (selectedPriceTypes.includes('all')) {
-                    prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
-                    prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
-                    prices.push(`Venda: ${formatCurrency(p.price)}`);
-                } else {
-                    if (selectedPriceTypes.includes('cost')) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
-                    if (selectedPriceTypes.includes('wholesale')) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
-                    if (selectedPriceTypes.includes('sale')) prices.push(`Preço: ${formatCurrency(p.price)}`);
-                }
+                    if (showStockQty) {
+                        line += ` | Estoque: ${p.stock}`;
+                    }
 
-                if (prices.length > 0) {
-                    text += `  💰 ${prices.join(' | ')}\n`;
-                }
-                text += '\n';
+                    text += line + '\n';
+
+                    const prices: string[] = [];
+                    if (selectedPriceTypes.includes('all')) {
+                        prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
+                        prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
+                        prices.push(`Venda: ${formatCurrency(p.price)}`);
+                    } else {
+                        if (selectedPriceTypes.includes('cost')) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
+                        if (selectedPriceTypes.includes('wholesale')) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
+                        if (selectedPriceTypes.includes('sale')) prices.push(`Preço: ${formatCurrency(p.price)}`);
+                    }
+
+                    if (prices.length > 0) {
+                        text += `  💰 ${prices.join(' | ')}\n`;
+                    }
+                    text += '\n';
+                });
             });
             text += '\n';
         });
@@ -499,6 +527,13 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                     <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Exibir Saúde da Bateria</span>
                                                 </label>
                                             )}
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${groupIdentical ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${groupIdentical ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                </div>
+                                                <input type="checkbox" className="hidden" checked={groupIdentical} onChange={e => setGroupIdentical(e.target.checked)} />
+                                                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Agrupar produtos iguais</span>
+                                            </label>
                                         </div>
                                     </div>
 
