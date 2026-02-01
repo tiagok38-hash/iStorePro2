@@ -495,6 +495,20 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
         const totalCost = filteredProducts.reduce((sum, p) => sum + ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * p.stock, 0);
         const totalSaleValue = filteredProducts.reduce((sum, p) => sum + p.price * p.stock, 0);
 
+        // Apple Products
+        const appleItems = products.filter(p => (p.brand || '').toLowerCase().includes('apple'));
+        const appleCount = appleItems.reduce((sum, p) => sum + p.stock, 0);
+        const appleCost = appleItems.reduce((sum, p) => sum + ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * p.stock, 0);
+        const appleSaleValue = appleItems.reduce((sum, p) => sum + p.price * p.stock, 0);
+        const appleMarkup = appleCost > 0 ? ((appleSaleValue - appleCost) / appleCost) * 100 : 0;
+
+        // Non-Apple Products
+        const otherItems = products.filter(p => !(p.brand || '').toLowerCase().includes('apple'));
+        const otherCount = otherItems.reduce((sum, p) => sum + p.stock, 0);
+        const otherCost = otherItems.reduce((sum, p) => sum + ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * p.stock, 0);
+        const otherSaleValue = otherItems.reduce((sum, p) => sum + p.price * p.stock, 0);
+        const otherMarkup = otherCost > 0 ? ((otherSaleValue - otherCost) / otherCost) * 100 : 0;
+
         // Calculate idle stock for the KPI specifically
         const idleCount = products.filter(p => {
             const createdAt = p.createdAt ? new Date(p.createdAt) : new Date();
@@ -506,6 +520,14 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
             totalItems,
             totalCost,
             totalSaleValue,
+            appleCount,
+            appleCost,
+            appleSaleValue,
+            appleMarkup,
+            otherCount,
+            otherCost,
+            otherSaleValue,
+            otherMarkup,
             idleCount
         };
     }, [filteredProducts, products, idleDays]);
@@ -552,10 +574,61 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                 <KpiCard title="Total de Itens" value={kpis.totalItems.toLocaleString('pt-BR')} className="bg-blue-50 border-blue-100" />
                 <KpiCard title="Custo Estoque" value={formatCurrency(kpis.totalCost)} className="bg-orange-50 border-orange-100" />
                 <KpiCard title="Venda Estoque" value={formatCurrency(kpis.totalSaleValue)} className="bg-emerald-50 border-emerald-100" />
+
+                <div className="p-4 rounded-xl border shadow-sm bg-indigo-50 border-indigo-100">
+                    <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-[10px] font-black uppercase tracking-wider text-indigo-800">Estoque Apple</h3>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                            {kpis.appleCount} {kpis.appleCount === 1 ? 'item' : 'itens'}
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-end">
+                            <span className="text-[9px] font-bold text-indigo-500 uppercase">Custo</span>
+                            <span className="text-xs font-bold text-indigo-900">{formatCurrency(kpis.appleCost)}</span>
+                        </div>
+                        <div className="flex justify-between items-end">
+                            <span className="text-[9px] font-bold text-indigo-500 uppercase">Venda</span>
+                            <span className="text-xs font-black text-indigo-900">{formatCurrency(kpis.appleSaleValue)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t border-indigo-200/50 mt-1">
+                            <span className="text-[9px] font-bold text-indigo-500 uppercase">Markup</span>
+                            <span className={`text-[10px] font-black ${kpis.appleMarkup >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {kpis.appleMarkup.toFixed(1)}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-xl border shadow-sm bg-purple-50 border-purple-100">
+                    <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-[10px] font-black uppercase tracking-wider text-purple-800">Estoque Outros</h3>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                            {kpis.otherCount} {kpis.otherCount === 1 ? 'item' : 'itens'}
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-end">
+                            <span className="text-[9px] font-bold text-purple-500 uppercase">Custo</span>
+                            <span className="text-xs font-bold text-purple-900">{formatCurrency(kpis.otherCost)}</span>
+                        </div>
+                        <div className="flex justify-between items-end">
+                            <span className="text-[9px] font-bold text-purple-500 uppercase">Venda</span>
+                            <span className="text-xs font-black text-purple-900">{formatCurrency(kpis.otherSaleValue)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t border-purple-200/50 mt-1">
+                            <span className="text-[9px] font-bold text-purple-500 uppercase">Markup</span>
+                            <span className={`text-[10px] font-black ${kpis.otherMarkup >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                {kpis.otherMarkup.toFixed(1)}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 <div
                     onClick={() => setStockFilter('parado')}
                     className="p-4 rounded-xl border shadow-sm bg-red-50 border-red-100 cursor-pointer hover:shadow-md transition-shadow group"
