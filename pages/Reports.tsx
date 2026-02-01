@@ -5,6 +5,7 @@ import { Sale, Product, Customer, User } from '../types.ts';
 import { getSales, getProducts, getCustomers, getUsers, formatCurrency } from '../services/mockApi.ts';
 import { SpinnerIcon, CalendarDaysIcon, TrophyIcon } from '../components/icons.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
+import PriceListModal from '../components/PriceListModal.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 
 const KpiCard: React.FC<{ title: string; value: string; className?: string }> = ({ title, value, className }) => (
@@ -893,6 +894,7 @@ const Reports: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isPriceListModalOpen, setIsPriceListModalOpen] = useState(false);
 
     const tabs = [
         { id: 'estoque', label: 'Estoque' },
@@ -931,7 +933,19 @@ const Reports: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-primary">Relatórios</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h1 className="text-3xl font-bold text-primary">Relatórios</h1>
+                <button
+                    onClick={() => setIsPriceListModalOpen(true)}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-bold text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    Gerar lista de preços
+                </button>
+            </div>
+
             <div className="inline-flex items-center gap-1 bg-surface-secondary p-1 rounded-lg">
                 {tabs.map(tab => (
                     <button
@@ -951,6 +965,14 @@ const Reports: React.FC = () => {
                     {activeTab === 'vendas' && <VendasReport sales={sales} products={products} customers={customers} users={users} />}
                     {activeTab === 'estoque' && <EstoqueReport products={products} sales={sales} initialFilter={searchParams.get('filter')} />}
                 </>
+            )}
+
+            {isPriceListModalOpen && (
+                <PriceListModal
+                    isOpen={isPriceListModalOpen}
+                    onClose={() => setIsPriceListModalOpen(false)}
+                    products={products}
+                />
             )}
         </div>
     );
