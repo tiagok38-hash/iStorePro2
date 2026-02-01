@@ -12,6 +12,7 @@ import {
 } from '../services/mockApi.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
+import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import UpdateStockModal from '../components/UpdateStockModal.tsx';
 import ProductHistoryModal from '../components/ProductHistoryModal.tsx';
@@ -821,14 +822,25 @@ const Products: React.FC = () => {
                             </button>
                         )}
 
-                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-md border border-gray-200">
-                                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-1" />
-                                <span className="text-gray-400 text-xs">à</span>
-                                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-xs font-medium text-gray-600 focus:ring-0 p-1" />
+                        <div className="flex flex-col sm:flex-row items-end gap-3 w-full md:w-auto">
+                            <div className="flex items-end gap-3">
+                                <CustomDatePicker
+                                    label="Data Início"
+                                    value={startDate}
+                                    onChange={setStartDate}
+                                    max={toDateValue()}
+                                    className="w-full sm:w-auto"
+                                />
+                                <CustomDatePicker
+                                    label="Data Fim"
+                                    value={endDate}
+                                    onChange={setEndDate}
+                                    max={toDateValue()}
+                                    className="w-full sm:w-auto"
+                                />
                             </div>
 
-                            <div className="flex bg-gray-100 p-1 rounded-md border border-gray-200">
+                            <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 h-10 mb-[1px]">
                                 <button onClick={() => handlePeriodChange('hoje')} className={periodButtonClasses('hoje')}>Hoje</button>
                                 <button onClick={() => handlePeriodChange('semana')} className={periodButtonClasses('semana')}>Semana</button>
                                 <button onClick={() => handlePeriodChange('mes')} className={periodButtonClasses('mes')}>Mês</button>

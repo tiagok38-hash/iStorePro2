@@ -39,6 +39,7 @@ import Button from '../components/Button.tsx';
 import { toDateValue, formatTimeBR, formatRelativeDate } from '../utils/dateUtils.ts';
 import { compressImage } from '../utils/imageUtils.ts';
 import ImageCropperModal from '../components/ImageCropperModal.tsx';
+import CustomDatePicker from '../components/CustomDatePicker.tsx';
 
 type ModalType = 'brand' | 'category' | 'model' | 'grade' | 'gradeValue';
 type Item = Brand | Category | ProductModel | Grade | GradeValue;
@@ -827,18 +828,15 @@ const AuditoriaTab: React.FC = () => {
                         Ontem
                     </button>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <input
-                        type="date"
+                <div className="flex items-center w-full sm:w-auto">
+                    <CustomDatePicker
                         value={customDate}
-                        onChange={(e) => {
-                            setCustomDate(e.target.value);
+                        onChange={(val) => {
+                            setCustomDate(val);
                             setPeriodFilter('custom');
                         }}
-                        className={`w-full sm:w-auto px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${periodFilter === 'custom'
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-gray-200 bg-gray-100 text-gray-600'
-                            }`}
+                        max={toDateValue()}
+                        className="w-full"
                     />
                 </div>
                 <span className="text-xs text-gray-400 sm:ml-auto">

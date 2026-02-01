@@ -10,6 +10,8 @@ import CardPaymentModal from '../components/CardPaymentModal.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
 import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
+import CustomDatePicker from '../components/CustomDatePicker.tsx';
+import { toDateValue } from '../utils/dateUtils.ts';
 
 // Lazy load heavy modal component
 const NewSaleModal = lazy(() => import('../components/NewSaleModal.tsx'));
@@ -23,7 +25,7 @@ const getLocalISODateString = (date: Date) => {
     return `${year}-${month}-${day}`;
 };
 
-const getStartDateForPeriod = (period: 'hoje' | '7dias' | '15dias' | '30dias'): string => {
+const getStartDateForPeriod = (period: 'hoje' | '7dias' | '15dias' | 'Mes'): string => {
     const today = new Date();
     switch (period) {
         case 'hoje':
@@ -34,10 +36,9 @@ const getStartDateForPeriod = (period: 'hoje' | '7dias' | '15dias' | '30dias'): 
         case '15dias':
             today.setDate(today.getDate() - 14);
             return getLocalISODateString(today);
-        case '30dias':
+        case 'Mes':
         default:
-            today.setDate(today.getDate() - 29);
-            return getLocalISODateString(today);
+            return getLocalISODateString(new Date(today.getFullYear(), today.getMonth(), 1));
     }
 };
 
@@ -164,9 +165,9 @@ const Vendas: React.FC = () => {
     const [receiptModalFormat, setReceiptModalFormat] = useState<'A4' | 'thermal' | null>(null);
 
 
-    const [startDate, setStartDate] = useState(getStartDateForPeriod('30dias'));
+    const [startDate, setStartDate] = useState(getStartDateForPeriod('Mes'));
     const [endDate, setEndDate] = useState(getLocalISODateString(new Date()));
-    const [activePeriod, setActivePeriod] = useState<'hoje' | '7dias' | '15dias' | '30dias' | 'personalizado'>('30dias');
+    const [activePeriod, setActivePeriod] = useState<'hoje' | '7dias' | '15dias' | 'Mes' | 'personalizado'>('Mes');
     const [sellerFilter, setSellerFilter] = useState('todos');
     const [statusFilter, setStatusFilter] = useState('todos');
     const [customerSearch, setCustomerSearch] = useState('');
@@ -347,14 +348,14 @@ const Vendas: React.FC = () => {
         }
     }, [startDate, endDate, permissions]);
 
-    const handlePeriodChange = useCallback((period: 'hoje' | '7dias' | '15dias' | '30dias') => {
+    const handlePeriodChange = useCallback((period: 'hoje' | '7dias' | '15dias' | 'Mes') => {
         setActivePeriod(period);
         setStartDate(getStartDateForPeriod(period));
         setEndDate(getLocalISODateString(new Date()));
     }, []);
 
     const handleClearFilter = useCallback(() => {
-        handlePeriodChange('30dias');
+        handlePeriodChange('Mes');
         setSellerFilter('todos');
         setStatusFilter('todos');
         setCustomerSearch('');
@@ -564,20 +565,30 @@ const Vendas: React.FC = () => {
                         />
                     </div>
                 )}
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        <div className="flex gap-1">
-                            <input type="date" value={startDate} onChange={handleDateInputChange(setStartDate)} className="p-1 px-2 border rounded-md bg-surface border-border h-9 text-xs sm:text-sm sm:h-10 w-[110px] sm:w-auto" title="Data Início" />
-                            <input type="date" value={endDate} onChange={handleDateInputChange(setEndDate)} className="p-1 px-2 border rounded-md bg-surface border-border h-9 text-xs sm:text-sm sm:h-10 w-[110px] sm:w-auto" title="Data Fim" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+                        <CustomDatePicker
+                            label="Data Início"
+                            value={startDate}
+                            onChange={setStartDate}
+                            max={toDateValue()}
+                            className="w-full sm:w-auto"
+                        />
+                        <CustomDatePicker
+                            label="Data Fim"
+                            value={endDate}
+                            onChange={setEndDate}
+                            max={toDateValue()}
+                            className="w-full sm:w-auto"
+                        />
+                        <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-lg h-10 mb-[1px]">
+                            <button onClick={() => handlePeriodChange('hoje')} className={`${periodButtonClasses('hoje')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Hoje</button>
+                            <button onClick={() => handlePeriodChange('7dias')} className={`${periodButtonClasses('7dias')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>7d</button>
+                            <button onClick={() => handlePeriodChange('Mes')} className={`${periodButtonClasses('Mes')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Mês</button>
                         </div>
-                        <div className="flex items-center gap-1 bg-surface-secondary p-0.5 sm:p-1 rounded-lg">
-                            <button onClick={() => handlePeriodChange('hoje')} className={`${periodButtonClasses('hoje')} px-2 py-0.5 text-xs sm:text-sm sm:px-3 sm:py-1`}>Hoje</button>
-                            <button onClick={() => handlePeriodChange('7dias')} className={`${periodButtonClasses('7dias')} px-2 py-0.5 text-xs sm:text-sm sm:px-3 sm:py-1`}>7d</button>
-                            <button onClick={() => handlePeriodChange('30dias')} className={`${periodButtonClasses('30dias')} px-2 py-0.5 text-xs sm:text-sm sm:px-3 sm:py-1`}>30d</button>
-                        </div>
-                        <button onClick={handleClearFilter} className="px-2 py-1 text-xs sm:text-sm text-muted hover:text-primary">Limpar</button>
+                        <button onClick={handleClearFilter} className="h-10 px-2 text-xs sm:text-sm text-muted hover:text-primary mb-[1px]">Limpar</button>
                     </div>
-                    <div className="flex items-stretch gap-1.5 sm:gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                         {permissions?.canCreateSale && (
                             <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-success text-on-primary rounded-md font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center">+ NOVA VENDA</button>
                         )}
@@ -588,31 +599,33 @@ const Vendas: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <select
-                        value={sellerFilter}
-                        onChange={e => setSellerFilter(e.target.value)}
-                        className="flex-1 sm:flex-none p-1.5 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[120px]"
-                    >
-                        <option value="todos">Vendedores</option>
-                        {sellerUsers.map(user => (
-                            <option key={user.id} value={user.id}>{user.name}</option>
-                        ))}
-                    </select>
-                    <select
-                        value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
-                        className="flex-1 sm:flex-none p-1.5 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[100px]"
-                    >
-                        <option value="todos">Status</option>
-                        <option value="Finalizada">Finalizada</option>
-                        <option value="Pendente">Pendente</option>
-                        <option value="Cancelada">Cancelada</option>
-                        <option value="Editada">Editada</option>
-                        <option value="Promissoria">Promissória</option>
-                        <option value="PDV">PDV</option>
-                    </select>
-                    <div className="relative w-full sm:flex-1 sm:min-w-[300px]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                        <select
+                            value={sellerFilter}
+                            onChange={e => setSellerFilter(e.target.value)}
+                            className="flex-1 sm:flex-none p-1.5 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[120px]"
+                        >
+                            <option value="todos">Vendedores</option>
+                            {sellerUsers.map(user => (
+                                <option key={user.id} value={user.id}>{user.name}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value)}
+                            className="flex-1 sm:flex-none p-1.5 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[100px]"
+                        >
+                            <option value="todos">Status</option>
+                            <option value="Finalizada">Finalizada</option>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Cancelada">Cancelada</option>
+                            <option value="Editada">Editada</option>
+                            <option value="Promissoria">Promissória</option>
+                            <option value="PDV">PDV</option>
+                        </select>
+                    </div>
+                    <div className="relative w-full sm:w-96">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                             <SearchIcon className="h-4 w-4 text-muted" />
                         </span>
@@ -621,7 +634,7 @@ const Vendas: React.FC = () => {
                             placeholder="Buscar cliente ou ID"
                             value={customerSearch}
                             onChange={e => setCustomerSearch(e.target.value)}
-                            className="w-full p-2 pl-9 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm"
+                            className="w-full p-2 pl-9 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-shadow"
                         />
                     </div>
                 </div>

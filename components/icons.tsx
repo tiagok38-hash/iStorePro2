@@ -469,4 +469,10 @@ export const InstagramIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) =>
     </Icon>
 );
 
+export const TrophyIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <Icon {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15L12 18M12 18H9M12 18H15M8 5H16M8 5C8 5 8 11 12 11C16 11 16 5 16 5M8 5C6 5 5 7 5 9C5 11 6 12 8 12M16 5C18 5 19 7 19 9C19 11 18 12 16 12" />
+    </Icon>
+);
+
 export default Icon;

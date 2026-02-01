@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { Sale, Product, Customer, User } from '../types.ts';
 import { getSales, getProducts, getCustomers, getUsers, formatCurrency } from '../services/mockApi.ts';
-import { SpinnerIcon, CalendarDaysIcon } from '../components/icons.tsx';
+import { SpinnerIcon, CalendarDaysIcon, TrophyIcon } from '../components/icons.tsx';
+import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 
 const KpiCard: React.FC<{ title: string; value: string; className?: string }> = ({ title, value, className }) => (
@@ -53,8 +54,7 @@ const PIE_COLORS = [COLORS.primary, COLORS.success, COLORS.orange, COLORS.purple
 const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Customer[], users: User[] }> = ({ sales, products, customers, users }) => {
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
-        d.setDate(d.getDate() - 30);
-        return toDateValue(d);
+        return toDateValue(new Date(d.getFullYear(), d.getMonth(), 1));
     });
     const [endDate, setEndDate] = useState(toDateValue());
     const [sellerFilter, setSellerFilter] = useState('todos');
@@ -86,28 +86,63 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
         });
     }, [sales, startDate, endDate, sellerFilter]);
 
-    const { totalSales, totalProfit, salesCount, avgTicket } = useMemo(() => {
+    const { totalSales, totalProfit, salesCount, avgTicket, winnerCategory } = useMemo(() => {
         let totalFaturamento = 0;
         let totalRevenueForProfit = 0;
         let totalCost = 0;
+
+        let appleStats = { faturamento: 0, lucro: 0 };
+        let otherStats = { faturamento: 0, lucro: 0 };
 
         filteredSales.forEach(sale => {
             totalFaturamento += sale.total;
             totalRevenueForProfit += (sale.subtotal - sale.discount);
 
-            const saleCost = sale.items.reduce((cost, item) => {
+            let saleCost = 0;
+            const saleSubtotal = sale.subtotal || 1;
+
+            sale.items.forEach(item => {
                 const product = productMap[item.productId];
-                const productCost = (product?.costPrice || 0) + (product?.additionalCostPrice || 0);
-                return cost + productCost * item.quantity;
-            }, 0);
+                const itemCost = ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
+                const itemGrossRevenue = item.unitPrice * item.quantity;
+
+                // Pro-rate discount for accurate category profit
+                const itemDiscount = (itemGrossRevenue / saleSubtotal) * (sale.discount || 0);
+                const itemNetRevenue = itemGrossRevenue - itemDiscount;
+                const itemProfit = itemNetRevenue - itemCost;
+
+                if ((product?.brand || '').toLowerCase().includes('apple')) {
+                    appleStats.faturamento += itemNetRevenue;
+                    appleStats.lucro += itemProfit;
+                } else {
+                    otherStats.faturamento += itemNetRevenue;
+                    otherStats.lucro += itemProfit;
+                }
+
+                saleCost += itemCost;
+            });
             totalCost += saleCost;
         });
 
         const salesCount = filteredSales.length;
-        const totalProfit = totalRevenueForProfit - totalCost;
+        const totalProfitOverall = totalRevenueForProfit - totalCost;
         const avgTicket = salesCount > 0 ? totalFaturamento / salesCount : 0;
 
-        return { totalSales: totalFaturamento, totalProfit, salesCount, avgTicket };
+        // Find winner based on net revenue
+        const winner = appleStats.faturamento >= otherStats.faturamento ? 'Apple' : 'Não Apple';
+        const winnerData = appleStats.faturamento >= otherStats.faturamento ? appleStats : otherStats;
+
+        return {
+            totalSales: totalFaturamento,
+            totalProfit: totalProfitOverall,
+            salesCount,
+            avgTicket,
+            winnerCategory: {
+                name: winner,
+                faturamento: winnerData.faturamento,
+                lucro: winnerData.lucro
+            }
+        };
     }, [filteredSales, productMap]);
 
     const salesByDayData = useMemo(() => {
@@ -166,29 +201,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
     return (
         <div className="space-y-6">
-            <div className="bg-surface p-4 rounded-lg border border-border flex flex-wrap items-end gap-4 shadow-sm">
-                <div>
-                    <label className="text-sm font-medium text-muted mb-1 block">Data Inicial</label>
-                    <div className="relative">
-                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2 pl-3 border rounded-md bg-white border-gray-200 h-10 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-shadow w-40" />
-                    </div>
-                </div>
-                <div>
-                    <label className="text-sm font-medium text-muted mb-1 block">Data Final</label>
-                    <div className="relative">
-                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2 pl-3 border rounded-md bg-white border-gray-200 h-10 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-shadow w-40" />
-                    </div>
-                </div>
-                <div>
-                    <label className="text-sm font-medium text-muted mb-1 block">Vendedor</label>
-                    <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="p-2 border rounded-md bg-white border-gray-200 h-10 w-48 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
-                        <option value="todos">Todos os vendedores</option>
-                        {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
-                    </select>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <KpiCard
                     title="Faturamento Total"
                     value={formatCurrency(totalSales)}
@@ -209,6 +222,45 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                     value={formatCurrency(avgTicket)}
                     className="bg-orange-50 border-orange-100"
                 />
+                <div className="p-4 rounded-xl border shadow-sm bg-indigo-50 border-indigo-100">
+                    <h3 className="text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1 flex items-center gap-1">
+                        Categoria Vencedora
+                        <TrophyIcon className="w-3 h-3" />
+                    </h3>
+                    <p className="text-xl font-black text-indigo-900 leading-none">{winnerCategory.name}</p>
+                    <div className="mt-2 space-y-0.5">
+                        <div className="flex justify-between text-[10px]">
+                            <span className="text-indigo-600 font-bold uppercase">Faturamento</span>
+                            <span className="text-indigo-900 font-black">{formatCurrency(winnerCategory.faturamento)}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px]">
+                            <span className="text-indigo-600 font-bold uppercase">Lucro</span>
+                            <span className="text-emerald-700 font-black">{formatCurrency(winnerCategory.lucro)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-surface p-4 rounded-xl border border-border flex flex-wrap items-end gap-6 shadow-sm">
+                <CustomDatePicker
+                    label="Data Inicial"
+                    value={startDate}
+                    onChange={setStartDate}
+                    max={toDateValue()}
+                />
+                <CustomDatePicker
+                    label="Data Final"
+                    value={endDate}
+                    onChange={setEndDate}
+                    max={toDateValue()}
+                />
+                <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-muted mb-1 block pl-1">Vendedor</label>
+                    <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="p-2 border rounded-lg bg-white border-gray-200 h-10 w-48 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
+                        <option value="todos">Todos os vendedores</option>
+                        {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                    </select>
+                </div>
             </div>
 
             <div className="bg-surface rounded-xl border border-border p-6 shadow-sm">
@@ -354,31 +406,53 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
 const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilter: string | null }> = ({ products, sales, initialFilter }) => {
     const [stockFilter, setStockFilter] = useState('todos');
     const [searchTerm, setSearchTerm] = useState('');
+    const [brandFilter, setBrandFilter] = useState('todos');
+    const [idleDays, setIdleDays] = useState(30);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [itemsPerPage, setItemsPerPage] = useState(15);
 
     // Reset page when filters change
     useEffect(() => {
         if (initialFilter === 'low_stock') {
             setStockFilter('baixo');
+        } else if (initialFilter === 'parado') {
+            setStockFilter('parado');
+            setBrandFilter('todos');
         }
     }, [initialFilter]);
 
+    // Reset brand filter to 'todos' when switching to 'parado' view
+    useEffect(() => {
+        if (stockFilter === 'parado') {
+            setBrandFilter('todos');
+        }
+    }, [stockFilter]);
+
     useEffect(() => {
         setCurrentPage(1);
-    }, [stockFilter, searchTerm, itemsPerPage]);
+    }, [stockFilter, searchTerm, brandFilter, idleDays, itemsPerPage]);
 
     const filteredProducts = useMemo(() => {
-        return products.filter(p => {
+        const filtered = products.filter(p => {
             const matchesSearch = p.model.toLowerCase().includes(searchTerm.toLowerCase());
+
+            let matchesBrand = true;
+            if (brandFilter === 'apple') {
+                matchesBrand = (p.brand || '').toLowerCase().includes('apple');
+            } else if (brandFilter === 'outros') {
+                matchesBrand = !(p.brand || '').toLowerCase().includes('apple');
+            }
+
             let matchesStatus = true;
+            const createdAt = p.createdAt ? new Date(p.createdAt) : new Date();
+            const productAgeDays = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
 
             switch (stockFilter) {
                 case 'baixo':
@@ -387,13 +461,27 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                 case 'zerado':
                     matchesStatus = p.stock <= 0;
                     break;
+                case 'parado':
+                    matchesStatus = productAgeDays >= idleDays && p.stock > 0;
+                    break;
                 case 'todos':
                 default:
                     matchesStatus = true;
             }
-            return matchesSearch && matchesStatus;
+            return matchesSearch && matchesStatus && matchesBrand;
         });
-    }, [products, stockFilter, searchTerm]);
+
+        // Add sorting for idle stock
+        if (stockFilter === 'parado') {
+            return filtered.sort((a, b) => {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateA - dateB; // Oldest first
+            });
+        }
+
+        return filtered;
+    }, [products, stockFilter, searchTerm, brandFilter, idleDays]);
 
     const displayedProducts = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -403,12 +491,24 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
     const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
     const kpis = useMemo(() => {
+        const totalItems = filteredProducts.reduce((sum, p) => sum + p.stock, 0);
+        const totalCost = filteredProducts.reduce((sum, p) => sum + ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * p.stock, 0);
+        const totalSaleValue = filteredProducts.reduce((sum, p) => sum + p.price * p.stock, 0);
+
+        // Calculate idle stock for the KPI specifically
+        const idleCount = products.filter(p => {
+            const createdAt = p.createdAt ? new Date(p.createdAt) : new Date();
+            const age = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+            return age >= idleDays && p.stock > 0;
+        }).length;
+
         return {
-            totalItems: filteredProducts.reduce((sum, p) => sum + p.stock, 0),
-            totalCost: filteredProducts.reduce((sum, p) => sum + ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * p.stock, 0),
-            totalSaleValue: filteredProducts.reduce((sum, p) => sum + p.price * p.stock, 0),
+            totalItems,
+            totalCost,
+            totalSaleValue,
+            idleCount
         };
-    }, [filteredProducts]);
+    }, [filteredProducts, products, idleDays]);
 
     const topSellingData = useMemo(() => {
         const productCounts: Record<string, number> = {};
@@ -452,42 +552,77 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
     return (
         <div className="space-y-6">
-            <div className="bg-surface p-4 rounded-xl border border-border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
-                <div className="relative flex-1 max-w-md">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                            <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-                        </svg>
-                    </span>
-                    <input
-                        type="text"
-                        placeholder="Buscar produto..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg bg-white border-gray-200 focus:ring-2 focus:ring-primary/20 outline-none"
-                    />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard title="Total de Itens" value={kpis.totalItems.toLocaleString('pt-BR')} className="bg-blue-50 border-blue-100" />
+                <KpiCard title="Custo Estoque" value={formatCurrency(kpis.totalCost)} className="bg-orange-50 border-orange-100" />
+                <KpiCard title="Venda Estoque" value={formatCurrency(kpis.totalSaleValue)} className="bg-emerald-50 border-emerald-100" />
+                <div
+                    onClick={() => setStockFilter('parado')}
+                    className="p-4 rounded-xl border shadow-sm bg-red-50 border-red-100 cursor-pointer hover:shadow-md transition-shadow group"
+                >
+                    <div className="flex justify-between items-start">
+                        <h3 className="text-sm font-medium text-red-800">Estoque Parado</h3>
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            <select
+                                value={idleDays}
+                                onChange={(e) => setIdleDays(Number(e.target.value))}
+                                className="bg-white/50 border-none text-[10px] font-black rounded px-1 focus:ring-0 cursor-pointer"
+                            >
+                                <option value={15}>15d</option>
+                                <option value={30}>30d</option>
+                                <option value={60}>60d</option>
+                                <option value={90}>90d</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p className="text-2xl font-bold text-red-900 mt-1">{kpis.idleCount}</p>
+                </div>
+            </div>
+
+            <div className="bg-surface p-4 rounded-xl border border-border flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
+                <div className="flex flex-col md:flex-row gap-4 flex-1">
+                    <div className="relative flex-1 max-w-md">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Buscar produto..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border rounded-lg bg-white border-gray-200 focus:ring-2 focus:ring-primary/20 outline-none h-10"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={brandFilter}
+                            onChange={(e) => setBrandFilter(e.target.value)}
+                            className="h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                            <option value="todos">Todos</option>
+                            <option value="apple">Apple</option>
+                            <option value="outros">Produtos (Não Apple)</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-                    {['todos', 'baixo', 'zerado'].map((filter) => (
+                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg self-start lg:self-center">
+                    {['todos', 'baixo', 'zerado', 'parado'].map((filter) => (
                         <button
                             key={filter}
                             onClick={() => setStockFilter(filter)}
-                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${stockFilter === filter
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-tight transition-all ${stockFilter === filter
                                 ? 'bg-white text-primary shadow-sm'
                                 : 'text-gray-500 hover:text-gray-900'
                                 }`}
                         >
-                            {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                            {filter}
                         </button>
                     ))}
                 </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <KpiCard title="Total de Itens em Estoque" value={kpis.totalItems.toLocaleString('pt-BR')} className="bg-blue-50 border-blue-100" />
-                <KpiCard title="Valor de Custo do Estoque" value={formatCurrency(kpis.totalCost)} className="bg-orange-50 border-orange-100" />
-                <KpiCard title="Valor de Venda do Estoque" value={formatCurrency(kpis.totalSaleValue)} className="bg-emerald-50 border-emerald-100" />
             </div>
 
             <div className="bg-surface rounded-xl border border-border p-6 shadow-sm">
@@ -503,8 +638,8 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             onChange={(e) => setItemsPerPage(Number(e.target.value))}
                             className="border border-gray-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-primary/20 outline-none"
                         >
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
+                            <option value={15}>15</option>
+                            <option value={30}>30</option>
                             <option value={50}>50</option>
                         </select>
                     </div>
@@ -516,6 +651,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             <tr>
                                 <th className="px-4 py-3 font-semibold">Produto</th>
                                 <th className="px-4 py-3 text-center font-semibold">Estoque Atual</th>
+                                {stockFilter === 'parado' && <th className="px-4 py-3 text-center font-semibold">Tempo em Estoque</th>}
                                 <th className="px-4 py-3 text-center font-semibold">Mínimo</th>
                                 <th className="px-4 py-3 text-center font-semibold">Status</th>
                                 <th className="px-4 py-3 text-right font-semibold">Custo Total</th>
@@ -525,8 +661,44 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                         <tbody className="divide-y divide-gray-100">
                             {displayedProducts.map(product => (
                                 <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-gray-900">{product.model}</td>
+                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                        <div className="flex flex-col gap-1">
+                                            <span>{product.model}</span>
+                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                                {product.origin === 'Troca' && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase">Troca</span>
+                                                )}
+                                                {product.batteryHealth !== undefined && product.batteryHealth > 0 && (
+                                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${product.batteryHealth < 80 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
+                                                        SAÚDE: {product.batteryHealth}%
+                                                    </span>
+                                                )}
+                                                {product.imei1 && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                                        IMEI: {product.imei1}
+                                                    </span>
+                                                )}
+                                                {product.serialNumber && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                                        S/N: {product.serialNumber}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td className="px-4 py-3 text-center font-bold text-lg text-gray-700">{product.stock}</td>
+                                    {stockFilter === 'parado' && (
+                                        <td className="px-4 py-3 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-[10px] text-gray-500 font-medium">
+                                                    {product.createdAt ? new Date(product.createdAt).toLocaleDateString('pt-BR') : '-'}
+                                                </span>
+                                                <span className="mt-0.5 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black border border-red-200">
+                                                    {Math.floor((Date.now() - (product.createdAt ? new Date(product.createdAt).getTime() : Date.now())) / (1000 * 60 * 60 * 24))} DIAS
+                                                </span>
+                                            </div>
+                                        </td>
+                                    )}
                                     <td className="px-4 py-3 text-center text-gray-500">{product.minimumStock || '-'}</td>
                                     <td className="px-4 py-3 text-center">{getStatus(product)}</td>
                                     <td className="px-4 py-3 text-right">{formatCurrency(((product.costPrice || 0) + (product.additionalCostPrice || 0)) * product.stock)}</td>

@@ -13,6 +13,8 @@ import {
 import SearchableDropdown from '../SearchableDropdown.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
 import CustomerModal from '../CustomerModal.tsx';
+import CustomDatePicker from '../CustomDatePicker.tsx';
+import { toDateValue } from '../../utils/dateUtils.ts';
 import ProductModal from '../ProductModal.tsx';
 import CardPaymentModal from '../CardPaymentModal.tsx';
 
@@ -126,8 +128,15 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 bg-white p-1">
                             <div className="md:col-span-2 flex flex-col justify-end">
-                                <label className={labelClasses}>Data</label>
-                                <input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} className={`${inputClasses} h-10 sm:h-12`} />
+                                <div className="h-10 sm:h-12 flex flex-col justify-end">
+                                    <CustomDatePicker
+                                        label="Data"
+                                        value={saleDate}
+                                        onChange={setSaleDate}
+                                        max={toDateValue()}
+                                        className="w-full"
+                                    />
+                                </div>
                             </div>
                             <div className="md:col-span-7 flex flex-col justify-end">
                                 <label className={labelClasses}>Cliente Selecionado*</label>

@@ -3,6 +3,8 @@ import React from 'react';
 import { CashSession } from '../../types.ts';
 import { formatCurrency } from '../../services/mockApi.ts';
 import { PlusIcon, EyeIcon, XCircleIcon, ArrowPathRoundedSquareIcon, SearchIcon } from '../icons.tsx';
+import CustomDatePicker from '../CustomDatePicker.tsx';
+import { toDateValue } from '../../utils/dateUtils.ts';
 
 interface CaixasViewProps {
     sessions: CashSession[];
@@ -42,17 +44,25 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                 )}
             </div>
 
-            <div className="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-stretch md:items-end gap-3 md:gap-5">
-                <div className="flex flex-col gap-1.5 flex-1">
-                    <label className="text-[9px] md:text-xs font-black text-gray-500 uppercase tracking-wider ml-1">Período</label>
-                    <div className="flex items-center gap-2">
-                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="flex-1 p-2 border rounded-lg text-xs md:text-sm bg-gray-50 border-gray-300 focus:ring-2 focus:ring-success/20 outline-none" />
-                        <span className="text-gray-400 font-bold text-xs">até</span>
-                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 p-2 border rounded-lg text-xs md:text-sm bg-gray-50 border-gray-300 focus:ring-2 focus:ring-success/20 outline-none" />
-                    </div>
+            <div className="bg-white p-3 md:p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-end gap-3 md:gap-5">
+                <div className="flex items-end gap-3 w-full md:w-auto">
+                    <CustomDatePicker
+                        label="Data Início"
+                        value={startDate}
+                        onChange={setStartDate}
+                        max={toDateValue()}
+                        className="w-full md:w-40"
+                    />
+                    <CustomDatePicker
+                        label="Data Fim"
+                        value={endDate}
+                        onChange={setEndDate}
+                        max={toDateValue()}
+                        className="w-full md:w-40"
+                    />
                 </div>
-                <div className="flex flex-col gap-1.5 flex-[1.5]">
-                    <label className="text-[9px] md:text-xs font-black text-gray-500 uppercase tracking-wider ml-1">Buscar</label>
+                <div className="flex flex-col gap-1.5 w-full md:w-96">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-muted mb-1 block pl-1">Buscar</label>
                     <div className="relative">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                             <SearchIcon className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
@@ -79,7 +89,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                                 <th className="px-6 py-4 text-center">Datas (Abert. / Fech.)</th>
                                 <th className="px-6 py-4 text-right">Abertura</th>
                                 <th className="px-6 py-4 text-right">Vendas</th>
-                                <th className="px-6 py-4 text-right">Gaveta</th>
+                                <th className="px-6 py-4 text-right">Dinheiro Gaveta</th>
                                 <th className="px-6 py-4 text-center">Ações</th>
                             </tr>
                         </thead>
@@ -139,7 +149,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                                     <div className="text-[9px] font-bold text-success">{formatCurrency(session.transactionsValue)}</div>
                                 </div>
                                 <div className="bg-primary/5 p-1 rounded border border-primary/10">
-                                    <div className="text-[6px] text-primary font-bold uppercase mb-0.5 leading-none">Gaveta</div>
+                                    <div className="text-[6px] text-primary font-bold uppercase mb-0.5 leading-none">Dinheiro Gaveta</div>
                                     <div className="text-[9px] font-black text-primary">{formatCurrency(session.cashInRegister)}</div>
                                 </div>
                             </div>

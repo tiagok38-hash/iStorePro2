@@ -14,6 +14,8 @@ import ImageCropperModal from './ImageCropperModal.tsx';
 import Button from './Button.tsx';
 import { formatCurrency } from '../services/mockApi.ts';
 import { compressImage } from '../utils/imageUtils.ts';
+import { toDateValue } from '../utils/dateUtils.ts';
+import CustomDatePicker from './CustomDatePicker.tsx';
 import { CameraIcon } from './icons.tsx';
 import { appleProductHierarchy } from '../services/constants.ts';
 
@@ -851,12 +853,12 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-700">Data do Checklist:</label>
-                                        <input
-                                            type="date"
+                                        <CustomDatePicker
+                                            label="Data do Checklist"
                                             value={(formData.checklist?.checklistDate as string) || ''}
-                                            onChange={e => handleChecklistChange('checklistDate', e.target.value)}
-                                            className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                                            onChange={val => handleChecklistChange('checklistDate', val)}
+                                            max={toDateValue()}
+                                            className="w-full"
                                         />
                                     </div>
                                     <div className="space-y-2">

@@ -5,6 +5,8 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { CloseIcon, PlusIcon, SpinnerIcon, PhotographIcon, TrashIcon } from './icons.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
 import CameraModal from './CameraModal.tsx';
+import CustomDatePicker from './CustomDatePicker.tsx';
+import { toDateValue } from '../utils/dateUtils.ts';
 
 interface TradeInModalProps {
     isOpen: boolean;
@@ -264,7 +266,15 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                             <div className="md:col-span-1"><label className={labelClasses}>Código de Barras</label><input name="barcode" value={deviceData.barcode} onChange={handleDeviceChange} className={inputClasses} placeholder="Escaneie aqui..." autoFocus /></div>
                             <div className="md:col-span-1"><label className={labelClasses}>Fornecedor*</label><input value={deviceData.supplierName} className={`${inputClasses} bg-gray-100`} disabled /></div>
-                            <div><label className={labelClasses}>Data da compra*</label><input type="date" name="purchaseDate" value={deviceData.purchaseDate} onChange={handleDeviceChange} className={inputClasses} /></div>
+                            <div className="flex flex-col justify-end">
+                                <CustomDatePicker
+                                    label="Data da compra*"
+                                    value={deviceData.purchaseDate}
+                                    onChange={(val) => setDeviceData(prev => ({ ...prev, purchaseDate: val }))}
+                                    max={toDateValue()}
+                                    className="w-full"
+                                />
+                            </div>
                             <div><label className={labelClasses}>Origem*</label><select name="origin" value={deviceData.origin} onChange={handleDeviceChange} className={inputClasses}><option>Nacional</option><option>Importado</option></select></div>
                             <div><label className={labelClasses}>Local de Estoque*</label><select name="storageLocation" value={deviceData.storageLocation} onChange={handleDeviceChange} className={`${inputClasses} ${(!deviceData.storageLocation || deviceData.storageLocation === 'Selecione...') ? 'border-red-500' : ''}`}><option value="">Selecione...</option>{deviceData.storageLocation && deviceData.storageLocation !== 'Selecione...' && !locationOptions.some(l => l.name.toLowerCase() === deviceData.storageLocation?.toLowerCase()) && <option value={deviceData.storageLocation}>{deviceData.storageLocation}</option>}{locationOptions.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}</select></div>
                         </div>
@@ -309,7 +319,15 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                             <div><label className={labelClasses}>Anotações do Checklist:</label><textarea value={checklistData.notes} onChange={e => setChecklistData(p => ({ ...p, notes: e.target.value }))} rows={2} className={inputClasses.replace('h-10', '')} placeholder="Utilize este campo para anotar observações do checklist que não estão listados acima OU detalhar os campos marcados acima." /></div>
                             <div><label className={labelClasses}>Descrição do(s) serviço(s):</label><textarea value={checklistData.services} onChange={e => setChecklistData(p => ({ ...p, services: e.target.value }))} rows={2} className={inputClasses.replace('h-10', '')} placeholder="Utilize este campo para anotar os serviços que serão executados." /></div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div><label className={labelClasses}>Data do Checklist:</label><input type="date" value={checklistData.date} onChange={e => setChecklistData(p => ({ ...p, date: e.target.value }))} className={inputClasses} /></div>
+                                <div className="flex flex-col justify-end">
+                                    <CustomDatePicker
+                                        label="Data do Checklist"
+                                        value={checklistData.date}
+                                        onChange={(val) => setChecklistData(p => ({ ...p, date: val }))}
+                                        max={toDateValue()}
+                                        className="w-full"
+                                    />
+                                </div>
                                 <div>
                                     <label className={labelClasses}>Custo de Reparo:</label>
                                     <CurrencyInput value={checklistData.repairCost} onChange={v => setChecklistData(p => ({ ...p, repairCost: v || 0 }))} className={inputClasses} />
