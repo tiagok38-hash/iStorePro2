@@ -580,6 +580,33 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                 <KpiCard title="Custo Estoque" value={formatCurrency(kpis.totalCost)} className="bg-orange-50 border-orange-100" />
                 <KpiCard title="Venda Estoque" value={formatCurrency(kpis.totalSaleValue)} className="bg-emerald-50 border-emerald-100" />
 
+                <div
+                    onClick={() => setStockFilter('parado')}
+                    className="p-4 rounded-xl border shadow-sm bg-red-50 border-red-100 cursor-pointer hover:shadow-md transition-shadow group relative overflow-hidden"
+                >
+                    <div className="flex justify-between items-start relative z-10">
+                        <h3 className="text-sm font-medium text-red-800">Estoque Parado</h3>
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            <select
+                                value={idleDays}
+                                onChange={(e) => setIdleDays(Number(e.target.value))}
+                                className="bg-white border border-red-200 text-[10px] font-black rounded-lg px-2 py-1 focus:ring-2 focus:ring-red-200 outline-none cursor-pointer text-red-700 shadow-sm hover:border-red-300 transition-colors"
+                            >
+                                <option value={15}>15 dias</option>
+                                <option value={30}>30 dias</option>
+                                <option value={60}>60 dias</option>
+                                <option value={90}>90 dias</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p className="text-2xl font-bold text-red-900 mt-1 relative z-10">{kpis.idleCount}</p>
+                    <div className="absolute -right-2 -bottom-2 opacity-[0.03] transform rotate-12 transition-transform group-hover:scale-110">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-20 h-20 text-red-900">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                </div>
+
                 <div className="p-4 rounded-xl border shadow-sm bg-indigo-50 border-indigo-100">
                     <div className="flex justify-between items-start mb-2">
                         <h3 className="text-[10px] font-black uppercase tracking-wider text-indigo-800">Estoque Apple</h3>
@@ -628,28 +655,6 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             </span>
                         </div>
                     </div>
-                </div>
-
-                <div
-                    onClick={() => setStockFilter('parado')}
-                    className="p-4 rounded-xl border shadow-sm bg-red-50 border-red-100 cursor-pointer hover:shadow-md transition-shadow group"
-                >
-                    <div className="flex justify-between items-start">
-                        <h3 className="text-sm font-medium text-red-800">Estoque Parado</h3>
-                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                            <select
-                                value={idleDays}
-                                onChange={(e) => setIdleDays(Number(e.target.value))}
-                                className="bg-white/50 border-none text-[10px] font-black rounded px-1 focus:ring-0 cursor-pointer"
-                            >
-                                <option value={15}>15d</option>
-                                <option value={30}>30d</option>
-                                <option value={60}>60d</option>
-                                <option value={90}>90d</option>
-                            </select>
-                        </div>
-                    </div>
-                    <p className="text-2xl font-bold text-red-900 mt-1">{kpis.idleCount}</p>
                 </div>
             </div>
 
@@ -935,15 +940,17 @@ const Reports: React.FC = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-primary">Relatórios</h1>
-                <button
-                    onClick={() => setIsPriceListModalOpen(true)}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-bold text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                    </svg>
-                    Gerar lista de preços
-                </button>
+                {activeTab === 'estoque' && (
+                    <button
+                        onClick={() => setIsPriceListModalOpen(true)}
+                        className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-bold text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                        GERAR RELATÓRIO DE ESTOQUE E PREÇOS
+                    </button>
+                )}
             </div>
 
             <div className="inline-flex items-center gap-1 bg-surface-secondary p-1 rounded-lg">
