@@ -433,6 +433,8 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
     useEffect(() => {
         if (stockFilter === 'parado') {
             setBrandFilter('todos');
+        } else if (stockFilter === 'zerado') {
+            setBrandFilter('non_unique');
         }
     }, [stockFilter]);
 
@@ -449,6 +451,8 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                 matchesBrand = (p.brand || '').toLowerCase().includes('apple');
             } else if (brandFilter === 'outros') {
                 matchesBrand = !(p.brand || '').toLowerCase().includes('apple');
+            } else if (brandFilter === 'non_unique') {
+                matchesBrand = !p.imei1 && !p.serialNumber;
             }
 
             let matchesStatus = true;
@@ -457,7 +461,14 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
             switch (stockFilter) {
                 case 'baixo':
-                    matchesStatus = p.minimumStock != null && p.stock > 0 && p.stock <= p.minimumStock;
+                    // For non-Apple products in 'baixos' view, exclude unique items (IMEI/SN) 
+                    // because unique items are always individual units and don't fit the 'low stock' replenishment model.
+                    const isUniqueNonApple = !(p.brand || '').toLowerCase().includes('apple') && (p.imei1 || p.serialNumber);
+                    if (brandFilter === 'outros' && isUniqueNonApple) {
+                        matchesStatus = false;
+                    } else {
+                        matchesStatus = p.minimumStock != null && p.stock > 0 && p.stock <= p.minimumStock;
+                    }
                     break;
                 case 'zerado':
                     matchesStatus = p.stock <= 0;
@@ -472,13 +483,28 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
             return matchesSearch && matchesStatus && matchesBrand;
         });
 
-        // Add sorting for idle stock
-        if (stockFilter === 'parado') {
-            return filtered.sort((a, b) => {
-                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                return dateA - dateB; // Oldest first
+        if (brandFilter === 'non_unique' || brandFilter === 'outros') {
+            const groupedMap: Record<string, Product> = {};
+            const finalFiltered: Product[] = [];
+
+            filtered.forEach(p => {
+                // Products without IMEI and Serial Number should be grouped
+                const isNonUnique = !p.imei1 && !p.serialNumber;
+
+                if (isNonUnique) {
+                    const key = `${(p.model || '').trim().toLowerCase()}-${(p.condition || '').trim().toLowerCase()}-${(p.color || '').trim().toLowerCase()}-${(p.storage || '').toString().trim().toLowerCase()}`;
+                    if (!groupedMap[key]) {
+                        groupedMap[key] = { ...p };
+                    } else {
+                        groupedMap[key].stock += p.stock;
+                    }
+                } else {
+                    // Unique products (with IMEI or SN) stay as separate lines
+                    finalFiltered.push({ ...p });
+                }
             });
+
+            return [...finalFiltered, ...Object.values(groupedMap)];
         }
 
         return filtered;
@@ -684,6 +710,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             <option value="todos">Todos</option>
                             <option value="apple">Apple</option>
                             <option value="outros">Produtos (Não Apple)</option>
+                            <option value="non_unique">Produtos não únicos</option>
                         </select>
                     </div>
                 </div>
@@ -747,7 +774,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                                                 {product.origin === 'Troca' && (
                                                     <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase">Troca</span>
                                                 )}
-                                                {product.batteryHealth !== undefined && product.batteryHealth > 0 && (
+                                                {product.batteryHealth !== undefined && product.batteryHealth > 0 && (product.brand || '').toLowerCase().includes('apple') && (
                                                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${product.batteryHealth < 80 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
                                                         SAÚDE: {product.batteryHealth}%
                                                     </span>
@@ -760,6 +787,11 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                                                 {product.serialNumber && (
                                                     <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
                                                         S/N: {product.serialNumber}
+                                                    </span>
+                                                )}
+                                                {product.variations && product.variations.length > 0 && (
+                                                    <span className="italic font-bold text-gray-800 text-[9px] uppercase tracking-tighter">
+                                                        {product.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
                                                     </span>
                                                 )}
                                             </div>
@@ -893,7 +925,7 @@ const PlaceholderReport: React.FC<{ title: string }> = ({ title }) => (
 
 const Reports: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'vendas');
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'estoque');
     const [sales, setSales] = useState<Sale[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);

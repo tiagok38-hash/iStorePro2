@@ -11,14 +11,6 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // Cross-tab cache synchronization
 const cacheChannel = new BroadcastChannel('app_cache_sync');
 
-cacheChannel.onmessage = (event) => {
-    if (event.data && event.data.type === 'CLEAR_CACHE' && Array.isArray(event.data.keys)) {
-        event.data.keys.forEach((key: string) => {
-            delete cache[key];
-        });
-    }
-};
-
 const fetchWithCache = async <T>(key: string, fetcher: () => Promise<T>): Promise<T> => {
     const now = Date.now();
     // Use the cached data directly to avoid the overhead of JSON.parse(JSON.stringify())
@@ -44,7 +36,21 @@ export const clearCache = (keys: string[]) => {
             }
         });
     });
-    cacheChannel.postMessage({ type: 'CLEAR_CACHE', keys });
+    // Sync with other tabs by sending prefixes
+    cacheChannel.postMessage({ type: 'CLEAR_CACHE', prefixes: keys });
+};
+
+cacheChannel.onmessage = (event) => {
+    if (event.data && event.data.type === 'CLEAR_CACHE' && Array.isArray(event.data.prefixes)) {
+        const cacheKeys = Object.keys(cache);
+        event.data.prefixes.forEach((prefix: string) => {
+            cacheKeys.forEach(ck => {
+                if (ck === prefix || ck.startsWith(prefix + '_')) {
+                    delete cache[ck];
+                }
+            });
+        });
+    }
 };
 
 // --- TIMEOUT HELPER ---
@@ -1391,6 +1397,58 @@ export const getTodaysSales = async (): Promise<TodaySale[]> => {
 
 // --- SALES ---
 
+const adjustProductStock = async (
+    productId: string,
+    adjustment: number, // positive to add, negative to deduct
+    relatedId: string,
+    reasonBase: string,
+    customerName: string,
+    paymentMethods: string,
+    userName: string,
+    userId: string
+) => {
+    const { data: product } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
+    if (!product) {
+        console.warn(`[adjustProductStock] Product ${productId} not found.`);
+        return;
+    }
+
+    const currentStock = Number(product.stock || 0);
+    const newStock = Math.max(0, currentStock + adjustment);
+    const isReturning = adjustment > 0;
+
+    const stockHistoryEntry = {
+        id: crypto.randomUUID(),
+        oldStock: currentStock,
+        newStock: newStock,
+        adjustment: adjustment,
+        reason: isReturning ? `${reasonBase} (Devolução)` : reasonBase,
+        relatedId: relatedId,
+        timestamp: getNowISO(),
+        changedBy: userName,
+        details: `Cliente: ${customerName} | Pagamento: ${paymentMethods}`
+    };
+
+    const { error } = await supabase.from('products').update({
+        stock: newStock,
+        stockHistory: [...(product.stockHistory || []), stockHistoryEntry]
+    }).eq('id', productId);
+
+    if (error) {
+        console.error(`[adjustProductStock] Error updating stock for ${productId}:`, error);
+        throw error;
+    }
+
+    await addAuditLog(
+        isReturning ? AuditActionType.STOCK_ADJUST : AuditActionType.SALE_CREATE,
+        AuditEntityType.PRODUCT,
+        productId,
+        `${reasonBase} #${relatedId} - Qtd: ${Math.abs(adjustment)} | Estoque: ${currentStock} → ${newStock}`,
+        userId,
+        userName
+    );
+};
+
 export const addSale = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
     const now = new Date();
 
@@ -1496,7 +1554,8 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
     };
 
     // Update stock and history for sold items
-    if (data.items && Array.isArray(data.items)) {
+    // ONLY deduct stock if sale is NOT Pendente
+    if (data.status !== 'Pendente' && data.items && Array.isArray(data.items)) {
         // Fetch customer name for history (and all products at once for speed)
         const [customerRes, productsRes] = await Promise.all([
             supabase.from('customers').select('*').eq('id', data.customerId).single(),
@@ -1522,42 +1581,19 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         for (const item of data.items) {
             const product = allProducts.find(p => p.id === item.productId);
             if (product) {
-                const currentStock = Number(product.stock);
                 const quantityToDeduct = Number(item.quantity);
-                const newStock = Math.max(0, currentStock - quantityToDeduct);
-
-                // Add to parallel audit logs
-                auditLogs.push(addAuditLog(
-                    AuditActionType.SALE_CREATE,
-                    AuditEntityType.PRODUCT,
+                await adjustProductStock(
                     item.productId,
-                    `Venda #${newSale.id} - Qtd: ${quantityToDeduct} | Estoque restante: ${newStock}`,
-                    userId,
-                    userName
-                ));
-
-                // Add to stockHistory column
-                const existingStockHistory = product.stockHistory || [];
-                const newStockEntry = {
-                    id: crypto.randomUUID(),
-                    oldStock: currentStock,
-                    newStock: newStock,
-                    adjustment: -quantityToDeduct,
-                    reason: 'Venda',
-                    relatedId: newSale.id,
-                    timestamp: now.toISOString(),
-                    changedBy: userName,
-                    details: `Cliente: ${customerName} | Pagamento: ${paymentMethods}`
-                };
-
-                // We await the product update specifically to ensure data integrity
-                await supabase.from('products').update({
-                    stock: newStock,
-                    stockHistory: [...existingStockHistory, newStockEntry]
-                }).eq('id', item.productId);
+                    -quantityToDeduct,
+                    newSale.id,
+                    'Venda',
+                    customerName,
+                    paymentMethods,
+                    userName,
+                    userId
+                );
             }
         }
-
         // Wait for all audit logs to complete (they were started in background)
         await Promise.allSettled(auditLogs).catch(err => console.warn('mockApi: Audit logs partial failure', err));
     }
@@ -1643,50 +1679,43 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 };
 
 export const updateSale = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+    // STEP 0: Fetch the original sale to compare for stock and trade-in changes
+    const { data: originalSale } = await supabase.from('sales').select('*').eq('id', data.id).maybeSingle();
+    const oldStatus = originalSale?.status || '';
+    const originalItems = originalSale?.items || [];
 
-    // STEP 0: Check if a trade-in product was removed from this sale
-    if (data.payments) {
-        // Fetch the original sale to compare
-        const { data: originalSale } = await supabase.from('sales').select('payments').eq('id', data.id).maybeSingle();
+    // Check if a trade-in product was removed from this sale
+    if (data.payments && originalSale?.payments) {
+        // Find trade-in payments in original that are NOT in the new payments
+        const originalTradeIns = (originalSale.payments || []).filter((p: any) =>
+            p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
+        );
+        const newTradeInProductIds = (data.payments || [])
+            .filter((p: any) => p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId)
+            .map((p: any) => p.tradeInDetails.productId);
 
-        if (originalSale?.payments) {
-            // Find trade-in payments in original that are NOT in the new payments
-            const originalTradeIns = (originalSale.payments || []).filter((p: any) =>
-                p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
-            );
-            const newTradeInProductIds = (data.payments || [])
-                .filter((p: any) => p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId)
-                .map((p: any) => p.tradeInDetails.productId);
+        for (const originalTradeIn of originalTradeIns) {
+            const productId = originalTradeIn.tradeInDetails?.productId;
+            if (productId && !newTradeInProductIds.includes(productId)) {
+                // Fetch the product to check its history
+                const { data: product } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
 
-            for (const originalTradeIn of originalTradeIns) {
-                const productId = originalTradeIn.tradeInDetails?.productId;
-                if (productId && !newTradeInProductIds.includes(productId)) {
+                if (product) {
+                    const stockHistory = product.stockHistory || [];
+                    const isFresh = stockHistory.length <= 1 && product.stock > 0;
 
-                    // Fetch the product to check its history
-                    const { data: product } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
-
-                    if (product) {
-                        const stockHistory = product.stockHistory || [];
-
-                        // A "fresh" product has only the initial trade-in entry (stockHistory length = 1)
-                        // and was never sold (current stock = 1 or the initial stock)
-                        const isFresh = stockHistory.length <= 1 && product.stock > 0;
-
-                        if (isFresh) {
-                            // DELETE the product completely
-                            await supabase.from('products').delete().eq('id', productId);
-
-                            await addAuditLog(
-                                AuditActionType.DELETE,
-                                AuditEntityType.PRODUCT,
-                                productId,
-                                `Produto de troca excluído (removido da venda original): ${product.model}`,
-                                userId,
-                                userName
-                            );
-                        } else {
-                            // Set stock to 0 (product has history, can't be deleted)
-
+                    if (isFresh) {
+                        await supabase.from('products').delete().eq('id', productId);
+                        await addAuditLog(
+                            AuditActionType.DELETE,
+                            AuditEntityType.PRODUCT,
+                            productId,
+                            `Produto de troca removido (venda alterada): ${product.model}`,
+                            userId,
+                            userName
+                        );
+                    } else {
+                        if (product.stock > 0) {
                             const newStockEntry = {
                                 id: crypto.randomUUID(),
                                 oldStock: product.stock,
@@ -1787,8 +1816,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     );
 
     // If sale was not Finalizada/Editada and now it is, we need to deduct stock
-    // (This is a simplified logic, ideally we should compare old and new state)
-    const oldStatus = data.oldStatus || ''; // We might need to pass this or fetch it
     const newStatus = updated.status;
 
     if ((oldStatus === 'Pendente' || !oldStatus) && (newStatus === 'Finalizada' || newStatus === 'Editada')) {
@@ -1797,58 +1824,49 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         const customerName = customerData?.name || 'Cliente';
 
         for (const item of updated.items || []) {
-            const { data: product } = await supabase.from('products').select('*').eq('id', item.productId).single();
-            if (product) {
-                const currentStock = Number(product.stock);
-                const quantityToDeduct = Number(item.quantity);
-                const newStock = Math.max(0, currentStock - quantityToDeduct);
-
-                await addAuditLog(AuditActionType.SALE_CREATE, AuditEntityType.PRODUCT, item.productId,
-                    `Venda #${updated.id} finalizada na edição - Qtd: ${quantityToDeduct} | Estoque restante: ${newStock}`,
-                    userId, userName);
-
-                await supabase.from('products').update({
-                    stock: newStock,
-                    stockHistory: [...(product.stockHistory || []), {
-                        id: crypto.randomUUID(),
-                        oldStock: currentStock,
-                        newStock: newStock,
-                        adjustment: -quantityToDeduct,
-                        reason: 'Venda (Finalizada na Edição)',
-                        relatedId: updated.id,
-                        timestamp: getNowISO(),
-                        changedBy: userName,
-                        details: `Cliente: ${customerName} | Pagamento: ${paymentMethods}`
-                    }]
-                }).eq('id', item.productId);
-            }
+            await adjustProductStock(
+                item.productId,
+                -Number(item.quantity),
+                updated.id,
+                'Venda (Finalizada na Edição)',
+                customerName,
+                paymentMethods,
+                userName,
+                userId
+            );
         }
     }
 
-    // If sale was already finalized and is being edited, update stockHistory with new payment info
-    if (newStatus === 'Editada' && data.payments) {
-        const paymentMethods = data.payments?.map((p: any) => p.method).join(', ') || 'N/A';
+    // If sale was already finalized and is being edited, handle stock differences
+    if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && newStatus === 'Editada') {
+        const currentItems = data.items || [];
         const { data: customerData } = await supabase.from('customers').select('name').eq('id', updated.customer_id).maybeSingle();
         const customerName = customerData?.name || 'Cliente';
+        const paymentMethods = data.payments?.map((p: any) => p.method).join(', ') || 'N/A';
 
-        for (const item of updated.items || []) {
-            const { data: product } = await supabase.from('products').select('*').eq('id', item.productId).maybeSingle();
-            if (product && product.stockHistory) {
-                // Find and update the stockHistory entry for this sale
-                const updatedHistory = product.stockHistory.map((entry: any) => {
-                    if (entry.relatedId === updated.id && entry.reason?.includes('Venda')) {
-                        // Update the details with new payment info
-                        return {
-                            ...entry,
-                            details: `Cliente: ${customerName} | Pagamento: ${paymentMethods}`
-                        };
-                    }
-                    return entry;
-                });
+        // 1. Check original items vs current items (removals and reductions)
+        for (const oldItem of originalItems) {
+            const newItem = currentItems.find((i: any) => i.productId === oldItem.productId);
+            if (!newItem) {
+                // Item completely removed - Return full quantity
+                await adjustProductStock(oldItem.productId, Number(oldItem.quantity), updated.id, 'Item Removido da Venda', customerName, paymentMethods, userName, userId);
+            } else if (Number(newItem.quantity) < Number(oldItem.quantity)) {
+                // Quantity reduced - Return difference
+                const diff = Number(oldItem.quantity) - Number(newItem.quantity);
+                await adjustProductStock(oldItem.productId, diff, updated.id, 'Qtd Reduzida na Venda', customerName, paymentMethods, userName, userId);
+            } else if (Number(newItem.quantity) > Number(oldItem.quantity)) {
+                // Quantity increased - Deduct difference
+                const diff = Number(newItem.quantity) - Number(oldItem.quantity);
+                await adjustProductStock(oldItem.productId, -diff, updated.id, 'Qtd Aumentada na Venda', customerName, paymentMethods, userName, userId);
+            }
+        }
 
-                await supabase.from('products').update({
-                    stockHistory: updatedHistory
-                }).eq('id', item.productId);
+        // 2. Check for new items added during edit
+        for (const newItem of currentItems) {
+            const wasOld = originalItems.find((i: any) => i.productId === newItem.productId);
+            if (!wasOld) {
+                // Completely new item - Deduct full quantity
+                await adjustProductStock(newItem.productId, -Number(newItem.quantity), updated.id, 'Item Adicionado na Edição', customerName, paymentMethods, userName, userId);
             }
         }
     }
@@ -3589,28 +3607,53 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                     .maybeSingle();
                 existingProduct = found;
             }
+        } else {
+            // GENERIC PRODUCT MERGING: Search for existing generic product with same attributes
+            // Using model, condition, and prices as key identifiers for bulk products
+            const { data: found } = await supabase
+                .from('products')
+                .select('*')
+                .eq('model', p.model)
+                .eq('condition', p.condition)
+                .is('imei1', null)
+                .is('imei2', null)
+                .is('serialNumber', null)
+                .limit(20);
+
+            existingProduct = found?.find(f => {
+                const fVars = (f.variations || []).map((v: any) => `${v.gradeId}:${v.valueId}`).sort().join('|');
+                const pVars = (p.variations || []).map((v: any) => `${v.gradeId}:${v.valueId}`).sort().join('|');
+                return fVars === pVars;
+            }) || null;
         }
 
         if (existingProduct) {
-            if (existingProduct.stock > 0) {
+            // For generic products, we ALWAYS increment the existing stock, even if it's already > 0
+            const isUnique = !!(imei1 || imei2 || serialNumber);
+
+            if (isUnique && existingProduct.stock > 0) {
                 blockedProducts.push(imei1 || imei2 || serialNumber || 'unknown');
             } else {
+                const currentStock = Number(existingProduct.stock || 0);
+                const quantityToAdd = Number(p.stock || 1);
+                const newStock = currentStock + quantityToAdd;
+
                 const newStockHistoryEntry = {
                     id: crypto.randomUUID(),
-                    oldStock: 0,
-                    newStock: p.stock || 1,
-                    adjustment: p.stock || 1,
-                    reason: 'Recompra',
+                    oldStock: currentStock,
+                    newStock: newStock,
+                    adjustment: quantityToAdd,
+                    reason: isUnique ? 'Recompra' : 'Entrada de Lote',
                     relatedId: purchaseOrderId,
                     timestamp: now,
                     changedBy: createdBy,
-                    details: `Recompra via Compra #${displayId}${supplierName !== 'N/A' ? ` - ${supplierName}` : ''}`
+                    details: `${isUnique ? 'Recompra' : 'Entrada de mercadoria'} via Compra #${displayId}${supplierName !== 'N/A' ? ` - ${supplierName}` : ''}`
                 };
                 const existingHistory = existingProduct.stockHistory || [];
                 productsToReactivate.push({
                     id: existingProduct.id,
                     updates: {
-                        stock: p.stock || 1,
+                        stock: newStock,
                         costPrice: p.costPrice,
                         price: p.price,
                         wholesalePrice: p.wholesalePrice,

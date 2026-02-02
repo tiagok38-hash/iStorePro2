@@ -62,6 +62,7 @@ export const useSaleForm = ({
     const [isCardPaymentModalOpen, setIsCardPaymentModalOpen] = useState(false);
     const [cardTransactionType, setCardTransactionType] = useState<'credit' | 'debit'>('credit');
     const [cardMethodId, setCardMethodId] = useState<string>('');
+    const [selectedPriceType, setSelectedPriceType] = useState<'sale' | 'cost' | 'wholesale'>('sale');
 
     const [paymentInput, setPaymentInput] = useState<{
         method: PaymentMethodType | 'Cartão',
@@ -86,6 +87,7 @@ export const useSaleForm = ({
         setPaymentInput(null);
         setProductForTradeIn(null);
         setPendingTradeInProduct(null);
+        setSelectedPriceType('sale');
 
         const storedTermName = localStorage.getItem('pos_default_warranty_term');
         if (storedTermName) {
@@ -140,10 +142,11 @@ export const useSaleForm = ({
     const totalPaid = useMemo(() => payments.reduce((sum, p) => sum + p.value, 0), [payments]);
     const balance = useMemo(() => total - totalPaid, [total, totalPaid]);
 
-    const handleAddToCart = useCallback((product: Product) => {
+    const handleAddToCart = useCallback((product: Product, priceType: 'sale' | 'cost' | 'wholesale' = 'sale') => {
         const isUnique = !!(product.serialNumber || product.imei1);
         const existingItem = cart.find(item => item.id === product.id);
         if (isUnique && existingItem) { showToast('Este produto é único e já está no carrinho.', 'warning'); return; }
+        setSelectedPriceType(priceType);
         setProductToConfirm(product);
     }, [cart, showToast]);
 
@@ -161,14 +164,32 @@ export const useSaleForm = ({
         if (existingItem) {
             setCart(cart.map(item => item.id === product.id ? { ...item, quantity: totalQuantity } : item));
         } else {
-            setCart([...cart, { ...product, quantity: quantityToAdd, salePrice: product.price, discountType: 'R$', discountValue: 0 }]);
+            let finalPrice = product.price;
+            if (selectedPriceType === 'cost') finalPrice = (product.costPrice || 0) + (product.additionalCostPrice || 0) || product.price;
+            else if (selectedPriceType === 'wholesale') finalPrice = product.wholesalePrice || product.price;
+
+            setCart([...cart, {
+                ...product,
+                quantity: quantityToAdd,
+                salePrice: finalPrice,
+                discountType: 'R$',
+                discountValue: 0,
+                priceType: selectedPriceType
+            }]);
         }
         setProductToConfirm(null);
         setProductSearch('');
         setSearchQuantity(1);
     }, [productToConfirm, searchQuantity, cart, showToast]);
 
-    const handleRemoveFromCart = useCallback((productId: string) => setCart(prev => prev.filter(item => item.id !== productId)), []);
+    const handleRemoveFromCart = useCallback((productId: string) => {
+        const itemToRemove = cart.find(item => item.id === productId);
+        if (itemToRemove && saleToEdit && (saleToEdit.status === 'Finalizada' || saleToEdit.status === 'Editada')) {
+            showToast(`O produto "${itemToRemove.model}" foi removido e será devolvido ao estoque ao salvar a venda.`, 'warning');
+        }
+        setCart(prev => prev.filter(item => item.id !== productId));
+        setPayments([]); // Clear payments when an item is removed
+    }, [cart, saleToEdit, showToast]);
 
     const handleCartItemUpdate = useCallback((productId: string, field: keyof CartItem, value: any) => {
         setCart(currentCart => currentCart.map(item => item.id === productId ? { ...item, [field]: value } : item));
@@ -407,7 +428,12 @@ export const useSaleForm = ({
         const baseSaleData = {
             customerId: selectedCustomerId,
             salespersonId: selectedSalespersonId,
-            items: cart.map(item => ({ productId: item.id, quantity: item.quantity, unitPrice: item.salePrice })),
+            items: cart.map(item => ({
+                productId: item.id,
+                quantity: item.quantity,
+                unitPrice: item.salePrice,
+                priceType: item.priceType
+            })),
             subtotal, discount: totalItemDiscounts + globalDiscountAmount, total, payments,
             posTerminal: saleToEdit?.posTerminal || 'Caixa 1',
             status: isPending ? 'Pendente' : (saleToEdit && saleToEdit.status !== 'Pendente' ? 'Editada' : 'Finalizada'),
@@ -478,7 +504,7 @@ export const useSaleForm = ({
             pendingTradeInProduct, localSuppliers, isCardPaymentModalOpen,
             cardTransactionType, cardMethodId, paymentInput,
             subtotal, totalItemDiscounts, globalDiscountAmount, total, totalPaid, balance,
-            isSaving
+            isSaving, selectedPriceType
         },
         actions: {
             setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setCart, setProductSearch,

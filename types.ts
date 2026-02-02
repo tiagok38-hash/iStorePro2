@@ -185,12 +185,14 @@ export interface CartItem extends Product {
     salePrice: number;
     discountType: '%' | 'R$';
     discountValue: number;
+    priceType?: 'sale' | 'cost' | 'wholesale';
 }
 
 export interface SaleItem {
     productId: string;
     quantity: number;
     unitPrice: number;
+    priceType?: 'sale' | 'cost' | 'wholesale';
 }
 
 export type PaymentMethodType = 'Pix' | 'Dinheiro' | 'Crédito' | 'Débito' | 'Aparelho na Troca' | 'Crediário' | string;

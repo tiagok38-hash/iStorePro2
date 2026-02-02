@@ -58,7 +58,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
         localSuppliers, isCardPaymentModalOpen, cardTransactionType, cardMethodId,
         paymentInput, subtotal, totalItemDiscounts, globalDiscountAmount, total,
-        totalPaid, balance, isSaving
+        totalPaid, balance, isSaving, selectedPriceType
     } = state;
 
     const {
@@ -79,16 +79,55 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         const searchLower = productSearch.toLowerCase().trim();
         const cartProductIds = new Set(cart.map(item => item.id));
 
-        return products.filter(p => {
-            const isUnique = !!(p.serialNumber || p.imei1);
+        const matches = products.filter(p => {
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
             if (isUnique && cartProductIds.has(p.id)) return false;
 
             const modelMatch = (p.model || '').toLowerCase().includes(searchLower);
             const imeiMatch = (p.imei1 || '').toLowerCase().includes(searchLower);
             const snMatch = (p.serialNumber || '').toLowerCase().includes(searchLower);
+            const brandMatch = (p.brand || '').toLowerCase().includes(searchLower);
 
-            return (modelMatch || imeiMatch || snMatch) && p.stock > 0;
+            return (modelMatch || imeiMatch || snMatch || brandMatch) && p.stock > 0;
         });
+
+        // Group non-unique products with same model and 3 prices
+        const groupedMap: Record<string, Product> = {};
+        const finalResults: Product[] = [];
+
+        matches.forEach(p => {
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
+
+            if (isUnique) {
+                // Unique products (Apple or Non-Apple with IMEI/SN) stay as separate lines
+                finalResults.push(p);
+            } else {
+                // Non-unique products (accessories, etc.) are grouped
+                // But only if they also share the SAME grades/variations
+                const modelKey = (p.model || '').trim().toLowerCase();
+                const conditionKey = (p.condition || '').trim().toLowerCase();
+                const colorKey = (p.color || '').trim().toLowerCase();
+                const storageKey = (p.storage || '');
+                const warrantyKey = (p.warranty || '').trim().toLowerCase();
+                const pricesKey = `${p.price}-${p.wholesalePrice || 0}-${p.costPrice || 0}`;
+
+                // Add variations to the grouping key
+                const variationsKey = (p.variations || [])
+                    .map(v => `${v.gradeId}:${v.valueId}`)
+                    .sort()
+                    .join('|');
+
+                const key = `${modelKey}-${conditionKey}-${colorKey}-${storageKey}-${pricesKey}-${variationsKey}-${warrantyKey}`;
+
+                if (!groupedMap[key]) {
+                    groupedMap[key] = { ...p };
+                } else {
+                    groupedMap[key].stock += p.stock;
+                }
+            }
+        });
+
+        return [...finalResults, ...Object.values(groupedMap)];
     }, [products, productSearch, cart]);
 
     const paymentButtons = useMemo(() => {
@@ -178,13 +217,81 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     {filteredProducts.length > 0 && (
                                         <div className="absolute z-30 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-xl max-h-60 overflow-y-auto overflow-x-hidden">
                                             {filteredProducts.map(p => (
-                                                <button key={p.id} onClick={() => { handleAddToCart(p); setProductSearch(''); }} className="w-full p-2.5 hover:bg-success-light text-left transition-colors border-b last:border-0 border-gray-50 flex justify-between items-center group">
-                                                    <div>
-                                                        <p className="font-bold text-gray-900 text-sm group-hover:text-success transition-colors">{p.model}</p>
-                                                        <p className="text-[10px] text-muted">SN: {p.serialNumber} | IMEI: {p.imei1} | Est: {p.stock}</p>
+                                                <div key={p.id} className="w-full p-2.5 hover:bg-success-light text-left transition-colors border-b last:border-0 border-gray-50 flex justify-between items-center group">
+                                                    <div className="flex flex-col gap-1 cursor-pointer flex-grow" onClick={() => { handleAddToCart(p); setProductSearch(''); }}>
+                                                        <p className="font-bold text-gray-900 text-base md:text-lg group-hover:text-success transition-colors leading-tight">{p.model}</p>
+                                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[11px] md:text-xs font-black border border-emerald-100 uppercase tracking-tighter">
+                                                                Estoque: {p.stock}
+                                                            </span>
+                                                            {(p.serialNumber || p.imei1 || (p.variations && p.variations.length > 0) || p.condition || p.warranty) && (
+                                                                <div className="text-[10px] md:text-xs text-muted flex items-center gap-1.5 font-medium bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                                                    {p.condition && (
+                                                                        <span className="text-gray-950 font-black uppercase tracking-tighter">{p.condition}</span>
+                                                                    )}
+                                                                    {p.warranty && (
+                                                                        <>
+                                                                            {p.condition && <span className="opacity-30">|</span>}
+                                                                            <span className="text-blue-700 font-bold">{p.warranty}</span>
+                                                                        </>
+                                                                    )}
+                                                                    {p.serialNumber && (
+                                                                        <>
+                                                                            {(p.condition || p.warranty) && <span className="opacity-30">|</span>}
+                                                                            <span>SN: {p.serialNumber}</span>
+                                                                        </>
+                                                                    )}
+                                                                    {p.imei1 && (
+                                                                        <>
+                                                                            {(p.condition || p.warranty || p.serialNumber) && <span className="opacity-30">|</span>}
+                                                                            <span>IMEI: {p.imei1}</span>
+                                                                        </>
+                                                                    )}
+                                                                    {p.variations && p.variations.length > 0 && (
+                                                                        <>
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1) && <span className="opacity-30">|</span>}
+                                                                            <span className="italic text-gray-800 font-bold uppercase tracking-tighter">
+                                                                                {p.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                    {p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && (
+                                                                        <>
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length) && <span className="opacity-30">|</span>}
+                                                                            <span className={`font-bold ${p.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>
+                                                                                Saúde: {p.batteryHealth}%
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <span className="font-bold text-primary text-xs">{formatCurrency(p.price)}</span>
-                                                </button>
+                                                    <div className="flex items-center gap-2 ml-4">
+                                                        {(p.costPrice || 0) > 0 && (
+                                                            <button
+                                                                onClick={() => { handleAddToCart(p, 'cost'); setProductSearch(''); }}
+                                                                className="px-2 py-1 text-[10px] bg-sky-50 text-sky-600 rounded-md border border-sky-100 font-black uppercase hover:bg-sky-100 transition-colors whitespace-nowrap"
+                                                            >
+                                                                Preço Custo
+                                                            </button>
+                                                        )}
+                                                        {(p.wholesalePrice || 0) > 0 && (
+                                                            <button
+                                                                onClick={() => { handleAddToCart(p, 'wholesale'); setProductSearch(''); }}
+                                                                className="px-2 py-1 text-[10px] bg-orange-50 text-orange-600 rounded-md border border-orange-100 font-black uppercase hover:bg-orange-100 transition-colors whitespace-nowrap"
+                                                            >
+                                                                Preço Atacado
+                                                            </button>
+                                                        )}
+                                                        <span
+                                                            className="font-black text-primary text-base md:text-xl tabular-nums ml-2 cursor-pointer whitespace-nowrap"
+                                                            onClick={() => { handleAddToCart(p); setProductSearch(''); }}
+                                                        >
+                                                            {formatCurrency(p.price)}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             ))}
                                         </div>
                                     )}
@@ -220,6 +327,14 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                 {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && (
                                                                     <span>| Bat: <span className={`${item.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'}`}>{item.batteryHealth}%</span></span>
                                                                 )}
+                                                                {item.variations && item.variations.length > 0 && (
+                                                                    <>
+                                                                        <span className="opacity-30">|</span>
+                                                                        <span className="italic text-gray-800 font-bold uppercase tracking-tighter">
+                                                                            {item.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
+                                                                        </span>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -237,12 +352,22 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-black text-gray-900 tabular-nums text-base">
-                                                    {formatCurrency(
-                                                        ((item.salePrice || 0) * (item.quantity || 0)) -
-                                                        (item.discountType === 'R$'
-                                                            ? item.discountValue
-                                                            : ((item.salePrice || 0) * (item.quantity || 0)) * (item.discountValue / 100))
-                                                    )}
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {item.priceType === 'cost' && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] bg-sky-50 text-sky-600 rounded border border-sky-100 font-black uppercase tracking-tighter">Custo</span>
+                                                        )}
+                                                        {item.priceType === 'wholesale' && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] bg-orange-50 text-orange-600 rounded border border-orange-100 font-black uppercase tracking-tighter">Atacado</span>
+                                                        )}
+                                                        <span>
+                                                            {formatCurrency(
+                                                                ((item.salePrice || 0) * (item.quantity || 0)) -
+                                                                (item.discountType === 'R$'
+                                                                    ? item.discountValue
+                                                                    : ((item.salePrice || 0) * (item.quantity || 0)) * (item.discountValue / 100))
+                                                            )}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <button onClick={() => handleRemoveFromCart(item.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-full border border-red-100 transition-all shadow-sm"><XCircleIcon className="h-5 w-5" /></button>
@@ -265,9 +390,16 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 <div className="text-[10px] text-muted space-y-0.5 mt-1 capitalize">
                                                     {item.serialNumber && <p>SN: <span className="font-mono text-gray-600">{item.serialNumber}</span></p>}
                                                     {item.imei1 && <p>IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></p>}
-                                                    <p>{item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && (
-                                                        <span className={`font-bold ${item.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>| Bat: {item.batteryHealth}%</span>
-                                                    )}</p>
+                                                    <p>
+                                                        {item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && (
+                                                            <span className={`font-bold ${item.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>| Bat: {item.batteryHealth}%</span>
+                                                        )}
+                                                        {item.variations && item.variations.length > 0 && (
+                                                            <span className="italic text-gray-800 font-bold uppercase tracking-tighter">
+                                                                {" | "}{item.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
+                                                            </span>
+                                                        )}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <button onClick={() => handleRemoveFromCart(item.id)} className="p-1 text-red-500 bg-red-50 rounded-lg flex-shrink-0"><XCircleIcon className="h-5 w-5" /></button>
@@ -284,14 +416,22 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             </div>
                                             <div className="text-right">
                                                 <label className="block text-[9px] font-bold text-gray-400 uppercase mb-0.5">Total (QTD: {item.quantity})</label>
-                                                <p className="font-black text-[15px] text-primary tabular-nums">
-                                                    {formatCurrency(
-                                                        ((item.salePrice || 0) * (item.quantity || 0)) -
-                                                        (item.discountType === 'R$'
-                                                            ? item.discountValue
-                                                            : ((item.salePrice || 0) * (item.quantity || 0)) * (item.discountValue / 100))
+                                                <div className="font-black text-[15px] text-primary tabular-nums flex items-center justify-end gap-1.5">
+                                                    {item.priceType === 'cost' && (
+                                                        <span className="px-1 py-0.5 text-[8px] bg-sky-50 text-sky-600 rounded border border-sky-100 font-black uppercase tracking-tighter">Custo</span>
                                                     )}
-                                                </p>
+                                                    {item.priceType === 'wholesale' && (
+                                                        <span className="px-1 py-0.5 text-[8px] bg-orange-50 text-orange-600 rounded border border-orange-100 font-black uppercase tracking-tighter">Atacado</span>
+                                                    )}
+                                                    <span>
+                                                        {formatCurrency(
+                                                            ((item.salePrice || 0) * (item.quantity || 0)) -
+                                                            (item.discountType === 'R$'
+                                                                ? item.discountValue
+                                                                : ((item.salePrice || 0) * (item.quantity || 0)) * (item.discountValue / 100))
+                                                        )}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -551,6 +691,15 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <div>
                                     <label className="block text-[10px] font-bold text-muted uppercase tracking-wider">Produto / Modelo</label>
                                     <p className="text-base font-bold text-gray-900 leading-tight">{productToConfirm.model}</p>
+                                    {productToConfirm.variations && productToConfirm.variations.length > 0 && (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                            {productToConfirm.variations.map((v, i) => (
+                                                <span key={i} className="text-[9px] italic font-bold text-gray-600 uppercase tracking-tighter">
+                                                    {v.gradeName}: {v.valueName}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                     {productToConfirm.origin === 'Troca' && (
                                         <span className="inline-block mt-1 px-1.5 py-0 text-[8px] font-bold rounded bg-rose-50 text-rose-400 border border-rose-100 uppercase tracking-tighter">Troca</span>
                                     )}
@@ -564,43 +713,50 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             <span className="font-mono font-medium text-gray-700">{productToConfirm.imei1}</span>
                                         </div>
                                     )}
-                                    {productToConfirm.imei2 && (
-                                        <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                            <span className="block text-[9px] font-bold text-muted uppercase">IMEI 2</span>
-                                            <span className="font-mono font-medium text-gray-700">{productToConfirm.imei2}</span>
-                                        </div>
-                                    )}
                                     {productToConfirm.serialNumber && (
                                         <div className="p-2 bg-gray-50 rounded border border-gray-100">
                                             <span className="block text-[9px] font-bold text-muted uppercase">Nº de Série</span>
                                             <span className="font-mono font-medium text-gray-700">{productToConfirm.serialNumber}</span>
                                         </div>
                                     )}
-                                    {productToConfirm.batteryHealth !== undefined && productToConfirm.batteryHealth !== null && productToConfirm.condition !== 'Novo' && (
-                                        <div className="p-2 bg-gray-50 rounded border border-gray-100">
-                                            <span className="block text-[9px] font-bold text-muted uppercase">Saúde Bateria</span>
-                                            <span className={`font-bold ${productToConfirm.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{productToConfirm.batteryHealth}%</span>
-                                        </div>
-                                    )}
                                 </div>
 
-                                {/* Preço, Condição, Estoque, Garantia */}
-                                <div className="grid grid-cols-4 gap-2">
-                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                        <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Preço</span>
-                                        <span className="font-black text-sm text-primary">{formatCurrency(productToConfirm.price)}</span>
-                                    </div>
+                                {/* Condição, Estoque, Garantia */}
+                                <div className="grid grid-cols-3 gap-2">
                                     <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
                                         <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Condição</span>
-                                        <span className={`text-[10px] font-bold ${productToConfirm.condition === 'Novo' ? 'text-green-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
+                                        <span className={`text-[10px] font-black uppercase tracking-tight ${productToConfirm.condition === 'Novo' ? 'text-emerald-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
                                     </div>
                                     <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
                                         <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Estoque</span>
-                                        <span className="font-bold text-sm text-gray-700">{productToConfirm.stock}</span>
+                                        <span className="font-black text-sm text-gray-800">{productToConfirm.stock}</span>
                                     </div>
                                     <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
                                         <span className="block text-[9px] font-bold text-muted uppercase mb-0.5">Garantia</span>
-                                        <span className="text-[10px] font-medium text-gray-600">{productToConfirm.warranty || '-'}</span>
+                                        <span className="text-[10px] font-black text-gray-700 uppercase tracking-tight">{productToConfirm.warranty || 'S/ GARANTIA'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Preços Disponíveis - Moved to Bottom and Color Fixed */}
+                                <div className="space-y-1.5 pt-2 border-t border-gray-100/50">
+                                    <label className="block text-[10px] font-black text-muted uppercase tracking-widest">Preços Disponíveis</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(productToConfirm.costPrice || 0) > 0 && (
+                                            <div className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all ${selectedPriceType === 'cost' ? 'bg-sky-100 border-sky-500 ring-1 ring-sky-500 shadow-sm' : 'bg-sky-50/50 border-sky-100'}`}>
+                                                <span className={`text-[8px] font-black uppercase mb-0.5 ${selectedPriceType === 'cost' ? 'text-sky-700' : 'text-sky-600/60'}`}>Custo</span>
+                                                <span className={`font-black text-[13px] tabular-nums ${selectedPriceType === 'cost' ? 'text-sky-800' : 'text-sky-700/80'}`}>{formatCurrency(productToConfirm.costPrice!)}</span>
+                                            </div>
+                                        )}
+                                        {(productToConfirm.wholesalePrice || 0) > 0 && (
+                                            <div className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all ${selectedPriceType === 'wholesale' ? 'bg-orange-100 border-orange-500 ring-1 ring-orange-500 shadow-sm' : 'bg-orange-50/30 border-orange-100/50'}`}>
+                                                <span className={`text-[8px] font-black uppercase mb-0.5 ${selectedPriceType === 'wholesale' ? 'text-orange-700' : 'text-orange-600/60'}`}>Atacado</span>
+                                                <span className={`font-black text-[13px] tabular-nums ${selectedPriceType === 'wholesale' ? 'text-orange-800' : 'text-orange-700/80'}`}>{formatCurrency(productToConfirm.wholesalePrice!)}</span>
+                                            </div>
+                                        )}
+                                        <div className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all ${selectedPriceType === 'sale' ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-500 shadow-sm' : 'bg-emerald-50/30 border-emerald-100/50'}`}>
+                                            <span className={`text-[8px] font-black uppercase mb-0.5 ${selectedPriceType === 'sale' ? 'text-emerald-700' : 'text-emerald-600/60'}`}>Venda</span>
+                                            <span className={`font-black text-[13px] tabular-nums ${selectedPriceType === 'sale' ? 'text-emerald-800' : 'text-emerald-700/80'}`}>{formatCurrency(productToConfirm.price)}</span>
+                                        </div>
                                     </div>
                                 </div>
 

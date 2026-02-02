@@ -137,7 +137,17 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-2 text-center align-top">{item.quantity}</td>
-                                                    <td className="px-4 py-2 text-right align-top">{formatCurrency(item.unitPrice)}</td>
+                                                    <td className="px-4 py-2 text-right align-top">
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span>{formatCurrency(item.unitPrice)}</span>
+                                                            {item.priceType === 'cost' && (
+                                                                <span className="px-1 py-0.5 text-[8px] bg-sky-50 text-sky-600 rounded border border-sky-100 font-black uppercase tracking-tighter leading-none">Custo</span>
+                                                            )}
+                                                            {item.priceType === 'wholesale' && (
+                                                                <span className="px-1 py-0.5 text-[8px] bg-orange-50 text-orange-600 rounded border border-orange-100 font-black uppercase tracking-tighter leading-none">Atacado</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td className="px-4 py-2 text-right font-semibold text-primary align-top">{formatCurrency(item.unitPrice * item.quantity)}</td>
                                                 </tr>
                                             )

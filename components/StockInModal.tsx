@@ -436,7 +436,7 @@ const StockInModal: React.FC<{
                                         </>}
                                     </select>
                                 </td>
-                                <td className="p-3 font-semibold">{formatCurrency(detail.costPrice)}</td>
+                                <td className="p-3 font-semibold">{formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</td>
                                 <td className="p-3">
                                     <select
                                         value={detail.warranty}
@@ -527,7 +527,7 @@ const StockInModal: React.FC<{
 
                                 <div className="bg-gray-50/80 p-2 rounded border border-border/50">
                                     <div className="flex justify-between items-center mb-1.5 px-1">
-                                        <span className="text-[9px] font-bold text-muted uppercase">Custo: {formatCurrency(detail.costPrice)}</span>
+                                        <span className="text-[9px] font-bold text-muted uppercase">Custo: {formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</span>
                                         <div className="flex items-center gap-1.5">
                                             <span className="text-[9px] font-bold text-muted">Markup %</span>
                                             <input type="number" step="0.1" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className="w-12 h-6 border rounded text-[10px] text-center font-bold border-border" />
@@ -625,7 +625,7 @@ const StockInModal: React.FC<{
                                             {locationOptions.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
                                         </select>
                                     </td>
-                                    <td className="p-3 font-semibold">{formatCurrency(detail.costPrice)}</td>
+                                    <td className="p-3 font-semibold">{formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</td>
                                     <td className="p-3 w-28"><input type="number" step="0.01" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className={`${inputClasses} h-10 text-right`} /></td>
                                     <td className="p-3"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className={`${inputClasses} h-10 text-orange-600`} placeholder="Opc." /></td>
                                     <td className="p-3"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${inputClasses} h-10 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`} /></td>
@@ -718,7 +718,7 @@ const StockInModal: React.FC<{
                                     {/* Compact Pricing Row */}
                                     <div className="bg-gray-50/80 p-2 rounded border border-border/50">
                                         <div className="flex justify-between items-center mb-1.5 px-1">
-                                            <span className="text-[9px] font-bold text-muted uppercase">Custo: {formatCurrency(detail.costPrice)}</span>
+                                            <span className="text-[9px] font-bold text-muted uppercase">Custo: {formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</span>
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-[9px] font-bold text-muted">Markup %</span>
                                                 <input type="number" step="0.1" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className="w-12 h-6 border rounded text-[10px] text-center font-bold border-border" />

@@ -689,28 +689,40 @@ const Products: React.FC = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="text-[10px] text-muted mt-0.5 leading-tight">
+                                                <div className="text-[10px] text-muted mt-0.5 leading-tight flex flex-wrap items-center gap-x-1.5 gap-y-1">
                                                     <span>SKU: {product.sku}</span>
-                                                    <span className="mx-1">·</span>
-                                                    <span>IMEI: {product.imei1}</span>
+                                                    {product.imei1 && (
+                                                        <>
+                                                            <span className="opacity-30">·</span>
+                                                            <span>IMEI: {product.imei1}</span>
+                                                        </>
+                                                    )}
                                                     {product.serialNumber && (
                                                         <>
-                                                            <span className="mx-1">·</span>
+                                                            <span className="opacity-30">·</span>
                                                             <span>S/N: {product.serialNumber}</span>
                                                         </>
                                                     )}
-                                                    {product.condition === 'Seminovo' && product.brand === 'Apple' && (
+                                                    {(product.brand || '').toLowerCase().includes('apple') && product.batteryHealth !== undefined && product.batteryHealth > 0 && (
                                                         <>
-                                                            <span className="mx-1">·</span>
-                                                            <span className="text-blue-600 font-bold">Saúde: {product.batteryHealth}%</span>
+                                                            <span className="opacity-30">·</span>
+                                                            <span className={`font-bold ${product.batteryHealth < 80 ? 'text-red-500' : 'text-blue-600'}`}>
+                                                                Saúde: {product.batteryHealth}%
+                                                            </span>
                                                         </>
                                                     )}
                                                     {product.variations && product.variations.length > 0 && (
                                                         <>
-                                                            <span className="mx-1">·</span>
-                                                            <span className="italic font-bold text-gray-700">
+                                                            <span className="opacity-30">·</span>
+                                                            <span className="italic font-bold text-gray-800">
                                                                 {product.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
                                                             </span>
+                                                        </>
+                                                    )}
+                                                    {product.barcodes && product.barcodes.length > 0 && (
+                                                        <>
+                                                            <span className="opacity-30">·</span>
+                                                            <span className="text-emerald-600 font-medium font-mono uppercase">EAN: {product.barcodes.join(', ')}</span>
                                                         </>
                                                     )}
                                                 </div>
