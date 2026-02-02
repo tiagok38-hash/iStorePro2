@@ -372,7 +372,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
             // Explicitly ensure important fields are set in formData from the incoming product
             initialData.supplierId = product.supplierId;
             initialData.warranty = preservedWarranty || (product.brand === 'Apple' ? '1 ano' : '');
-            initialData.storageLocation = preservedStorageLocation || 'Estoque Principal';
+            initialData.storageLocation = preservedStorageLocation || 'Loja';
 
             setFormData(initialData);
             setIsMinimumStockEnabled(!!(initialData.minimumStock && initialData.minimumStock > 0));

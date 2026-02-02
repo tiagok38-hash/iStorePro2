@@ -21,7 +21,26 @@ const PendingItemsTable: React.FC<{ items: PurchaseItem[] }> = ({ items }) => (
                     <td className="px-3 py-1.5 max-w-xs">
                         <div className="flex flex-col gap-0.5">
                             <span className="font-bold text-gray-900 leading-tight">
-                                {item.productDetails.brand} {item.productDetails.model} • {item.productDetails.color}
+                                {(() => {
+                                    const model = item.productDetails.model || '';
+                                    const brand = item.productDetails.brand || '';
+                                    const color = item.productDetails.color || '';
+
+                                    const normModel = model.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                    const normBrand = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                    const normColor = color.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                                    const showBrand = brand && !normModel.includes(normBrand);
+                                    const showColor = color && !normModel.includes(normColor);
+
+                                    return (
+                                        <>
+                                            {showBrand ? `${brand} ` : ''}
+                                            {model}
+                                            {showColor ? ` • ${color}` : ''}
+                                        </>
+                                    );
+                                })()}
                             </span>
                             <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-gray-500 font-bold uppercase tracking-tighter">
                                 <span className="bg-gray-100 px-1.5 rounded">{item.productDetails.condition}</span>
@@ -67,7 +86,26 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                             <td className="px-3 py-1.5 align-top max-w-sm">
                                 <div className="flex flex-col gap-0.5">
                                     <span className="font-bold text-gray-900 leading-tight">
-                                        {product.brand} {product.model} • {product.color}
+                                        {(() => {
+                                            const model = product.model || '';
+                                            const brand = product.brand || '';
+                                            const color = product.color || '';
+
+                                            const normModel = model.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                            const normBrand = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                            const normColor = color.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                                            const showBrand = brand && !normModel.includes(normBrand);
+                                            const showColor = color && !normModel.includes(normColor);
+
+                                            return (
+                                                <>
+                                                    {showBrand ? `${brand} ` : ''}
+                                                    {model}
+                                                    {showColor ? ` • ${color}` : ''}
+                                                </>
+                                            );
+                                        })()}
                                     </span>
                                     <div className="flex flex-wrap items-center gap-x-2 text-[9px] text-gray-500 font-bold uppercase tracking-tighter">
                                         <span className="bg-gray-100 px-1.5 rounded">{product.condition}</span>

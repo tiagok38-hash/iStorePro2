@@ -26,7 +26,7 @@ interface PurchaseOrderModalProps {
 type CurrentItemType = Omit<PurchaseItem, 'id'> & { storage?: string, variations: ProductVariation[], barcode?: string };
 
 const emptyItem: CurrentItemType = {
-    productDetails: { brand: 'Apple', category: '', subCategory: '', model: '', color: '', condition: 'Novo', warranty: '1 ano', storageLocation: 'Estoque Principal' },
+    productDetails: { brand: 'Apple', category: '', subCategory: '', model: '', color: '', condition: 'Novo', warranty: '1 ano', storageLocation: 'Loja' },
     barcode: '',
     quantity: 1,
     unitCost: 0,
@@ -401,7 +401,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         color: item.productDetails?.color || '',
                         condition: item.productDetails?.condition || 'Novo',
                         warranty: item.productDetails?.warranty || '1 ano',
-                        storageLocation: item.productDetails?.storageLocation || 'Estoque Principal',
+                        storageLocation: item.productDetails?.storageLocation || 'Loja',
                     },
                     barcodes: item.barcode ? [item.barcode] : [],
                     quantity: Number(item.quantity || 0),

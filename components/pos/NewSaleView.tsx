@@ -182,7 +182,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <div className="flex items-stretch gap-2 h-10 sm:h-12">
                                     <div className="flex-grow h-full text-xs sm:text-sm">
                                         <SearchableDropdown
-                                            options={customers.map(c => ({ value: c.id, label: c.name }))}
+                                            options={customers.filter(c => c.active !== false || c.id === selectedCustomerId).map(c => ({ value: c.id, label: c.name }))}
                                             value={selectedCustomerId}
                                             onChange={setSelectedCustomerId}
                                             placeholder="Busque pelo nome..."

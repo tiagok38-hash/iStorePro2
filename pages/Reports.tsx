@@ -952,7 +952,7 @@ const Reports: React.FC = () => {
                 const [salesData, productsData, customersData, usersData] = await Promise.all([
                     getSales(),
                     getProducts(),
-                    getCustomers(),
+                    getCustomers(false),
                     getUsers()
                 ]);
                 setSales(salesData);

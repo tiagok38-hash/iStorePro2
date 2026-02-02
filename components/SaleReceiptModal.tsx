@@ -456,7 +456,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                                 width: 100% !important;
                                 max-width: 210mm !important;
                                 margin: 0 !important;
-                                padding: 5mm 10mm !important;
+                                padding: 10mm 10mm 10mm 10mm !important; /* Increased top padding by 0.5cm as requested */
                             }
                         `}
 
@@ -470,6 +470,13 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             color-adjust: exact !important;
                         }
                         
+                        /* Ensure no shadows or gray bars print */
+                        #print-container {
+                            box-shadow: none !important;
+                            border: none !important;
+                            background: white !important;
+                        }
+
                         /* Ensure PAGO section prints with dark background */
                         .bg-black {
                             background-color: #000000 !important;

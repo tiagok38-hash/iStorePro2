@@ -69,6 +69,13 @@ const StockInModal: React.FC<{
         purchaseOrder.items.every(item => !item.hasImei),
         [purchaseOrder.items]);
 
+    // Load/Save draft from localStorage
+    useEffect(() => {
+        if (details.length > 0) {
+            localStorage.setItem(`stock_launch_draft_${purchaseOrder.id}`, JSON.stringify(details));
+        }
+    }, [details, purchaseOrder.id]);
+
     useEffect(() => {
         const launchedProductsForThisPO = allProducts.filter(p => p.purchaseOrderId === purchaseOrder.id);
         const expandedDetails = purchaseOrder.items.flatMap(item => {
@@ -89,7 +96,7 @@ const StockInModal: React.FC<{
                 condition: item.productDetails.condition || 'Novo',
                 batteryHealth: 100,
                 warranty: item.productDetails.warranty || '1 ano',
-                storageLocation: item.productDetails.storageLocation || 'Estoque Principal',
+                storageLocation: item.productDetails.storageLocation || 'Loja',
                 costPrice: item.unitCost,
                 additionalCostPrice: item.additionalUnitCost,
                 markup: null, salePrice: null, wholesalePrice: null,
@@ -112,13 +119,31 @@ const StockInModal: React.FC<{
             }
         });
 
-        if (expandedDetails.length === 0) {
+        if (expandedDetails.length === 0 && details.length === 0) {
             showToast("Todos os itens desta compra já foram lançados no estoque.", "info");
             onClose(false);
             return;
         }
 
-        setDetails(expandedDetails);
+        setDetails(prev => {
+            // Se já temos algo preenchido (mesmo queIMEIs vazios), não resetamos se virmos de um refresh de background
+            if (prev.length > 0) return prev;
+
+            // Tenta recuperar rascunho salvo
+            const savedDraft = localStorage.getItem(`stock_launch_draft_${purchaseOrder.id}`);
+            if (savedDraft) {
+                try {
+                    const parsed = JSON.parse(savedDraft);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                } catch (e) {
+                    console.error("Erro ao carregar rascunho", e);
+                }
+            }
+
+            return expandedDetails;
+        });
 
         const hasMinStockEnabled = expandedDetails.some(d => !d.isApple && d.minimumStock && d.minimumStock > 0);
         setIsMinimumStockEnabled(hasMinStockEnabled);
@@ -343,6 +368,7 @@ const StockInModal: React.FC<{
 
             await launchPurchaseToStock(purchaseOrder.id, newProducts);
             showToast(`Estoque da compra #${purchaseOrder.displayId} lançado com sucesso!`, 'success');
+            localStorage.removeItem(`stock_launch_draft_${purchaseOrder.id}`);
             onClose(true);
         } catch (error: any) {
             let message = error.message || 'Falha ao lançar estoque.';

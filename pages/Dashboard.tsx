@@ -982,7 +982,7 @@ const Dashboard: React.FC = () => {
             const [salesData, productsData, customersData] = await Promise.all([
                 fetchItem('Sales', () => getSales(undefined, undefined, startDate), []),
                 fetchItem('Products', () => getProducts(), []),
-                fetchItem('Customers', getCustomers, [])
+                fetchItem('Customers', () => getCustomers(false), [])
             ]);
 
             setSales(salesData);

@@ -249,7 +249,7 @@ const Vendas: React.FC = () => {
             // Products, Customers, Users, Suppliers - Fetch resiliently
             const [productsData, customersData, usersData, suppliersData] = await Promise.all([
                 fetchItem('Products', () => getProducts(), []),
-                fetchItem('Customers', getCustomers, []),
+                fetchItem('Customers', () => getCustomers(false), []),
                 fetchItem('Users', getUsers, []),
                 fetchItem('Suppliers', getSuppliers, [])
             ]);

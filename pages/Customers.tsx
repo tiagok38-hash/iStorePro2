@@ -15,7 +15,7 @@ import { useUser } from '../contexts/UserContext.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import CustomerModal from '../components/CustomerModal.tsx';
 import SupplierHistoryModal from '../components/SupplierHistoryModal.tsx';
-import { SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, UserCircleIcon, ClockIcon, ArrowsUpDownIcon, BirthdayCakeIcon, ChevronDownIcon, ChartBarIcon, WhatsAppIcon, InstagramIcon } from '../components/icons.tsx';
+import { SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, UserCircleIcon, ClockIcon, ArrowsUpDownIcon, BirthdayCakeIcon, ChevronDownIcon, ChartBarIcon, WhatsAppIcon, InstagramIcon, EyeSlashIcon, CurrencyDollarIcon, CheckIcon } from '../components/icons.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 
@@ -269,6 +269,8 @@ const CustomersAndSuppliers: React.FC = () => {
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
     const [customerSales, setCustomerSales] = useState<Sale[]>([]);
     const [customerForHistory, setCustomerForHistory] = useState<Customer | null>(null);
+    const [customerToInactivate, setCustomerToInactivate] = useState<Customer | null>(null);
+    const [showInactive, setShowInactive] = useState(false);
     const [productMap, setProductMap] = useState<Record<string, Product>>({});
     const [products, setProducts] = useState<Product[]>([]);
     const [customerSortOrder, setCustomerSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -319,7 +321,7 @@ const CustomersAndSuppliers: React.FC = () => {
         setLoading(true);
         try {
             const [customersData, productsData, suppliersData, purchasesData, usersData] = await Promise.all([
-                getCustomers(), getProducts(), getSuppliers(), getPurchaseOrders(), getUsers()
+                getCustomers(false), getProducts(), getSuppliers(), getPurchaseOrders(), getUsers()
             ]);
             setCustomers(customersData);
             setSuppliers(suppliersData);
@@ -487,35 +489,39 @@ const CustomersAndSuppliers: React.FC = () => {
     };
 
 
+    const customerStats = useMemo(() => {
+        const totals = new Map<string, number>();
+        const debts = new Map<string, number>();
+
+        allSales.forEach(sale => {
+            if (sale.status !== 'Cancelada') {
+                const current = totals.get(sale.customerId) || 0;
+                totals.set(sale.customerId, current + sale.total);
+
+                const debt = sale.payments.filter(p => p.type === 'pending').reduce((sum, p) => sum + p.value, 0);
+                if (debt > 0) {
+                    const currentDebt = debts.get(sale.customerId) || 0;
+                    debts.set(sale.customerId, currentDebt + debt);
+                }
+            }
+        });
+
+        return { totals, debts };
+    }, [allSales]);
+
     // --- Customer Logic ---
     const filteredCustomers = useMemo(() => {
-        let filtered = customers.filter(c => (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || c.email?.toLowerCase().includes(searchTerm.toLowerCase()));
+        // Se showInactive está ligado, mostra APENAS os inativos. Se desligado, mostra apenas os ativos.
+        let filtered = customers.filter(c => (showInactive ? c.active === false : c.active !== false) && ((c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || c.email?.toLowerCase().includes(searchTerm.toLowerCase())));
 
         if (birthdayFilter !== 'none') {
             filtered = filtered.filter(c => isBirthdayInPeriod(c.birthDate, birthdayFilter));
         }
 
-        // Compute totals for ranking if needed, or always to be ready
-        const customerTotals = new Map<string, number>();
-        const customerDebts = new Map<string, number>();
-
-        allSales.forEach(sale => {
-            if (sale.status !== 'Cancelada') {
-                const current = customerTotals.get(sale.customerId) || 0;
-                customerTotals.set(sale.customerId, current + sale.total);
-
-                const debt = sale.payments.filter(p => p.type === 'pending').reduce((sum, p) => sum + p.value, 0);
-                if (debt > 0) {
-                    const currentDebt = customerDebts.get(sale.customerId) || 0;
-                    customerDebts.set(sale.customerId, currentDebt + debt);
-                }
-            }
-        });
-
         const customersWithStats = filtered.map(c => ({
             ...c,
-            totalPurchases: customerTotals.get(c.id) || 0,
-            debt: customerDebts.get(c.id) || 0
+            totalPurchases: customerStats.totals.get(c.id) || 0,
+            debt: customerStats.debts.get(c.id) || 0
         }));
 
         let result = customersWithStats;
@@ -544,7 +550,29 @@ const CustomersAndSuppliers: React.FC = () => {
             await deleteCustomer(customerToDelete.id, user?.id, user?.name);
             showToast('Cliente excluído com sucesso!', 'success');
             fetchData(); setCustomerToDelete(null);
-        } catch (error) { showToast('Erro ao excluir cliente.', 'error'); }
+        } catch (error: any) {
+            console.error('Error deleting customer:', error);
+            if (error.message?.includes('vínculos') || error.code === '23503') {
+                showToast('Este cliente possui histórico e não pode ser excluído. Use a opção de Inativar.', 'warning');
+            } else {
+                showToast('Erro ao excluir cliente.', 'error');
+            }
+            setCustomerToDelete(null);
+        }
+    };
+
+    const handleInactivateCustomerConfirm = async () => {
+        if (!customerToInactivate) return;
+        try {
+            const newStatus = customerToInactivate.active === false;
+            await updateCustomer({ id: customerToInactivate.id, active: newStatus }, user?.id, user?.name);
+            showToast(`Cliente ${newStatus ? 'reativado' : 'inativado'} com sucesso!`, 'success');
+            fetchData();
+            setCustomerToInactivate(null);
+        } catch (error) {
+            console.error('Error toggling customer active status:', error);
+            showToast('Erro ao alterar status do cliente.', 'error');
+        }
     };
     const handleViewHistory = async (customer: Customer) => {
         // Fetch fresh customer data directly from DB (no cache) to ensure tradeInHistory is up to date
@@ -626,7 +654,14 @@ const CustomersAndSuppliers: React.FC = () => {
                         onClick={() => setShowDebtorsOnly(prev => !prev)}
                         className={`shrink-0 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showDebtorsOnly ? 'bg-red-500 text-white border border-red-600' : 'bg-white text-secondary border border-gray-200'}`}
                     >
-                        <span>Devedores</span>
+                        <span>Devedores ({customers.filter(c => c.active !== false && (customerStats.debts.get(c.id) || 0) > 0).length})</span>
+                    </button>
+
+                    <button
+                        onClick={() => setShowInactive(prev => !prev)}
+                        className={`shrink-0 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showInactive ? 'bg-orange-500 text-white border border-orange-600' : 'bg-white text-secondary border border-gray-200'}`}
+                    >
+                        <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
                 </div>
 
@@ -694,12 +729,16 @@ const CustomersAndSuppliers: React.FC = () => {
                     <button
                         onClick={() => setShowDebtorsOnly(prev => !prev)}
                         className={`h-10 px-3 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${showDebtorsOnly ? 'bg-red-600 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
-                        title="Mostrar apenas clientes com dívidas em aberto"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Devedores</span>
+                        <CurrencyDollarIcon className="h-4 w-4" />
+                        <span>Devedores ({customers.filter(c => c.active !== false && (customerStats.debts.get(c.id) || 0) > 0).length})</span>
+                    </button>
+                    <button
+                        onClick={() => setShowInactive(prev => !prev)}
+                        className={`h-10 px-3 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${showInactive ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                    >
+                        <EyeSlashIcon className="h-4 w-4" />
+                        <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
                 </div>
                 {permissions?.canAccessClientes && (
@@ -728,8 +767,13 @@ const CustomersAndSuppliers: React.FC = () => {
                                         </div>
 
                                         {/* Content Middle */}
-                                        <div className="flex-1 min-w-0 pr-14">
-                                            <h3 className="font-bold text-gray-900 text-sm truncate mb-0.5">{customer.name}</h3>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-bold text-gray-900 truncate text-[13px] sm:text-sm">{customer.name}</h3>
+                                                {customer.active === false && (
+                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-orange-100 text-orange-700 border border-orange-200 uppercase">Inativo</span>
+                                                )}
+                                            </div>
                                             {/* Tag + Phone on same line */}
                                             <div className="flex flex-wrap items-center gap-1.5 mb-1">
                                                 {suppliers.some(s => s.name.trim().toLowerCase() === customer.name.trim().toLowerCase()) && (
@@ -772,8 +816,11 @@ const CustomersAndSuppliers: React.FC = () => {
                                             {permissions?.canAccessClientes && (
                                                 <div className="flex gap-2 pr-0.5 pt-0.5 opacity-40">
                                                     <button onClick={() => handleOpenModal(customer)}><EditIcon className="w-3.5 h-3.5" /></button>
-                                                    <button onClick={() => setCustomerToDelete(customer)}><TrashIcon className="w-3.5 h-3.5" /></button>
-                                                    <button onClick={() => handleViewHistory(customer)}><ClockIcon className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={() => setCustomerToDelete(customer)} title="Excluir"><TrashIcon className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={() => setCustomerToInactivate(customer)} title={customer.active === false ? "Reativar" : "Inativar"}>
+                                                        {customer.active === false ? <CheckIcon className="w-3.5 h-3.5 text-success" /> : <EyeSlashIcon className="w-3.5 h-3.5" />}
+                                                    </button>
+                                                    <button onClick={() => handleViewHistory(customer)} title="Histórico"><ClockIcon className="w-3.5 h-3.5" /></button>
                                                 </div>
                                             )}
                                         </div>
@@ -805,6 +852,9 @@ const CustomersAndSuppliers: React.FC = () => {
                                                     {customer.avatarUrl ? <img src={customer.avatarUrl} alt={customer.name} className="h-10 w-10 rounded-full object-cover" /> : <UserCircleIcon className="h-10 w-10 text-gray-300" />}
                                                     <div className="flex items-center gap-2">
                                                         <span>{customer.name}</span>
+                                                        {customer.active === false && (
+                                                            <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 border border-orange-200">Inativo</span>
+                                                        )}
                                                         {customer.isBlocked && (
                                                             <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Bloqueado</span>
                                                         )}
@@ -847,8 +897,11 @@ const CustomersAndSuppliers: React.FC = () => {
                                                     <button onClick={() => handleViewHistory(customer)} className="text-secondary hover:text-primary" title="Ver Histórico"><ClockIcon className="w-5 h-5" /></button>
                                                     {permissions?.canAccessClientes && (
                                                         <>
-                                                            <button onClick={() => handleOpenModal(customer)} className="text-secondary hover:text-primary"><EditIcon /></button>
-                                                            <button onClick={() => setCustomerToDelete(customer)} className="text-secondary hover:text-danger"><TrashIcon /></button>
+                                                            <button onClick={() => handleOpenModal(customer)} className="text-secondary hover:text-primary" title="Editar"><EditIcon /></button>
+                                                            <button onClick={() => setCustomerToDelete(customer)} className="text-secondary hover:text-danger" title="Excluir"><TrashIcon /></button>
+                                                            <button onClick={() => setCustomerToInactivate(customer)} className={`text-secondary ${customer.active === false ? 'hover:text-success' : 'hover:text-orange-500'}`} title={customer.active === false ? "Reativar" : "Inativar"}>
+                                                                {customer.active === false ? <CheckIcon className="w-5 h-5 text-success" /> : <EyeSlashIcon className="w-5 h-5" />}
+                                                            </button>
                                                         </>
                                                     )}
                                                 </div>
@@ -1075,6 +1128,19 @@ const CustomersAndSuppliers: React.FC = () => {
             {supplierForHistory && <SupplierHistoryModal supplier={supplierForHistory} purchases={supplierPurchases} users={users} products={products} onClose={() => setSupplierForHistory(null)} />}
             <ConfirmationModal isOpen={!!supplierToDelete} onClose={() => setSupplierToDelete(null)} onConfirm={handleDeleteSupplierConfirm} title="Confirmar Exclusão" message={`Tem certeza que deseja excluir o fornecedor "${supplierToDelete?.name}"?`} />
             {saleToView && <SaleDetailModal sale={saleToView} productMap={productMap} customers={customers} users={users} onClose={() => setSaleToView(null)} />}
+            {/* Inactivate Customer Confirmation */}
+            <ConfirmationModal
+                isOpen={!!customerToInactivate}
+                onClose={() => setCustomerToInactivate(null)}
+                onConfirm={handleInactivateCustomerConfirm}
+                title={customerToInactivate?.active === false ? "Reativar Cliente" : "Inativar Cliente"}
+                message={customerToInactivate?.active === false
+                    ? `Tem certeza que deseja reativar o cliente "${customerToInactivate?.name}"?`
+                    : `Tem certeza que deseja inativar o cliente "${customerToInactivate?.name}"? Ele não aparecerá mais nas listas e buscas do sistema, mas seu histórico será mantido.`
+                }
+                confirmText={customerToInactivate?.active === false ? "Reativar" : "Inativar"}
+                type={customerToInactivate?.active === false ? "success" : "warning"}
+            />
         </div>
     );
 };

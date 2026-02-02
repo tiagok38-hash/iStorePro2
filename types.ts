@@ -100,6 +100,7 @@ export interface Customer {
     customTag?: string;
     tradeInHistory?: TradeInEntry[];
     instagram?: string;
+    active?: boolean;
 }
 
 export type ProductCondition = 'Novo' | 'Seminovo' | 'CPO' | 'Openbox';

@@ -122,7 +122,7 @@ const POS: React.FC = () => {
 
             // TIER 2: BACKGROUND DATA (LOADING WHILE USER VIEWS SUMMARY)
             fetchItem('Products', getProducts, []).then(setProducts);
-            fetchItem('Customers', getCustomers, []).then(setCustomers);
+            fetchItem('Customers', () => getCustomers(false), []).then(setCustomers);
             fetchItem('Suppliers', getSuppliers, []).then(setSuppliers);
             fetchItem('ReceiptTerms', getReceiptTerms, []).then(setReceiptTerms);
             fetchItem('Permissions', getPermissionProfiles, []).then(setPermissionProfiles);

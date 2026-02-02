@@ -2130,6 +2130,7 @@ const mapCustomer = (c: any) => ({
     isBlocked: c.is_blocked,
     customTag: c.custom_tag,
     instagram: c.instagram,
+    active: c.active ?? true,
     address: {
         zip: c.cep || '',
         street: c.street || '',
@@ -2151,7 +2152,7 @@ const mapSupplier = (s: any) => ({
 });
 
 // Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
-const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url';
+const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url, active';
 
 // Helper to ensure date format is YYYY-MM-DD
 const ensureISODate = (dateStr: string | undefined | null): string | null => {
@@ -2166,16 +2167,22 @@ const ensureISODate = (dateStr: string | undefined | null): string | null => {
     return dateStr;
 };
 
-export const getCustomers = async (): Promise<Customer[]> => {
-    return fetchWithCache('customers', async () => {
+export const getCustomers = async (onlyActive: boolean = true): Promise<Customer[]> => {
+    const cacheKey = onlyActive ? 'customers_active' : 'customers_all';
+    return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             // Exclude avatar_url to prevent large payloads from crashing the app
-            const { data, error } = await supabase
+            let query = supabase
                 .from('customers')
                 .select(CUSTOMER_COLUMNS)
                 .order('name', { ascending: true })
                 .limit(3000); // Robustness limit
 
+            if (onlyActive) {
+                query = query.eq('active', true);
+            }
+
+            const { data, error } = await query;
             if (error) {
                 console.error('mockApi: Error fetching customers:', error);
                 throw error;
@@ -2193,6 +2200,7 @@ export const searchCustomers = async (term: string): Promise<Customer[]> => {
         const { data, error } = await supabase
             .from('customers')
             .select(CUSTOMER_COLUMNS)
+            .eq('active', true) // Search only active customers
             .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%`)
             .limit(50);
         if (error) throw error;
@@ -2273,6 +2281,7 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
     if (data.isBlocked) payload.is_blocked = data.isBlocked;
     if (data.customTag) payload.custom_tag = data.customTag;
     if (data.instagram) payload.instagram = data.instagram;
+    if (data.active !== undefined) payload.active = data.active;
 
     // Address fields
     if (data.address) {
@@ -2367,6 +2376,7 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     if (data.isBlocked !== undefined) payload.is_blocked = data.isBlocked || false;
     if (data.customTag !== undefined) payload.custom_tag = data.customTag || null;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
+    if (data.active !== undefined) payload.active = data.active;
 
     // Address fields
     if (data.address) {
