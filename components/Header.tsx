@@ -5,7 +5,7 @@ import { useUser } from '../contexts/UserContext.tsx';
 
 const Logo: React.FC = () => (
     <Link to="/" className="flex items-center h-full overflow-hidden">
-        <div className="relative h-14 w-44 flex items-center overflow-hidden">
+        <div className="relative h-8 w-40 flex items-center overflow-hidden">
             <img
                 src="/logo_header_wide.png"
                 alt="iStorePro"
@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = () => {
     }, []);
 
     return (
-        <header className="bg-surface h-16 flex items-center justify-between px-4 border-b border-border lg:hidden sticky top-0 z-30">
+        <header className="bg-surface h-10 flex items-center justify-between px-4 border-b border-border lg:hidden sticky top-0 z-30">
             <Logo />
 
             <div className="flex items-center gap-3">

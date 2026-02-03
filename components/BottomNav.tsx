@@ -42,9 +42,7 @@ const BottomNav: React.FC = () => {
     const itemWidthClass = "flex-none w-[20%] min-w-[20%]";
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-gray-800 lg:hidden z-50 pb-6 pt-2">
-            {/* User Name Bar - Ultra Small */}
-            {/* User Name Bar removed as requested */}
+        <div className="fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-gray-800 lg:hidden z-50 pb-4 pt-2">
 
             <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                 {visibleNavItems.map((item) => {
@@ -65,7 +63,7 @@ const BottomNav: React.FC = () => {
                                 }}
                                 className={`flex flex-col items-center justify-center py-2 transition-colors ${itemWidthClass} text-gray-400 hover:text-gray-200`}
                             >
-                                {React.cloneElement(item.icon, { className: 'h-6 w-6 mb-1' })}
+                                {React.cloneElement(item.icon, { className: 'h-5 w-5 mb-1' })}
                                 <span className="text-[10px] truncate w-full text-center px-1 font-medium">{item.name}</span>
                             </a>
                         );
@@ -77,7 +75,7 @@ const BottomNav: React.FC = () => {
                             to={item.to}
                             className={linkClasses}
                         >
-                            {React.cloneElement(item.icon, { className: 'h-6 w-6 mb-1' })}
+                            {React.cloneElement(item.icon, { className: 'h-5 w-5 mb-1' })}
                             <span className="text-[10px] truncate w-full text-center px-1 font-medium">{item.name}</span>
                         </NavLink>
                     );
@@ -88,7 +86,7 @@ const BottomNav: React.FC = () => {
                     onClick={handleLogout}
                     className={`flex flex-col items-center justify-center py-2 transition-colors ${itemWidthClass} text-red-500/80 hover:text-red-400`}
                 >
-                    <LogoutIcon className="h-6 w-6 mb-1" />
+                    <LogoutIcon className="h-5 w-5 mb-1" />
                     <span className="text-[10px] truncate w-full text-center px-1 font-medium">Sair</span>
                 </button>
             </div>

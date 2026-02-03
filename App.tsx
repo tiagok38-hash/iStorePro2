@@ -44,7 +44,7 @@ const MainLayout: React.FC = () => {
             <div className="flex-1 flex flex-col w-full min-w-0 pb-20 lg:pb-0">
                 <Header onMenuClick={() => { }} />
                 <TopBar />
-                <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+                <main className="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto">
                     <Suspense fallback={<SuspenseFallback />}>
                         <div key={location.pathname} className="animate-fade-in h-full">
                             <Outlet />

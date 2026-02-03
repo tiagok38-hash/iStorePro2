@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { Product, Category, Brand, ProductModel, ProductConditionParameter, StorageLocationParameter } from '../types.ts';
 import { getCategories, getBrands, getProductModels, getProductConditions, getStorageLocations, formatCurrency } from '../services/mockApi.ts';
 import { CloseIcon, AppleIcon, SmartphoneIcon, DocumentTextIcon, CheckIcon, ChevronRightIcon, ChevronLeftIcon } from './icons.tsx';
@@ -36,6 +37,17 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
     const [showStockLocation, setShowStockLocation] = useState(false);
     const [groupIdentical, setGroupIdentical] = useState(true);
     const [sortBy, setSortBy] = useState<'model' | 'price_asc' | 'price_desc'>('model');
+
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen]);
 
     useEffect(() => {
         const fetchMetadata = async () => {
@@ -522,17 +534,17 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
 
     const totalUnits = filteredForStep.reduce((acc, p) => acc + p.stock, 0);
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-surface w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in duration-200">
+    const modalContent = (
+        <div className="fixed top-0 left-0 right-0 bottom-[72px] sm:bottom-0 z-[99999] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-surface w-full max-w-4xl max-h-full sm:max-h-[90vh] rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in duration-200">
                 {/* Header */}
-                <div className="p-6 border-b border-border bg-gradient-to-r from-indigo-600/5 to-purple-600/5 flex items-center justify-between">
+                <div className="p-3 sm:p-6 border-b border-border bg-gradient-to-r from-indigo-600/5 to-purple-600/5 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200">
                             <DocumentTextIcon className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-gray-800 tracking-tight">Gerar Lista de Preços</h2>
+                            <h2 className="text-lg sm:text-xl font-black text-gray-800 tracking-tight">Gerar Lista de Preços</h2>
                             <p className="text-xs text-muted font-medium uppercase tracking-widest">Baseado no estoque atual</p>
                         </div>
                     </div>
@@ -542,36 +554,36 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar">
                     {step === 'type' ? (
-                        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+                        <div className="space-y-4 sm:space-y-8 animate-in slide-in-from-bottom-4 duration-300">
                             <div className="text-center space-y-2">
-                                <h3 className="text-2xl font-bold text-gray-800">Qual o foco da sua lista?</h3>
+                                <h3 className="text-xl sm:text-2xl font-bold text-gray-800">Qual o foco da sua lista?</h3>
                                 <p className="text-gray-500">Selecione o tipo de produto para continuar</p>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <button
                                     onClick={() => { setSelectedType('apple'); setStep('filters'); }}
-                                    className="group relative p-8 rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-all duration-300 text-left"
+                                    className="group relative p-4 sm:p-8 rounded-2xl sm:rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-all duration-300 text-left"
                                 >
-                                    <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 inline-block group-hover:scale-110 transition-transform">
-                                        <AppleIcon className="w-10 h-10 text-gray-800" />
+                                    <div className="p-2 sm:p-4 bg-white rounded-xl sm:rounded-2xl shadow-sm mb-3 sm:mb-4 inline-block group-hover:scale-110 transition-transform">
+                                        <AppleIcon className="w-6 h-6 sm:w-10 sm:h-10 text-gray-800" />
                                     </div>
-                                    <h4 className="text-xl font-black text-gray-800 mb-1">Produtos Apple</h4>
-                                    <p className="text-sm text-gray-500">iPhones, iPads, MacBooks, Apple Watch, etc.</p>
+                                    <h4 className="text-lg sm:text-xl font-black text-gray-800 mb-0.5 sm:mb-1">Produtos Apple</h4>
+                                    <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">iPhones, iPads, MacBooks, Apple Watch, etc.</p>
                                     <div className="absolute top-8 right-8 text-indigo-200 group-hover:text-indigo-400 transition-colors">
                                         <ChevronRightIcon className="w-8 h-8" />
                                     </div>
                                 </button>
                                 <button
                                     onClick={() => { setSelectedType('other'); setStep('filters'); }}
-                                    className="group relative p-8 rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-purple-50 hover:border-purple-200 transition-all duration-300 text-left"
+                                    className="group relative p-4 sm:p-8 rounded-2xl sm:rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-purple-50 hover:border-purple-200 transition-all duration-300 text-left"
                                 >
-                                    <div className="p-4 bg-white rounded-2xl shadow-sm mb-4 inline-block group-hover:scale-110 transition-transform">
-                                        <SmartphoneIcon className="w-10 h-10 text-gray-800" />
+                                    <div className="p-2 sm:p-4 bg-white rounded-xl sm:rounded-2xl shadow-sm mb-3 sm:mb-4 inline-block group-hover:scale-110 transition-transform">
+                                        <SmartphoneIcon className="w-6 h-6 sm:w-10 sm:h-10 text-gray-800" />
                                     </div>
-                                    <h4 className="text-xl font-black text-gray-800 mb-1">Outros Produtos</h4>
-                                    <p className="text-sm text-gray-500">Xiaomi, Samsung, Acessórios e demais marcas.</p>
+                                    <h4 className="text-lg sm:text-xl font-black text-gray-800 mb-0.5 sm:mb-1">Outros Produtos</h4>
+                                    <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">Xiaomi, Samsung, Acessórios e demais marcas.</p>
                                     <div className="absolute top-8 right-8 text-purple-200 group-hover:text-purple-400 transition-colors">
                                         <ChevronRightIcon className="w-8 h-8" />
                                     </div>
@@ -857,44 +869,32 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-border bg-gray-50 flex items-center justify-between">
+                <div className="p-3 sm:p-6 border-t border-border bg-gray-50 flex items-center justify-between flex-shrink-0">
                     <div className="flex flex-col">
                         {step !== 'type' && (
                             <>
-                                <span className="text-xs text-muted font-bold">
-                                    {!hasActiveFilters ? 'Total em Estoque' : 'Resumo da Seleção'}
+                                <span className="text-[10px] text-muted font-bold uppercase">
+                                    {!hasActiveFilters ? 'Total em Estoque' : 'Resumo'}
                                 </span>
-                                {!hasActiveFilters ? (
-                                    <span className="text-lg font-black text-indigo-600">{totalUnits} produtos</span>
-                                ) : (
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex flex-col">
-                                            <span className="text-lg font-black text-indigo-600">{filteredForStep.length}</span>
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Modelos</span>
-                                        </div>
-                                        <div className="w-px h-8 bg-gray-200"></div>
-                                        <div className="flex flex-col">
-                                            <span className="text-lg font-black text-indigo-600">{totalUnits}</span>
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">{totalUnits === 1 ? 'Item' : 'Itens'}</span>
-                                        </div>
-                                    </div>
-                                )}
+                                <span className="text-base font-black text-indigo-600">
+                                    {totalUnits} {totalUnits === 1 ? 'produto' : 'produtos'}
+                                </span>
                             </>
                         )}
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <button
                             onClick={onClose}
-                            className="px-6 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+                            className="px-3 sm:px-6 py-2 text-xs sm:text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleGenerate}
                             disabled={step === 'type' || filteredForStep.length === 0}
-                            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95 flex items-center gap-2"
+                            className="px-4 sm:px-8 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm uppercase tracking-widest shadow-lg shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95 flex items-center gap-2"
                         >
-                            <DocumentTextIcon className="w-5 h-5" />
+                            <DocumentTextIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             Gerar Relatório
                         </button>
                     </div>
@@ -902,6 +902,8 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
             </div>
         </div>
     );
+
+    return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default PriceListModal;
