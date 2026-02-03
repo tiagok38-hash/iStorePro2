@@ -551,6 +551,46 @@ const Products: React.FC = () => {
     };
     const handleRevertPurchase = async () => {
         if (!purchaseToRevert) return;
+
+        // Backup current products to draft before reverting
+        try {
+            const productsToSave = products.filter(p => p.purchaseOrderId === purchaseToRevert.id);
+            if (productsToSave.length > 0) {
+                const draftDetails = productsToSave.map(p => {
+                    const finalCost = (p.costPrice || 0) + (p.additionalCostPrice || 0);
+                    let markup = null;
+                    if (finalCost > 0 && p.price > 0) {
+                        markup = parseFloat((((p.price / finalCost) - 1) * 100).toFixed(2));
+                    }
+
+                    return {
+                        purchaseItemId: p.purchaseItemId,
+                        itemDescription: p.model,
+                        serialNumber: p.serialNumber || '',
+                        imei1: p.imei1 || '',
+                        imei2: p.imei2 || '',
+                        condition: p.condition,
+                        batteryHealth: p.batteryHealth || 100,
+                        warranty: p.warranty,
+                        storageLocation: p.storageLocation,
+                        costPrice: p.costPrice || 0,
+                        additionalCostPrice: p.additionalCostPrice || 0,
+                        markup: markup,
+                        salePrice: p.price,
+                        wholesalePrice: p.wholesalePrice,
+                        quantity: p.stock,
+                        minimumStock: p.minimumStock,
+                        isApple: p.brand === 'Apple',
+                        barcode: p.barcodes && p.barcodes.length > 0 ? p.barcodes[0] : '',
+                        controlByBarcode: false
+                    };
+                });
+                localStorage.setItem(`stock_launch_draft_${purchaseToRevert.id}`, JSON.stringify(draftDetails));
+            }
+        } catch (e) {
+            console.error('Erro ao salvar backup do rascunho', e);
+        }
+
         try {
             await revertPurchaseLaunch(purchaseToRevert.id);
             showToast('Lançamento da compra revertido com sucesso!', 'success');

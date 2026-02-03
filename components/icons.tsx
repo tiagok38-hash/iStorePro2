@@ -482,4 +482,10 @@ export const MapPinIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </Icon>
 );
 
+export const BoltIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <Icon {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    </Icon>
+);
+
 export default Icon;

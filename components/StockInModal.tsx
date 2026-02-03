@@ -5,7 +5,7 @@ import { PurchaseOrder, Product, PurchaseItem, ProductConditionParameter, Storag
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { launchPurchaseToStock, formatCurrency, getProductConditions, getStorageLocations, getWarranties } from '../services/mockApi.ts';
-import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon } from './icons.tsx';
+import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon, BoltIcon } from './icons.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
 
 type ItemDetail = {
@@ -43,6 +43,8 @@ const StockInModal: React.FC<{
     const [duplicateErrors, setDuplicateErrors] = useState<Record<number, Partial<Record<'serialNumber' | 'imei1' | 'imei2', boolean>>>>({});
     const [isMinimumStockEnabled, setIsMinimumStockEnabled] = useState(false);
     const { showToast } = useToast();
+    const [isContinuousScanEnabled, setIsContinuousScanEnabled] = useState(false);
+    const inputRefs = React.useRef<{ [key: string]: HTMLInputElement | null }>({});
     const { user } = useUser();
 
     // Dynamic parameters from Empresa > Parâmetros
@@ -149,6 +151,27 @@ const StockInModal: React.FC<{
         setIsMinimumStockEnabled(hasMinStockEnabled);
     }, [purchaseOrder, allProducts, onClose, showToast, isBulkMode]);
 
+    const focusNextRow = (index: number, field: string) => {
+        // Use DOM ID for absolute reliability over React Refs
+        const nextId = `stock-input-${index + 1}-${field}`;
+        const nextInput = document.getElementById(nextId);
+
+        if (nextInput) {
+            // showToast(`Pulando para item #${index + 2}`, 'success'); // Optional feedback
+            nextInput.focus();
+            (nextInput as HTMLInputElement).select(); // Select all text in next input just in case
+            nextInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            const currentId = `stock-input-${index}-${field}`;
+            // Check if we are at the end
+            if (index + 1 >= details.length) {
+                showToast('Último item da lista preenchido!', 'success');
+            } else {
+                console.warn(`Could not find input with ID: ${nextId}`);
+            }
+        }
+    };
+
     const handleDetailChange = (index: number, field: keyof ItemDetail, value: any) => {
         const newDetails = [...details];
         let detail = { ...newDetails[index] };
@@ -205,7 +228,16 @@ const StockInModal: React.FC<{
             (detail as any)[field] = numericValue > 0 ? numericValue : 1;
         }
         else if (field === 'imei1' || field === 'imei2') {
-            (detail as any)[field] = value.replace(/\D/g, '').substring(0, 15);
+            const cleaned = value.replace(/\D/g, '').substring(0, 15);
+            (detail as any)[field] = cleaned;
+
+            // Auto-jump for 15 chars (standard IMEI) if Continuous Scan is ON
+            if (isContinuousScanEnabled && cleaned.length === 15) {
+                // Use setTimeout to ensure the state update renders first, although not strictly waiting for it here
+                // Logic: update state -> then focus next.
+                // Since this function updates state at the end, we can trigger focus immediately if we are sure.
+                setTimeout(() => focusNextRow(index, field as string), 50);
+            }
         }
         else {
             (detail as any)[field] = value;
@@ -236,6 +268,14 @@ const StockInModal: React.FC<{
         }
     };
 
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: string) => {
+        // Handle Enter or Tab for manual jump or non-15 char inputs (like Serial Numbers)
+        if ((e.key === 'Enter' || e.key === 'Tab') && isContinuousScanEnabled) {
+            e.preventDefault();
+            focusNextRow(index, field);
+        }
+    };
 
     const handleLaunchStock = async () => {
         let hasError = false;
@@ -621,9 +661,37 @@ const StockInModal: React.FC<{
                                     <td className="p-3 text-[10px] font-medium text-primary leading-tight">
                                         <div className="line-clamp-2 max-w-[180px]">{detail.itemDescription}</div>
                                     </td>
-                                    <td className="p-1"><input type="text" value={detail.imei1} onChange={e => handleDetailChange(index, 'imei1', e.target.value)} className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
-                                    <td className="p-1"><input type="text" value={detail.imei2} onChange={e => handleDetailChange(index, 'imei2', e.target.value)} className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
-                                    <td className="p-1"><input type="text" value={detail.serialNumber} onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)} className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`} /></td>
+                                    <td className="p-1">
+                                        <input
+                                            id={`stock-input-${index}-imei1`}
+                                            type="text"
+                                            value={detail.imei1}
+                                            onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, index, 'imei1')}
+                                            className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                            placeholder={isContinuousScanEnabled ? "Bipe..." : ""}
+                                        />
+                                    </td>
+                                    <td className="p-1">
+                                        <input
+                                            id={`stock-input-${index}-imei2`}
+                                            type="text"
+                                            value={detail.imei2}
+                                            onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, index, 'imei2')}
+                                            className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                        />
+                                    </td>
+                                    <td className="p-1">
+                                        <input
+                                            id={`stock-input-${index}-serialNumber`}
+                                            type="text"
+                                            value={detail.serialNumber}
+                                            onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
+                                            onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
+                                            className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                        />
+                                    </td>
                                     <td className="p-3">
                                         <select value={detail.condition} onChange={e => handleDetailChange(index, 'condition', e.target.value)} className={`${inputClasses} h-10`}>
                                             {conditionOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -681,29 +749,35 @@ const StockInModal: React.FC<{
                                         <div className="relative group">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">IMEI 1</span>
                                             <input
+                                                id={`stock-input-${index}-imei1`}
                                                 type="text"
                                                 value={detail.imei1}
                                                 onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
-                                                className={`${inputClassesCompact} pl-14 h-11 text-sm font-semibold rounded-lg ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`}
+                                                onKeyDown={e => handleKeyDown(e, index, 'imei1')}
+                                                className={`${inputClassesCompact} pl-14 h-11 text-sm font-semibold rounded-lg ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                             />
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div className="relative group">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">IMEI 2</span>
                                                 <input
+                                                    id={`stock-input-${index}-imei2`}
                                                     type="text"
                                                     value={detail.imei2}
                                                     onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
-                                                    className={`${inputClassesCompact} pl-14 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`}
+                                                    onKeyDown={e => handleKeyDown(e, index, 'imei2')}
+                                                    className={`${inputClassesCompact} pl-14 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                                 />
                                             </div>
                                             <div className="relative group">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">S/N</span>
                                                 <input
+                                                    id={`stock-input-${index}-serialNumber`}
                                                     type="text"
                                                     value={detail.serialNumber}
                                                     onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
-                                                    className={`${inputClassesCompact} pl-10 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''}`}
+                                                    onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
+                                                    className={`${inputClassesCompact} pl-10 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                                 />
                                             </div>
                                         </div>
@@ -796,15 +870,26 @@ const StockInModal: React.FC<{
                     {isBulkMode ? renderBulkMode() : renderUniqueMode()}
                 </div>
 
-                <div className="p-4 md:p-6 border-t border-border bg-surface mt-auto shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                <div className="p-4 md:p-6 border-t border-border bg-surface mt-auto shadow-[0_-4px_20px_rgba(0,0,0,0.05)] flex items-center justify-between">
+
                     <button
-                        onClick={handleLaunchStock}
-                        disabled={isSaving}
-                        className="w-full md:w-auto md:ml-auto px-8 py-3 bg-success text-white rounded-xl hover/bg-success/90 font-bold disabled:bg-muted flex items-center justify-center gap-3 text-lg shadow-lg shadow-success/20 transition-all active:scale-95 mb-safe"
+                        onClick={() => setIsContinuousScanEnabled(!isContinuousScanEnabled)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${isContinuousScanEnabled ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-500' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
-                        {isSaving ? <SpinnerIcon className="h-6 w-6 animate-spin" /> : <DocumentArrowUpIcon className="h-6 w-6" />}
-                        Lançar no Estoque
+                        <BoltIcon className={`h-5 w-5 ${isContinuousScanEnabled ? 'animate-pulse' : ''}`} />
+                        {isContinuousScanEnabled ? 'Leitura Contínua ATIVA' : 'Leitura Contínua'}
                     </button>
+
+                    <div className="flex gap-4">
+                        <button
+                            onClick={handleLaunchStock}
+                            disabled={isSaving}
+                            className="w-full md:w-auto md:ml-auto px-8 py-3 bg-success text-white rounded-xl hover/bg-success/90 font-bold disabled:bg-muted flex items-center justify-center gap-3 text-lg shadow-lg shadow-success/20 transition-all active:scale-95 mb-safe"
+                        >
+                            {isSaving ? <SpinnerIcon className="h-6 w-6 animate-spin" /> : <DocumentArrowUpIcon className="h-6 w-6" />}
+                            Lançar no Estoque
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>,
