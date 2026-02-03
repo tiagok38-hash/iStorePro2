@@ -368,11 +368,22 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         delete (newItem as any).storage;
         setItems([...items, newItem]);
 
-        // Reset currentItem to prevent contamination
+        // Reset currentItem but keep STICKY FIELDS for faster entry
+        const prevDetails = currentItem.productDetails;
+        const prevStorage = currentItem.storage;
         const resetItem = JSON.parse(JSON.stringify(emptyItem));
-        if (productType === 'Produto') {
-            resetItem.productDetails.brand = '';
+
+        if (prevDetails) {
+            resetItem.productDetails.brand = prevDetails.brand;
+            resetItem.productDetails.category = prevDetails.category;
+            resetItem.productDetails.model = prevDetails.model;
+            resetItem.productDetails.warranty = prevDetails.warranty;
+            resetItem.productDetails.condition = prevDetails.condition;
+            resetItem.productDetails.storageLocation = prevDetails.storageLocation;
+            // Persist storage for Apple products as requested
+            resetItem.storage = prevStorage;
         }
+
         setCurrentItem(resetItem);
         setCurrentGradeId('');
         setCurrentValueId('');

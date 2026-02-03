@@ -170,6 +170,13 @@ const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () 
                             <div className="text-center text-muted py-8">Nenhum item nesta compra.</div>
                         )
                     )}
+
+                    {purchase.observations && (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Observações</p>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{purchase.observations}</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-gray-50 flex justify-end items-center gap-10 text-right">
