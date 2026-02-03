@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Product } from '../types.ts';
-import { SpinnerIcon, SearchIcon, XCircleIcon, InfoIcon } from './icons.tsx';
+import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon } from './icons.tsx';
 import { formatCurrency } from '../services/mockApi.ts';
 import CurrencyInput from './CurrencyInput.tsx';
 
@@ -21,6 +22,13 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
     const [newWholesalePrice, setNewWholesalePrice] = useState<number | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
+
     const handleSearch = () => {
         setIsSearching(true);
         const lowerSearchTerm = searchTerm.toLowerCase();
@@ -31,7 +39,6 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
             const stockMatch = p.stock > 0;
             return searchMatch && conditionMatch && stockMatch;
         });
-        // Simulate a small delay for user feedback
         setTimeout(() => {
             setSearchedProducts(results);
             setIsSearching(false);
@@ -57,114 +64,148 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
         setIsUpdating(false);
     };
 
-    const inputClasses = "p-2 border rounded bg-surface border-border focus:ring-success focus:border-success text-sm";
-    const currencyInputClasses = `${inputClasses} font-semibold`;
+    const modalContent = (
+        <div className="fixed inset-0 z-[99999] bg-white lg:bg-black/60 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center lg:p-4">
+            {/* Mobile: Fullscreen | Desktop: Centered Modal */}
+            <div className="bg-white w-full h-full lg:h-auto lg:max-h-[90vh] lg:max-w-4xl lg:rounded-2xl lg:shadow-2xl flex flex-col overflow-hidden">
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-            <div className="bg-surface rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center p-4 border-b border-border">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-bold text-primary">Atualização de Preço em massa</h2>
-                    </div>
-                    <button onClick={onClose} className="p-1 text-muted hover:text-danger"><XCircleIcon className="h-6 w-6" /></button>
+                {/* Header - Fixed */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
+                    <h2 className="text-lg font-bold text-gray-900">Atualização de Preço em Massa</h2>
+                    <button
+                        onClick={onClose}
+                        className="p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+                    >
+                        <CloseIcon className="h-6 w-6" />
+                    </button>
                 </div>
 
-                <div className="p-4 space-y-4">
-                    <div className="flex items-center gap-4">
-                        <select value={conditionFilter} onChange={e => setConditionFilter(e.target.value)} className={`${inputClasses} w-52`}>
-                            <option value="todas">Todas as Condições</option>
-                            <option>Novo</option><option>Seminovo</option><option>CPO</option><option>Openbox</option>
+                {/* Search Section - Fixed */}
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0 space-y-3">
+                    <div className="flex gap-2">
+                        <select
+                            value={conditionFilter}
+                            onChange={e => setConditionFilter(e.target.value)}
+                            className="flex-shrink-0 px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        >
+                            <option value="todas">Todas</option>
+                            <option>Novo</option>
+                            <option>Seminovo</option>
+                            <option>CPO</option>
+                            <option>Openbox</option>
                         </select>
                         <input
                             type="text"
-                            placeholder="Digite o nome do produto para buscar..."
+                            placeholder="Buscar produto..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className={`${inputClasses} flex-1`}
+                            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                            className="flex-1 min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                         />
-                        <button onClick={handleSearch} disabled={isSearching} className="flex items-center justify-center gap-2 px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:bg-muted">
-                            {isSearching ? <SpinnerIcon className="h-5 w-5" /> : <SearchIcon />}
-                            BUSCAR
+                        <button
+                            onClick={handleSearch}
+                            disabled={isSearching}
+                            className="flex-shrink-0 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold text-sm hover:bg-indigo-700 disabled:bg-gray-400"
+                        >
+                            {isSearching ? <SpinnerIcon className="h-5 w-5 animate-spin" /> : <SearchIcon className="h-5 w-5" />}
                         </button>
                     </div>
-                    <div className="p-3 bg-accent-light text-accent rounded-md text-sm flex items-start gap-2">
-                        <InfoIcon className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                        <div>
-                            <span className="font-bold">Dica de busca eficiente:</span> Utilize a mesma nomenclatura dos itens disponíveis em seu estoque, como por exemplo: "iPhone 16 Pro Max 512GB", dessa forma exibirá somente os produtos que correspondem com a informação digitada.
-                        </div>
+                    <div className="p-2 bg-blue-50 text-blue-700 rounded-lg text-xs flex items-start gap-2">
+                        <InfoIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span><strong>Dica:</strong> Busque por "iPhone 16 Pro Max" para encontrar produtos específicos.</span>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto border-t border-b border-border">
-                    <table className="w-full text-sm">
-                        <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0">
-                            <tr>
-                                <th className="p-2">Descrição</th>
-                                <th className="p-2 text-center">Estoque atual</th>
-                                <th className="p-2 text-right">Custo atual</th>
-                                <th className="p-2 text-right">Venda atual</th>
-                                <th className="p-2 text-right">ATC atual</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                {/* Product List - Scrollable */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                    {searchedProducts.length > 0 ? (
+                        <div className="divide-y divide-gray-100">
                             {searchedProducts.map(product => {
-                                const baseDesc = `${product.brand} ${product.model}`;
-                                const showColor = product.color && !baseDesc.toLowerCase().includes(product.color.toLowerCase());
+                                const desc = `${product.brand} ${product.model}${product.color && !product.model.toLowerCase().includes(product.color.toLowerCase()) ? ' ' + product.color : ''}`;
                                 return (
-                                    <tr key={product.id} className="border-b border-border">
-                                        <td className="p-2 font-medium text-primary">{`${baseDesc}${showColor ? ' ' + product.color : ''}`}</td>
-                                        <td className="p-2 text-center">{product.stock}</td>
-                                        <td className="p-2 text-right">{formatCurrency(product.costPrice || 0)}</td>
-                                        <td className="p-2 text-right font-semibold">{formatCurrency(product.price)}</td>
-                                        <td className="p-2 text-right text-muted">{formatCurrency(product.wholesalePrice || 0)}</td>
-                                    </tr>
+                                    <div key={product.id} className="p-4">
+                                        <p className="font-semibold text-gray-900 text-sm mb-2">{desc}</p>
+                                        <div className="grid grid-cols-4 gap-1 text-center">
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase">Estoque</p>
+                                                <p className="text-sm font-bold">{product.stock}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase">Custo</p>
+                                                <p className="text-xs font-medium">{formatCurrency(product.costPrice || 0)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase">Venda</p>
+                                                <p className="text-sm font-bold text-indigo-600">{formatCurrency(product.price)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-500 uppercase">ATC</p>
+                                                <p className="text-xs font-medium">{formatCurrency(product.wholesalePrice || 0)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 );
                             })}
-                        </tbody>
-                    </table>
-                    {searchedProducts.length === 0 && !isSearching && (
-                        <p className="text-center text-muted py-8">Nenhum produto encontrado. Refine sua busca.</p>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full p-8">
+                            <p className="text-gray-500 text-sm text-center">Nenhum produto encontrado.<br />Refine sua busca.</p>
+                        </div>
                     )}
                 </div>
 
-                <div className="p-4 bg-surface-secondary flex items-end justify-between">
-                    <div>
-                        <p className="text-sm text-muted">Para atualizar os preços dos itens listados, preencha apenas os campos que deseja modificar. <span className="font-semibold">Deixe vazio os que não deseja alterar.</span></p>
-                    </div>
-                    <div className="flex items-center gap-4">
+                {/* Footer - Fixed at bottom */}
+                <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0 space-y-3 safe-area-inset-bottom">
+                    <p className="text-xs text-gray-500">
+                        Preencha apenas os preços que deseja alterar.
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
                         <div>
-                            <label className="block text-xs font-bold text-muted mb-1">Novo preço de Custo</label>
+                            <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Custo</label>
                             <CurrencyInput
                                 value={newCostPrice}
                                 onChange={setNewCostPrice}
-                                className={`${currencyInputClasses} w-36`}
+                                className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm font-semibold bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-muted mb-1">Novo preço ATC</label>
+                            <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase">ATC</label>
                             <CurrencyInput
                                 value={newWholesalePrice}
                                 onChange={setNewWholesalePrice}
-                                className={`${currencyInputClasses} w-36`}
+                                className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm font-semibold bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-muted mb-1">Novo preço de Venda</label>
+                            <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Venda</label>
                             <CurrencyInput
                                 value={newSalePrice}
                                 onChange={setNewSalePrice}
-                                className={`${currencyInputClasses} w-36`}
+                                className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm font-semibold bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                             />
                         </div>
-                        <button onClick={handleUpdate} disabled={isUpdating || searchedProducts.length === 0} className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:bg-muted self-end">
-                            {isUpdating ? <SpinnerIcon className="h-5 w-5" /> : 'ATUALIZAR'}
+                    </div>
+                    <div className="flex gap-3 pt-1">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 px-4 py-3 text-sm font-bold text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-xl transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleUpdate}
+                            disabled={isUpdating || searchedProducts.length === 0}
+                            className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                        >
+                            {isUpdating ? <SpinnerIcon className="h-5 w-5 animate-spin" /> : 'ATUALIZAR'}
                         </button>
                     </div>
                 </div>
             </div>
         </div>
     );
+
+    return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default BulkPriceUpdateModal;

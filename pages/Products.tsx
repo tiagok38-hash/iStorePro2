@@ -17,6 +17,7 @@ import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import UpdateStockModal from '../components/UpdateStockModal.tsx';
 import ProductHistoryModal from '../components/ProductHistoryModal.tsx';
 import BulkPriceUpdateModal from '../components/BulkPriceUpdateModal.tsx';
+import BulkLocationUpdateModal from '../components/BulkLocationUpdateModal.tsx';
 import PurchaseOrderDetailModal from '../components/PurchaseOrderDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
 import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
@@ -24,7 +25,7 @@ import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
     TicketIcon, DocumentArrowUpIcon, PlayCircleIcon, AppleIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
     BanknotesIcon, DocumentTextIcon, CalendarDaysIcon, ArrowsUpDownIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon,
-    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon
+    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon
 } from '../components/icons.tsx';
 
 // Lazy load heavy modal components for better performance
@@ -173,6 +174,7 @@ const Products: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState(false);
+    const [isBulkLocationUpdateModalOpen, setIsBulkLocationUpdateModalOpen] = useState(false);
     const [isUpdateStockModalOpen, setIsUpdateStockModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -404,6 +406,14 @@ const Products: React.FC = () => {
         } catch (error) { showToast('Erro ao atualizar produtos em massa.', 'error'); }
     };
 
+    const handleBulkLocationUpdate = async (updates: { id: string; storageLocation: string }[]) => {
+        try {
+            await updateMultipleProducts(updates, user?.id, user?.name);
+            showToast(`Local de estoque atualizado para ${updates.length} produto(s)!`, 'success');
+            setIsBulkLocationUpdateModalOpen(false); fetchData();
+        } catch (error) { showToast('Erro ao atualizar local em massa.', 'error'); }
+    };
+
     const handleOpenStockUpdateModal = (product: Product) => {
         if (soldProductIds.has(String(product.id)) && product.stock === 0) {
             showToast('Não é possível editar o estoque de um produto que já foi vendido e está com estoque zero. Cancele a venda primeiro para retornar o produto ao estoque.', 'warning');
@@ -588,7 +598,10 @@ const Products: React.FC = () => {
                     )}
                     <Link to="/company?tab=parametros" className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><Cog6ToothIcon className="h-5 w-5" /> Parâmetros</Link>
                     {permissions?.canEditProduct && (
-                        <button onClick={() => setIsBulkUpdateModalOpen(true)} className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><TagIcon className="h-5 w-5" /> Atualização de preço em massa</button>
+                        <button onClick={() => setIsBulkUpdateModalOpen(true)} className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><TagIcon className="h-5 w-5" /> Atualização de preço</button>
+                    )}
+                    {permissions?.canEditProduct && (
+                        <button onClick={() => setIsBulkLocationUpdateModalOpen(true)} className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><MapPinIcon className="h-5 w-5" /> Atualização de local</button>
                     )}
                     <button className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><TicketIcon className="h-5 w-5" /> Etiquetas</button>
                     <div className="flex-grow"></div>
@@ -1049,6 +1062,7 @@ const Products: React.FC = () => {
             {isDeleteModalOpen && productToDelete && <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDeleteConfirm} title="Confirmar Exclusão" message={`Tem certeza que deseja excluir o produto "${productToDelete.model}"? Esta ação não pode ser desfeita.`} />}
             {isHistoryModalOpen && productForHistory && <ProductHistoryModal product={productForHistory} salesHistory={productSalesHistory} customers={customers} users={users} productMap={productMap} onClose={() => setIsHistoryModalOpen(false)} />}
             {isBulkUpdateModalOpen && <BulkPriceUpdateModal allProducts={products} onClose={() => setIsBulkUpdateModalOpen(false)} onBulkUpdate={handleBulkUpdate} />}
+            {isBulkLocationUpdateModalOpen && <BulkLocationUpdateModal allProducts={products} purchases={purchases} onClose={() => setIsBulkLocationUpdateModalOpen(false)} onBulkUpdate={handleBulkLocationUpdate} />}
             {isUpdateStockModalOpen && productForStockUpdate && <UpdateStockModal product={productForStockUpdate} onClose={() => { setIsUpdateStockModalOpen(false); setProductForStockUpdate(null); }} onSave={handleStockUpdateSave} />}
             <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><SpinnerIcon /></div>}>
                 <ProductModal isOpen={isProductModalOpen} product={editingProduct} suppliers={suppliers} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onClose={handleCloseProductModal} onSave={handleSaveProduct} customers={customers} onAddNewSupplier={handleAddNewSupplier} />

@@ -1186,7 +1186,7 @@ export const updateProductStock = async (id: string, newStock: number, reason: s
     return data;
 };
 
-export const updateMultipleProducts = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number }[], userId?: string, userName?: string) => {
+export const updateMultipleProducts = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; storageLocation?: string }[], userId?: string, userName?: string) => {
     const now = getNowISO();
 
     for (const u of updates) {
@@ -1278,6 +1278,22 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
                 };
                 existingPriceHistory.push(newCostEntry);
                 priceHistoryUpdated = true;
+            }
+        }
+
+        // Handle storage location update
+        if (u.storageLocation !== undefined) {
+            payload.storageLocation = u.storageLocation;
+            if (currentProduct.storageLocation !== u.storageLocation) {
+                // Log to audit_logs
+                await addAuditLog(
+                    AuditActionType.UPDATE,
+                    AuditEntityType.PRODUCT,
+                    u.id,
+                    `Atualização em Massa: Local de estoque alterado de "${currentProduct.storageLocation || 'N/A'}" para "${u.storageLocation}"`,
+                    userId || 'system',
+                    userName || 'Atualização em Massa'
+                );
             }
         }
 
