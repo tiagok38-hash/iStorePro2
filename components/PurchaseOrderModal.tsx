@@ -486,7 +486,9 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
     const filteredModels = useMemo(() => {
         if (!currentItem.productDetails?.category) return [];
-        return productModels.filter(m => m.categoryId === currentItem.productDetails?.category);
+        return productModels
+            .filter(m => m.categoryId === currentItem.productDetails?.category)
+            .sort((a, b) => a.name.localeCompare(b.name));
     }, [productModels, currentItem.productDetails?.category]);
 
     const availableAppleModels = useMemo(() => {

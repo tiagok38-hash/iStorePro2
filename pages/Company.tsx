@@ -496,7 +496,7 @@ const MarcasECategoriasTab: React.FC = () => {
             <div className="bg-surface rounded-lg border border-border p-6">
                 <h3 className="font-semibold text-lg text-primary mb-4">Marcas, Categorias e Subcategorias</h3>
                 {loadingMarcas ? <SpinnerIcon /> : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_2fr] gap-4">
                         {renderList('Marcas', brands, 'brand', handleSelectBrand, selectedBrandId, () => handleOpenMarcasModal('brand'))}
                         {renderList('Categorias', filteredCategories, 'category', (id) => setSelectedCategoryId(id), selectedCategoryId, () => handleOpenMarcasModal('category'), !selectedBrandId)}
                         {renderList('Modelos', filteredModels, 'model', () => { }, null, () => handleOpenSubcategoryModal(null), !selectedCategoryId)}
