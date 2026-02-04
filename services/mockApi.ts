@@ -2349,12 +2349,47 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
         }
     }
     // ----------------------------------------
+    // ----------------------------------------
     let result = await supabase.from('customers').insert([payload]).select().single();
 
-    if (result.error && payload.instagram && (result.error.code === '42703' || result.error.message?.includes('instagram'))) {
-        console.warn("Instagram column missing, retrying without it...");
-        delete payload.instagram;
-        result = await supabase.from('customers').insert([payload]).select().single();
+    // Retry logic for missing columns (Schema drift protection)
+    if (result.error && result.error.code === '42703') {
+        const msg = result.error.message || '';
+        let retry = false;
+
+        // Check for specific columns known to validly be missing in some schemas
+        if (msg.includes('instagram')) {
+            console.warn("Column 'instagram' missing, retrying...");
+            delete payload.instagram;
+            retry = true;
+        }
+        if (msg.includes('rg')) {
+            console.warn("Column 'rg' missing, retrying...");
+            delete payload.rg;
+            retry = true;
+        }
+        if (msg.includes('cpf')) {
+            console.warn("Column 'cpf' missing, retrying...");
+            delete payload.cpf;
+            retry = true;
+        }
+        if (msg.includes('birth_date')) {
+            console.warn("Column 'birth_date' missing, retrying...");
+            delete payload.birth_date;
+            retry = true;
+        }
+        // Address fields
+        if (msg.includes('cep')) { delete payload.cep; retry = true; }
+        if (msg.includes('street')) { delete payload.street; retry = true; }
+        if (msg.includes('numero')) { delete payload.numero; retry = true; }
+        if (msg.includes('complemento')) { delete payload.complemento; retry = true; }
+        if (msg.includes('bairro')) { delete payload.bairro; retry = true; }
+        if (msg.includes('city')) { delete payload.city; retry = true; }
+        if (msg.includes('state')) { delete payload.state; retry = true; }
+
+        if (retry) {
+            result = await supabase.from('customers').insert([payload]).select().single();
+        }
     }
 
     const { data: newCustomer, error } = result;

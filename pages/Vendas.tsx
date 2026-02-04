@@ -465,6 +465,7 @@ const Vendas: React.FC = () => {
         try {
             const newCustomer = await addCustomer(customerData);
             setCustomers(prev => [...prev, newCustomer]);
+            setCustomerMap(prev => ({ ...prev, [newCustomer.id]: newCustomer }));
             showToast('Cliente adicionado com sucesso!', 'success');
             return newCustomer;
         } catch (error) {

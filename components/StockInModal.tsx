@@ -137,7 +137,18 @@ const StockInModal: React.FC<{
                 try {
                     const parsed = JSON.parse(savedDraft);
                     if (Array.isArray(parsed) && parsed.length > 0) {
-                        return parsed;
+                        // Validate: Ensure all draft items still exist in the current purchase order
+                        // This prevents crashes if the purchase was edited (changing item IDs) after the draft was saved
+                        const allIdsValid = parsed.every(draftItem =>
+                            purchaseOrder.items.some(pi => pi.id === draftItem.purchaseItemId)
+                        );
+
+                        if (allIdsValid) {
+                            return parsed;
+                        } else {
+                            console.warn("Draft discarded because some items no longer exist in the purchase order.");
+                            // Optional: showToast("Rascunho descartado pois a compra foi modificada.", "info");
+                        }
                     }
                 } catch (e) {
                     console.error("Erro ao carregar rascunho", e);
