@@ -1317,7 +1317,22 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
 
             // RULE 4: Strict filtering by User and Cash Session
             if (currentUserId) {
-                query = query.eq('salesperson_id', currentUserId);
+                // Fetch user's cash session IDs to allow seeing sales from own sessions
+                const { data: userSessions } = await supabase
+                    .from('cash_sessions')
+                    .select('id')
+                    .eq('user_id', currentUserId);
+
+                const sessionIds = (userSessions || []).map((s: any) => s.id);
+
+                if (sessionIds.length > 0) {
+                    // OR condition: salesperson_id = me OR cash_session_id IN my_sessions
+                    // Supabase 'or' syntax with nested logic is tricky, so we use string syntax carefully
+                    // "salesperson_id.eq.UID,cash_session_id.in.(SID1,SID2)"
+                    query = query.or(`salesperson_id.eq.${currentUserId},cash_session_id.in.(${sessionIds.join(',')})`);
+                } else {
+                    query = query.eq('salesperson_id', currentUserId);
+                }
             }
             if (cashSessionId) {
                 query = query.eq('cash_session_id', cashSessionId);
@@ -2013,8 +2028,17 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
     const callingUserProfile = userId !== 'system' ? await getProfile(userId) : null;
     const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
 
-    if (userId !== 'system' && !isCallingAdmin && sale.salesperson_id !== userId) {
-        throw new Error('Acesso NEGADO: Você não pode cancelar uma venda de outro vendedor.');
+    // Allow if salesperson OR if the sale belongs to a cash session owned by the user
+    let isOwnerBySession = false;
+    if (sale.cash_session_id) {
+        const { data: session } = await supabase.from('cash_sessions').select('user_id').eq('id', sale.cash_session_id).single();
+        if (session && session.user_id === userId) {
+            isOwnerBySession = true;
+        }
+    }
+
+    if (userId !== 'system' && !isCallingAdmin && sale.salesperson_id !== userId && !isOwnerBySession) {
+        throw new Error('Acesso NEGADO: Você não pode cancelar uma venda de outro vendedor, a menos que seja o dono do caixa.');
     }
 
     const { data: updatedSale, error: updateError } = await supabase.from('sales').update({ status: 'Cancelada', observations: reason ? `${sale.observations || ''} [Cancelada: ${reason}]` : sale.observations }).eq('id', id).select().single();

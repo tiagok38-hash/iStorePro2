@@ -340,8 +340,15 @@ const POS: React.FC = () => {
     };
 
     const handlePrintClick = (sale: Sale) => {
-        // RULE 6: Block if not owned
-        if (sale.salespersonId !== user?.id && !isAdmin) {
+        // RULE 6: Block if not owned (OR own session)
+        // Check if sale belongs to a session owned by user
+        let isOwnSession = false;
+        if (sale.cashSessionId) {
+            const session = sessions.find(sess => sess.id === sale.cashSessionId);
+            if (session && session.userId === user?.id) isOwnSession = true;
+        }
+
+        if (sale.salespersonId !== user?.id && !isOwnSession && !isAdmin) {
             showToast('Acesso NEGADO: Esta venda pertence a outro vendedor.', 'error');
             return;
         }
@@ -490,8 +497,9 @@ const POS: React.FC = () => {
                             handleOpenCashMovement={(t) => { setCashMovementType(t); setIsCashMovementModalOpen(true); }}
                             handleCloseSession={handleCloseSession} handleReopenSession={handleReopenSession}
                             handleEditSale={(s) => {
-                                // RULE 5: Only edit own
-                                if (s.salespersonId !== user?.id && !isAdmin) {
+                                // RULE 5: Only edit own (OR own session)
+                                const isOwnSession = viewSession?.userId === user?.id; // viewSession is safe to use here as we are in Resumo view of it
+                                if (s.salespersonId !== user?.id && !isOwnSession && !isAdmin) {
                                     showToast('Acesso NEGADO: Esta venda pertence a outro vendedor.', 'error');
                                     return;
                                 }
@@ -499,8 +507,9 @@ const POS: React.FC = () => {
                                 setActiveView('pdv');
                             }}
                             handleViewClick={(s) => {
-                                // RULE 6: Only view own
-                                if (s.salespersonId !== user?.id && !isAdmin) {
+                                // RULE 6: Only view own (OR own session)
+                                const isOwnSession = viewSession?.userId === user?.id;
+                                if (s.salespersonId !== user?.id && !isOwnSession && !isAdmin) {
                                     showToast('Acesso NEGADO: Esta venda pertence a outro vendedor.', 'error');
                                     return;
                                 }
@@ -510,7 +519,9 @@ const POS: React.FC = () => {
                             cancelSale={(id, reason) => {
                                 // Double check ID ownership before calling API
                                 const s = sales.find(x => x.id === id);
-                                if (s && s.salespersonId !== user?.id && !isAdmin) {
+                                const isOwnSession = viewSession?.userId === user?.id;
+
+                                if (s && s.salespersonId !== user?.id && !isOwnSession && !isAdmin) {
                                     showToast('Acesso NEGADO.', 'error');
                                     return Promise.reject('Acesso NEGADO');
                                 }

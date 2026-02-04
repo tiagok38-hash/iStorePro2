@@ -234,6 +234,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                             <tr>
                                 <th className="px-6 py-4">ID</th>
                                 <th className="px-6 py-4">Hora</th>
+                                <th className="px-6 py-4">Vendedor</th>
                                 <th className="px-6 py-4">Cliente</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
                                 <th className="px-6 py-4 text-center">Status</th>
@@ -247,6 +248,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                     <tr key={sale.id} className="hover:bg-gray-50/80 transition-colors">
                                         <td className="px-6 py-4 font-black text-primary">#{sale.id}</td>
                                         <td className="px-6 py-4 font-semibold text-gray-500">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td className="px-6 py-4 font-medium text-gray-700">{users.find(u => u.id === sale.salespersonId)?.name?.split(' ')[0] || 'N/A'}</td>
                                         <td className="px-6 py-4 font-semibold text-gray-800 truncate max-w-[150px]">{customers.find(c => c.id === sale.customerId)?.name || 'Cliente'}</td>
                                         <td className="px-6 py-4 text-right font-bold text-success">{formatCurrency(sale.total)}</td>
                                         <td className="px-6 py-4 text-center">
@@ -306,6 +308,9 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                         </div>
                                         <div className="font-bold text-gray-800 text-[10px] truncate uppercase leading-tight">
                                             {customers.find(c => c.id === sale.customerId)?.name || 'Cliente'}
+                                        </div>
+                                        <div className="text-[9px] text-gray-500 mt-0.5 truncate">
+                                            <span className="font-bold">Vend:</span> {users.find(u => u.id === sale.salespersonId)?.name?.split(' ')[0] || 'N/A'}
                                         </div>
                                         <div className="text-[11px] font-black text-success mt-0.5">
                                             {formatCurrency(sale.total)}
