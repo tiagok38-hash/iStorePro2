@@ -8,9 +8,10 @@ interface PriceListModalProps {
     isOpen: boolean;
     onClose: () => void;
     products: Product[];
+    hideSummary?: boolean;
 }
 
-const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, products }) => {
+const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, products, hideSummary = false }) => {
     const [step, setStep] = useState<'type' | 'filters'>('type');
     const [selectedType, setSelectedType] = useState<'apple' | 'other' | null>(null);
 
@@ -36,6 +37,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
     const [showBatteryHealth, setShowBatteryHealth] = useState(false);
     const [showStockLocation, setShowStockLocation] = useState(false);
     const [groupIdentical, setGroupIdentical] = useState(true);
+    const [groupColors, setGroupColors] = useState(true);
     const [sortBy, setSortBy] = useState<'model' | 'price_asc' | 'price_desc'>('model');
 
     useEffect(() => {
@@ -292,51 +294,149 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
             text += `📍 ${label.toUpperCase()}\n\n`;
             htmlPreview += `📍 <strong>${label.toUpperCase()}</strong>\n\n`;
 
-            groups[label].sort((a, b) => {
+            const sortedGroup = groups[label].sort((a, b) => {
                 if (sortBy === 'price_asc') return a.price - b.price;
                 if (sortBy === 'price_desc') return b.price - a.price;
                 return a.model.localeCompare(b.model);
-            }).forEach(p => {
-                let pName = p.model;
-                if (p.storage && !p.model.includes(p.storage.toString())) pName += ` ${p.storage}GB`;
-                if (p.color && !p.model.toLowerCase().includes(p.color.toLowerCase())) pName += ` (${p.color})`;
-
-                let line = `• ${pName}`;
-                let htmlLine = `• <strong>${pName}</strong>`;
-
-                const isNew = (p.condition || '').toLowerCase().trim() === 'novo';
-                if (showBatteryHealth && p.batteryHealth && p.batteryHealth > 0 && !isNew) {
-                    const healthStr = ` [🔋 ${p.batteryHealth}%]`;
-                    line += healthStr;
-                    htmlLine += healthStr;
-                }
-
-                if (showStockLocation && p.storageLocation && !selectedLocationId) {
-                    const locStr = ` | Local: ${p.storageLocation}`;
-                    line += locStr;
-                    htmlLine += locStr;
-                }
-
-                if (showStockQty) {
-                    const qtyStr = ` | Estoque: ${p.stock}`;
-                    line += qtyStr;
-                    htmlLine += qtyStr;
-                }
-
-                text += line + '\n';
-                htmlPreview += htmlLine + '\n';
-
-                const prices: string[] = [];
-                if (showCost && p.costPrice) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
-                if (showWholesale && p.wholesalePrice) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
-                if (showSale && p.price) prices.push(`Venda: ${formatCurrency(p.price)}`);
-
-                if (prices.length > 0) {
-                    const priceLine = `  💰 ${prices.join(' | ')}\n`;
-                    text += priceLine;
-                    htmlPreview += priceLine;
-                }
             });
+
+            if (groupColors) {
+                // Helper to clean model name (remove color and storage to get base)
+                const getCleanModel = (p: Product) => {
+                    let name = p.model;
+                    if (p.color) {
+                        // Escape special regex chars in color
+                        const safeColor = p.color.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        // Remove color (case insensitive)
+                        name = name.replace(new RegExp(safeColor, 'gi'), '');
+                    }
+                    // Also try to clean up storage if it's baked in (e.g. 128GB)
+                    if (p.storage) {
+                        const safeStorage = `${p.storage}`;
+                        name = name.replace(new RegExp(safeStorage + 'GB', 'gi'), '')
+                            .replace(new RegExp(safeStorage, 'gi'), '');
+                    }
+
+                    // Clean up delimiters and spaces
+                    return name.replace(/\s+/g, ' ')
+                        .replace(/-+$/, '')
+                        .replace(/^-+/, '')
+                        .trim();
+                };
+
+                // Group by CleanModel + Storage + Condition + Price
+                const colorGroups: Record<string, { product: Product, colors: Set<string>, cleanModel: string }> = {};
+
+                sortedGroup.forEach(p => {
+                    const cleanModel = getCleanModel(p);
+                    // Key includes cleanModel, storage, condition, and price
+                    const key = `${cleanModel}|${p.storage}|${p.condition}|${p.price}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
+
+                    if (!colorGroups[key]) {
+                        colorGroups[key] = { product: p, colors: new Set(), cleanModel };
+                    }
+                    if (p.color) colorGroups[key].colors.add(p.color);
+                });
+
+                Object.values(colorGroups).forEach(({ product: p, colors, cleanModel }) => {
+                    let pName = cleanModel;
+                    if (p.storage) pName += ` ${p.storage}GB`;
+
+                    // Show colors grouped
+                    const colorList = Array.from(colors).filter(Boolean).sort().join('-');
+                    if (colorList.length > 0) pName += ` (${colorList})`;
+
+                    let line = `• ${pName}`;
+                    let htmlLine = `• <strong>${pName}</strong>`;
+
+                    const isNew = (p.condition || '').toLowerCase().trim() === 'novo';
+                    if (showBatteryHealth && p.batteryHealth && p.batteryHealth > 0 && !isNew) {
+                        const healthStr = ` [🔋 ${p.batteryHealth}%]`;
+                        line += healthStr;
+                        htmlLine += healthStr;
+                    }
+
+                    if (showStockLocation && p.storageLocation && !selectedLocationId) {
+                        const locStr = ` | Local: ${p.storageLocation}`;
+                        line += locStr;
+                        htmlLine += locStr;
+                    }
+
+                    if (showStockQty) {
+                        // Sum stock for the color group
+                        const totalStock = sortedGroup.filter(sg => {
+                            const cModel = getCleanModel(sg);
+                            const k = `${cModel}|${sg.storage}|${sg.condition}|${sg.price}|${sg.batteryHealth || ''}|${sg.storageLocation || ''}`;
+
+                            // Re-construct key for p to compare
+                            const pKey = `${cleanModel}|${p.storage}|${p.condition}|${p.price}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
+                            return k === pKey;
+                        }).reduce((sum, item) => sum + item.stock, 0);
+
+                        const qtyStr = ` | Estoque: ${totalStock}`;
+                        line += qtyStr;
+                        htmlLine += qtyStr;
+                    }
+
+                    text += line + '\n';
+                    htmlPreview += htmlLine + '\n';
+
+                    const prices: string[] = [];
+                    if (showCost && p.costPrice) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
+                    if (showWholesale && p.wholesalePrice) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
+                    if (showSale && p.price) prices.push(`Venda: ${formatCurrency(p.price)}`);
+
+                    if (prices.length > 0) {
+                        const priceLine = `  💰 ${prices.join(' | ')}\n`;
+                        text += priceLine;
+                        htmlPreview += priceLine;
+                    }
+                });
+
+            } else {
+                sortedGroup.forEach(p => {
+                    let pName = p.model;
+                    if (p.storage && !p.model.includes(p.storage.toString())) pName += ` ${p.storage}GB`;
+                    if (p.color && !p.model.toLowerCase().includes(p.color.toLowerCase())) pName += ` (${p.color})`;
+
+
+                    let line = `• ${pName}`;
+                    let htmlLine = `• <strong>${pName}</strong>`;
+
+                    const isNew = (p.condition || '').toLowerCase().trim() === 'novo';
+                    if (showBatteryHealth && p.batteryHealth && p.batteryHealth > 0 && !isNew) {
+                        const healthStr = ` [🔋 ${p.batteryHealth}%]`;
+                        line += healthStr;
+                        htmlLine += healthStr;
+                    }
+
+                    if (showStockLocation && p.storageLocation && !selectedLocationId) {
+                        const locStr = ` | Local: ${p.storageLocation}`;
+                        line += locStr;
+                        htmlLine += locStr;
+                    }
+
+                    if (showStockQty) {
+                        const qtyStr = ` | Estoque: ${p.stock}`;
+                        line += qtyStr;
+                        htmlLine += qtyStr;
+                    }
+
+                    text += line + '\n';
+                    htmlPreview += htmlLine + '\n';
+
+                    const prices: string[] = [];
+                    if (showCost && p.costPrice) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
+                    if (showWholesale && p.wholesalePrice) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
+                    if (showSale && p.price) prices.push(`Venda: ${formatCurrency(p.price)}`);
+
+                    if (prices.length > 0) {
+                        const priceLine = `  💰 ${prices.join(' | ')}\n`;
+                        text += priceLine;
+                        htmlPreview += priceLine;
+                    }
+                });
+            } // End else groupColors
         });
 
         const fileName = `relatorio_estoque_${selectedType}_${new Date().toISOString().split('T')[0]}.txt`;
@@ -464,6 +564,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                     </head>
                     <body>
                         <div class="header-bar">
+                            ${!hideSummary ? `
                             <div class="summary-grid">
                                 <div class="summary-card">
                                     <div class="summary-label">Modelos</div>
@@ -496,6 +597,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                     <div class="summary-value">${formatCurrency(grandTotal)}</div>
                                 </div>
                             </div>
+                            ` : ''}
                             <button id="saveBtn"><span>💾</span> SALVAR RELATÓRIO (.TXT)</button>
                         </div>
                         <div class="container">
@@ -797,7 +899,14 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                     <div className={`w-3 h-3 bg-white rounded-full transition-transform ${groupIdentical ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={groupIdentical} onChange={e => setGroupIdentical(e.target.checked)} />
-                                                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Agrupar produtos iguais</span>
+                                                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Agrupar Modelos (Ignora Memória)</span>
+                                            </label>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${groupColors ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${groupColors ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                </div>
+                                                <input type="checkbox" className="hidden" checked={groupColors} onChange={e => setGroupColors(e.target.checked)} />
+                                                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Agrupar por Cor (Ex: Branco-Azul)</span>
                                             </label>
 
                                         </div>
