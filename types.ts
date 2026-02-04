@@ -40,6 +40,23 @@ export interface PermissionSet {
     canViewAudit: boolean;
     canEditOwnProfile: boolean;
     canManageMarcasECategorias: boolean;
+
+    // granular customer permissions
+    canCreateCustomer: boolean;
+    canEditCustomer: boolean;
+    canViewCustomerHistory: boolean;
+    canInactivateCustomer: boolean;
+    canDeleteCustomer: boolean;
+
+    // granular supplier permissions
+    canCreateSupplier: boolean;
+    canEditSupplier: boolean;
+    canViewSupplierHistory: boolean;
+    canDeleteSupplier: boolean;
+
+    canManagePaymentMethods: boolean;
+    canManageBackups: boolean;
+    canManageParameters: boolean;
 }
 
 export interface PermissionProfile {

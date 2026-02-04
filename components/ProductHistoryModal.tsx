@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Product, Sale, Customer, User, AuditLog, AuditActionType } from '../types.ts';
-import { formatCurrency, getAuditLogs } from '../services/mockApi.ts';
+import { Product, Sale, Customer, User, AuditLog, AuditActionType, Supplier } from '../types.ts';
+import { formatCurrency, getAuditLogs, getSuppliers } from '../services/mockApi.ts';
 import { SpinnerIcon } from './icons.tsx';
 import SaleDetailModal from './SaleDetailModal.tsx';
 
@@ -120,7 +120,7 @@ const PriceHistoryTab: React.FC<{ product: Product }> = ({ product }) => {
 };
 
 // Component for Stock History using product.stockHistory or AuditLogs fallback
-const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[] }> = ({ product, auditLogs = [] }) => {
+const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sales: Sale[], customers: Customer[], suppliers: Supplier[] }> = ({ product, auditLogs = [], sales, customers, suppliers }) => {
     let stockHistory = product.stockHistory || [];
 
     // Fallback to Audit Logs if structured history is empty
@@ -178,6 +178,29 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[] }> = 
         'Cadastro Inicial': 'bg-gray-100 text-gray-600',
     };
 
+    const getEntityName = (entry: any) => {
+        // 1. Check for Sale ID in details (Venda #ID)
+        const saleMatch = entry.details?.match(/Venda #([a-zA-Z0-9-]+)/);
+        if (saleMatch) {
+            const saleId = saleMatch[1];
+            // Look in passed sales history or try to find if we had a full sales list (prop is salesHistory)
+            const sale = sales.find(s => s.id === saleId);
+            if (sale) {
+                const customer = customers.find(c => c.id === sale.customerId);
+                return customer ? customer.name : 'Cliente Desconhecido';
+            }
+            // Should we try to find by ID even if not in product's sales history? 
+            // Ideally yes, but we only maintain `customers` prop. If customer is in `customers` list, we can find by sale?
+            // No, we need the Sale object to know the Customer ID. 
+        }
+
+        // 2. Check for "Entrada por Compra" -> Supplier
+        // Since we don't have purchase ID easily in details usually (unless we add it),
+        // we might not find it. But if details has "Fornecedor: Name", we use it.
+        // Currently Purchase logic doesn't put name in details. 
+        return '-';
+    };
+
     return (
         <div className="overflow-x-auto">
             <table className="w-full text-sm text-left text-muted">
@@ -185,6 +208,7 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[] }> = 
                     <tr>
                         <th scope="col" className="px-4 py-3">Data/Hora</th>
                         <th scope="col" className="px-4 py-3">Motivo</th>
+                        <th scope="col" className="px-4 py-3 hoverable-header">Cliente/Fornecedor</th>
                         <th scope="col" className="px-4 py-3 text-center">Anterior</th>
                         <th scope="col" className="px-4 py-3 text-center">Ajuste</th>
                         <th scope="col" className="px-4 py-3 text-center">Novo</th>
@@ -200,6 +224,9 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[] }> = 
                                 <span className={`px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap ${reasonColors[entry.reason] || 'bg-gray-100 text-gray-700'}`}>
                                     {entry.reason}
                                 </span>
+                            </td>
+                            <td className="px-4 py-3 font-medium text-primary">
+                                {getEntityName(entry)}
                             </td>
                             <td className="px-4 py-3 text-center">{entry.oldStock}</td>
                             <td className={`px-4 py-3 text-center font-bold ${(entry.adjustment > 0) ? 'text-success' : (entry.adjustment < 0 ? 'text-danger' : 'text-muted')}`}>
@@ -286,6 +313,7 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
     const [activeTab, setActiveTab] = useState<ActiveTab>('sales');
     const [saleToView, setSaleToView] = useState<Sale | null>(null);
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [loading, setLoading] = useState(true);
     const [freshProduct, setFreshProduct] = useState<Product>(product);
 
@@ -309,6 +337,10 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
                 // Filter logs relevant to this product
                 const productLogs = allLogs.filter(log => log.entityId === product.id);
                 setAuditLogs(productLogs);
+
+                // Fetch suppliers to have them ready for matching
+                const fetchedSuppliers = await getSuppliers();
+                setSuppliers(fetchedSuppliers);
             } catch (error) {
                 console.error("Failed to fetch data", error);
             } finally {
@@ -338,7 +370,7 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
                             <>
                                 {activeTab === 'sales' && <SalesHistoryTab product={freshProduct} sales={salesHistory} customers={customers} users={users} onRowClick={setSaleToView} />}
                                 {activeTab === 'prices' && <PriceHistoryTab product={freshProduct} />}
-                                {activeTab === 'stock' && <StockHistoryTab product={freshProduct} auditLogs={auditLogs} />}
+                                {activeTab === 'stock' && <StockHistoryTab product={freshProduct} auditLogs={auditLogs} sales={salesHistory} customers={customers} suppliers={suppliers} />}
                             </>
                         )}
                     </div>

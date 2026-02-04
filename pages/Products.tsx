@@ -302,27 +302,45 @@ const Products: React.FC = () => {
     }, [sales]);
 
     const filteredProducts = useMemo(() => {
-        const lowerSearchTerm = searchTerm.toLowerCase().trim();
+        const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
 
-        const matchingPurchaseOrderIds = lowerSearchTerm ? new Set(
-            purchases
-                .filter(po => (po.locatorId || '').toLowerCase().includes(lowerSearchTerm))
-                .map(po => po.id)
-        ) : new Set();
+        // Optimizar lookup de localizador da compra
+        const purchaseLocatorMap = new Map<string, string>();
+        purchases.forEach(po => {
+            if (po.locatorId) purchaseLocatorMap.set(po.id, po.locatorId.toLowerCase());
+        });
 
         const filtered = products.filter(p => {
-            const searchMatch = lowerSearchTerm === '' ||
-                (p.model || '').toLowerCase().includes(lowerSearchTerm) ||
-                (p.brand || '').toLowerCase().includes(lowerSearchTerm) ||
-                (p.serialNumber || '').toLowerCase().includes(lowerSearchTerm) ||
-                (p.imei1 || '').toLowerCase().includes(lowerSearchTerm) ||
-                (p.imei2 && (p.imei2 || '').toLowerCase().includes(lowerSearchTerm)) ||
-                (p.barcodes && p.barcodes.some(barcode => (barcode || '').toLowerCase().includes(lowerSearchTerm))) ||
-                (p.purchaseOrderId && matchingPurchaseOrderIds.has(p.purchaseOrderId));
+            if (terms.length === 0) {
+                // Fallback filters when no search
+                const stockMatch = filters.stock === 'Todos' ? true : filters.stock === 'Em estoque' ? p.stock > 0 : p.stock === 0;
+                const conditionMatch = filters.condition === 'Todos' ? true : p.condition === filters.condition;
+                const locationMatch = filters.location === 'Todos' ? true : p.storageLocation === filters.location;
+                return stockMatch && conditionMatch && locationMatch;
+            }
+
+            const purchaseLocator = p.purchaseOrderId ? (purchaseLocatorMap.get(p.purchaseOrderId) || '') : '';
+
+            const searchableText = [
+                p.model || '',
+                p.brand || '',
+                p.serialNumber || '',
+                p.imei1 || '',
+                p.imei2 || '',
+                p.color || '',
+                p.storage || '',
+                p.condition || '',
+                p.description || '',
+                purchaseLocator,
+                (p.barcodes || []).join(' ')
+            ].join(' ').toLowerCase();
+
+            const searchMatch = terms.every(term => searchableText.includes(term));
 
             const stockMatch = filters.stock === 'Todos' ? true : filters.stock === 'Em estoque' ? p.stock > 0 : p.stock === 0;
             const conditionMatch = filters.condition === 'Todos' ? true : p.condition === filters.condition;
             const locationMatch = filters.location === 'Todos' ? true : p.storageLocation === filters.location;
+
             return searchMatch && stockMatch && conditionMatch && locationMatch;
         });
 

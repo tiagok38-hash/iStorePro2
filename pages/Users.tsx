@@ -53,14 +53,36 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
         ],
     },
     {
+        title: 'Gestão de Clientes',
+        permissions: [
+            { key: 'canCreateCustomer', label: 'Criar Clientes' },
+            { key: 'canEditCustomer', label: 'Editar Clientes' },
+            { key: 'canViewCustomerHistory', label: 'Visualizar Histórico de Clientes' },
+            { key: 'canInactivateCustomer', label: 'Inativar/Reativar Clientes' },
+            { key: 'canDeleteCustomer', label: 'Excluir Clientes' },
+        ],
+    },
+    {
+        title: 'Gestão de Fornecedores',
+        permissions: [
+            { key: 'canCreateSupplier', label: 'Criar Fornecedores' },
+            { key: 'canEditSupplier', label: 'Editar Fornecedores' },
+            { key: 'canViewSupplierHistory', label: 'Visualizar Histórico de Fornecedores' },
+            { key: 'canDeleteSupplier', label: 'Excluir Fornecedores' },
+        ],
+    },
+    {
         title: 'Administração da Empresa',
         permissions: [
             { key: 'canManageCompanyData', label: 'Gerenciar Dados da Empresa' },
             { key: 'canManageUsers', label: 'Gerenciar Usuários' },
             { key: 'canManagePermissions', label: 'Gerenciar Perfis de Permissão' },
-            { key: 'canViewAudit', label: 'Visualizar Log de Auditoria' },
-            { key: 'canEditOwnProfile', label: 'Acessar e Editar Perfil' },
             { key: 'canManageMarcasECategorias', label: 'Gerenciar Marcas e Categorias' },
+            { key: 'canManageParameters', label: 'Gerenciar Parâmetros (Garantia, Condições, etc.)' },
+            { key: 'canManagePaymentMethods', label: 'Gerenciar Meios de Pagamento' },
+            { key: 'canManageBackups', label: 'Realizar Backup e Restauração' },
+            { key: 'canViewAudit', label: 'Visualizar Log de Auditoria' },
+            { key: 'canEditOwnProfile', label: 'Acessar e Editar Próprio Perfil' },
         ],
     },
 ];

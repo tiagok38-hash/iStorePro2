@@ -40,6 +40,7 @@ import { toDateValue, formatTimeBR, formatRelativeDate } from '../utils/dateUtil
 import { compressImage } from '../utils/imageUtils.ts';
 import ImageCropperModal from '../components/ImageCropperModal.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
+import LoadingOverlay from '../components/LoadingOverlay.tsx';
 
 type ModalType = 'brand' | 'category' | 'model' | 'grade' | 'gradeValue';
 type Item = Brand | Category | ProductModel | Grade | GradeValue;
@@ -1104,7 +1105,7 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
                 <div>
                     <h4 className="text-lg font-semibold text-primary">{title}</h4>
                 </div>
-                {permissions?.canManageCompanyData && (
+                {permissions?.canManageParameters && (
                     <button onClick={() => handleOpenModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400">
                         <PlusIcon className="h-5 w-5" />
                     </button>
@@ -1128,7 +1129,7 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
                                 ))}
                                 <td className="p-3">
                                     <div className="flex justify-end items-center gap-2">
-                                        {permissions?.canManageCompanyData && (
+                                        {permissions?.canManageParameters && (
                                             <>
                                                 <button onClick={() => handleOpenModal(item)}><EditIcon className="h-5 w-5 text-muted hover:text-primary" /></button>
                                                 <button onClick={() => setDeletingItem(item)}><TrashIcon className="h-5 w-5 text-muted hover:text-danger" /></button>
@@ -1149,7 +1150,7 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
 
 const BackupRestauracaoTab: React.FC = () => {
     const { showToast } = useToast();
-    const { user } = useUser();
+    const { user, permissions } = useUser();
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1219,6 +1220,8 @@ const BackupRestauracaoTab: React.FC = () => {
 
     return (
         <div className="bg-surface rounded-lg border border-border p-8 space-y-8">
+            <LoadingOverlay isVisible={isBackingUp} message="Gerando Backup do Sistema..." type="backup" />
+            <LoadingOverlay isVisible={isRestoring} message="Restaurando Dados do Sistema..." type="restore" />
             <div className="max-w-2xl">
                 <h3 className="text-xl font-bold text-primary mb-2">Backup e Restauração</h3>
                 <p className="text-muted text-sm mb-6">
@@ -1237,8 +1240,8 @@ const BackupRestauracaoTab: React.FC = () => {
                         </p>
                         <button
                             onClick={handleBackup}
-                            disabled={isBackingUp || isRestoring}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-opacity-90 disabled:opacity-50 transition-all"
+                            disabled={isBackingUp || isRestoring || !permissions?.canManageBackups}
+                            className={`w-full flex items-center justify-center gap-2 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-opacity-90 disabled:opacity-50 transition-all ${!permissions?.canManageBackups ? 'cursor-not-allowed opacity-50' : ''}`}
                         >
                             {isBackingUp ? <SpinnerIcon className="h-5 w-5" /> : <><ArchiveBoxIcon className="h-5 w-5" /> Baixar Backup</>}
                         </button>
@@ -1265,8 +1268,8 @@ const BackupRestauracaoTab: React.FC = () => {
                         />
                         <button
                             onClick={handleRestoreClick}
-                            disabled={isBackingUp || isRestoring}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-all shadow-sm"
+                            disabled={isBackingUp || isRestoring || !permissions?.canManageBackups}
+                            className={`w-full flex items-center justify-center gap-2 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-all shadow-sm ${!permissions?.canManageBackups ? 'cursor-not-allowed opacity-50' : ''}`}
                         >
                             {isRestoring ? <SpinnerIcon className="h-5 w-5" /> : <><DocumentArrowUpIcon className="h-5 w-5" /> Importar e Restaurar</>}
                         </button>
@@ -1372,7 +1375,7 @@ const ParametrosTab: React.FC = () => {
                             <h4 className="text-lg font-semibold text-primary">Termos de Garantia</h4>
                             <p className="text-sm text-muted">Crie termos personalizados para cada tipo de situação. Ex: Termos para vendas de Apple, Xiaomi, etc.</p>
                         </div>
-                        {permissions?.canManageCompanyData && <button onClick={() => handleOpenTermModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400"><PlusIcon className="h-5 w-5" /></button>}
+                        {permissions?.canManageParameters && <button onClick={() => handleOpenTermModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400"><PlusIcon className="h-5 w-5" /></button>}
                     </div>
                     <div className="border border-gray-200 rounded-b-lg">
                         <table className="w-full text-sm">
@@ -1382,7 +1385,7 @@ const ParametrosTab: React.FC = () => {
                                     <tr key={term.id} className="border-t">
                                         <td className="p-3">{term.name}</td>
                                         <td className="p-3"><div className="flex justify-end items-center gap-2">
-                                            {permissions?.canManageCompanyData && (
+                                            {permissions?.canManageParameters && (
                                                 <>
                                                     <button onClick={() => handleOpenTermModal(term)}><EditIcon className="h-5 w-5 text-muted hover:text-primary" /></button>
                                                     {term.name !== 'Padrão' && <button onClick={() => setDeletingTerm(term)}><TrashIcon className="h-5 w-5 text-muted hover:text-danger" /></button>}
@@ -1456,7 +1459,7 @@ const MeiosDePagamentoTab: React.FC = () => {
                 <div>
                     <h4 className="text-lg md:text-xl font-bold text-primary">Meios de Pagamentos</h4>
                 </div>
-                {permissions?.canManageCompanyData && (
+                {permissions?.canManagePaymentMethods && (
                     <button onClick={() => setEditingMethod({ active: true, type: 'cash' })} className="px-3 py-2 md:px-4 md:py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800 flex items-center gap-2">
                         Cadastrar
                     </button>
@@ -1477,7 +1480,7 @@ const MeiosDePagamentoTab: React.FC = () => {
                             </span>
                         </div>
 
-                        {permissions?.canManageCompanyData && (
+                        {permissions?.canManagePaymentMethods && (
                             <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 mt-1">
                                 <button onClick={() => handleOpenEdit(method)} className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded active:bg-gray-100">
                                     <EditIcon className="h-4 w-4" /> Editar
@@ -1502,7 +1505,7 @@ const MeiosDePagamentoTab: React.FC = () => {
                             <th className="px-6 py-3 border-b border-gray-200 w-full">Nome</th>
                             <th className="px-6 py-3 border-b border-gray-200">Tipo</th>
                             <th className="px-6 py-3 border-b border-gray-200">Status</th>
-                            {permissions?.canManageCompanyData && <th className="px-6 py-3 border-b border-gray-200 text-right">Ações</th>}
+                            {permissions?.canManagePaymentMethods && <th className="px-6 py-3 border-b border-gray-200 text-right">Ações</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -1517,7 +1520,7 @@ const MeiosDePagamentoTab: React.FC = () => {
                                         {method.active !== false ? 'ativo' : 'inativo'}
                                     </span>
                                 </td>
-                                {permissions?.canManageCompanyData && (
+                                {permissions?.canManagePaymentMethods && (
                                     <td className="px-6 py-4 text-right flex justify-end gap-2">
                                         <button onClick={() => handleOpenEdit(method)} className="p-1.5 text-gray-500 border border-gray-300 rounded hover:bg-gray-50 hover:text-primary transition-colors" title="Editar">
                                             <EditIcon className="h-4 w-4" />
@@ -1761,10 +1764,10 @@ const Company: React.FC = () => {
         { id: 'usuarios', label: 'Usuários e Permissões', permission: 'canManageUsers' },
         { id: 'marcas', label: 'Marcas e Categorias', permission: 'canManageMarcasECategorias' },
         { id: 'perfil', label: 'Perfil', permission: 'canEditOwnProfile' },
-        { id: 'parametros', label: 'Parâmetros', permission: 'canManageCompanyData' },
-        { id: 'meios_pagamento', label: 'Meios de Pagamento', permission: 'canManageCompanyData' },
+        { id: 'parametros', label: 'Parâmetros', permission: 'canManageParameters' },
+        { id: 'meios_pagamento', label: 'Meios de Pagamento', permission: 'canManagePaymentMethods' },
         { id: 'auditoria', label: 'Auditoria', permission: 'canViewAudit' },
-        { id: 'backup', label: 'Backup e Restauração', permission: 'canManageCompanyData' },
+        { id: 'backup', label: 'Backup e Restauração', permission: 'canManageBackups' },
     ], []);
 
     const visibleTabs = useMemo(() => {
@@ -1802,6 +1805,10 @@ const Company: React.FC = () => {
 
         if (activeTab === 'usuarios') {
             return content;
+        }
+
+        if (activeTab === 'marcas') {
+            return <div className="max-w-7xl">{content}</div>;
         }
 
         return <div className="max-w-5xl">{content}</div>;

@@ -76,19 +76,27 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
     const filteredProducts = useMemo(() => {
         if (!productSearch) return [];
-        const searchLower = productSearch.toLowerCase().trim();
+        const terms = productSearch.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+        if (terms.length === 0) return [];
+
         const cartProductIds = new Set(cart.map(item => item.id));
 
         const matches = products.filter(p => {
             const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
             if (isUnique && cartProductIds.has(p.id)) return false;
 
-            const modelMatch = (p.model || '').toLowerCase().includes(searchLower);
-            const imeiMatch = (p.imei1 || '').toLowerCase().includes(searchLower);
-            const snMatch = (p.serialNumber || '').toLowerCase().includes(searchLower);
-            const brandMatch = (p.brand || '').toLowerCase().includes(searchLower);
+            const searchableText = [
+                p.model || '',
+                p.imei1 || '',
+                p.serialNumber || '',
+                p.brand || '',
+                p.color || '',
+                p.condition || '',
+                p.storage || '',
+                p.warnings || '' // Include warnings if relevant? Maybe observations?
+            ].join(' ').toLowerCase();
 
-            return (modelMatch || imeiMatch || snMatch || brandMatch) && p.stock > 0;
+            return terms.every(term => searchableText.includes(term)) && p.stock > 0;
         });
 
         // Group non-unique products with same model and 3 prices

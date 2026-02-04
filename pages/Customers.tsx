@@ -665,7 +665,7 @@ const CustomersAndSuppliers: React.FC = () => {
                     </button>
                 </div>
 
-                {permissions?.canAccessClientes && (
+                {permissions?.canCreateCustomer && (
                     <button onClick={() => handleOpenModal()} className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-bold shadow-sm active:scale-[0.98] transition-transform">
                         <PlusIcon className="h-5 w-5" /> Adicionar Cliente
                     </button>
@@ -741,7 +741,7 @@ const CustomersAndSuppliers: React.FC = () => {
                         <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
                 </div>
-                {permissions?.canAccessClientes && (
+                {permissions?.canCreateCustomer && (
                     <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 w-full sm:w-auto flex items-center justify-center gap-2 h-10"><PlusIcon className="h-5 w-5" /> Adicionar Cliente</button>
                 )}
             </div>
@@ -813,16 +813,16 @@ const CustomersAndSuppliers: React.FC = () => {
                                                     </a>
                                                 )}
                                             </div>
-                                            {permissions?.canAccessClientes && (
-                                                <div className="flex gap-2 pr-0.5 pt-0.5 opacity-40">
-                                                    <button onClick={() => handleOpenModal(customer)}><EditIcon className="w-3.5 h-3.5" /></button>
-                                                    <button onClick={() => setCustomerToDelete(customer)} title="Excluir"><TrashIcon className="w-3.5 h-3.5" /></button>
+                                            <div className="flex gap-2 pr-0.5 pt-0.5 opacity-40">
+                                                {permissions?.canEditCustomer && <button onClick={() => handleOpenModal(customer)}><EditIcon className="w-3.5 h-3.5" /></button>}
+                                                {permissions?.canDeleteCustomer && <button onClick={() => setCustomerToDelete(customer)} title="Excluir"><TrashIcon className="w-3.5 h-3.5" /></button>}
+                                                {permissions?.canInactivateCustomer && (
                                                     <button onClick={() => setCustomerToInactivate(customer)} title={customer.active === false ? "Reativar" : "Inativar"}>
                                                         {customer.active === false ? <CheckIcon className="w-3.5 h-3.5 text-success" /> : <EyeSlashIcon className="w-3.5 h-3.5" />}
                                                     </button>
-                                                    <button onClick={() => handleViewHistory(customer)} title="Histórico"><ClockIcon className="w-3.5 h-3.5" /></button>
-                                                </div>
-                                            )}
+                                                )}
+                                                {permissions?.canViewCustomerHistory && <button onClick={() => handleViewHistory(customer)} title="Histórico"><ClockIcon className="w-3.5 h-3.5" /></button>}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -894,15 +894,13 @@ const CustomersAndSuppliers: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center space-x-4">
-                                                    <button onClick={() => handleViewHistory(customer)} className="text-secondary hover:text-primary" title="Ver Histórico"><ClockIcon className="w-5 h-5" /></button>
-                                                    {permissions?.canAccessClientes && (
-                                                        <>
-                                                            <button onClick={() => handleOpenModal(customer)} className="text-secondary hover:text-primary" title="Editar"><EditIcon /></button>
-                                                            <button onClick={() => setCustomerToDelete(customer)} className="text-secondary hover:text-danger" title="Excluir"><TrashIcon /></button>
-                                                            <button onClick={() => setCustomerToInactivate(customer)} className={`text-secondary ${customer.active === false ? 'hover:text-success' : 'hover:text-orange-500'}`} title={customer.active === false ? "Reativar" : "Inativar"}>
-                                                                {customer.active === false ? <CheckIcon className="w-5 h-5 text-success" /> : <EyeSlashIcon className="w-5 h-5" />}
-                                                            </button>
-                                                        </>
+                                                    {permissions?.canViewCustomerHistory && <button onClick={() => handleViewHistory(customer)} className="text-secondary hover:text-primary" title="Ver Histórico"><ClockIcon className="w-5 h-5" /></button>}
+                                                    {permissions?.canEditCustomer && <button onClick={() => handleOpenModal(customer)} className="text-secondary hover:text-primary" title="Editar"><EditIcon /></button>}
+                                                    {permissions?.canDeleteCustomer && <button onClick={() => setCustomerToDelete(customer)} className="text-secondary hover:text-danger" title="Excluir"><TrashIcon /></button>}
+                                                    {permissions?.canInactivateCustomer && (
+                                                        <button onClick={() => setCustomerToInactivate(customer)} className={`text-secondary ${customer.active === false ? 'hover:text-success' : 'hover:text-orange-500'}`} title={customer.active === false ? "Reativar" : "Inativar"}>
+                                                            {customer.active === false ? <CheckIcon className="w-5 h-5 text-success" /> : <EyeSlashIcon className="w-5 h-5" />}
+                                                        </button>
                                                     )}
                                                 </div>
                                             </td>
@@ -933,7 +931,7 @@ const CustomersAndSuppliers: React.FC = () => {
                 </div>
                 {/* All 3 buttons on same line */}
                 <div className="flex gap-2 items-center">
-                    {permissions?.canAccessFornecedores && (
+                    {permissions?.canCreateSupplier && (
                         <button onClick={() => handleOpenModal()} className="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.98] transition-transform">
                             <PlusIcon className="h-4 w-4" /> Adicionar
                         </button>
@@ -969,7 +967,7 @@ const CustomersAndSuppliers: React.FC = () => {
                         <span>{supplierSortOrder === 'newest' ? 'Mais Recentes' : 'Mais Antigos'}</span>
                     </button>
                 </div>
-                {permissions?.canAccessFornecedores && (
+                {permissions?.canCreateSupplier && (
                     <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 w-full sm:w-auto flex items-center justify-center gap-2"><PlusIcon className="h-5 w-5" />Adicionar Fornecedor</button>
                 )}
             </div>
@@ -1017,13 +1015,11 @@ const CustomersAndSuppliers: React.FC = () => {
                                                     </a>
                                                 )}
                                             </div>
-                                            {permissions?.canAccessFornecedores && (
-                                                <div className="flex gap-2 pr-0.5 pt-0.5 opacity-40">
-                                                    <button onClick={() => handleOpenModal(supplier)}><EditIcon className="w-3.5 h-3.5 text-gray-500" /></button>
-                                                    <button onClick={() => setSupplierToDelete(supplier)}><TrashIcon className="w-3.5 h-3.5 text-gray-500" /></button>
-                                                    <button onClick={() => handleViewSupplierHistory(supplier)}><ClockIcon className="w-3.5 h-3.5 text-gray-500" /></button>
-                                                </div>
-                                            )}
+                                            <div className="flex gap-2 pr-0.5 pt-0.5 opacity-40">
+                                                {permissions?.canEditSupplier && <button onClick={() => handleOpenModal(supplier)}><EditIcon className="w-3.5 h-3.5 text-gray-500" /></button>}
+                                                {permissions?.canDeleteSupplier && <button onClick={() => setSupplierToDelete(supplier)}><TrashIcon className="w-3.5 h-3.5 text-gray-500" /></button>}
+                                                {permissions?.canViewSupplierHistory && <button onClick={() => handleViewSupplierHistory(supplier)}><ClockIcon className="w-3.5 h-3.5 text-gray-500" /></button>}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1071,13 +1067,9 @@ const CustomersAndSuppliers: React.FC = () => {
                                             <td className="px-6 py-4">{supplier.cnpj}</td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center space-x-4">
-                                                    <button onClick={() => handleViewSupplierHistory(supplier)} className="text-secondary hover:text-primary" title="Ver Histórico"><ClockIcon className="w-5 h-5" /></button>
-                                                    {permissions?.canAccessFornecedores && (
-                                                        <>
-                                                            <button onClick={() => handleOpenModal(supplier)} className="text-secondary hover:text-primary"><EditIcon /></button>
-                                                            <button onClick={() => setSupplierToDelete(supplier)} className="text-secondary hover:text-danger"><TrashIcon /></button>
-                                                        </>
-                                                    )}
+                                                    {permissions?.canViewSupplierHistory && <button onClick={() => handleViewSupplierHistory(supplier)} className="text-secondary hover:text-primary" title="Ver Histórico"><ClockIcon className="w-5 h-5" /></button>}
+                                                    {permissions?.canEditSupplier && <button onClick={() => handleOpenModal(supplier)} className="text-secondary hover:text-primary"><EditIcon /></button>}
+                                                    {permissions?.canDeleteSupplier && <button onClick={() => setSupplierToDelete(supplier)} className="text-secondary hover:text-danger"><TrashIcon /></button>}
                                                 </div>
                                             </td>
                                         </tr>

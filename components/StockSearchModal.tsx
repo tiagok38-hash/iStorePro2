@@ -20,15 +20,21 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
 
     const filteredProducts = products.filter(p => {
         if (!searchTerm) return false;
-        const term = searchTerm.toLowerCase();
-        return (
-            (p.model || '').toLowerCase().includes(term) ||
-            (p.imei1 || '').toLowerCase().includes(term) ||
-            (p.imei2 || '').toLowerCase().includes(term) ||
-            (p.serialNumber || '').toLowerCase().includes(term) ||
-            (p.brand || '').toLowerCase().includes(term) ||
-            (p.observations || '').toLowerCase().includes(term)
-        ) && p.stock > 0;
+        const terms = searchTerm.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+        if (terms.length === 0) return false;
+
+        const searchableText = [
+            p.model || '',
+            p.imei1 || '',
+            p.imei2 || '',
+            p.serialNumber || '',
+            p.brand || '',
+            p.observations || '',
+            p.condition || '',
+            p.color || ''
+        ].join(' ').toLowerCase();
+
+        return terms.every(term => searchableText.includes(term)) && p.stock > 0;
     });
 
     return (

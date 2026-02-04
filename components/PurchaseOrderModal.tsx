@@ -793,8 +793,15 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                         <div>
-                            <label className={labelClasses}>Qtd.</label>
-                            <input type="number" min="1" value={currentItem.quantity} onChange={(e) => handleCurrentItemChange('quantity', parseInt(e.target.value) || 1)} className={`${inputClasses} text-center font-bold`} />
+                            <label className={labelClasses}>QUANTIDADE</label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={currentItem.quantity}
+                                onChange={(e) => handleCurrentItemChange('quantity', parseInt(e.target.value) || 1)}
+                                onFocus={(e) => e.target.select()}
+                                className={`${inputClasses} text-center font-bold`}
+                            />
                         </div>
                         <div><label className={labelClasses}>Custo Unit.</label><CurrencyInput value={currentItem.unitCost} onChange={v => handleCurrentItemChange('unitCost', v || 0)} className={inputClasses} /></div>
                         <div><label className={labelClasses}>Adicional (Unit.)</label><CurrencyInput value={currentItem.additionalUnitCost} onChange={v => handleCurrentItemChange('additionalUnitCost', v || 0)} className={inputClasses} /></div>
