@@ -67,6 +67,14 @@ const StockInModal: React.FC<{
         fetchParameters();
     }, []);
 
+    // Lock body scroll on mount
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, []);
+
     const isBulkMode = useMemo(() =>
         purchaseOrder.items.every(item => !item.hasImei),
         [purchaseOrder.items]);
@@ -649,28 +657,28 @@ const StockInModal: React.FC<{
             <>
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-sm min-w-[1200px]">
+                    <table className="w-full text-sm min-w-[1900px]">
                         <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0 z-10">
                             <tr>
-                                <th className="p-3 w-40">Descrição</th>
-                                <th className="p-1 w-44">IMEI 1</th>
-                                <th className="p-1 w-44">IMEI 2</th>
-                                <th className="p-1 w-44">S/N</th>
+                                <th className="p-3 w-[300px]">Descrição</th>
+                                <th className="p-1 w-56">IMEI 1</th>
+                                <th className="p-1 w-56">IMEI 2</th>
+                                <th className="p-1 w-56">S/N</th>
                                 <th className="p-3 min-w-[120px]">Condição</th>
                                 <th className="p-3 min-w-[130px]">Garantia</th>
-                                {hasAppleItems && <th className="p-3 w-24 text-center">Bateria %</th>}
-                                <th className="p-3 min-w-[130px]">Local</th>
+                                {hasAppleItems && <th className="p-3 w-20 text-center">Bateria %</th>}
+                                <th className="p-3 w-28">Local</th>
                                 <th className="p-3 w-24">Custo</th>
-                                <th className="p-3 w-24">Markup %</th>
+                                <th className="p-3 w-16 text-center">Mkp %</th>
                                 <th className="p-3 w-40">Preço Atacado</th>
-                                <th className="p-3 w-40">Preço Venda</th>
+                                <th className="p-3 w-48">Preço Venda</th>
                             </tr>
                         </thead>
                         <tbody>
                             {details.map((detail, index) => (
                                 <tr key={index} className="border-b border-border hover:bg-surface-secondary/50">
                                     <td className="p-3 text-[10px] font-medium text-primary leading-tight">
-                                        <div className="line-clamp-2 max-w-[180px]">{detail.itemDescription}</div>
+                                        <div className="max-w-[300px]">{detail.itemDescription}</div>
                                     </td>
                                     <td className="p-1">
                                         <input
@@ -866,7 +874,7 @@ const StockInModal: React.FC<{
 
     return createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-end md:items-center z-[99999] p-0 md:p-4 animate-fade-in">
-            <div className="bg-surface w-full max-w-[98vw] 2xl:max-w-screen-2xl h-[100dvh] md:h-auto md:max-h-[95vh] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-surface w-full max-w-[99vw] h-[100dvh] md:h-auto md:max-h-[95vh] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center p-4 md:p-6 border-b border-border bg-surface sticky top-0 z-20">
                     <div>
                         <h2 className="text-lg md:text-2xl font-black text-primary leading-tight">Lançar Compra #{purchaseOrder.displayId}</h2>

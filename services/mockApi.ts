@@ -1868,6 +1868,39 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
     }
 
+    // FIX: If sale was Finalizada/Editada and now is Pendente (Estorno), we need to RETURN stock
+    if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && newStatus === 'Pendente') {
+        const paymentMethods = data.payments?.map((p: any) => p.method).join(', ') || 'N/A';
+        const { data: customerData } = await supabase.from('customers').select('name').eq('id', updated.customer_id).maybeSingle();
+        const customerName = customerData?.name || 'Cliente';
+
+        for (const item of originalItems) { // Use original items to be safe, or updated if you trust the cart state matches
+            // We use updated.items primarily, but since we are reverting, we assume the items in the sale are what we are returning.
+            // If the user edited items AND changed to pending, updated.items reflects the NEW state.
+            // Ideally, we return what was previously taken (originalItems).
+            // However, if the user changed items, `updateSale` might have already processed the diffs? 
+            // Wait, `updateSale` handles diffs below in "If sale was already finalized and is being edited".
+            // BUT that block checks `if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && newStatus === 'Editada')`.
+            // So if newStatus is 'Pendente', that diff block is SKIPPED.
+            // Therefore, we should return the ORIGINAL items to stock, because those were the ones deducted.
+            // BUT, wait. If the user changed the cart (e.g. removed an item) AND set to Pendente, 
+            // we want the final state of the Pending sale to reflect the new cart.
+            // Code-wise, `updated` already has the NEW items saved to DB.
+            // The stock adjustment should be: Return EVERYTHING that was previously deducted.
+
+            await adjustProductStock(
+                item.productId,
+                Number(item.quantity),
+                updated.id,
+                'Venda alterada para Pendente (Estorno)',
+                customerName,
+                paymentMethods,
+                userName,
+                userId
+            );
+        }
+    }
+
     // If sale was already finalized and is being edited, handle stock differences
     if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && newStatus === 'Editada') {
         const currentItems = data.items || [];
@@ -3749,6 +3782,7 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                         supplierId: p.supplierId,
                         origin: p.origin,
                         purchaseOrderId: purchaseOrderId,
+                        purchaseItemId: p.purchaseItemId,
                         updatedAt: now,
                         stockHistory: [...existingHistory, newStockHistoryEntry]
                     }
@@ -3775,6 +3809,7 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                 imei2: imei2 || null,
                 serialNumber: serialNumber || null,
                 purchaseOrderId,
+                purchaseItemId,
                 createdAt: now,
                 updatedAt: now,
                 sku: p.sku || `#${currentSkuCount}`,

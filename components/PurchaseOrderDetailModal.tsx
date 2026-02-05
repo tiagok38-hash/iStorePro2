@@ -30,7 +30,7 @@ const PendingItemsTable: React.FC<{ items: PurchaseItem[] }> = ({ items }) => (
                                     const normBrand = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
                                     const normColor = color.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-                                    const showBrand = brand && !normModel.includes(normBrand);
+                                    const showBrand = brand && !normModel.includes(normBrand) && brand.toLowerCase() !== 'apple';
                                     const showColor = color && !normModel.includes(normColor);
 
                                     return (
@@ -95,7 +95,7 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                                             const normBrand = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
                                             const normColor = color.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-                                            const showBrand = brand && !normModel.includes(normBrand);
+                                            const showBrand = brand && !normModel.includes(normBrand) && brand.toLowerCase() !== 'apple';
                                             const showColor = color && !normModel.includes(normColor);
 
                                             return (
@@ -139,6 +139,14 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
 
 const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () => void; associatedProducts?: Product[] }> = ({ purchase, onClose, associatedProducts = [] }) => {
     const supplierId = purchase.supplierId.split('-')[1] || purchase.supplierId;
+
+    // Lock body scroll on mount
+    React.useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, []);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">

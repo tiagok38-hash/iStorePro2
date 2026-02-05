@@ -65,7 +65,16 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
 
     const { showToast } = useToast();
+
     const { user } = useUser();
+
+    // Lock body scroll on mount
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, []);
 
     // Fetch dynamic parameters on mount
     useEffect(() => {
@@ -163,11 +172,110 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         }
     }
 
-    const goToStep2 = () => {
+    const saveDraft = async (currentItems: Partial<PurchaseItem>[]) => {
+        if (!formData.id) return;
+
+        const currentSubTotal = currentItems.reduce((sum, item) => sum + (item.finalUnitCost || 0) * (item.quantity || 0), 0);
+
+        let currentAddCost = formData.additionalCost || 0;
+        if (formData.origin === 'Importação') {
+            const shipping = formData.shippingCost || 0;
+            const type = formData.shippingType || 'R$';
+            const rate = formData.dollarRate || 0;
+            if (type === 'US$') currentAddCost = shipping * (rate || 1);
+            else if (type === '%') currentAddCost = currentSubTotal * (shipping / 100);
+            else currentAddCost = shipping;
+        }
+
+        const currentTotal = currentSubTotal + currentAddCost;
+
+        const sanitizedItems = currentItems.map((item) => {
+            const itemAny = item as any;
+            return {
+                id: item.id,
+                productDetails: {
+                    brand: item.productDetails?.brand || '',
+                    category: item.productDetails?.category || '',
+                    model: item.productDetails?.model || '',
+                    color: item.productDetails?.color || '',
+                    condition: item.productDetails?.condition || 'Novo',
+                    warranty: item.productDetails?.warranty || '1 ano',
+                    storageLocation: item.productDetails?.storageLocation || 'Loja',
+                },
+                barcodes: itemAny.barcode ? [itemAny.barcode] : [],
+                quantity: Number(item.quantity || 0),
+                unitCost: Number(item.unitCost || 0),
+                additionalUnitCost: Number(item.additionalUnitCost || 0),
+                finalUnitCost: Number(item.finalUnitCost || 0),
+                hasImei: !!item.hasImei,
+                minimumStock: item.minimumStock ? Number(item.minimumStock) : undefined,
+                variations: itemAny.variations || [],
+                controlByBarcode: !!item.controlByBarcode
+            };
+        }) as PurchaseItem[];
+
+        try {
+            await updatePurchaseOrder({
+                ...formData,
+                items: sanitizedItems,
+                total: currentTotal,
+                additionalCost: formData.additionalCost || 0
+            });
+        } catch (err) {
+            console.error("Auto-save error:", err);
+            showToast('Erro ao salvar rascunho automaticamente.', 'warning');
+        }
+    };
+
+    const goToStep2 = async () => {
         if (!formData.supplierId) {
             showToast('Por favor, selecione um fornecedor.', 'error');
             return;
         }
+
+        if (!formData.id && !purchaseOrderToEdit) {
+            setIsSaving(true);
+            try {
+                let currentSupplierName = formData.supplierName;
+                if (!currentSupplierName && formData.supplierId) {
+                    const supplier = suppliers.find(s => s.id === formData.supplierId);
+                    const customer = customers.find(c => c.id === formData.supplierId);
+                    currentSupplierName = supplier?.name || customer?.name || 'Fornecedor Desconhecido';
+                }
+
+                const purchaseData: any = {
+                    purchaseDate: formData.purchaseDate!,
+                    supplierId: formData.supplierId!,
+                    supplierName: currentSupplierName!,
+                    origin: formData.origin!,
+                    isCustomerPurchase,
+                    purchaseTerm: formData.purchaseTerm,
+                    items: [],
+                    total: 0,
+                    additionalCost: 0,
+                    stockStatus: 'Pendente',
+                    financialStatus: 'Pendente',
+                    createdBy: user?.name || 'Sistema',
+                    observations: formData.observations,
+                    status: 'Pendente',
+                    shippingCost: formData.shippingCost,
+                    shippingType: formData.shippingType,
+                    dollarRate: formData.dollarRate
+                };
+
+                const newPO = await addPurchaseOrder(purchaseData);
+                setFormData(prev => ({ ...prev, ...newPO }));
+                showToast('Rascunho iniciado.', 'success');
+            } catch (error) {
+                console.error("Error creating draft:", error);
+                showToast('Erro ao iniciar rascunho.', 'error');
+                setIsSaving(false);
+                return;
+            } finally {
+                setIsSaving(false);
+            }
+        }
+
         setStep(2);
     }
 
@@ -362,11 +470,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             id: `new-${items.length}-${Date.now()}`,
             ...(currentItem as Omit<PurchaseItem, 'id'>),
             productDetails: finalProductDetails,
-            barcodes: currentItem.barcode ? [currentItem.barcode] : [],
-            controlByBarcode: !!currentItem.barcode,
+            barcodes: (currentItem as any).barcode ? [(currentItem as any).barcode] : [],
+            controlByBarcode: !!(currentItem as any).barcode,
         };
         delete (newItem as any).storage;
-        setItems([...items, newItem]);
+
+        const newItems = [...items, newItem];
+        setItems(newItems);
+        saveDraft(newItems);
 
         // Reset currentItem but keep STICKY FIELDS for faster entry
         const prevDetails = currentItem.productDetails;
@@ -390,7 +501,9 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     };
 
     const removeItem = (index: number) => {
-        setItems(items.filter((_, i) => i !== index));
+        const newItems = items.filter((_, i) => i !== index);
+        setItems(newItems);
+        saveDraft(newItems);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -426,7 +539,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 };
             }) as PurchaseItem[];
 
-            if (purchaseOrderToEdit) {
+            if (purchaseOrderToEdit || formData.id) {
                 const purchaseData: PurchaseOrder = {
                     ...purchaseOrderToEdit,
                     ...formData,

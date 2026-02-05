@@ -347,12 +347,54 @@ const Products: React.FC = () => {
             return searchMatch && stockMatch && conditionMatch && locationMatch;
         });
 
-        return [...filtered].sort((a, b) => {
+        // Grouping Logic for Non-Unique Products
+        const groupedMap: Record<string, Product> = {};
+        const finalResults: Product[] = [];
+
+        filtered.forEach(p => {
+            // Check if product is unique (has identifiers)
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
+            const hasVariations = p.variations && p.variations.length > 0;
+
+            if (isUnique || hasVariations) {
+                // Unique products always stay separate
+                finalResults.push(p);
+            } else {
+                // Non-unique products (accessories, etc.) are candidates for grouping
+                // Create a key based on all relevant attributes that define "sameness"
+                const modelKey = (p.model || '').trim(); // Case sensitive for model? Maybe
+                const brandKey = (p.brand || '').trim();
+                const colorKey = (p.color || '').trim();
+                const storageKey = (p.storage || '').trim();
+                const conditionKey = (p.condition || '').trim();
+                const warrantyKey = (p.warranty || '').trim();
+                const priceKey = `${p.price}-${p.costPrice || 0}-${p.wholesalePrice || 0}`;
+                const supplierKey = (p.supplierId || '').trim();
+                const locationKey = (p.storageLocation || '').trim();
+
+                const key = `${modelKey}|${brandKey}|${colorKey}|${storageKey}|${conditionKey}|${warrantyKey}|${priceKey}|${supplierKey}|${locationKey}`;
+
+                if (!groupedMap[key]) {
+                    // First item of this group
+                    // Clone it so we don't mutate the original if we modify stock
+                    groupedMap[key] = { ...p };
+                } else {
+                    // Add stock to existing group item
+                    groupedMap[key].stock += p.stock;
+                    // You might want to accumulate other things if needed, but for display, stock is main
+                }
+            }
+        });
+
+        const combinedList = [...finalResults, ...Object.values(groupedMap)];
+
+        return combinedList.sort((a, b) => {
             if (inventorySortOrder === 'newest') {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             }
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
+
     }, [products, searchTerm, filters, inventorySortOrder, purchases]);
 
     // Pagination logic

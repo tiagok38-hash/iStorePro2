@@ -322,7 +322,7 @@ const BillingChart: React.FC<{
 });
 
 const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string }> = React.memo(({ sales, activeMethods, className }) => {
-    const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
+    const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('month');
 
     // Helper for colors
     const getColorForMethod = (method: string) => {
@@ -367,6 +367,10 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
             case 'day':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
                 endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                break;
+            case 'yesterday':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
                 break;
             case 'week':
                 const dayOfWeek = now.getDay();
@@ -455,6 +459,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                     className="text-xs font-semibold text-muted bg-surface-secondary px-3 py-1 rounded-full border-0 focus:ring-2 focus:ring-accent cursor-pointer"
                 >
                     <option value="day">Hoje</option>
+                    <option value="yesterday">Ontem</option>
                     <option value="week">Semana</option>
                     <option value="month">Mês</option>
                     <option value="year">Ano</option>
