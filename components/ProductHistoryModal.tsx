@@ -179,25 +179,51 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
     };
 
     const getEntityName = (entry: any) => {
-        // 1. Check for Sale ID in details (Venda #ID)
-        const saleMatch = entry.details?.match(/Venda #([a-zA-Z0-9-]+)/);
+        // 1. Check for specific patterns in details string
+        const details = entry.details || '';
+
+        // Pattern: "Cliente: [Name]" (Manual stock adjust or Sale legacy)
+        const clientMatch = details.match(/Cliente:\s*([^|]+)/);
+        if (clientMatch) return clientMatch[1].trim();
+
+        // Pattern: "Fornecedor: [Name]" (Trade-in or Manual add)
+        const supplierMatch = details.match(/Fornecedor:\s*([^.|]+)/);
+        if (supplierMatch) return supplierMatch[1].trim();
+
+        // Pattern: "de [Name]" (generic "received from ...")
+        const receivedFromMatch = details.match(/recebido.*de\s+([^.|-]+)/i);
+        if (receivedFromMatch) return receivedFromMatch[1].trim();
+
+        // Pattern: " - [SupplierName]" at the end of Purchase Launch details (e.g. "Compra #123 - MySupplier")
+        // We look for "Compra #[ID] - [Name]"
+        const purchaseMatch = details.match(/Compra\s*#[\w-]+\s*-\s*([^.|]+)/i);
+        if (purchaseMatch) return purchaseMatch[1].trim();
+
+        // Pattern: "via Compra #[ID] - [Name]"
+        const viaPurchaseMatch = details.match(/via\s+Compra\s*#[\w-]+\s*-\s*([^.|]+)/i);
+        if (viaPurchaseMatch) return viaPurchaseMatch[1].trim();
+
+        // 2. Check for Sale ID in details (Venda #ID) and look up in props
+        const saleMatch = details.match(/Venda #([a-zA-Z0-9-]+)/);
         if (saleMatch) {
             const saleId = saleMatch[1];
-            // Look in passed sales history or try to find if we had a full sales list (prop is salesHistory)
+            // Look in passed sales history
             const sale = sales.find(s => s.id === saleId);
             if (sale) {
                 const customer = customers.find(c => c.id === sale.customerId);
                 return customer ? customer.name : 'Cliente Desconhecido';
             }
-            // Should we try to find by ID even if not in product's sales history? 
-            // Ideally yes, but we only maintain `customers` prop. If customer is in `customers` list, we can find by sale?
-            // No, we need the Sale object to know the Customer ID. 
         }
 
-        // 2. Check for "Entrada por Compra" -> Supplier
-        // Since we don't have purchase ID easily in details usually (unless we add it),
-        // we might not find it. But if details has "Fornecedor: Name", we use it.
-        // Currently Purchase logic doesn't put name in details. 
+        // 3. Fallbacks based on Reason
+        if (entry.reason === 'Entrada por Compra' || entry.reason === 'Lançamento de Compra' || entry.reason === 'Entrada de Lote') {
+            // Try to extract just name if it looks like " - Name" at end
+            const splitDash = details.split(' - ');
+            if (splitDash.length > 1 && !details.includes('Venda #')) {
+                return splitDash[splitDash.length - 1];
+            }
+        }
+
         return '-';
     };
 

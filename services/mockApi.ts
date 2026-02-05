@@ -1586,6 +1586,8 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
     // Update stock and history for sold items
     // ONLY deduct stock if sale is NOT Pendente
+    let customerName = 'Cliente';
+
     if (data.status !== 'Pendente' && data.items && Array.isArray(data.items)) {
         // Fetch customer name for history (and all products at once for speed)
         const [customerRes, productsRes] = await Promise.all([
@@ -1593,7 +1595,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
             supabase.from('products').select('*').in('id', data.items.map(i => i.productId))
         ]);
 
-        const customerName = customerRes.data?.name || 'Cliente';
+        customerName = customerRes.data?.name || 'Cliente';
         const paymentMethods = data.payments?.map((p: Payment) => p.method).join(', ') || 'N/A';
         const allProducts = productsRes.data || [];
 
@@ -1632,6 +1634,12 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
     // TRADE-IN STOCK MANAGEMENT: Add trade-in products to stock only when sale is Finalizada
     const saleStatus = saleData.status;
     if ((saleStatus === 'Finalizada' || saleStatus === 'Editada') && data.payments && Array.isArray(data.payments)) {
+        // Ensure customerName is available if the first block skipped or failed
+        if (customerName === 'Cliente' && data.customerId) {
+            const { data: c } = await supabase.from('customers').select('name').eq('id', data.customerId).maybeSingle();
+            if (c) customerName = c.name;
+        }
+
         const tradeInPayments = data.payments.filter((p: any) =>
             p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
         );
@@ -1669,7 +1677,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                         relatedId: newSale.id,
                         timestamp: now.toISOString(),
                         changedBy: userName,
-                        details: `Produto recebido em troca - Venda #${newSale.id}`
+                        details: `Produto recebido em troca de ${customerName} - Venda #${newSale.id}`
                     };
 
                     const { error: updateError } = await supabase.from('products').update({
