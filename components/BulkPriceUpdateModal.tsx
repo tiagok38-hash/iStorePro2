@@ -71,7 +71,12 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
 
                 {/* Header - Fixed */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
-                    <h2 className="text-lg font-bold text-gray-900">Atualização de Preço em Massa</h2>
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        Atualização de Preço em Massa
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                            Encontrados: {searchedProducts.length}
+                        </span>
+                    </h2>
                     <button
                         onClick={onClose}
                         className="p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
@@ -123,24 +128,39 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                             {searchedProducts.map(product => {
                                 const desc = `${product.brand} ${product.model}${product.color && !product.model.toLowerCase().includes(product.color.toLowerCase()) ? ' ' + product.color : ''}`;
                                 return (
-                                    <div key={product.id} className="p-4">
-                                        <p className="font-semibold text-gray-900 text-sm mb-2">{desc}</p>
-                                        <div className="grid grid-cols-4 gap-1 text-center">
-                                            <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Estoque</p>
-                                                <p className="text-sm font-bold">{product.stock}</p>
-                                            </div>
-                                            <div>
+                                    <div key={product.id} className="p-4 relative group">
+                                        <button
+                                            onClick={() => setSearchedProducts(prev => prev.filter(p => p.id !== product.id))}
+                                            className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Remover da lista"
+                                        >
+                                            <CloseIcon className="h-4 w-4" />
+                                        </button>
+                                        <div className="flex items-start justify-between pr-8 mb-1">
+                                            <p className="font-semibold text-gray-900 text-sm">{desc}</p>
+                                            <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">
+                                                {product.stock} un.
+                                            </span>
+                                        </div>
+                                        {(product.serialNumber || product.imei1) && (
+                                            <p className="text-[10px] text-gray-500 mb-2 font-mono">
+                                                {product.serialNumber && <span>S/N: {product.serialNumber}</span>}
+                                                {product.serialNumber && product.imei1 && <span className="mx-1">•</span>}
+                                                {product.imei1 && <span>IMEI: {product.imei1}</span>}
+                                            </p>
+                                        )}
+                                        <div className="grid grid-cols-3 gap-2 text-center mt-2">
+                                            <div className="bg-gray-50 rounded-lg py-1">
                                                 <p className="text-[10px] text-gray-500 uppercase">Custo</p>
                                                 <p className="text-xs font-medium">{formatCurrency(product.costPrice || 0)}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Venda</p>
-                                                <p className="text-sm font-bold text-indigo-600">{formatCurrency(product.price)}</p>
+                                            <div className="bg-orange-50 rounded-lg py-1">
+                                                <p className="text-[10px] text-orange-600 uppercase">Atacado</p>
+                                                <p className="text-sm font-bold text-orange-600">{formatCurrency(product.wholesalePrice || 0)}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">ATC</p>
-                                                <p className="text-xs font-medium">{formatCurrency(product.wholesalePrice || 0)}</p>
+                                            <div className="bg-green-50 rounded-lg py-1">
+                                                <p className="text-[10px] text-green-600 uppercase">Venda</p>
+                                                <p className="text-sm font-bold text-green-600">{formatCurrency(product.price)}</p>
                                             </div>
                                         </div>
                                     </div>

@@ -7,6 +7,7 @@ import { SpinnerIcon, CalendarDaysIcon, TrophyIcon } from '../components/icons.t
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import PriceListModal from '../components/PriceListModal.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
+import SalesReports from '../components/SalesReports.tsx';
 
 const KpiCard: React.FC<{ title: string; value: string; className?: string }> = ({ title, value, className }) => (
     <div className={`p-4 rounded-xl border shadow-sm ${className || 'bg-surface border-border'}`}>
@@ -935,7 +936,8 @@ const Reports: React.FC = () => {
 
     const tabs = [
         { id: 'estoque', label: 'Estoque' },
-        { id: 'vendas', label: 'Vendas' },
+        { id: 'vendas', label: 'Gráficos de Vendas' },
+        { id: 'sales_reports', label: 'Relatórios de Vendas' },
     ];
 
     useEffect(() => {
@@ -1002,6 +1004,7 @@ const Reports: React.FC = () => {
             ) : (
                 <>
                     {activeTab === 'vendas' && <VendasReport sales={sales} products={products} customers={customers} users={users} />}
+                    {activeTab === 'sales_reports' && <SalesReports sales={sales} products={products} customers={customers} users={users} />}
                     {activeTab === 'estoque' && <EstoqueReport products={products} sales={sales} initialFilter={searchParams.get('filter')} />}
                 </>
             )}

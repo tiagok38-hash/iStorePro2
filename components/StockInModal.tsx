@@ -657,28 +657,28 @@ const StockInModal: React.FC<{
             <>
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto custom-scrollbar">
-                    <table className="w-full text-sm min-w-[1900px]">
-                        <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0 z-10">
+                    <table className="w-full text-sm min-w-[1200px]">
+                        <thead className="text-left text-xs text-gray-900 bg-surface-secondary sticky top-0 z-10">
                             <tr>
-                                <th className="p-3 w-[300px]">Descrição</th>
-                                <th className="p-1 w-56">IMEI 1</th>
-                                <th className="p-1 w-56">IMEI 2</th>
-                                <th className="p-1 w-56">S/N</th>
-                                <th className="p-3 min-w-[120px]">Condição</th>
-                                <th className="p-3 min-w-[130px]">Garantia</th>
-                                {hasAppleItems && <th className="p-3 w-20 text-center">Bateria %</th>}
-                                <th className="p-3 w-28">Local</th>
-                                <th className="p-3 w-24">Custo</th>
-                                <th className="p-3 w-16 text-center">Mkp %</th>
-                                <th className="p-3 w-40">Preço Atacado</th>
-                                <th className="p-3 w-48">Preço Venda</th>
+                                <th className="pl-3 py-2 w-[170px] font-bold text-left">Descrição</th>
+                                <th className="pl-3 py-2 w-[130px] font-bold text-left">IMEI 1</th>
+                                <th className="pl-3 py-2 w-[130px] font-bold text-left">IMEI 2</th>
+                                <th className="pl-3 py-2 w-[130px] font-bold text-left">S/N</th>
+                                <th className="pl-3 py-2 w-[100px] font-bold text-left">Condição</th>
+                                <th className="pl-3 py-2 w-[80px] font-bold text-left">Garantia</th>
+                                {hasAppleItems && <th className="pl-3 py-2 w-[46px] font-bold text-left">Bat %</th>}
+                                <th className="pl-3 py-2 w-[90px] font-bold text-left">Local</th>
+                                <th className="pl-3 py-2 w-[45px] font-bold text-left">Custo</th>
+                                <th className="pl-3 py-2 w-[60px] font-bold text-left">MKP%</th>
+                                <th className="pl-3 py-2 w-[110px] font-bold text-left">Atacado</th>
+                                <th className="pl-3 py-2 w-[110px] font-bold text-left">Venda</th>
                             </tr>
                         </thead>
                         <tbody>
                             {details.map((detail, index) => (
                                 <tr key={index} className="border-b border-border hover:bg-surface-secondary/50">
-                                    <td className="p-3 text-[10px] font-medium text-primary leading-tight">
-                                        <div className="max-w-[300px]">{detail.itemDescription}</div>
+                                    <td className="p-3 text-[11px] font-bold text-primary leading-tight">
+                                        <div className="max-w-[200px] break-words">{detail.itemDescription}</div>
                                     </td>
                                     <td className="p-1">
                                         <input
@@ -711,13 +711,13 @@ const StockInModal: React.FC<{
                                             className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                         />
                                     </td>
-                                    <td className="p-3">
+                                    <td className="px-0.5 py-1">
                                         <select value={detail.condition} onChange={e => handleDetailChange(index, 'condition', e.target.value)} className={`${inputClasses} h-10`}>
                                             {conditionOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                         </select>
                                     </td>
-                                    <td className="p-3">
-                                        <select value={detail.warranty} onChange={e => handleDetailChange(index, 'warranty', e.target.value)} className={`${inputClasses} h-10`}>
+                                    <td className="px-0.5 py-1">
+                                        <select value={detail.warranty} onChange={e => handleDetailChange(index, 'warranty', e.target.value)} className={`${inputClasses} h-10 py-2 px-3`}>
                                             {warrantyOptions.length === 0 ? <option>Carregando...</option> : <>
                                                 {detail.warranty && !warrantyOptions.some(w => w.name.toLowerCase() === detail.warranty?.toLowerCase()) && <option value={detail.warranty}>{detail.warranty}</option>}
                                                 {warrantyOptions.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
@@ -725,23 +725,32 @@ const StockInModal: React.FC<{
                                         </select>
                                     </td>
                                     {hasAppleItems && (
-                                        <td className="p-3">
+                                        <td className="px-0.5 py-1">
                                             {detail.isApple && detail.condition === 'Seminovo' ? (
-                                                <input type="number" value={detail.batteryHealth} onChange={e => handleDetailChange(index, 'batteryHealth', e.target.value)} className={`${inputClasses} h-10 w-20 text-right`} />
+                                                <input type="number" value={detail.batteryHealth} onChange={e => handleDetailChange(index, 'batteryHealth', e.target.value)} className={`${inputClasses} h-10 w-full text-right py-2 px-3`} />
                                             ) : (
                                                 <span className="text-muted text-center block">-</span>
                                             )}
                                         </td>
                                     )}
-                                    <td className="p-3">
-                                        <select value={detail.storageLocation} onChange={e => handleDetailChange(index, 'storageLocation', e.target.value)} className={`${inputClasses} h-10`}>
+                                    <td className="px-0.5 py-1">
+                                        <select value={detail.storageLocation} onChange={e => handleDetailChange(index, 'storageLocation', e.target.value)} className={`${inputClasses} h-10 py-2 px-3`}>
                                             {locationOptions.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
                                         </select>
                                     </td>
-                                    <td className="p-3 font-semibold">{formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</td>
-                                    <td className="p-3 w-28"><input type="number" step="0.01" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className={`${inputClasses} h-10 text-right`} /></td>
-                                    <td className="p-3"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className={`${inputClasses} h-10 text-orange-600`} placeholder="Opc." /></td>
-                                    <td className="p-3"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${inputClasses} h-10 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`} /></td>
+                                    <td className="px-0.5 py-1 font-semibold text-[12px]">{formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</td>
+                                    <td className="px-0.5 py-1 text-center font-mono">
+                                        <input
+                                            type="number"
+                                            step="1"
+                                            value={detail.markup === null ? '' : detail.markup}
+                                            onChange={e => handleDetailChange(index, 'markup', e.target.value)}
+                                            className={`${inputClasses} h-10 w-full text-center py-2 px-1 text-success font-bold`}
+                                            placeholder="%"
+                                        />
+                                    </td>
+                                    <td className="px-0.5 py-1"><div className="w-full"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className={`${inputClasses} h-10 text-orange-600 py-2 px-3`} placeholder="Opcional" /></div></td>
+                                    <td className="px-0.5 py-1"><div className="w-full"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${inputClasses} h-10 py-2 px-3 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`} /></div></td>
                                 </tr>
                             ))}
                         </tbody>
