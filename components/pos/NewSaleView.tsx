@@ -93,6 +93,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 p.color || '',
                 p.condition || '',
                 p.storage || '',
+                (p.barcodes || []).join(' '),
                 p.warnings || '' // Include warnings if relevant? Maybe observations?
             ].join(' ').toLowerCase();
 
@@ -137,6 +138,38 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
         return [...finalResults, ...Object.values(groupedMap)];
     }, [products, productSearch, cart]);
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const term = productSearch.trim().toLowerCase();
+            if (!term) return;
+
+            // Prioridade: Match Exato de Código de Barras > IMEI/SN > Resultado Único
+            const exactMatch = products.find(p =>
+                (p.barcodes || []).some(b => b.toLowerCase() === term) ||
+                (p.imei1 || '').toLowerCase() === term ||
+                (p.serialNumber || '').toLowerCase() === term
+            );
+
+            if (exactMatch) {
+                if (exactMatch.stock > 0) {
+                    handleAddToCart(exactMatch);
+                    setProductSearch('');
+                }
+                return;
+            }
+
+            // Se houver apenas 1 resultado filtrado, seleciona ele
+            if (filteredProducts.length === 1) {
+                const p = filteredProducts[0];
+                if (p.stock > 0) {
+                    handleAddToCart(p);
+                    setProductSearch('');
+                }
+            }
+        }
+    };
 
     const paymentButtons = useMemo(() => {
         const dynamic = [];
@@ -219,7 +252,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <div className="flex-grow relative">
                                     <label className={labelClasses}>Pesquisar Produto (Modelo, IMEI, SN)</label>
                                     <div className="relative">
-                                        <input ref={productSearchRef} type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Ex: iPhone 14 Pro..." className={`${inputClasses} pl-9 h-10 sm:h-12`} />
+                                        <input ref={productSearchRef} type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} onKeyDown={handleSearchKeyDown} placeholder="Ex: iPhone 14 Pro..." className={`${inputClasses} pl-9 h-10 sm:h-12`} />
                                         <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
                                     </div>
                                     {filteredProducts.length > 0 && (
