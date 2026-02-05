@@ -140,6 +140,8 @@ export interface StockHistoryEntry {
     timestamp: string;
     changedBy: string;
     details?: string; // Additional info (e.g. Purchase ID, Client Name, Payment Method)
+    previousLocation?: string;
+    newLocation?: string;
 }
 
 export interface ProductVariation {

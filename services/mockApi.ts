@@ -1077,6 +1077,42 @@ export const updateProduct = async (data: any, userId?: string, userName?: strin
         updatePayload.priceHistory = existingPriceHistory;
     }
 
+    // --- LOCATION CHANGE TRACKING ---
+    const existingStockHistory = existingProduct.stockHistory || [];
+    let stockHistoryUpdated = false;
+
+    if (data.storageLocation !== undefined && existingProduct.storageLocation !== data.storageLocation) {
+        // Log to audit_logs
+        await addAuditLog(
+            AuditActionType.UPDATE,
+            AuditEntityType.PRODUCT,
+            data.id,
+            `Local de estoque alterado de "${existingProduct.storageLocation || 'N/A'}" para "${data.storageLocation}"`,
+            userId || 'system',
+            userName || 'Sistema'
+        );
+
+        // Add to stockHistory column
+        const newLocationEntry: StockHistoryEntry = {
+            id: crypto.randomUUID(),
+            oldStock: existingProduct.stock, // Stock volume doesn't change
+            newStock: existingProduct.stock,
+            adjustment: 0,
+            reason: 'Alteração de Local',
+            timestamp: now,
+            changedBy: userName || 'Sistema',
+            previousLocation: existingProduct.storageLocation || 'N/A',
+            newLocation: data.storageLocation
+        };
+        existingStockHistory.push(newLocationEntry);
+        stockHistoryUpdated = true;
+    }
+
+    if (stockHistoryUpdated) {
+        updatePayload.stockHistory = existingStockHistory;
+    }
+    // --------------------------------
+
     // Try to update with priceHistory
     let updatedRows, error;
     try {
@@ -1294,6 +1330,23 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
                     userId || 'system',
                     userName || 'Atualização em Massa'
                 );
+
+                // --- LOCATION CHANGE TRACKING (BULK) ---
+                const existingStockHistory = currentProduct.stockHistory || [];
+                const newLocationEntry: StockHistoryEntry = {
+                    id: crypto.randomUUID(),
+                    oldStock: currentProduct.stock, // Stock volume doesn't change
+                    newStock: currentProduct.stock,
+                    adjustment: 0,
+                    reason: 'Alteração de Local',
+                    timestamp: now,
+                    changedBy: userName || 'Atualização em Massa',
+                    previousLocation: currentProduct.storageLocation || 'N/A',
+                    newLocation: u.storageLocation
+                };
+                existingStockHistory.push(newLocationEntry);
+                payload.stockHistory = existingStockHistory;
+                // ----------------------------------------
             }
         }
 

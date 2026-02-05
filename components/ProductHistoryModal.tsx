@@ -176,9 +176,15 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
         'Entrada via Troca': 'bg-teal-100 text-teal-700',
         'Entrou em uma troca': 'bg-teal-100 text-teal-700',
         'Cadastro Inicial': 'bg-gray-100 text-gray-600',
+        'Alteração de Local': 'bg-cyan-100 text-cyan-700',
     };
 
     const getEntityName = (entry: any) => {
+        // Special case for Location Change
+        if (entry.reason === 'Alteração de Local' && entry.previousLocation && entry.newLocation) {
+            return `De: ${entry.previousLocation} \u2192 Para: ${entry.newLocation}`;
+        }
+
         // 1. Check for specific patterns in details string
         const details = entry.details || '';
 
@@ -234,11 +240,11 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
                     <tr>
                         <th scope="col" className="px-4 py-3">Data/Hora</th>
                         <th scope="col" className="px-4 py-3">Motivo</th>
-                        <th scope="col" className="px-4 py-3 hoverable-header">Cliente/Fornecedor</th>
+                        <th scope="col" className="px-4 py-3 hoverable-header">Detalhes / Origem</th>
                         <th scope="col" className="px-4 py-3 text-center">Anterior</th>
                         <th scope="col" className="px-4 py-3 text-center">Ajuste</th>
                         <th scope="col" className="px-4 py-3 text-center">Novo</th>
-                        <th scope="col" className="px-4 py-3">Detalhes</th>
+                        <th scope="col" className="px-4 py-3">Observações</th>
                         <th scope="col" className="px-4 py-3">Por</th>
                     </tr>
                 </thead>
@@ -260,7 +266,7 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
                             </td>
                             <td className="px-4 py-3 text-center font-semibold text-primary">{entry.newStock}</td>
                             <td className="px-4 py-3 text-xs text-muted" title={entry.details}>
-                                {entry.details}
+                                {entry.details || (entry.reason === 'Alteração de Local' ? 'Mudança de local' : '')}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">{entry.changedBy}</td>
                         </tr>
