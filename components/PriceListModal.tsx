@@ -287,8 +287,8 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
         Object.keys(groups).sort().forEach((label, index) => {
             // Divider between groups
             if (index > 0) {
-                text += `------------------------------------------\n`;
-                htmlPreview += `------------------------------------------\n`;
+                text += `------------------------------------------\n\n`;
+                htmlPreview += `------------------------------------------\n\n`;
             }
 
             text += `📍 ${label.toUpperCase()}\n\n`;
