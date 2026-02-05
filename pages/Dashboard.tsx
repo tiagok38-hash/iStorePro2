@@ -41,7 +41,7 @@ const StatCard: React.FC<{ title: string; value: string; subValue1?: string; sub
 ));
 
 const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: string }> = React.memo(({ sales, products, className }) => {
-    const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
+    const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('day');
 
     const { totalProfit, totalRevenue, chartData } = useMemo(() => {
         const now = new Date();
