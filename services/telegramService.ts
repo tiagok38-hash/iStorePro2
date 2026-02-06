@@ -1,7 +1,8 @@
 // Telegram Bot Integration for Sale Notifications
 
-const TELEGRAM_BOT_TOKEN = '8420006290:AAH4gbmv2Qn1XZ7oj5dlUM7VkAvB_XyL8BA';
-const TELEGRAM_CHAT_ID = '853368642';
+// Get credentials from environment variables (secure - not exposed in code)
+const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID || '';
 
 interface SaleNotificationData {
     productDescription: string; // Ex: "iPhone 13 128GB Seminovo"
@@ -10,6 +11,12 @@ interface SaleNotificationData {
 }
 
 export const sendSaleNotification = async (data: SaleNotificationData): Promise<boolean> => {
+    // Skip if credentials not configured
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+        console.warn('Telegram credentials not configured. Skipping notification.');
+        return false;
+    }
+
     try {
         const profitFormatted = data.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -51,6 +58,11 @@ export const sendSaleNotification = async (data: SaleNotificationData): Promise<
 
 // Test function to verify the bot is working
 export const testTelegramConnection = async (): Promise<boolean> => {
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+        console.warn('Telegram credentials not configured.');
+        return false;
+    }
+
     try {
         const message = `🔔 Teste de Conexão\n\nA integração do iStore com o Telegram está funcionando! ✅`;
 

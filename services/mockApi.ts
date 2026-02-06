@@ -1770,16 +1770,39 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
     // TELEGRAM NOTIFICATION: Send notification for finalized sales
     if (saleData.status === 'Finalizada') {
         try {
-            // Calculate profit from items
+            // Calculate profit from items and build product descriptions
             let totalProfit = 0;
             const productDescriptions: string[] = [];
 
             if (data.items && Array.isArray(data.items)) {
+                // Fetch full product details for all items
+                const productIds = data.items.map((item: any) => item.productId).filter(Boolean);
+                const { data: productDetails } = await supabase
+                    .from('products')
+                    .select('id, model, category, brand')
+                    .in('id', productIds);
+
+                const productMap = new Map();
+                (productDetails || []).forEach((p: any) => productMap.set(p.id, p));
+
                 for (const item of data.items) {
                     const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
                     totalProfit += itemProfit;
-                    // Build product description
-                    if (item.productName || item.model) {
+
+                    // Build product description: Category + Brand + Model
+                    const product = productMap.get(item.productId);
+                    if (product) {
+                        const parts = [];
+                        if (product.category) parts.push(product.category);
+                        if (product.brand) parts.push(product.brand);
+                        if (product.model) parts.push(product.model);
+
+                        if (parts.length > 0) {
+                            productDescriptions.push(parts.join(' '));
+                        } else {
+                            productDescriptions.push(item.productName || item.model || 'Produto');
+                        }
+                    } else if (item.productName || item.model) {
                         productDescriptions.push(item.productName || item.model);
                     }
                 }
@@ -1993,10 +2016,34 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             let totalProfit = 0;
             const productDescriptions: string[] = [];
 
+            // Fetch full product details for all items
+            const productIds = (updated.items || []).map((item: any) => item.productId).filter(Boolean);
+            const { data: productDetails } = await supabase
+                .from('products')
+                .select('id, model, category, brand')
+                .in('id', productIds);
+
+            const productMap = new Map();
+            (productDetails || []).forEach((p: any) => productMap.set(p.id, p));
+
             for (const item of updated.items || []) {
                 const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
                 totalProfit += itemProfit;
-                if (item.productName || item.model) {
+
+                // Build product description: Category + Brand + Model
+                const product = productMap.get(item.productId);
+                if (product) {
+                    const parts = [];
+                    if (product.category) parts.push(product.category);
+                    if (product.brand) parts.push(product.brand);
+                    if (product.model) parts.push(product.model);
+
+                    if (parts.length > 0) {
+                        productDescriptions.push(parts.join(' '));
+                    } else {
+                        productDescriptions.push(item.productName || item.model || 'Produto');
+                    }
+                } else if (item.productName || item.model) {
                     productDescriptions.push(item.productName || item.model);
                 }
             }
