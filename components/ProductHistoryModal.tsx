@@ -23,6 +23,7 @@ const SalesHistoryTab: React.FC<{ product: Product, sales: Sale[], customers: Cu
                     <thead className="text-xs text-secondary uppercase bg-surface-secondary">
                         <tr>
                             <th scope="col" className="px-4 py-3">ID Venda</th>
+                            <th scope="col" className="px-4 py-3">Status</th>
                             <th scope="col" className="px-4 py-3">Data</th>
                             <th scope="col" className="px-4 py-3">Cliente</th>
                             <th scope="col" className="px-4 py-3">Vendedor</th>
@@ -36,9 +37,22 @@ const SalesHistoryTab: React.FC<{ product: Product, sales: Sale[], customers: Cu
                             const saleItem = sale.items.find(item => item.productId === product.id);
                             if (!saleItem) return null;
 
+                            const statusColors: Record<string, string> = {
+                                'Finalizada': 'bg-green-100 text-green-700',
+                                'Cancelada': 'bg-red-100 text-red-700',
+                                'Pendente': 'bg-yellow-100 text-yellow-700',
+                                'Editada': 'bg-blue-100 text-blue-700'
+                            };
+                            const statusColor = statusColors[sale.status || 'Finalizada'] || 'bg-gray-100 text-gray-700';
+
                             return (
                                 <tr key={sale.id} className="bg-surface border-b border-border hover:bg-surface-secondary cursor-pointer" onClick={() => onRowClick(sale)}>
                                     <td className="px-4 py-3 font-medium text-primary">{sale.id}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor}`}>
+                                            {sale.status || 'Finalizada'}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-3">{formatDateTime(sale.date)}</td>
                                     <td className="px-4 py-3">{findCustomerName(sale.customerId)}</td>
                                     <td className="px-4 py-3">{findSalespersonName(sale.salespersonId)}</td>
