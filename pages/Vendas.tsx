@@ -165,9 +165,9 @@ const Vendas: React.FC = () => {
     const [receiptModalFormat, setReceiptModalFormat] = useState<'A4' | 'thermal' | null>(null);
 
 
-    const [startDate, setStartDate] = useState(getStartDateForPeriod('Mes'));
+    const [startDate, setStartDate] = useState(getStartDateForPeriod('hoje'));
     const [endDate, setEndDate] = useState(getLocalISODateString(new Date()));
-    const [activePeriod, setActivePeriod] = useState<'hoje' | '7dias' | '15dias' | 'Mes' | 'personalizado'>('Mes');
+    const [activePeriod, setActivePeriod] = useState<'hoje' | '7dias' | '15dias' | 'Mes' | 'personalizado'>('hoje');
     const [sellerFilter, setSellerFilter] = useState('todos');
     const [statusFilter, setStatusFilter] = useState('todos');
     const [customerSearch, setCustomerSearch] = useState('');
