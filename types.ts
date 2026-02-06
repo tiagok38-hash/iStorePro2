@@ -256,6 +256,7 @@ export interface Sale {
     warrantyTerm?: string;
     observations?: string;
     internalObservations?: string;
+    cancellationReason?: string;
     cashSessionId?: string;
     cashSessionDisplayId?: number;
 }

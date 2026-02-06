@@ -50,6 +50,7 @@ const PendingItemsTable: React.FC<{ items: PurchaseItem[] }> = ({ items }) => (
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[9px] text-gray-400 mt-0.5 font-medium">
                                 {item.productDetails.imei1 && <span>IMEI: {item.productDetails.imei1}</span>}
                                 {item.productDetails.serialNumber && <span>SN: {item.productDetails.serialNumber}</span>}
+                                {item.barcodes && item.barcodes.length > 0 && <span className="font-mono text-success">EAN: {item.barcodes[0]}</span>}
                                 {item.productDetails.brand === 'Apple' && item.productDetails.condition !== 'Novo' && item.productDetails.batteryHealth !== undefined && item.productDetails.batteryHealth > 0 && <span>BAT: {item.productDetails.batteryHealth}%</span>}
                             </div>
                         </div>
@@ -73,6 +74,7 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                     <th className="px-2 py-1.5 text-right">Custo Un.</th>
                     <th className="px-2 py-1.5 text-right">Adic.</th>
                     <th className="px-2 py-1.5 text-right">Total Un.</th>
+                    <th className="px-2 py-1.5 text-right">Atacado</th>
                     <th className="px-3 py-1.5 text-right">Venda</th>
                 </tr>
             </thead>
@@ -116,6 +118,7 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0 text-[10px] text-gray-400 mt-0.5 font-medium font-mono">
                                         {product.imei1 && <span>IMEI: {product.imei1}</span>}
                                         {product.serialNumber && <span>SN: {product.serialNumber}</span>}
+                                        {product.barcodes && product.barcodes.length > 0 && <span className="text-success">EAN: {product.barcodes[0]}</span>}
                                         {product.brand === 'Apple' && product.condition !== 'Novo' && product.batteryHealth > 0 && <span className="text-success font-black">{product.batteryHealth}%</span>}
                                     </div>
                                 </div>
@@ -124,6 +127,7 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                             <td className="px-2 py-1.5 text-right align-top text-gray-500">{formatCurrency(product.costPrice)}</td>
                             <td className="px-2 py-1.5 text-right align-top text-gray-400">{formatCurrency(product.additionalCostPrice)}</td>
                             <td className="px-2 py-1.5 text-right font-black text-gray-700 align-top">{formatCurrency(finalUnitCost)}</td>
+                            <td className="px-2 py-1.5 text-right align-top font-bold text-orange-500">{product.wholesalePrice ? formatCurrency(product.wholesalePrice) : '-'}</td>
                             <td className="px-3 py-1.5 text-right font-black text-primary align-top">{formatCurrency(product.price)}</td>
                         </tr>
                     );

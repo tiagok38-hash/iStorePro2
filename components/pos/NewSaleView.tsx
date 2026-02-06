@@ -5,7 +5,7 @@ import {
     Brand, Category, ProductModel, Grade, GradeValue,
     Supplier, ReceiptTermParameter, PaymentMethodParameter
 } from '../../types.ts';
-import { formatCurrency } from '../../services/mockApi.ts';
+import { formatCurrency, getNextSaleId } from '../../services/mockApi.ts';
 import {
     PlusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon,
     TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon
@@ -49,6 +49,16 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         grades, gradeValues, receiptTerms, paymentMethods, onAddNewCustomer
     } = props;
 
+    const [nextId, setNextId] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (!props.saleToEdit) {
+            getNextSaleId().then(setNextId);
+        } else {
+            setNextId(null);
+        }
+    }, [props.saleToEdit]);
+
     const { state, actions, refs } = useSaleForm(props);
 
     const {
@@ -68,7 +78,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput, setProductForTradeIn,
         handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
         handleRequestPayment, handleConfirmPayment, handleConfirmCardPayment,
-        handleRemovePayment, handleSaveTradeInProduct, handleSave
+        handleRemovePayment, handleSaveTradeInProduct, handleSave, setSelectedPriceType
     } = actions;
 
 
@@ -204,7 +214,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 <div className="p-2 md:p-4 space-y-3 md:space-y-4">
                     <section>
                         <div className="flex items-center justify-between mb-1 sm:mb-2 pb-1.5 sm:pb-2 border-b border-gray-100">
-                            <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-[10px] sm:text-xs tracking-widest"><EditIcon className="h-3.5 w-3.5 text-success" /> Dados da venda</h3>
+                            <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-[10px] sm:text-xs tracking-widest">
+                                <EditIcon className="h-3.5 w-3.5 text-success" />
+                                {props.saleToEdit ? `Dados da Venda #${props.saleToEdit.id}` : (nextId ? `Dados da Nova Venda #${nextId.replace('ID-', '')}` : 'Dados da Venda')}
+                            </h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 bg-white p-1">
                             <div className="md:col-span-2 flex flex-col justify-end">
@@ -223,7 +236,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <div className="flex items-stretch gap-2 h-10 sm:h-12">
                                     <div className="flex-grow h-full text-xs sm:text-sm">
                                         <SearchableDropdown
-                                            options={customers.filter(c => c.active !== false || c.id === selectedCustomerId).map(c => ({ value: c.id, label: c.name }))}
+                                            options={customers.filter(c => c.active !== false || c.id === selectedCustomerId).map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` | ${c.phone}` : ''}` }))}
                                             value={selectedCustomerId}
                                             onChange={setSelectedCustomerId}
                                             placeholder="Busque pelo nome..."
@@ -309,22 +322,6 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2 ml-4">
-                                                        {(p.costPrice || 0) > 0 && (
-                                                            <button
-                                                                onClick={() => { handleAddToCart(p, 'cost'); setProductSearch(''); }}
-                                                                className="px-2 py-1 text-[10px] bg-sky-50 text-sky-600 rounded-md border border-sky-100 font-black uppercase hover:bg-sky-100 transition-colors whitespace-nowrap"
-                                                            >
-                                                                Preço Custo
-                                                            </button>
-                                                        )}
-                                                        {(p.wholesalePrice || 0) > 0 && (
-                                                            <button
-                                                                onClick={() => { handleAddToCart(p, 'wholesale'); setProductSearch(''); }}
-                                                                className="px-2 py-1 text-[10px] bg-orange-50 text-orange-600 rounded-md border border-orange-100 font-black uppercase hover:bg-orange-100 transition-colors whitespace-nowrap"
-                                                            >
-                                                                Preço Atacado
-                                                            </button>
-                                                        )}
                                                         <span
                                                             className="font-black text-primary text-base md:text-xl tabular-nums ml-2 cursor-pointer whitespace-nowrap"
                                                             onClick={() => { handleAddToCart(p); setProductSearch(''); }}
@@ -778,23 +775,35 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     </div>
                                 </div>
 
-                                {/* Preços Disponíveis - Moved to Bottom and Color Fixed */}
+                                {/* Preços Cadastrados */}
                                 <div className="space-y-1.5 pt-2 border-t border-gray-100/50">
-                                    <label className="block text-[10px] font-black text-muted uppercase tracking-widest">Preços Disponíveis</label>
+                                    <div className="mb-2">
+                                        <label className="block text-[10px] font-black text-muted uppercase tracking-widest">Preços Cadastrados</label>
+                                        <p className="text-[9px] text-gray-500 font-medium leading-tight">(caso queira vender pelo preço de custo ou atacado, selecione-o abaixo)</p>
+                                    </div>
                                     <div className="grid grid-cols-3 gap-2">
                                         {(productToConfirm.costPrice || 0) > 0 && (
-                                            <div className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all ${selectedPriceType === 'cost' ? 'bg-sky-100 border-sky-500 ring-1 ring-sky-500 shadow-sm' : 'bg-sky-50/50 border-sky-100'}`}>
+                                            <div
+                                                onClick={() => setSelectedPriceType('cost')}
+                                                className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all cursor-pointer hover:bg-sky-100 ${selectedPriceType === 'cost' ? 'bg-sky-100 border-sky-500 ring-1 ring-sky-500 shadow-sm' : 'bg-sky-50/50 border-sky-100'}`}
+                                            >
                                                 <span className={`text-[8px] font-black uppercase mb-0.5 ${selectedPriceType === 'cost' ? 'text-sky-700' : 'text-sky-600/60'}`}>Custo</span>
                                                 <span className={`font-black text-[13px] tabular-nums ${selectedPriceType === 'cost' ? 'text-sky-800' : 'text-sky-700/80'}`}>{formatCurrency(productToConfirm.costPrice!)}</span>
                                             </div>
                                         )}
                                         {(productToConfirm.wholesalePrice || 0) > 0 && (
-                                            <div className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all ${selectedPriceType === 'wholesale' ? 'bg-orange-100 border-orange-500 ring-1 ring-orange-500 shadow-sm' : 'bg-orange-50/30 border-orange-100/50'}`}>
+                                            <div
+                                                onClick={() => setSelectedPriceType('wholesale')}
+                                                className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all cursor-pointer hover:bg-orange-100 ${selectedPriceType === 'wholesale' ? 'bg-orange-100 border-orange-500 ring-1 ring-orange-500 shadow-sm' : 'bg-orange-50/30 border-orange-100/50'}`}
+                                            >
                                                 <span className={`text-[8px] font-black uppercase mb-0.5 ${selectedPriceType === 'wholesale' ? 'text-orange-700' : 'text-orange-600/60'}`}>Atacado</span>
                                                 <span className={`font-black text-[13px] tabular-nums ${selectedPriceType === 'wholesale' ? 'text-orange-800' : 'text-orange-700/80'}`}>{formatCurrency(productToConfirm.wholesalePrice!)}</span>
                                             </div>
                                         )}
-                                        <div className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all ${selectedPriceType === 'sale' ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-500 shadow-sm' : 'bg-emerald-50/30 border-emerald-100/50'}`}>
+                                        <div
+                                            onClick={() => setSelectedPriceType('sale')}
+                                            className={`p-2 rounded-lg border flex flex-col items-center justify-center transition-all cursor-pointer hover:bg-emerald-100 ${selectedPriceType === 'sale' ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-500 shadow-sm' : 'bg-emerald-50/30 border-emerald-100/50'}`}
+                                        >
                                             <span className={`text-[8px] font-black uppercase mb-0.5 ${selectedPriceType === 'sale' ? 'text-emerald-700' : 'text-emerald-600/60'}`}>Venda</span>
                                             <span className={`font-black text-[13px] tabular-nums ${selectedPriceType === 'sale' ? 'text-emerald-800' : 'text-emerald-700/80'}`}>{formatCurrency(productToConfirm.price)}</span>
                                         </div>

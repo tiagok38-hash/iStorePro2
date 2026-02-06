@@ -598,6 +598,14 @@ const Products: React.FC = () => {
 
     const handleDeletePurchase = async (reason: string) => {
         if (!purchaseToDelete) return;
+
+        // Validação: não permitir exclusão de compras lançadas
+        if (purchaseToDelete.stockStatus === 'Lançado' || purchaseToDelete.stockStatus === 'Parcialmente Lançado') {
+            showToast('Não é possível excluir uma compra lançada. Reverta o lançamento primeiro.', 'warning');
+            setPurchaseToDelete(null);
+            return;
+        }
+
         try {
             await deletePurchaseOrder(purchaseToDelete.id);
             showToast('Compra excluída com sucesso!', 'success');
@@ -1103,7 +1111,22 @@ const Products: React.FC = () => {
                                                             )}
                                                         </button>
                                                     )}
-                                                    {permissions?.canDeletePurchase && <button onClick={() => setPurchaseToDelete(p)} title={hasSoldProducts ? disabledReason : "Excluir"} disabled={hasSoldProducts}><TrashIcon className={`h-5 w-5 ${hasSoldProducts ? 'text-gray-300' : 'text-red-500 hover:text-red-700'}`} /></button>}
+                                                    {permissions?.canDeletePurchase && (() => {
+                                                        const isLaunched = p.stockStatus === 'Lançado' || p.stockStatus === 'Parcialmente Lançado';
+                                                        const deleteDisabled = hasSoldProducts || isLaunched;
+                                                        const deleteReason = isLaunched
+                                                            ? 'Reverta o lançamento da compra antes de excluí-la.'
+                                                            : (hasSoldProducts ? disabledReason : 'Excluir');
+                                                        return (
+                                                            <button
+                                                                onClick={() => setPurchaseToDelete(p)}
+                                                                title={deleteReason}
+                                                                disabled={deleteDisabled}
+                                                            >
+                                                                <TrashIcon className={`h-5 w-5 ${deleteDisabled ? 'text-gray-300' : 'text-red-500 hover:text-red-700'}`} />
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </td>
                                         </tr>

@@ -180,7 +180,7 @@ export const useSaleForm = ({
         setProductToConfirm(null);
         setProductSearch('');
         setSearchQuantity(1);
-    }, [productToConfirm, searchQuantity, cart, showToast]);
+    }, [productToConfirm, searchQuantity, cart, showToast, selectedPriceType]);
 
     const handleRemoveFromCart = useCallback((productId: string) => {
         const itemToRemove = cart.find(item => item.id === productId);
@@ -517,6 +517,7 @@ export const useSaleForm = ({
             handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
             handleOpenTradeInModal, handleRequestPayment, handleConfirmPayment,
             handleConfirmCardPayment, handleRemovePayment, handleSaveTradeInProduct, handleSaveTradeInFromModal, handleSave,
+            setSelectedPriceType,
 
             resetState
         },

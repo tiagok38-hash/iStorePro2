@@ -273,6 +273,15 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                 </div>
                             </div>
                         </div>
+                        {sale.status === 'Cancelada' && (
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <h3 className="font-bold text-red-800 mb-1">Venda Cancelada</h3>
+                                <p className="text-sm text-red-700">
+                                    <span className="font-semibold">Motivo:</span> {sale.cancellationReason || 'Motivo não informado'}
+                                </p>
+                            </div>
+                        )}
+
                         {sale.observations && (
                             <div className="pt-4 border-t border-border">
                                 <h3 className="font-semibold text-primary mb-2">Observações (Comprovante)</h3>

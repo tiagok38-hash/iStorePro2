@@ -28,6 +28,7 @@ type ItemDetail = {
     isApple?: boolean;
     barcode?: string;
     controlByBarcode?: boolean;
+    hasImei?: boolean; // Indica se o item precisa de IMEI/Serial Number
 };
 
 const StockInModal: React.FC<{
@@ -137,9 +138,14 @@ const StockInModal: React.FC<{
         };
     }, []);
 
-    const isBulkMode = useMemo(() =>
-        purchaseOrder.items.every(item => !item.hasImei),
+    // Determina o modo de renderização baseado nos itens da compra
+    // Se QUALQUER item tem IMEI, usa o modo único para mostrar campos de IMEI/SN
+    // Isso permite compras mistas (itens com e sem IMEI)
+    const hasAnyImeiItem = useMemo(() =>
+        purchaseOrder.items.some(item => item.hasImei),
         [purchaseOrder.items]);
+
+    const isBulkMode = !hasAnyImeiItem;
 
     // Load/Save draft from localStorage
     useEffect(() => {
@@ -175,19 +181,23 @@ const StockInModal: React.FC<{
                 minimumStock: item.minimumStock,
                 isApple: item.productDetails.brand === 'Apple',
                 barcode: (item.barcodes && item.barcodes.length > 0) ? item.barcodes[0] : '',
-                controlByBarcode: item.controlByBarcode
+                controlByBarcode: item.controlByBarcode,
+                hasImei: item.hasImei
             };
 
-            if (isBulkMode) {
-                return [{
-                    ...baseDetail,
-                    quantity: quantityToLaunch,
-                }];
-            } else {
+            // Decisão POR ITEM: se tem IMEI, expande em linhas individuais; se não, agrupa
+            if (item.hasImei) {
+                // Modo único: cada unidade é uma linha separada para preencher IMEI/SN
                 return Array.from({ length: quantityToLaunch }, () => ({
                     ...baseDetail,
                     quantity: 1,
                 }));
+            } else {
+                // Modo bulk: agrupa quantidade (produtos sem IMEI, como acessórios ou com código de barras)
+                return [{
+                    ...baseDetail,
+                    quantity: quantityToLaunch,
+                }];
             }
         });
 
@@ -230,7 +240,7 @@ const StockInModal: React.FC<{
 
         const hasMinStockEnabled = expandedDetails.some(d => !d.isApple && d.minimumStock && d.minimumStock > 0);
         setIsMinimumStockEnabled(hasMinStockEnabled);
-    }, [purchaseOrder, allProducts, onClose, showToast, isBulkMode]);
+    }, [purchaseOrder, allProducts, onClose, showToast]);
 
     const focusNextRow = (index: number, field: string) => {
         // Use DOM ID for absolute reliability over React Refs
@@ -723,6 +733,7 @@ const StockInModal: React.FC<{
                         <thead className="text-left text-xs text-gray-900 bg-surface-secondary sticky top-0 z-10">
                             <tr>
                                 <th className="pl-3 py-2 w-[170px] font-bold text-left">Descrição</th>
+                                <th className="pl-3 py-2 w-[50px] font-bold text-center">Qtd</th>
                                 <th className="pl-3 py-2 w-[130px] font-bold text-left">IMEI 1</th>
                                 <th className="pl-3 py-2 w-[130px] font-bold text-left">IMEI 2</th>
                                 <th className="pl-3 py-2 w-[130px] font-bold text-left">S/N</th>
@@ -738,40 +749,57 @@ const StockInModal: React.FC<{
                         </thead>
                         <tbody>
                             {details.map((detail, index) => (
-                                <tr key={index} className="border-b border-border hover:bg-surface-secondary/50">
+                                <tr key={index} className={`border-b border-border hover:bg-surface-secondary/50 ${!detail.hasImei ? 'bg-blue-50/30' : ''}`}>
                                     <td className="p-3 text-[11px] font-bold text-primary leading-tight">
                                         <div className="max-w-[200px] break-words">{detail.itemDescription}</div>
                                     </td>
-                                    <td className="p-1">
-                                        <input
-                                            id={`stock-input-${index}-imei1`}
-                                            type="text"
-                                            value={detail.imei1}
-                                            onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
-                                            onKeyDown={e => handleKeyDown(e, index, 'imei1')}
-                                            className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
-                                            placeholder={isContinuousScanEnabled ? "Bipe..." : ""}
-                                        />
+                                    <td className="p-1 text-center">
+                                        <span className={`px-2 py-1 rounded font-bold text-sm ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
+                                            {detail.quantity}
+                                        </span>
                                     </td>
                                     <td className="p-1">
-                                        <input
-                                            id={`stock-input-${index}-imei2`}
-                                            type="text"
-                                            value={detail.imei2}
-                                            onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
-                                            onKeyDown={e => handleKeyDown(e, index, 'imei2')}
-                                            className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
-                                        />
+                                        {detail.hasImei ? (
+                                            <input
+                                                id={`stock-input-${index}-imei1`}
+                                                type="text"
+                                                value={detail.imei1}
+                                                onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
+                                                onKeyDown={e => handleKeyDown(e, index, 'imei1')}
+                                                className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                placeholder={isContinuousScanEnabled ? "Bipe..." : ""}
+                                            />
+                                        ) : (
+                                            <span className="text-muted text-center block">-</span>
+                                        )}
                                     </td>
                                     <td className="p-1">
-                                        <input
-                                            id={`stock-input-${index}-serialNumber`}
-                                            type="text"
-                                            value={detail.serialNumber}
-                                            onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
-                                            onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
-                                            className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
-                                        />
+                                        {detail.hasImei ? (
+                                            <input
+                                                id={`stock-input-${index}-imei2`}
+                                                type="text"
+                                                value={detail.imei2}
+                                                onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
+                                                onKeyDown={e => handleKeyDown(e, index, 'imei2')}
+                                                className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                            />
+                                        ) : (
+                                            <span className="text-muted text-center block">-</span>
+                                        )}
+                                    </td>
+                                    <td className="p-1">
+                                        {detail.hasImei ? (
+                                            <input
+                                                id={`stock-input-${index}-serialNumber`}
+                                                type="text"
+                                                value={detail.serialNumber}
+                                                onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
+                                                onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
+                                                className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                            />
+                                        ) : (
+                                            <span className="text-muted text-center block">-</span>
+                                        )}
                                     </td>
                                     <td className="px-0.5 py-1">
                                         <select value={detail.condition} onChange={e => handleDetailChange(index, 'condition', e.target.value)} className={`${inputClasses} h-10`}>
@@ -823,55 +851,61 @@ const StockInModal: React.FC<{
                 < div className="block md:hidden space-y-3 p-3 bg-gray-50/50" >
                     {
                         details.map((detail, index) => (
-                            <div key={index} className="bg-surface border border-border rounded-lg shadow-sm overflow-hidden animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
+                            <div key={index} className={`bg-surface border border-border rounded-lg shadow-sm overflow-hidden animate-fade-in ${!detail.hasImei ? 'border-l-4 border-l-success' : ''}`} style={{ animationDelay: `${index * 30}ms` }}>
                                 {/* Compact Header */}
                                 <div className="bg-surface-secondary px-4 py-2.5 border-b border-border flex justify-between items-center">
                                     <div className="flex items-center gap-2 overflow-hidden">
                                         <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md min-w-[24px] text-center">#{index + 1}</span>
                                         <h3 className="font-bold text-primary text-xs truncate">{detail.itemDescription}</h3>
                                     </div>
-                                    <span className="text-[9px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-full uppercase">Pendente</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
+                                            Qtd: {detail.quantity}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="p-3 space-y-3">
-                                    {/* Dense Identification Row */}
-                                    <div className="space-y-2">
-                                        <div className="relative group">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">IMEI 1</span>
-                                            <input
-                                                id={`stock-input-${index}-imei1`}
-                                                type="text"
-                                                value={detail.imei1}
-                                                onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
-                                                onKeyDown={e => handleKeyDown(e, index, 'imei1')}
-                                                className={`${inputClassesCompact} pl-14 h-11 text-sm font-semibold rounded-lg ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
+                                    {/* Dense Identification Row - Só mostra se hasImei */}
+                                    {detail.hasImei && (
+                                        <div className="space-y-2">
                                             <div className="relative group">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">IMEI 2</span>
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">IMEI 1</span>
                                                 <input
-                                                    id={`stock-input-${index}-imei2`}
+                                                    id={`stock-input-${index}-imei1`}
                                                     type="text"
-                                                    value={detail.imei2}
-                                                    onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
-                                                    onKeyDown={e => handleKeyDown(e, index, 'imei2')}
-                                                    className={`${inputClassesCompact} pl-14 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                    value={detail.imei1}
+                                                    onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
+                                                    onKeyDown={e => handleKeyDown(e, index, 'imei1')}
+                                                    className={`${inputClassesCompact} pl-14 h-11 text-sm font-semibold rounded-lg ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                                 />
                                             </div>
-                                            <div className="relative group">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">S/N</span>
-                                                <input
-                                                    id={`stock-input-${index}-serialNumber`}
-                                                    type="text"
-                                                    value={detail.serialNumber}
-                                                    onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
-                                                    onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
-                                                    className={`${inputClassesCompact} pl-10 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
-                                                />
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="relative group">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">IMEI 2</span>
+                                                    <input
+                                                        id={`stock-input-${index}-imei2`}
+                                                        type="text"
+                                                        value={detail.imei2}
+                                                        onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
+                                                        onKeyDown={e => handleKeyDown(e, index, 'imei2')}
+                                                        className={`${inputClassesCompact} pl-14 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                    />
+                                                </div>
+                                                <div className="relative group">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">S/N</span>
+                                                    <input
+                                                        id={`stock-input-${index}-serialNumber`}
+                                                        type="text"
+                                                        value={detail.serialNumber}
+                                                        onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
+                                                        onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
+                                                        className={`${inputClassesCompact} pl-10 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* Compact Specs Row */}
                                     <div className="grid grid-cols-2 gap-2">

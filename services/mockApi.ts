@@ -1425,10 +1425,19 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
                 try {
                     const separatorCSDID = '\n---CSDID---\n';
                     const separatorInternal = '\n---INTERNAL---\n';
+                    const separatorCancelReason = '\n---CANCEL_REASON---\n';
 
                     let external = sale.observations || '';
                     let internal = '';
                     let csdid = undefined;
+                    let cancelReason = '';
+
+                    // Extrair motivo de cancelamento primeiro
+                    if (external.includes(separatorCancelReason)) {
+                        const parts = external.split(separatorCancelReason);
+                        external = parts[0];
+                        cancelReason = parts.slice(1).join(separatorCancelReason);
+                    }
 
                     if (external.includes(separatorCSDID)) {
                         const parts = external.split(separatorCSDID);
@@ -1453,6 +1462,7 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
                         observations: external,
                         internalObservations: internal,
                         cashSessionDisplayId: csdid,
+                        cancellationReason: cancelReason,
                         items: Array.isArray(sale.items) ? sale.items : (typeof sale.items === 'string' ? JSON.parse(sale.items) : []),
                         payments: Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? JSON.parse(sale.payments) : [])
                     };
@@ -1532,6 +1542,38 @@ const adjustProductStock = async (
         userId,
         userName
     );
+};
+
+export const getNextSaleId = async (): Promise<string> => {
+    // Get all IDs to find the max and ensure uniqueness efficiently
+    // Improved ID generation: Fetch only the most recent IDs to avoid timeouts and RLS truncation issues
+    const { data: recentIds, error: fetchError } = await supabase
+        .from('sales')
+        .select('id')
+        .order('createdAt', { ascending: false })
+        .limit(50);
+
+    if (fetchError) {
+        console.warn('mockApi: Error fetching recent IDs, falling back to sequential check. error:', fetchError);
+    }
+
+    let nextNum = 1;
+    if (recentIds && recentIds.length > 0) {
+        const numbers = recentIds
+            .map((s: { id: string }) => {
+                const match = s.id.match(/^ID-(\d+)$/);
+                return match ? parseInt(match[1], 10) : 0;
+            })
+            .filter((n: number) => !isNaN(n) && n < 1000000000);
+
+        if (numbers.length > 0) {
+            nextNum = Math.max(...numbers) + 1;
+        }
+    } else {
+        const { count } = await supabase.from('sales').select('*', { count: 'exact', head: true });
+        nextNum = (count || 0) + 1;
+    }
+    return `ID-${nextNum}`;
 };
 
 export const addSale = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
@@ -1825,6 +1867,9 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     }
                 }
             }
+            if (data.discount) {
+                totalProfit -= Number(data.discount);
+            }
 
             // Get product description (first item or combined)
             let productDescription = productDescriptions.length > 0
@@ -1837,8 +1882,9 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 const today = new Date().toISOString().split('T')[0];
                 const { data: todaySales } = await supabase
                     .from('sales')
-                    .select('items')
+                    .select('items, discount')
                     .gte('date', today)
+                    .neq('id', newSale.id)
                     .in('status', ['Finalizada', 'Editada']);
 
                 if (todaySales && todaySales.length > 0) {
@@ -1848,8 +1894,11 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                         for (const item of items) {
                             dailyProfit += ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
                         }
+                        if (sale.discount) {
+                            dailyProfit -= Number(sale.discount);
+                        }
                     }
-                    // Add current sale profit (not yet in DB)
+                    // Add current sale profit (manually added since we excluded it or in case of delay)
                     dailyProfit += totalProfit;
                 }
             } catch (dailyError) {
@@ -2327,7 +2376,17 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
         throw new Error('Acesso NEGADO: Você não pode cancelar uma venda de outro vendedor, a menos que seja o dono do caixa.');
     }
 
-    const { data: updatedSale, error: updateError } = await supabase.from('sales').update({ status: 'Cancelada', observations: reason ? `${sale.observations || ''} [Cancelada: ${reason}]` : sale.observations }).eq('id', id).select().single();
+    // Salvar o motivo de cancelamento usando um separador específico, preservando as observações originais
+    // Formato: observações_originais\n---CANCEL_REASON---\nmotivo
+    const separator = '\n---CANCEL_REASON---\n';
+    const updatedObservations = sale.observations
+        ? `${sale.observations}${separator}${reason}`
+        : `${separator}${reason}`;
+
+    const { data: updatedSale, error: updateError } = await supabase.from('sales').update({
+        status: 'Cancelada',
+        observations: updatedObservations
+    }).eq('id', id).select().single();
     if (updateError) throw updateError;
 
     // Add main sale cancel audit log
