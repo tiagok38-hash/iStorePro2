@@ -322,7 +322,7 @@ const BillingChart: React.FC<{
 });
 
 const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string }> = React.memo(({ sales, activeMethods, className }) => {
-    const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('month');
+    const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
     // Helper for colors
     const getColorForMethod = (method: string) => {
