@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
-import { Sale, Product, Customer, User } from '../types.ts';
-import { getSales, getProducts, getCustomers, getUsers, formatCurrency } from '../services/mockApi.ts';
+import { Sale, Product, Customer, User, ProductModel } from '../types.ts';
+import { getSales, getProducts, getCustomers, getUsers, formatCurrency, getProductModels } from '../services/mockApi.ts';
 import { SpinnerIcon, CalendarDaysIcon, TrophyIcon } from '../components/icons.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import PriceListModal from '../components/PriceListModal.tsx';
@@ -931,6 +931,7 @@ const Reports: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [users, setUsers] = useState<User[]>([]);
+    const [productModels, setProductModels] = useState<ProductModel[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPriceListModalOpen, setIsPriceListModalOpen] = useState(false);
 
@@ -951,16 +952,18 @@ const Reports: React.FC = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [salesData, productsData, customersData, usersData] = await Promise.all([
+                const [salesData, productsData, customersData, usersData, modelsData] = await Promise.all([
                     getSales(),
                     getProducts(),
                     getCustomers(false),
-                    getUsers()
+                    getUsers(),
+                    getProductModels()
                 ]);
                 setSales(salesData);
                 setProducts(productsData);
                 setCustomers(customersData);
                 setUsers(usersData);
+                setProductModels(modelsData);
             } catch (error) {
                 console.error("Failed to fetch report data:", error);
             } finally {
@@ -1004,7 +1007,7 @@ const Reports: React.FC = () => {
             ) : (
                 <>
                     {activeTab === 'vendas' && <VendasReport sales={sales} products={products} customers={customers} users={users} />}
-                    {activeTab === 'sales_reports' && <SalesReports sales={sales} products={products} customers={customers} users={users} />}
+                    {activeTab === 'sales_reports' && <SalesReports sales={sales} products={products} customers={customers} users={users} productModels={productModels} />}
                     {activeTab === 'estoque' && <EstoqueReport products={products} sales={sales} initialFilter={searchParams.get('filter')} />}
                 </>
             )}

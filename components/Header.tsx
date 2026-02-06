@@ -2,6 +2,8 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogoIcon, UserCircleIcon, LogoutIcon } from './icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
+import { CompanyInfo } from '../types.ts';
+import { getCompanyInfo } from '../services/mockApi.ts';
 
 const Logo: React.FC = () => (
     <Link to="/" className="flex items-center h-full overflow-hidden">
@@ -23,6 +25,18 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = () => {
     const { user, logout } = useUser();
     const navigate = useNavigate();
+    const [companyInfo, setCompanyInfo] = React.useState<CompanyInfo | null>(null);
+
+    React.useEffect(() => {
+        const fetchInfo = () => {
+            getCompanyInfo().then(setCompanyInfo);
+        };
+        fetchInfo();
+        window.addEventListener('companyInfoUpdated', fetchInfo);
+        return () => {
+            window.removeEventListener('companyInfoUpdated', fetchInfo);
+        };
+    }, []);
 
     const handleLogout = async () => {
         logout();
@@ -49,17 +63,30 @@ const Header: React.FC<HeaderProps> = () => {
             <Logo />
 
             <div className="flex items-center gap-3">
-                <Link to="/company?tab=perfil" className="flex items-center justify-center relative">
-                    <div className="absolute -bottom-0.5 -right-0.5 z-10 flex h-3 w-3">
-                        {isOnline && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-                        <span className={`relative inline-flex rounded-full h-3 w-3 border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                    </div>
-                    {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="Perfil" className="h-8 w-8 rounded-full border border-border object-cover" />
-                    ) : (
-                        <UserCircleIcon className="h-8 w-8 text-muted" />
+                <div className="flex items-center">
+                    {companyInfo?.logoUrl && (
+                        <div className="relative z-0 -mr-2">
+                            <img
+                                src={companyInfo.logoUrl}
+                                alt={companyInfo.name}
+                                className="h-9 w-9 rounded-full border border-border object-cover"
+                            />
+                        </div>
                     )}
-                </Link>
+                    <Link to="/company?tab=perfil" className="flex items-center justify-center relative z-10 transition-transform active:scale-95">
+                        <div className="absolute -bottom-0.5 -right-0.5 z-20 flex h-3 w-3">
+                            {isOnline && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                            <span className={`relative inline-flex rounded-full h-3 w-3 border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                        </div>
+                        {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="Perfil" className="h-9 w-9 rounded-full border-2 border-surface object-cover shadow-sm bg-surface" />
+                        ) : (
+                            <div className="h-9 w-9 rounded-full bg-surface border-2 border-surface flex items-center justify-center shadow-sm text-muted">
+                                <UserCircleIcon className="h-9 w-9" />
+                            </div>
+                        )}
+                    </Link>
+                </div>
                 <button onClick={handleLogout} className="text-muted hover:text-danger p-1" aria-label="Sair">
                     <LogoutIcon className="h-6 w-6" />
                 </button>

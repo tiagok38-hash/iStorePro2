@@ -5,7 +5,7 @@ import { PurchaseOrder, Product, PurchaseItem, ProductConditionParameter, Storag
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { launchPurchaseToStock, formatCurrency, getProductConditions, getStorageLocations, getWarranties } from '../services/mockApi.ts';
-import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon, BoltIcon } from './icons.tsx';
+import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon, BoltIcon, SearchIcon } from './icons.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
 
 type ItemDetail = {
@@ -51,6 +51,68 @@ const StockInModal: React.FC<{
     const [conditionOptions, setConditionOptions] = useState<ProductConditionParameter[]>([]);
     const [locationOptions, setLocationOptions] = useState<StorageLocationParameter[]>([]);
     const [warrantyOptions, setWarrantyOptions] = useState<WarrantyParameter[]>([]);
+
+    // Quick Stock Search
+    const [stockSearchTerm, setStockSearchTerm] = useState('');
+    const [showStockResults, setShowStockResults] = useState(false);
+
+    const stockSearchResults = useMemo(() => {
+        if (!stockSearchTerm || stockSearchTerm.length < 2) return [];
+
+        const lowerTerm = stockSearchTerm.toLowerCase();
+
+        // Define known conditions to look for
+        const conditionsMap: Record<string, string> = {
+            'seminovo': 'Seminovo',
+            'novo': 'Novo',
+            'cpo': 'CPO',
+            'open box': 'Open Box',
+            'vitrine': 'Vitrine',
+            'lacrado': 'Novo' // Alias commonly used
+        };
+
+        // Check if any condition keyword is present in the search term
+        let targetCondition: string | null = null;
+        let finalSearchTerm = lowerTerm;
+
+        // Sort keys by length desc to match "open box" before "box" if exists, or similar overlaps
+        const conditionKeys = Object.keys(conditionsMap).sort((a, b) => b.length - a.length);
+
+        for (const key of conditionKeys) {
+            if (finalSearchTerm.includes(key)) {
+                targetCondition = conditionsMap[key];
+                // Remove the condition keyword from the search string to filter model
+                finalSearchTerm = finalSearchTerm.replace(key, '').trim();
+                break; // Assume only one condition is searched at a time
+            }
+        }
+
+        return allProducts
+            .filter(p => {
+                if (p.stock <= 0) return false;
+
+                // If a specific condition was identified, strictly filter by it
+                if (targetCondition) {
+                    const productCondition = (p.condition || '').toLowerCase();
+                    const targetLower = targetCondition.toLowerCase();
+                    // Flexible matching for condition (e.g. if product is "Novo Lacrado" and target is "Novo")
+                    if (!productCondition.includes(targetLower)) {
+                        return false;
+                    }
+                }
+
+                // If there's remaining text after removing condition, check if it matches model
+                if (finalSearchTerm) {
+                    const modelMatch = (p.model || '').toLowerCase().includes(finalSearchTerm);
+                    // Also check if the remaining term might be part of the condition (fallback) or brand
+                    const otherMatch = (p.brand || '').toLowerCase().includes(finalSearchTerm);
+                    return modelMatch || otherMatch;
+                }
+
+                return true;
+            })
+            .slice(0, 10);
+    }, [allProducts, stockSearchTerm]);
 
     // Fetch dynamic parameters on mount
     useEffect(() => {
@@ -884,11 +946,67 @@ const StockInModal: React.FC<{
     return createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-end md:items-center z-[99999] p-0 md:p-4 animate-fade-in">
             <div className="bg-surface w-full max-w-[99vw] h-[100dvh] md:h-auto md:max-h-[95vh] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                <div className="flex justify-between items-center p-4 md:p-6 border-b border-border bg-surface sticky top-0 z-20">
+                <div className="flex justify-between items-center p-4 md:p-6 border-b border-border bg-surface sticky top-0 z-20 gap-4">
                     <div>
                         <h2 className="text-lg md:text-2xl font-black text-primary leading-tight">Lançar Compra #{purchaseOrder.displayId}</h2>
                         <p className="text-xs md:text-sm text-muted font-medium">Fornecedor: <span className="text-primary">{purchaseOrder.supplierName}</span></p>
                     </div>
+
+                    {/* Quick Stock Search */}
+                    <div className="relative flex-1 max-w-md mx-4 hidden md:block">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="🔍 Buscar estoque (Modelo/Condição)..."
+                                value={stockSearchTerm}
+                                onChange={e => {
+                                    setStockSearchTerm(e.target.value);
+                                    setShowStockResults(true);
+                                }}
+                                onFocus={() => setShowStockResults(true)}
+                                className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-border shadow-sm rounded-xl text-sm font-medium text-primary placeholder:text-muted focus:bg-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all hover:bg-gray-100/50"
+                            />
+                            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            {stockSearchTerm && (
+                                <button onClick={() => { setStockSearchTerm(''); setShowStockResults(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-danger p-0.5 rounded-full hover:bg-danger/10">
+                                    <XCircleIcon className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+
+                        {showStockResults && stockSearchResults.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden max-h-[300px] overflow-y-auto">
+                                {stockSearchResults.map(product => (
+                                    <div key={product.id} className="p-3 border-b border-border hover:bg-surface-secondary transition-colors cursor-default">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="font-bold text-sm text-primary">{product.model}</div>
+                                            <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{product.condition}</span>
+                                        </div>
+                                        <div className="flex gap-4 text-xs mt-1">
+                                            <div>
+                                                <span className="text-muted block text-[10px] uppercase font-bold">Custo</span>
+                                                <span className="font-semibold text-gray-700">{formatCurrency(product.costPrice || 0)}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted block text-[10px] uppercase font-bold text-orange-600">Atacado</span>
+                                                <span className="font-semibold text-orange-600">{formatCurrency(product.wholesalePrice || 0)}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted block text-[10px] uppercase font-bold text-success">Venda</span>
+                                                <span className="font-bold text-success">{formatCurrency(product.price)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {showStockResults && stockSearchTerm && stockSearchResults.length === 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-xl shadow-xl z-50 p-4 text-center text-sm text-muted">
+                                Nenhum produto encontrado.
+                            </div>
+                        )}
+                    </div>
+
                     <button onClick={() => onClose(false)} className="p-2 text-muted hover:text-danger hover:bg-danger/10 rounded-full transition-colors">
                         <XCircleIcon className="h-7 w-7 md:h-8 md:w-8" />
                     </button>

@@ -672,7 +672,7 @@ const Vendas: React.FC = () => {
                                         <th className="p-2 sm:p-3 hidden md:table-cell">Origem</th>
                                         <th className="p-2 sm:p-3">Total</th>
                                         <th className="p-2 sm:p-3 hidden lg:table-cell">Taxas</th>
-                                        <th className="p-2 sm:p-3 hidden sm:table-cell">Lucro</th>
+                                        <th className="p-2 sm:p-3">Lucro</th>
                                         <th className="p-2 sm:p-3 text-center">Ações</th>
                                     </tr>
                                 </thead>
@@ -730,7 +730,7 @@ const Vendas: React.FC = () => {
                                                 </td>
                                                 <td className="p-2 sm:p-3 font-bold text-primary">{formatCurrency(sale.total)}</td>
                                                 <td className="p-2 sm:p-3 text-muted hidden lg:table-cell">{formatCurrency(sale.payments.reduce((acc, p) => acc + (p.fees || 0), 0))}</td>
-                                                <td className={`p-2 sm:p-3 font-bold hidden sm:table-cell ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
+                                                <td className={`p-2 sm:p-3 font-bold ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
                                                 <td className="p-2 sm:p-3">
                                                     <div className="flex justify-center">
                                                         <SaleActionsDropdown

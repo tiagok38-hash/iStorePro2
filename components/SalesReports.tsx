@@ -14,7 +14,10 @@ interface SalesReportsProps {
     products: Product[];
     customers: Customer[];
     users: User[];
+    productModels: ProductModel[];
 }
+
+import { ProductModel } from '../types';
 
 const COLORS = {
     primary: '#3b82f6',
@@ -29,7 +32,7 @@ const COLORS = {
 
 const PIE_COLORS = [COLORS.primary, COLORS.success, COLORS.orange, COLORS.purple, COLORS.pink, COLORS.cyan, COLORS.slate];
 
-const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers, users }) => {
+const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers, users, productModels }) => {
     // 1. Filters
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -169,6 +172,60 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
     const modelStats = useMemo(() => {
         // Group ALL products (sold or in stock) by Model + Storage + Condition
         // key: Model + Storage + Condition
+
+        // Helper to normalize model name
+        // Sort models by length descending to match longest specific name first
+        const sortedModels = [...productModels].sort((a, b) => b.name.length - a.name.length);
+
+        const getBaseModel = (fullName: string) => {
+            let name = fullName.trim();
+            const lowerName = name.toLowerCase();
+
+            // 1. Try matching with defined ProductModels (longest first)
+            for (const m of sortedModels) {
+                if (lowerName.includes(m.name.toLowerCase())) {
+                    return m.name; // Return the canonical name
+                }
+            }
+
+            // 2. Fallback: Regex for iPhone (Strongly typed structure)
+            // Matches: iPhone 17, iPhone 17 Pro, iPhone 17 Pro Max, iPhone SE, iPhone X...
+            const iphoneMatch = name.match(/iPhone\s+(?:\d+|X|SE|[IV]+)(?:\s?(?:Pro|Max|Plus|Mini|Ultra))*/i);
+            if (iphoneMatch) {
+                return iphoneMatch[0];
+            }
+
+            // 3. Fallback: Regex for iPad
+            const ipadMatch = name.match(/iPad\s+(?:Air|Mini|Pro)?(?:\s?\d+(?:th|rd|nd|st)?\s?Gen)?(?:\s?\d+(\.\d+)?["”])?/i);
+            if (ipadMatch) {
+                return ipadMatch[0];
+            }
+
+            // 4. Fallback: Regex for Apple Watch
+            const watchMatch = name.match(/Apple\s?Watch\s+(?:Series\s?\d+|Ultra|SE)/i);
+            if (watchMatch) {
+                return watchMatch[0];
+            }
+
+            // 5. Generic Fallback: Clean up common suffixes (Storage, Colors)
+            // Remove storage patterns (e.g. 128GB, 256GB, 1TB, 8GB/256GB)
+            name = name.replace(/\b\d+\/?\d*\s*[GT]B\b/gi, '');
+
+            // Remove common colors (Basic list + Portuguese variations)
+            const colors = [
+                'Preto', 'Branco', 'Prateado', 'Dourado', 'Cinza', 'Grafite',
+                'Azul', 'Verde', 'Vermelho', 'Rosa', 'Roxo', 'Amarelo', 'Laranja', 'Cobre',
+                'Black', 'White', 'Silver', 'Gold', 'Gray', 'Grey', 'Graphite',
+                'Blue', 'Green', 'Red', 'Pink', 'Purple', 'Yellow', 'Orange',
+                'Midnight', 'Starlight', 'Space', 'Titanium', 'Titânio', 'Natural',
+                'Sierra', 'Alpine', 'Deep', 'Cosmico', 'Cósmico', 'Profundo', 'Estelar', 'Meia-noite'
+            ];
+            const colorRegex = new RegExp(`\\b(${colors.join('|')})\\b`, 'gi');
+            name = name.replace(colorRegex, '');
+
+            return name.replace(/\s+/g, ' ').trim();
+        };
+
         const groups: Record<string, {
             model: string,
             storage: string,
@@ -184,15 +241,31 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
         // 1. Scan Inventory (All products)
         products.forEach(p => {
             if (!p.model) return;
-            // Convert to string safely before trimming to handle numbers or other types
-            const model = String(p.model || '').trim();
-            const storage = String(p.storage || 'N/A').trim();
+            // Normalize model
+            const rawModel = String(p.model || '').trim();
+            const baseModel = getBaseModel(rawModel);
+
+            // Normalize Storage: Use p.storage or extract from string if p.storage is missing
+            let storage = String(p.storage || '');
+            if (!storage || storage === '0') {
+                const match = rawModel.match(/\b(\d+\s*([GT]B))\b/i);
+                if (match) storage = match[0].toUpperCase().replace(/\s+/, '');
+                else storage = 'N/A';
+            } else {
+                // Formatting storage if it's a number (e.g. 128 -> 128GB assumption or just 128)
+                // If p.storage is number, append GB if appropriate or leave as is.
+                // Assuming p.storage is number of GB
+                if (!String(storage).toLowerCase().includes('b')) {
+                    storage = `${storage}GB`;
+                }
+            }
+
             const condition = String(p.condition || 'N/A').trim();
-            const key = `${model}-${storage}-${condition}`;
+            const key = `${baseModel}-${storage}-${condition}`;
 
             if (!groups[key]) {
                 groups[key] = {
-                    model: model, // Use trimmed model
+                    model: baseModel,
                     storage,
                     condition,
                     totalUnits: 0,
@@ -205,8 +278,6 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             }
 
             // Weighted Average Calculation based on STOCK
-            // If stock is 0, it won't affect the Weighted Average (Cost/Wholesale)
-            // This prevents old "ghost" rows with 0 stock from skewing the price
             const stockQty = p.stock || 0;
             if (stockQty > 0) {
                 groups[key].totalUnits += stockQty;
@@ -221,50 +292,54 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             s.items.forEach(item => {
                 const p = productMap[item.productId];
                 if (!p) return;
-                const storage = p.storage || 'N/A';
+
+                const rawModel = String(p.model || '').trim();
+                const baseModel = getBaseModel(rawModel);
+
+                let storage = String(p.storage || '');
+                if (!storage || storage === '0') {
+                    const match = rawModel.match(/\b(\d+\s*([GT]B))\b/i);
+                    if (match) storage = match[0].toUpperCase().replace(/\s+/, '');
+                    else storage = 'N/A';
+                } else {
+                    if (!String(storage).toLowerCase().includes('b')) {
+                        storage = `${storage}GB`;
+                    }
+                }
+
                 const condition = p.condition || 'N/A';
-                const key = `${p.model}-${storage}-${condition}`;
+                const key = `${baseModel}-${storage}-${condition}`;
 
                 if (groups[key]) {
                     groups[key].soldCount += item.quantity;
                     groups[key].soldRevenue += (item.unitPrice * item.quantity);
-                    // Note: We are currently NOT adding sold items to the Cost/Wholesale average 
-                    // because we don't have their historical cost snapshot readily available here.
-                    // The "Average" columns will reflect the CURRENT STOCK valuation.
-                    // The "Total Units" column below will be sum of Stock + Sold.
                 }
             });
         });
 
         return Object.values(groups).map(g => {
-            // Averages based on Current Stock
             const avgCost = g.totalUnits > 0 ? g.totalCost / g.totalUnits : 0;
             const avgWholesale = g.totalUnits > 0 ? g.totalWholesale / g.totalUnits : 0;
             const avgListPrice = g.totalUnits > 0 ? g.totalSaleList / g.totalUnits : 0;
 
-            // For display: Total Units = Stock (totalUnits) + Sold (soldCount) based on current logic?
-            // Wait, previous logic was: totalUnits (from products loop) + nothing from sales loop?
-            // Actually, previously totalUnits counted ROWS.
-            // Now totalUnits counts STOCK QTY.
-            // "Unidades Totais" usually implies report volume. 
-            // Let's display Stock + Sold as "Volume Total".
+            // Total volume = Stock + Sold
             const displayTotalUnits = g.totalUnits + g.soldCount;
 
             const margin = avgListPrice > 0 ? ((avgListPrice - avgCost) / avgListPrice) * 100 : 0;
 
             return {
                 ...g,
-                stockUnits: g.totalUnits, // Keep track of current stock
-                totalUnits: displayTotalUnits, // Update to show both
+                stockUnits: g.totalUnits,
+                totalUnits: displayTotalUnits,
                 avgCost,
                 avgWholesale,
                 avgListPrice,
                 margin
             };
         })
-            .filter(g => g.stockUnits > 0) // Only show products with stock > 0
+            .filter(g => g.stockUnits > 0)
             .sort((a, b) => b.totalUnits - a.totalUnits);
-    }, [products, filteredSales, productMap]);
+    }, [products, filteredSales, productMap, productModels]);
 
     const filteredModelStats = useMemo(() => {
         if (!searchTerm) return modelStats;
@@ -500,7 +575,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                             placeholder="Buscar modelo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border rounded-lg text-sm w-full sm:w-64 focus:ring-2 focus:ring-primary/20 outline-none"
+                            className="pl-10 pr-4 py-2 border rounded-lg text-sm w-full sm:w-96 focus:ring-2 focus:ring-primary/20 outline-none"
                         />
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -524,7 +599,9 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                         <tbody className="divide-y divide-gray-100">
                             {filteredModelStats.slice(0, 50).map((m, idx) => (
                                 <tr key={idx} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-medium text-gray-900">{m.model}</td>
+                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                        {m.model} <span className="text-gray-500 text-xs ml-1">{m.storage !== 'N/A' ? m.storage : ''}</span>
+                                    </td>
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${m.condition === 'Novo' ? 'bg-green-100 text-green-700' :
                                             m.condition === 'Seminovo' ? 'bg-blue-100 text-blue-700' :
