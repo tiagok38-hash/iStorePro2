@@ -17,6 +17,7 @@ interface LocationChangeHistoryItem {
     condition: string;
     imei1?: string;
     serialNumber?: string;
+    barcode?: string;
     previousLocation: string;
     newLocation: string;
     timestamp: string;
@@ -81,6 +82,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                     condition: product?.condition || '-',
                     imei1: product?.imei1 || undefined,
                     serialNumber: product?.serialNumber || undefined,
+                    barcode: product?.barcodes?.[0] || undefined,
                     previousLocation,
                     newLocation,
                     timestamp: log.timestamp,
@@ -273,14 +275,35 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                         <div className="px-3 py-1.5 bg-gray-100 text-xs font-bold text-gray-600 sticky top-0">{date}</div>
                                         <div className="divide-y divide-gray-50">
                                             {items.map((item, idx) => (
-                                                <div key={`${item.productId}-${idx}`} className="px-3 py-1.5 flex items-center gap-2 text-xs hover:bg-gray-50">
+                                                <div key={`${item.productId}-${idx}`} className="px-3 py-1.5 flex items-center gap-2 text-xs hover:bg-gray-50 flex-wrap sm:flex-nowrap">
                                                     <span className="text-[10px] text-gray-400 w-10 flex-shrink-0">{new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    <span className="font-semibold text-gray-800 truncate flex-1 min-w-0">{item.productModel}</span>
+                                                    <span className="font-semibold text-gray-800 truncate min-w-[120px] max-w-[200px]" title={item.productModel}>{item.productModel}</span>
                                                     <span className="px-1 py-0.5 bg-gray-200 rounded text-[9px] text-gray-600 font-medium flex-shrink-0">{item.condition}</span>
-                                                    {item.imei1 && <span className="font-mono text-[9px] text-gray-400 hidden sm:inline">{item.imei1.slice(-6)}</span>}
-                                                    <span className="text-gray-400 flex-shrink-0">{item.previousLocation}</span>
-                                                    <span className="text-gray-300 flex-shrink-0">→</span>
-                                                    <span className="font-bold text-emerald-600 flex-shrink-0">{item.newLocation}</span>
+
+                                                    {/* Identifiers Compact Group */}
+                                                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap overflow-hidden flex-1">
+                                                        {item.imei1 && (
+                                                            <span className="font-mono text-[9px] text-gray-500 bg-gray-50 px-1 rounded whitespace-nowrap" title={`IMEI: ${item.imei1}`}>
+                                                                IMEI:{item.imei1}
+                                                            </span>
+                                                        )}
+                                                        {item.serialNumber && (
+                                                            <span className="font-mono text-[9px] text-gray-500 bg-gray-50 px-1 rounded whitespace-nowrap" title={`S/N: ${item.serialNumber}`}>
+                                                                SN:{item.serialNumber}
+                                                            </span>
+                                                        )}
+                                                        {item.barcode && (
+                                                            <span className="font-mono text-[9px] text-gray-500 bg-gray-50 px-1 rounded whitespace-nowrap" title={`EAN: ${item.barcode}`}>
+                                                                EAN:{item.barcode}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+                                                        <span className="text-gray-400 max-w-[80px] truncate" title={item.previousLocation}>{item.previousLocation}</span>
+                                                        <span className="text-gray-300">→</span>
+                                                        <span className="font-bold text-emerald-600 max-w-[80px] truncate" title={item.newLocation}>{item.newLocation}</span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
