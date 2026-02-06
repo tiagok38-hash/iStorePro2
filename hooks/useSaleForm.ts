@@ -432,6 +432,9 @@ export const useSaleForm = ({
                 productId: item.id,
                 quantity: item.quantity,
                 unitPrice: item.salePrice,
+                costPrice: item.costPrice || 0,
+                productName: item.model || item.name || '',
+                model: item.model || '',
                 priceType: item.priceType
             })),
             subtotal, discount: totalItemDiscounts + globalDiscountAmount, total, payments,

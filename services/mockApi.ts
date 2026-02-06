@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
 import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
-import { sendSaleNotification } from './telegramService.ts';
+import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
 
 // --- CACHE SYSTEM ---
 const cache: Record<string, { data: any, timestamp: number }> = {};
@@ -1782,6 +1782,21 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     .select('id, model, category, brand')
                     .in('id', productIds);
 
+                // Fetch category and brand names
+                const categoryIds = (productDetails || []).map(p => p.category).filter(Boolean);
+                const brandIds = (productDetails || []).map(p => p.brand).filter(Boolean);
+
+                const [categoriesResult, brandsResult] = await Promise.all([
+                    categoryIds.length > 0 ? supabase.from('categories').select('id, name').in('id', categoryIds) : { data: [] },
+                    brandIds.length > 0 ? supabase.from('brands').select('id, name').in('id', brandIds) : { data: [] }
+                ]);
+
+                const categoryMap = new Map();
+                (categoriesResult.data || []).forEach((c: any) => categoryMap.set(c.id, c.name));
+
+                const brandMap = new Map();
+                (brandsResult.data || []).forEach((b: any) => brandMap.set(b.id, b.name));
+
                 const productMap = new Map();
                 (productDetails || []).forEach((p: any) => productMap.set(p.id, p));
 
@@ -1789,12 +1804,15 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
                     totalProfit += itemProfit;
 
-                    // Build product description: Category + Brand + Model
+                    // Build product description: Category Name + Brand Name + Model
                     const product = productMap.get(item.productId);
                     if (product) {
                         const parts = [];
-                        if (product.category) parts.push(product.category);
-                        if (product.brand) parts.push(product.brand);
+                        const categoryName = categoryMap.get(product.category);
+                        const brandName = brandMap.get(product.brand);
+
+                        if (categoryName) parts.push(categoryName);
+                        if (brandName) parts.push(brandName);
                         if (product.model) parts.push(product.model);
 
                         if (parts.length > 0) {
@@ -2023,6 +2041,21 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 .select('id, model, category, brand')
                 .in('id', productIds);
 
+            // Fetch category and brand names
+            const categoryIds = (productDetails || []).map(p => p.category).filter(Boolean);
+            const brandIds = (productDetails || []).map(p => p.brand).filter(Boolean);
+
+            const [categoriesResult, brandsResult] = await Promise.all([
+                categoryIds.length > 0 ? supabase.from('categories').select('id, name').in('id', categoryIds) : { data: [] },
+                brandIds.length > 0 ? supabase.from('brands').select('id, name').in('id', brandIds) : { data: [] }
+            ]);
+
+            const categoryMap = new Map();
+            (categoriesResult.data || []).forEach((c: any) => categoryMap.set(c.id, c.name));
+
+            const brandMap = new Map();
+            (brandsResult.data || []).forEach((b: any) => brandMap.set(b.id, b.name));
+
             const productMap = new Map();
             (productDetails || []).forEach((p: any) => productMap.set(p.id, p));
 
@@ -2030,12 +2063,15 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
                 totalProfit += itemProfit;
 
-                // Build product description: Category + Brand + Model
+                // Build product description: Category Name + Brand Name + Model
                 const product = productMap.get(item.productId);
                 if (product) {
                     const parts = [];
-                    if (product.category) parts.push(product.category);
-                    if (product.brand) parts.push(product.brand);
+                    const categoryName = categoryMap.get(product.category);
+                    const brandName = brandMap.get(product.brand);
+
+                    if (categoryName) parts.push(categoryName);
+                    if (brandName) parts.push(brandName);
                     if (product.model) parts.push(product.model);
 
                     if (parts.length > 0) {
@@ -3762,6 +3798,29 @@ export const addPurchaseOrder = async (data: any) => {
         console.error("Error adding purchase order:", JSON.stringify(error, null, 2));
         throw error;
     }
+
+    // TELEGRAM NOTIFICATION: Notify about new purchase order
+    if (poData.stockStatus === 'Lançado no Estoque' || poData.status === 'Finalizada') {
+        const userName = poData.createdBy || 'Usuário';
+        const supplierName = poData.supplierName || 'Fornecedor Desconhecido';
+        const total = poData.total || 0;
+
+        await sendPurchaseNotification({
+            userName,
+            supplierName,
+            total
+        });
+    }
+
+    await addAuditLog(
+        AuditActionType.CREATE,
+        AuditEntityType.PURCHASE_ORDER,
+        newPO.id,
+        "Nova compra criada",
+        poData.createdBy,
+        poData.createdBy
+    );
+
     clearCache(['purchase_orders']);
     return mapPurchaseOrder(newPO);
 };
@@ -3890,13 +3949,13 @@ export const revertPurchaseLaunch = async (id: string) => {
     clearCache(['purchase_orders', 'products']);
 };
 
-export const launchPurchaseToStock = async (purchaseOrderId: string, products: any[]) => {
+export const launchPurchaseToStock = async (purchaseOrderId: string, products: any[], launchedBy?: string) => {
     const now = getNowISO();
 
     // STEP 1: Get purchase order info (with timeout)
     let purchaseOrder: any = null;
     try {
-        const poQuery = supabase.from('purchase_orders').select('displayId, createdBy, supplierId, supplierName').eq('id', purchaseOrderId).single();
+        const poQuery = supabase.from('purchase_orders').select('displayId, createdBy, supplierId, supplierName, total').eq('id', purchaseOrderId).single();
         const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_PO')), 5000));
         const result = await Promise.race([poQuery, timeout]) as any;
         purchaseOrder = result.data;
@@ -3911,6 +3970,7 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
     const displayId = purchaseOrder?.displayId || '???';
     const createdBy = purchaseOrder?.createdBy || 'Sistema';
     const supplierName = purchaseOrder?.supplierName || 'N/A';
+    const total = purchaseOrder?.total || 0;
 
     // STEP 2: Get current SKU count
     const { count } = await supabase.from('products').select('*', { count: 'exact', head: true });
@@ -4052,6 +4112,13 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
     }
 
     await supabase.from('purchase_orders').update({ stockStatus: 'Lançado' }).eq('id', purchaseOrderId);
+
+    // TELEGRAM NOTIFICATION
+    await sendPurchaseNotification({
+        userName: launchedBy || createdBy,
+        supplierName,
+        total
+    });
     clearCache(['products', 'purchase_orders']);
 };
 

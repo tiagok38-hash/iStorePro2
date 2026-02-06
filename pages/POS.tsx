@@ -460,7 +460,7 @@ const POS: React.FC = () => {
                     {activeView === 'pdv' && (
                         workingSession ? (
                             <NewSaleView
-                                onCancel={() => { setActiveView('caixas'); setSaleToEdit(null); }}
+                                onCancel={() => { setActiveView('resumo'); setSaleToEdit(null); }}
                                 onSaleSaved={handleSaleSaved}
                                 customers={customers} paymentMethods={paymentMethods}
                                 users={users} products={products} suppliers={suppliers}

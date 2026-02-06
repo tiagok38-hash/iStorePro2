@@ -86,3 +86,49 @@ export const testTelegramConnection = async (): Promise<boolean> => {
         return false;
     }
 };
+
+interface PurchaseNotificationData {
+    userName: string;
+    supplierName: string;
+    total: number;
+}
+
+export const sendPurchaseNotification = async (data: PurchaseNotificationData): Promise<boolean> => {
+    // Skip if credentials not configured
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+        console.warn('Telegram credentials not configured. Skipping notification.');
+        return false;
+    }
+
+    try {
+        const totalFormatted = data.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Format: Nova compra lancada no estoque por (nome do usuario que lancou) 📦 (nome do fornecedor) - R$ (total da compra)
+        const message = `Nova compra lançada no estoque por ${data.userName} 📦 ${data.supplierName} - R$ ${totalFormatted}`;
+
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: message
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            console.log('✅ Telegram purchase notification sent successfully');
+            return true;
+        } else {
+            console.error('❌ Telegram purchase notification failed:', result);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error sending Telegram purchase notification:', error);
+        return false;
+    }
+};

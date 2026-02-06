@@ -34,9 +34,34 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
     handleViewClick, handlePrintClick, cancelSale, showToast, fetchData, users
 }) => {
     const [viewMovementsType, setViewMovementsType] = useState<'sangria' | 'suprimento' | null>(null);
+    const [cancelConfirmSale, setCancelConfirmSale] = useState<string | null>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
     const targetSession = viewSession || currentUserOpenSession;
     const isCurrent = targetSession?.id === currentUserOpenSession?.id;
     const isOpen = targetSession?.status === 'aberto';
+
+    const handleCancelSale = async () => {
+        if (!cancelConfirmSale) return;
+
+        if (!cancelReason.trim()) {
+            showToast('Por favor, informe o motivo do cancelamento.', 'warning');
+            return;
+        }
+
+        setIsCancelling(true);
+        try {
+            await cancelSale(cancelConfirmSale, cancelReason);
+            showToast('Venda cancelada com sucesso!', 'success');
+            fetchData();
+            setCancelConfirmSale(null);
+            setCancelReason('');
+        } catch (err: any) {
+            showToast(err.message || 'Erro ao cancelar venda', 'error');
+        } finally {
+            setIsCancelling(false);
+        }
+    };
 
     // Calcular totais por método de pagamento
     const totalsByMethod: Record<string, number> = {};
@@ -255,6 +280,8 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                             <div className="flex gap-1 justify-center items-center flex-wrap">
                                                 {sale.status === 'Cancelada' ? (
                                                     <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Cancelada</span>
+                                                ) : sale.status === 'Pendente' ? (
+                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-orange-100 text-orange-600">Pendente</span>
                                                 ) : (
                                                     <>
                                                         <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-600">Finalizada</span>
@@ -266,11 +293,11 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-1">
-                                                <button onClick={() => handleEditSale(sale)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><EditIcon className="h-4 w-4" /></button>
+                                                <button onClick={() => sale.status === 'Cancelada' ? showToast('Venda cancelada não pode ser editada.', 'error') : handleEditSale(sale)} className={`p-1.5 rounded ${sale.status === 'Cancelada' ? 'text-gray-300 cursor-not-allowed' : 'text-blue-500 hover:bg-blue-50'}`}><EditIcon className="h-4 w-4" /></button>
                                                 <button onClick={() => handleViewClick(sale)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"><EyeIcon className="h-4 w-4" /></button>
                                                 <button onClick={() => handlePrintClick(sale)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><PrinterIcon className="h-4 w-4" /></button>
                                                 {sale.status !== 'Cancelada' && (
-                                                    <button onClick={() => confirm('Cancelar?') && cancelSale(sale.id, 'Cancelamento rápido').then(fetchData)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><TrashIcon className="h-4 w-4" /></button>
+                                                    <button onClick={() => setCancelConfirmSale(sale.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><TrashIcon className="h-4 w-4" /></button>
                                                 )}
                                             </div>
                                         </td>
@@ -297,6 +324,8 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                             <div className="flex items-center gap-1 flex-wrap mt-0.5">
                                                 {sale.status === 'Cancelada' ? (
                                                     <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none">CANCELADA</span>
+                                                ) : sale.status === 'Pendente' ? (
+                                                    <span className="text-[7px] font-black px-1 rounded uppercase border bg-orange-50 text-orange-600 border-orange-100 py-0.5 leading-none">PENDENTE</span>
                                                 ) : (
                                                     <>
                                                         <span className="text-[7px] font-black px-1 rounded uppercase border bg-green-50 text-green-600 border-green-100 py-0.5 leading-none">FINALIZADA</span>
@@ -319,7 +348,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                     <div className="flex items-center gap-1 shrink-0">
                                         <button onClick={() => handleViewClick(sale)} className="p-1.5 bg-gray-50 text-gray-500 rounded-lg border border-gray-100"><EyeIcon className="h-3.5 w-3.5" /></button>
                                         <button onClick={() => handlePrintClick(sale)} className="p-1.5 bg-blue-50 text-blue-500 rounded-lg border border-blue-100"><PrinterIcon className="h-3.5 w-3.5" /></button>
-                                        <button onClick={() => handleEditSale(sale)} className="p-1.5 bg-gray-50 text-blue-500 rounded-lg border border-gray-100"><EditIcon className="h-3.5 w-3.5" /></button>
+                                        <button onClick={() => sale.status === 'Cancelada' ? showToast('Venda cancelada não pode ser editada.', 'error') : handleEditSale(sale)} className={`p-1.5 rounded-lg border ${sale.status === 'Cancelada' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-gray-50 text-blue-500 border-gray-100'}`}><EditIcon className="h-3.5 w-3.5" /></button>
                                     </div>
                                 </div>
                             );
@@ -367,6 +396,53 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                             <span className={`text-xl font-black ${viewMovementsType === 'sangria' ? 'text-red-500' : 'text-green-600'}`}>
                                 {formatCurrency(viewMovementsType === 'sangria' ? (targetSession.withdrawals || 0) : (targetSession.deposits || 0))}
                             </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Confirmation Modal */}
+            {cancelConfirmSale && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+                        <div className="p-6">
+                            <div className="text-center mb-6">
+                                <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                                    <TrashIcon className="h-7 w-7 text-red-500" />
+                                </div>
+                                <h3 className="text-lg font-black text-gray-800 mb-2">Cancelar Venda?</h3>
+                                <p className="text-sm text-gray-500 mb-4">
+                                    A venda <span className="font-bold text-primary">#{cancelConfirmSale}</span> será cancelada e o estoque retornado.
+                                </p>
+                            </div>
+
+                            <div className="mb-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Motivo do Cancelamento</label>
+                                <textarea
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    placeholder="Ex: Cliente desistiu, erro de lançamento, troca de produto..."
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-none text-gray-700 placeholder-gray-400"
+                                    rows={3}
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <div className="flex border-t border-gray-100">
+                            <button
+                                onClick={() => { setCancelConfirmSale(null); setCancelReason(''); }}
+                                disabled={isCancelling}
+                                className="flex-1 py-4 text-gray-500 font-bold hover:bg-gray-50 transition-colors border-r border-gray-100 text-sm uppercase tracking-wide"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                onClick={handleCancelSale}
+                                disabled={isCancelling || !cancelReason.trim()}
+                                className="flex-1 py-4 text-red-500 font-black hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-wide flex items-center justify-center gap-2"
+                            >
+                                {isCancelling ? 'Cancelando...' : 'Confirmar Cancelamento'}
+                            </button>
                         </div>
                     </div>
                 </div>

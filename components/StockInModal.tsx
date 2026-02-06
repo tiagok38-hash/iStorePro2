@@ -487,7 +487,7 @@ const StockInModal: React.FC<{
                 };
             });
 
-            await launchPurchaseToStock(purchaseOrder.id, newProducts);
+            await launchPurchaseToStock(purchaseOrder.id, newProducts, user?.name || 'Usuário');
             showToast(`Estoque da compra #${purchaseOrder.displayId} lançado com sucesso!`, 'success');
             localStorage.removeItem(`stock_launch_draft_${purchaseOrder.id}`);
             onClose(true);
