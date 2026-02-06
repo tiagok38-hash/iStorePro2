@@ -429,18 +429,63 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
     const layoutProps = { sale, productMap, customer, salesperson, companyInfo, activeTerm, totalPaid, totalItems, totalFees, warranties };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[60] py-8 px-4 print:p-0 print:bg-white overflow-y-auto">
+        <div id="print-modal-overlay" className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+40px)] bottom-[calc(env(safe-area-inset-bottom)+64px)] lg:inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[60] p-2 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto">
             <style>
                 {`
                     @media print {
-                        body > * { visibility: hidden; }
-                        #print-container, #print-container * { visibility: visible; }
-                        #print-container {
-                            position: absolute; left: 0; top: 0; width: 100%; height: auto;
-                            padding: 0; margin: 0; border: none; box-shadow: none;
+                        /* Reset everything */
+                        html, body {
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            height: 100% !important;
+                            overflow: hidden !important;
                             background: white !important;
                         }
-                        .no-print { display: none !important; }
+                        
+                        /* Hide everything by default */
+                        body * {
+                            visibility: hidden;
+                        }
+                        
+                        /* Exception for print container and its children */
+                        #print-container, 
+                        #print-container * {
+                            visibility: visible !important;
+                        }
+
+                        /* Position print container absolute at top left of PAGE */
+                        #print-container {
+                            position: absolute !important;
+                            left: 0 !important;
+                            top: 0 !important;
+                            width: 100% !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            background: white !important;
+                            
+                            /* Remove any potential shadows or borders */
+                            box-shadow: none !important;
+                            border: none !important;
+                            border-radius: 0 !important;
+                        }
+
+                        /* Override specific elements inside if needed */
+                        .print-content-wrapper {
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            background: white !important;
+                            box-shadow: none !important;
+                        }
+                        
+                        /* Ensure text colors are printed */
+                        * {
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        
+                        .no-print { 
+                            display: none !important; 
+                        }
 
                         ${format === 'thermal' ? `
                             @page { size: 80mm auto; margin: 2mm; }
@@ -448,54 +493,77 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         ` : `
                             @page { 
                                 size: A4 portrait; 
-                                margin: 0; 
+                                margin: 5mm 8mm; /* Top/Bottom 5mm, Left/Right 8mm */
                             }
                             .receipt-body { 
                                 font-size: 10pt !important; 
                                 color: black !important; 
                                 width: 100% !important;
-                                max-width: 210mm !important;
+                                max-width: 100% !important;
                                 margin: 0 !important;
-                                padding: 10mm 10mm 10mm 10mm !important; /* Increased top padding by 0.5cm as requested */
+                                padding: 2mm 5mm !important; /* Reduced top padding */
                             }
                         `}
 
                         .whitespace-pre-wrap { white-space: pre-wrap; }
                         .columns-2 { columns: 2; column-gap: 8px; }
                         
-                        /* Force background colors to print */
+                        /* Force print color adjust */
                         * {
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                             color-adjust: exact !important;
                         }
                         
-                        /* Ensure no shadows or gray bars print */
-                        #print-container {
-                            box-shadow: none !important;
-                            border: none !important;
+                        /* UNIVERSAL: Remove ALL backgrounds except .bg-black */
+                        *:not(.bg-black) {
+                            background: transparent !important;
+                            background-color: transparent !important;
+                        }
+                        
+                        /* White background only on main containers */
+                        html, body, #print-modal-overlay, #print-container {
                             background: white !important;
+                            background-color: white !important;
+                        }
+                        
+                        /* Remove flex-1 behavior that causes extra space */
+                        #print-container {
+                            display: block !important;
+                            height: auto !important;
+                        }
+                        
+                        /* Content wrapper - remove all extra space */
+                        .print-content-wrapper {
+                            flex: none !important;
+                            height: auto !important;
+                            overflow: visible !important;
+                            padding: 0 !important;
                         }
 
-                        /* Ensure PAGO section prints with dark background */
-                        .bg-black {
-                            background-color: #000000 !important;
-                            color: #ffffff !important;
+                        /* Ensure PAGO section prints with dark background - HIGHEST SPECIFICITY */
+                        .bg-black,
+                        div.bg-black,
+                        #print-container .bg-black,
+                        .receipt-body .bg-black {
+                            background-color: #000 !important;
+                            background: #000 !important;
+                            color: #fff !important;
                         }
                     }
                 `}
             </style>
-            <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col`} id="print-container">
-                <div className="flex justify-between items-center p-4 border-b border-border no-print">
-                    <h2 className="text-2xl font-bold text-primary">Recibo da Venda #{sale.id}</h2>
-                    <div className="flex items-center gap-4">
-                        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-opacity-90">
-                            <PrinterIcon className="h-5 w-5" /> Imprimir
+            <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full rounded-lg lg:rounded-none overflow-hidden`} id="print-container">
+                <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white">
+                    <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Recibo da Venda #{sale.id}</h2>
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                        <button onClick={handlePrint} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-md text-xs sm:text-sm hover:bg-opacity-90">
+                            <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Imprimir
                         </button>
                         <button onClick={onClose} className="p-1 text-muted hover:text-danger"><CloseIcon className="h-6 w-6" /></button>
                     </div>
                 </div>
-                <div className="p-0 sm:p-4 print:p-0">
+                <div className="p-2 sm:p-4 print:p-0 overflow-y-auto flex-1 print-content-wrapper bg-white">
                     {loading ? <div className="flex justify-center items-center h-64"><SpinnerIcon /></div> : (
                         format === 'A4' ? <A4Layout {...layoutProps} /> : <ThermalLayout {...layoutProps} />
                     )}

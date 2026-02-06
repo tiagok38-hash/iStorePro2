@@ -51,18 +51,18 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
 
     return (
         <>
-            <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[60] p-4">
-                <div className="bg-surface rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-                    <div className="flex justify-between items-center p-4 border-b border-border">
-                        <h2 className="text-2xl font-bold text-primary">Detalhes da Venda #{sale.id}</h2>
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => setIsPrintChoiceOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-opacity-90">
-                                <PrinterIcon className="h-5 w-5" /> Imprimir
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-end sm:items-center z-[60] sm:p-4 pt-[calc(env(safe-area-inset-top)+40px)] pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pt-0 lg:pb-0">
+                <div className="bg-surface rounded-t-2xl sm:rounded-lg shadow-xl w-full sm:max-w-3xl max-h-full sm:max-h-[90vh] flex flex-col overflow-hidden">
+                    <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border shrink-0">
+                        <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Detalhes da Venda #{sale.id}</h2>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => setIsPrintChoiceOpen(true)} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-md text-xs sm:text-sm hover:bg-opacity-90">
+                                <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Imprimir
                             </button>
                             <button onClick={onClose} className="p-1 text-muted hover:text-danger"><CloseIcon className="h-6 w-6" /></button>
                         </div>
                     </div>
-                    <div className="p-6 space-y-6 overflow-y-auto">
+                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
                         {/* Top Info */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm p-5 bg-surface-secondary rounded-xl border border-gray-100">
                             <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Data</p><p className="text-base font-bold text-gray-900">{formatDateTime(sale.date)}</p></div>
