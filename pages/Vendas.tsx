@@ -65,23 +65,33 @@ const SaleActionsDropdown: React.FC<{ onEdit: () => void; onView: () => void; on
         } else {
             if (!buttonRef.current) return;
             const rect = buttonRef.current.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const menuHeight = 160; // Estimated height for 4 items
+
+            // Consider bottom nav height mostly on mobile
+            const bottomSafeMargin = window.innerWidth < 640 ? 80 : 20;
+            const spaceBelow = window.innerHeight - rect.bottom - bottomSafeMargin;
+            const menuHeight = 180; // Safer estimated height 
 
             const newStyle: React.CSSProperties = {
                 position: 'fixed',
                 width: '12rem', // w-48
-                zIndex: 50,
+                zIndex: 9999, // Ensure it's above BottomNav and everything else
             };
 
-            newStyle.right = window.innerWidth - rect.right;
+            // Align right edge of menu with right edge of button (plus a bit of margin if strictly needed)
+            // But usually, rect.right is fine. 
+            // Let's cap it to screen width to avoid horizontal overflow
+            const rightPos = window.innerWidth - rect.right;
+            newStyle.right = Math.max(8, rightPos); // Keep at least 8px from right edge
 
-            if (spaceBelow < menuHeight && rect.top > menuHeight) {
+            if (spaceBelow < menuHeight) {
                 // Open upwards
+                // Calculate bottom position: distance from bottom of screen to top of button
                 newStyle.bottom = window.innerHeight - rect.top;
+                newStyle.transformOrigin = 'bottom right';
             } else {
                 // Open downwards
                 newStyle.top = rect.bottom;
+                newStyle.transformOrigin = 'top right';
             }
 
             setStyle(newStyle);
@@ -98,6 +108,7 @@ const SaleActionsDropdown: React.FC<{ onEdit: () => void; onView: () => void; on
         const handleScroll = () => { if (isOpen) setIsOpen(false); };
 
         document.addEventListener('mousedown', handleOutsideClick);
+        // Using capture phase for scroll to detect scroll in any parent
         window.addEventListener('scroll', handleScroll, true);
         window.addEventListener('resize', handleScroll);
         return () => {
@@ -113,21 +124,21 @@ const SaleActionsDropdown: React.FC<{ onEdit: () => void; onView: () => void; on
         setIsOpen(false);
     };
 
-    const menuItemClasses = "w-full text-left flex items-center gap-3 px-4 py-2 text-sm";
+    const menuItemClasses = "w-full text-left flex items-center gap-3 px-4 py-3 text-sm"; // Increased touch target for mobile
 
     return (
         <div className="relative">
-            <button ref={buttonRef} onClick={handleToggle} className="p-1 rounded-full hover:bg-surface-secondary text-muted"><EllipsisVerticalIcon className="h-5 w-5" /></button>
+            <button ref={buttonRef} onClick={handleToggle} className="p-2 rounded-full hover:bg-surface-secondary text-muted active:bg-gray-200 transition-colors"><EllipsisVerticalIcon className="h-5 w-5" /></button>
             {isOpen && (
-                <div ref={dropdownRef} style={style} className="rounded-md shadow-lg bg-surface ring-1 ring-black ring-opacity-5">
+                <div ref={dropdownRef} style={style} className="rounded-lg shadow-xl bg-surface ring-1 ring-black ring-opacity-10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                     <div className="py-1">
-                        <button onClick={createHandler(onView)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}><EyeIcon className="h-4 w-4" /> Visualizar</button>
+                        <button onClick={createHandler(onView)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary active:bg-gray-100`}><EyeIcon className="h-4 w-4" /> Visualizar</button>
                         {permissions?.canEditSale && (
-                            <button onClick={createHandler(onEdit)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}><EditIcon className="h-4 w-4" /> Editar</button>
+                            <button onClick={createHandler(onEdit)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary active:bg-gray-100`}><EditIcon className="h-4 w-4" /> Editar</button>
                         )}
-                        <button onClick={createHandler(onReprint)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}><PrinterIcon className="h-4 w-4" /> Reimprimir</button>
+                        <button onClick={createHandler(onReprint)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary active:bg-gray-100`}><PrinterIcon className="h-4 w-4" /> Reimprimir</button>
                         {permissions?.canCancelSale && (
-                            <button onClick={createHandler(onCancel)} className={`${menuItemClasses} text-danger hover:bg-danger-light`}><XCircleIcon className="h-4 w-4" /> Cancelar</button>
+                            <button onClick={createHandler(onCancel)} className={`${menuItemClasses} text-danger hover:bg-danger-light active:bg-red-100`}><XCircleIcon className="h-4 w-4" /> Cancelar</button>
                         )}
                     </div>
                 </div>
