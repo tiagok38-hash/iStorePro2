@@ -359,10 +359,26 @@ const Vendas: React.FC = () => {
         }
     }, [startDate, endDate, permissions]);
 
-    const handlePeriodChange = useCallback((period: 'hoje' | '7dias' | '15dias' | 'Mes') => {
+    const handlePeriodChange = useCallback((period: string) => {
         setActivePeriod(period);
-        setStartDate(getStartDateForPeriod(period));
-        setEndDate(getLocalISODateString(new Date()));
+        const today = new Date();
+
+        if (period === 'ontem') {
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            setStartDate(getLocalISODateString(yesterday));
+            setEndDate(getLocalISODateString(yesterday));
+        } else if (period === 'semana') {
+            const startOfWeek = new Date(today);
+            const day = startOfWeek.getDay(); // 0 (Domingo) - 6 (Sábado)
+            const diff = startOfWeek.getDate() - day; // Ajusta para o último domingo
+            startOfWeek.setDate(diff);
+            setStartDate(getLocalISODateString(startOfWeek));
+            setEndDate(getLocalISODateString(today));
+        } else {
+            setStartDate(getStartDateForPeriod(period as any));
+            setEndDate(getLocalISODateString(today));
+        }
     }, []);
 
     const handleClearFilter = useCallback(() => {
@@ -595,6 +611,8 @@ const Vendas: React.FC = () => {
                         />
                         <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-lg h-10 mb-[1px]">
                             <button onClick={() => handlePeriodChange('hoje')} className={`${periodButtonClasses('hoje')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Hoje</button>
+                            <button onClick={() => handlePeriodChange('ontem')} className={`${periodButtonClasses('ontem')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Ontem</button>
+                            <button onClick={() => handlePeriodChange('semana')} className={`${periodButtonClasses('semana')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Semana</button>
                             <button onClick={() => handlePeriodChange('7dias')} className={`${periodButtonClasses('7dias')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>7d</button>
                             <button onClick={() => handlePeriodChange('Mes')} className={`${periodButtonClasses('Mes')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Mês</button>
                         </div>

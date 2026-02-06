@@ -1150,7 +1150,10 @@ const Dashboard: React.FC = () => {
     }, [products, customers, sales, billingPeriod]);
 
     const { recentSales, recentSoldItems, recentAddedProducts, recentTradeInProducts } = React.useMemo(() => {
-        const sortedSales = [...sales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // Filter out Cancelled and Pending sales to show only finalized/effective sales in "Recent Sold Products"
+        const sortedSales = [...sales]
+            .filter(s => s.status !== 'Cancelada' && s.status !== 'Pendente')
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         const recentSales = sortedSales.slice(0, 5);
 
