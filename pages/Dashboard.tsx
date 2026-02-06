@@ -41,7 +41,7 @@ const StatCard: React.FC<{ title: string; value: string; subValue1?: string; sub
 ));
 
 const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: string }> = React.memo(({ sales, products, className }) => {
-    const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('day');
+    const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
     const { totalProfit, totalRevenue, chartData } = useMemo(() => {
         const now = new Date();
@@ -50,6 +50,10 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
         switch (period) {
             case 'day': startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0); break;
+            case 'yesterday':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+                break;
             case 'week':
                 const day = now.getDay();
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day, 0, 0, 0, 0);
@@ -76,7 +80,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
         // Generate Labels
         let labels: string[] = [];
-        if (period === 'day') labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
+        if (period === 'day' || period === 'yesterday') labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
         else if (period === 'year') labels = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
         else {
             const days = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -90,7 +94,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
         labels.forEach(l => profitByPoint[l] = 0);
 
         const getKey = (date: Date) => {
-            if (period === 'day') return `${date.getHours()}h`;
+            if (period === 'day' || period === 'yesterday') return `${date.getHours()}h`;
             if (period === 'year') return ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"][date.getMonth()];
             return `${date.getDate()}`;
         };
@@ -130,6 +134,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                     className="text-xs font-semibold text-muted bg-surface-secondary px-2 py-1 rounded-md border-0 focus:ring-1 focus:ring-accent cursor-pointer"
                 >
                     <option value="day">Hoje</option>
+                    <option value="yesterday">Ontem</option>
                     <option value="week">Semana</option>
                     <option value="month">Mês</option>
                     <option value="year">Ano</option>
