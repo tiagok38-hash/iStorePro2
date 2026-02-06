@@ -1162,9 +1162,12 @@ const BackupRestauracaoTab: React.FC = () => {
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const date = toDateValue();
+            const now = new Date();
+            const formattedDate = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
+            const fileName = `Backup_dados_sistema_${formattedDate}.json`;
+
             a.href = url;
-            a.download = `istore_backup_${date}.json`;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
