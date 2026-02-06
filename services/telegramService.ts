@@ -44,7 +44,7 @@ export const sendSaleNotification = async (data: SaleNotificationData): Promise<
         const result = await response.json();
 
         if (result.ok) {
-            console.log('✅ Telegram notification sent successfully');
+            // Notification sent successfully
             return true;
         } else {
             console.error('❌ Telegram notification failed:', result);
@@ -121,7 +121,6 @@ export const sendPurchaseNotification = async (data: PurchaseNotificationData): 
         const result = await response.json();
 
         if (result.ok) {
-            console.log('✅ Telegram purchase notification sent successfully');
             return true;
         } else {
             console.error('❌ Telegram purchase notification failed:', result);
