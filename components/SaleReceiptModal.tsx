@@ -76,192 +76,199 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
     };
 
     return (
-        <div className="font-sans text-black receipt-body" id="receipt-content" style={{ width: '100%', maxWidth: '210mm', margin: '0' }}>
-            {/* Company Header - Logo bigger */}
-            <header className="flex justify-between items-start pb-1.5 border-b border-black">
-                <div className="flex items-center gap-4">
-                    {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-20 w-20 object-contain" />}
-                    <div>
-                        <h1 className="font-bold text-xl leading-tight text-black">{companyInfo?.name}</h1>
-                        <p className="text-[10px] leading-tight">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
-                        <p className="text-[10px] leading-tight">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''} - {companyInfo?.bairro}</p>
-                        <p className="text-[10px] leading-tight">{companyInfo?.city} ({companyInfo?.state}) - CEP: {formatCEP(companyInfo?.cep)}</p>
-                        <p className="text-[10px] leading-tight">
-                            {companyInfo?.whatsapp && <span>WhatsApp: {companyInfo.whatsapp} </span>}
-                            {companyInfo?.instagram && <span>Instagram: {companyInfo.instagram} </span>}
-                            {companyInfo?.email && <span>Email: {companyInfo.email}</span>}
-                        </p>
-                    </div>
-                </div>
-                {/* Receipt ID and Date on right side */}
-                <div className="text-right text-[10px]">
-                    <p className="font-bold text-sm">Recibo #{sale.id}</p>
-                    <p>{new Date(sale.date).toLocaleDateString('pt-BR')} às {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-            </header>
-
-            {/* Sale Info Row */}
-            <section className="flex justify-between items-start border-b border-black py-1.5 text-[10px]">
-                <div className="flex gap-4">
-                    <span><b>ID:</b> #{sale.id}</span>
-                    <span><b>Caixa:</b> #{sale.posTerminal.replace(/\D/g, '') || 'N/A'}</span>
-                </div>
-                <span><b>Vendedor:</b> {salesperson?.name}</span>
-            </section>
-
-            {/* Customer Data - Larger font */}
-            <section className="py-1.5 border-b border-black text-[11px]">
-                <div className="flex flex-wrap gap-x-6">
-                    <span><b>Cliente:</b> {customer?.name}</span>
-                    <span><b>CPF:</b> {customer?.cpf || '-'}</span>
-                    <span><b>Tel:</b> {customer?.phone}</span>
-                </div>
-            </section>
-
-            {/* Observations moved to just above warranty section */}
-
-            {/* Title */}
-            <h2 className="font-bold text-center text-base my-2">RECIBO DE VENDA</h2>
-
-            {/* Products Table - Full Width */}
-            <section className="rounded-lg overflow-hidden border border-black">
-                <table className="w-full text-left border-collapse text-[10px]">
-                    <thead>
-                        <tr>
-                            <th className="px-1.5 py-1 font-semibold border border-black">Descrição</th>
-                            <th className="px-1.5 py-1 font-semibold border border-black text-center" style={{ width: '40px' }}>Qtd</th>
-                            <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Unit.</th>
-                            <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sale.items.map(item => {
-                            const product = productMap[item.productId];
-                            const warrantyExp = getWarrantyExpiration(sale.date, product?.warranty || '', warranties);
-                            return (
-                                <tr key={item.productId}>
-                                    <td className="px-1.5 py-1 align-top border border-black">
-                                        <p className="font-semibold leading-tight text-[10px]">{`SKU:${product?.sku || ''} ${product?.model || 'Produto'}`}</p>
-                                        <div className="text-[9px] text-gray-600 leading-tight">
-                                            {product?.imei1 && <span>IMEI1: {product.imei1} </span>}
-                                            {product?.imei2 && <span>IMEI2: {product.imei2} </span>}
-                                            {product?.serialNumber && <span>S/N: {product.serialNumber} </span>}
-                                            <span>{product?.condition}</span>
-                                        </div>
-                                        {warrantyExp && (
-                                            <p className="text-[9px] text-gray-700 leading-tight">
-                                                Garantia até {warrantyExp}
-                                                {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Bat: ${product.batteryHealth}%` : ''}
-                                            </p>
-                                        )}
-                                    </td>
-                                    <td className="px-1.5 py-1 text-center align-top border border-black">{item.quantity}</td>
-                                    <td className="px-1.5 py-1 text-right align-top border border-black">{formatCurrency(item.unitPrice)}</td>
-                                    <td className="px-1.5 py-1 text-right font-semibold align-top border border-black">{formatCurrency(item.unitPrice * item.quantity)}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </section>
-
-            {/* Payment + Totals - Side by Side */}
-            <section className="mt-2 flex justify-between gap-3 text-[10px]">
-                {/* Payment Section - 58% width */}
-                <div className="border border-black p-2 rounded" style={{ width: '58%' }}>
-                    <p className="font-bold mb-1 text-[11px] border-b border-gray-300 pb-0.5">PAGAMENTO</p>
-                    <div className="space-y-1">
-                        {sale.payments.map(p => {
-                            // Format payment line based on type
-                            let methodName = p.method;
-                            let detailsLine = '';
-                            // Calculate total value with fees: p.value + p.fees (or just p.value if fees are already included)
-                            const totalValueWithFees = p.value + (p.fees || 0);
-                            let valueText = formatCurrency(totalValueWithFees);
-
-                            // Credit card with installments: "12x de R$ 47,52 (12,31% de taxa - Juros: R$ 70,19)"
-                            if (p.installments && p.installments > 1) {
-                                const installmentValue = p.installmentsValue || totalValueWithFees / p.installments;
-                                detailsLine = `${p.installments}x de ${formatCurrency(installmentValue)}`;
-                                if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
-                                    const feeAmount = p.fees || 0;
-                                    detailsLine += ` (${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
-                                }
-                            }
-                            // Debit with fee: "(Taxa 2,00% - Juros: R$ 2,04)"
-                            else if (p.method?.toLowerCase().includes('débito') && p.feePercentage && p.feePercentage > 0) {
-                                const feeAmount = p.fees || 0;
-                                detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
-                            }
-                            // Credit single payment with fee
-                            else if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
-                                detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}%)`;
-                            }
-
-                            return (
-                                <div key={p.id} className="flex justify-between items-start border-b border-dashed border-gray-200 pb-0.5 last:border-b-0">
-                                    <div className="flex-1">
-                                        <span className="font-medium">{methodName}</span>
-                                        {detailsLine && <span className="text-gray-600 ml-1 text-[9px]">{detailsLine}</span>}
-                                        {p.tradeInDetails && (
-                                            <p className="text-[9px] text-gray-600 italic leading-tight">
-                                                Troca: {p.tradeInDetails.model}
-                                                {p.tradeInDetails.imei1 ? ` IMEI: ${p.tradeInDetails.imei1}` : p.tradeInDetails.serialNumber ? ` SN: ${p.tradeInDetails.serialNumber}` : ''}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <span className="font-semibold ml-2 whitespace-nowrap">{valueText}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Totals Section - 40% width */}
-                <div className="bg-white p-2 rounded border border-black text-[10px]" style={{ width: '40%' }}>
-                    <div className="flex justify-between"><span className="font-semibold">ITENS</span><span>{totalItems}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
-                    <div className="flex justify-between"><span className="font-semibold">TAXAS CARTÃO</span><span>{formatCurrency(totalFees)}</span></div>
-                    <div className="flex justify-between border-t border-black pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">{formatCurrency(totalFees > 0 ? sale.total + totalFees : sale.total)}</span></div>
-                    {/* Highlighted PAGO section */}
-                    <div className="flex justify-between bg-black text-white px-2 py-1 rounded mt-1 border-2 border-gray-800">
-                        <span className="font-black text-[12px]">PAGO</span>
-                        <span className="font-black text-[12px]">{formatCurrency(totalPaid)}</span>
-                    </div>
-                </div>
-            </section>
-
-            {/* Observations - just above warranty section */}
-            {sale.observations && (
-                <section className="mt-4 py-1.5 border border-black rounded px-2 text-[10px]">
-                    <span className="font-bold">OBSERVAÇÕES:</span> {sale.observations}
-                </section>
-            )}
-
-            {/* Warranty Terms - More spacing, larger font */}
-            {activeTerm && (
-                <section className="mt-3 space-y-2">
-                    {activeTerm.warrantyTerm?.showOnReceipt && activeTerm.warrantyTerm.content && (
+        <div className="font-sans text-black receipt-body flex flex-col" id="receipt-content" style={{ width: '100%', maxWidth: '210mm', minHeight: '280mm', margin: '0' }}>
+            <div className="flex-1">
+                {/* Company Header - Logo bigger */}
+                <header className="flex justify-between items-start pb-1.5 border-b border-black">
+                    <div className="flex items-center gap-4">
+                        {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-20 w-20 object-contain" />}
                         <div>
-                            <h3 className="font-bold uppercase text-[11px] mb-1.5">GARANTIA</h3>
-                            <p className="whitespace-pre-wrap text-justify text-[9px] leading-snug">{activeTerm.warrantyTerm.content}</p>
+                            <h1 className="font-bold text-xl leading-tight text-black">{companyInfo?.name}</h1>
+                            <p className="text-[10px] leading-tight">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
+                            <p className="text-[10px] leading-tight">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''} - {companyInfo?.bairro}</p>
+                            <p className="text-[10px] leading-tight">{companyInfo?.city} ({companyInfo?.state}) - CEP: {formatCEP(companyInfo?.cep)}</p>
+                            <p className="text-[10px] leading-tight">
+                                {companyInfo?.whatsapp && <span>WhatsApp: {companyInfo.whatsapp} </span>}
+                                {companyInfo?.instagram && <span>Instagram: {companyInfo.instagram} </span>}
+                                {companyInfo?.email && <span>Email: {companyInfo.email}</span>}
+                            </p>
                         </div>
-                    )}
-                    {activeTerm.warrantyExclusions?.showOnReceipt && activeTerm.warrantyExclusions.content && (
-                        <div className="mt-1">
-                            <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">A GARANTIA NÃO COBRE:</h3>
-                            <ul className="list-none space-y-0 text-[8px] leading-snug columns-2">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
-                        </div>
-                    )}
-                    {activeTerm.imageRights?.showOnReceipt && activeTerm.imageRights.content && (
-                        <div className="mt-1">
-                            <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">DIREITO DE IMAGEM</h3>
-                            <p className="whitespace-pre-wrap text-justify text-[8px] leading-snug">{activeTerm.imageRights.content}</p>
-                        </div>
-                    )}
+                    </div>
+                    {/* Receipt ID and Date on right side */}
+                    <div className="text-right text-[10px]">
+                        <p className="font-bold text-sm">Recibo #{sale.id}</p>
+                        <p>{new Date(sale.date).toLocaleDateString('pt-BR')} às {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                </header>
+
+                {/* Sale Info Row */}
+                <section className="flex justify-between items-start border-b border-black py-1.5 text-[10px]">
+                    <div className="flex gap-4">
+                        <span><b>ID:</b> #{sale.id}</span>
+                        <span><b>Caixa:</b> #{sale.posTerminal.replace(/\D/g, '') || 'N/A'}</span>
+                    </div>
+                    <span><b>Vendedor:</b> {salesperson?.name}</span>
                 </section>
-            )}
+
+                {/* Customer Data - Larger font */}
+                <section className="py-1.5 border-b border-black text-[11px]">
+                    <div className="flex flex-wrap gap-x-6">
+                        <span><b>Cliente:</b> {customer?.name}</span>
+                        <span><b>CPF:</b> {customer?.cpf || '-'}</span>
+                        <span><b>Tel:</b> {customer?.phone}</span>
+                    </div>
+                </section>
+
+                {/* Observations moved to just above warranty section */}
+
+                {/* Title */}
+                <h2 className="font-bold text-center text-base my-2">RECIBO DE VENDA</h2>
+
+                {/* Products Table - Full Width */}
+                <section className="rounded-lg overflow-hidden border border-black">
+                    <table className="w-full text-left border-collapse text-[10px]">
+                        <thead>
+                            <tr>
+                                <th className="px-1.5 py-1 font-semibold border border-black">Descrição</th>
+                                <th className="px-1.5 py-1 font-semibold border border-black text-center" style={{ width: '40px' }}>Qtd</th>
+                                <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Unit.</th>
+                                <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sale.items.map(item => {
+                                const product = productMap[item.productId];
+                                const warrantyExp = getWarrantyExpiration(sale.date, product?.warranty || '', warranties);
+                                return (
+                                    <tr key={item.productId}>
+                                        <td className="px-1.5 py-1 align-top border border-black">
+                                            <p className="font-semibold leading-tight text-[10px]">{`SKU:${product?.sku || ''} ${product?.model || 'Produto'}`}</p>
+                                            <div className="text-[9px] text-gray-600 leading-tight">
+                                                {product?.imei1 && <span>IMEI1: {product.imei1} </span>}
+                                                {product?.imei2 && <span>IMEI2: {product.imei2} </span>}
+                                                {product?.serialNumber && <span>S/N: {product.serialNumber} </span>}
+                                                <span>{product?.condition}</span>
+                                            </div>
+                                            {warrantyExp && (
+                                                <p className="text-[9px] text-gray-700 leading-tight">
+                                                    Garantia até {warrantyExp}
+                                                    {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Bat: ${product.batteryHealth}%` : ''}
+                                                </p>
+                                            )}
+                                        </td>
+                                        <td className="px-1.5 py-1 text-center align-top border border-black">{item.quantity}</td>
+                                        <td className="px-1.5 py-1 text-right align-top border border-black">{formatCurrency(item.unitPrice)}</td>
+                                        <td className="px-1.5 py-1 text-right font-semibold align-top border border-black">{formatCurrency(item.unitPrice * item.quantity)}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </section>
+
+                {/* Payment + Totals - Side by Side */}
+                <section className="mt-2 flex justify-between gap-3 text-[10px]">
+                    {/* Payment Section - 58% width */}
+                    <div className="border border-black p-2 rounded" style={{ width: '58%' }}>
+                        <p className="font-bold mb-1 text-[11px] border-b border-gray-300 pb-0.5">PAGAMENTO</p>
+                        <div className="space-y-1">
+                            {sale.payments.map(p => {
+                                // Format payment line based on type
+                                let methodName = p.method;
+                                let detailsLine = '';
+                                // Calculate total value with fees: p.value + p.fees (or just p.value if fees are already included)
+                                const totalValueWithFees = p.value + (p.fees || 0);
+                                let valueText = formatCurrency(totalValueWithFees);
+
+                                // Credit card with installments: "12x de R$ 47,52 (12,31% de taxa - Juros: R$ 70,19)"
+                                if (p.installments && p.installments > 1) {
+                                    const installmentValue = p.installmentsValue || totalValueWithFees / p.installments;
+                                    detailsLine = `${p.installments}x de ${formatCurrency(installmentValue)}`;
+                                    if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
+                                        const feeAmount = p.fees || 0;
+                                        detailsLine += ` (${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
+                                    }
+                                }
+                                // Debit with fee: "(Taxa 2,00% - Juros: R$ 2,04)"
+                                else if (p.method?.toLowerCase().includes('débito') && p.feePercentage && p.feePercentage > 0) {
+                                    const feeAmount = p.fees || 0;
+                                    detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
+                                }
+                                // Credit single payment with fee
+                                else if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
+                                    detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}%)`;
+                                }
+
+                                return (
+                                    <div key={p.id} className="flex justify-between items-start border-b border-dashed border-gray-200 pb-0.5 last:border-b-0">
+                                        <div className="flex-1">
+                                            <span className="font-medium">{methodName}</span>
+                                            {detailsLine && <span className="text-gray-600 ml-1 text-[9px]">{detailsLine}</span>}
+                                            {p.tradeInDetails && (
+                                                <p className="text-[9px] text-gray-600 italic leading-tight">
+                                                    Troca: {p.tradeInDetails.model}
+                                                    {p.tradeInDetails.imei1 ? ` IMEI: ${p.tradeInDetails.imei1}` : p.tradeInDetails.serialNumber ? ` SN: ${p.tradeInDetails.serialNumber}` : ''}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <span className="font-semibold ml-2 whitespace-nowrap">{valueText}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Totals Section - 40% width */}
+                    <div className="bg-white p-2 rounded border border-black text-[10px]" style={{ width: '40%' }}>
+                        <div className="flex justify-between"><span className="font-semibold">ITENS</span><span>{totalItems}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
+                        <div className="flex justify-between"><span className="font-semibold">TAXAS CARTÃO</span><span>{formatCurrency(totalFees)}</span></div>
+                        <div className="flex justify-between border-t border-black pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">{formatCurrency(totalFees > 0 ? sale.total + totalFees : sale.total)}</span></div>
+                        {/* Highlighted PAGO section */}
+                        <div className="flex justify-between bg-black text-white px-2 py-1 rounded mt-1 border-2 border-gray-800">
+                            <span className="font-black text-[12px]">PAGO</span>
+                            <span className="font-black text-[12px]">{formatCurrency(totalPaid)}</span>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Observations - just above warranty section */}
+                {sale.observations && (
+                    <section className="mt-4 py-1.5 border border-black rounded px-2 text-[10px]">
+                        <span className="font-bold">OBSERVAÇÕES:</span> {sale.observations}
+                    </section>
+                )}
+
+                {/* Warranty Terms - More spacing, larger font */}
+                {activeTerm && (
+                    <section className="mt-3 space-y-2">
+                        {activeTerm.warrantyTerm?.showOnReceipt && activeTerm.warrantyTerm.content && (
+                            <div>
+                                <h3 className="font-bold uppercase text-[11px] mb-1.5">GARANTIA</h3>
+                                <p className="whitespace-pre-wrap text-justify text-[9px] leading-snug">{activeTerm.warrantyTerm.content}</p>
+                            </div>
+                        )}
+                        {activeTerm.warrantyExclusions?.showOnReceipt && activeTerm.warrantyExclusions.content && (
+                            <div className="mt-1">
+                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">A GARANTIA NÃO COBRE:</h3>
+                                <ul className="list-none space-y-0 text-[8px] leading-snug columns-2">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
+                            </div>
+                        )}
+                        {activeTerm.imageRights?.showOnReceipt && activeTerm.imageRights.content && (
+                            <div className="mt-1">
+                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">DIREITO DE IMAGEM</h3>
+                                <p className="whitespace-pre-wrap text-justify text-[8px] leading-snug">{activeTerm.imageRights.content}</p>
+                            </div>
+                        )}
+                    </section>
+                )}
+            </div>
+
+            {/* System Promo Footer - Pushed to bottom with mt-auto */}
+            <div className="mt-auto pt-6 text-center" style={{ fontSize: '8px', color: '#9ca3af' }}>
+                <p>iStore Pro - O melhor sistema para sua loja de eletronicos. Saiba mais em istorepro.com.br</p>
+            </div>
         </div>
     );
 };
@@ -378,6 +385,11 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
             <div className="mt-8 text-center">
                 <p>___________________________________</p>
                 <p>{customer?.name || 'Assinatura do Cliente'}</p>
+            </div>
+
+            {/* System Promo Footer */}
+            <div className="mt-4 text-center" style={{ fontSize: '8pt', color: '#6b7280' }}>
+                <p>iStore Pro - O melhor sistema para sua loja de eletronicos. Saiba mais em istorepro.com.br</p>
             </div>
         </div>
     );
