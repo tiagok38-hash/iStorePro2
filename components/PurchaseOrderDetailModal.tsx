@@ -134,15 +134,17 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                 })}
             </tbody>
         </table>
-        <div className="text-right mt-2 text-sm font-semibold pr-3">
-            Total de Itens na Compra: {products.length}
-        </div>
     </>
 );
 
 
 const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () => void; associatedProducts?: Product[] }> = ({ purchase, onClose, associatedProducts = [] }) => {
     const supplierId = purchase.supplierId.split('-')[1] || purchase.supplierId;
+
+    // Calculate total items count
+    const totalItems = (purchase.stockStatus === 'Lançado' || purchase.stockStatus === 'Parcialmente Lançado') && associatedProducts.length > 0
+        ? associatedProducts.length
+        : purchase.items.reduce((sum, item) => sum + item.quantity, 0);
 
     // Lock body scroll on mount
     React.useEffect(() => {
@@ -192,6 +194,10 @@ const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () 
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-gray-50 flex justify-end items-center gap-10 text-right">
+                    <div className="flex flex-col gap-0.5">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total de Itens</p>
+                        <p className="font-bold text-gray-600">{totalItems}</p>
+                    </div>
                     <div className="flex flex-col gap-0.5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subtotal</p>
                         <p className="font-bold text-gray-600">{formatCurrency(purchase.total - purchase.additionalCost)}</p>

@@ -57,7 +57,16 @@ const SalesHistoryTab: React.FC<{ product: Product, sales: Sale[], customers: Cu
                                     <td className="px-4 py-3">{findCustomerName(sale.customerId)}</td>
                                     <td className="px-4 py-3">{findSalespersonName(sale.salespersonId)}</td>
                                     <td className="px-4 py-3 font-semibold text-primary text-center">{saleItem.quantity}</td>
-                                    <td className="px-4 py-3 text-right">{formatCurrency(saleItem.unitPrice)}</td>
+                                    <td className="px-4 py-3 text-right">
+                                        <span className={`mr-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${(saleItem.priceType === 'wholesale') ? 'bg-orange-100 text-orange-800' :
+                                                (saleItem.priceType === 'cost') ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-green-100 text-green-800'
+                                            }`}>
+                                            {(saleItem.priceType === 'wholesale') ? 'Atacado' :
+                                                (saleItem.priceType === 'cost') ? 'Custo' : 'Venda'}
+                                        </span>
+                                        {formatCurrency(saleItem.unitPrice)}
+                                    </td>
                                     <td className="px-4 py-3 font-semibold text-primary text-right">{formatCurrency(saleItem.unitPrice * saleItem.quantity)}</td>
                                 </tr>
                             )

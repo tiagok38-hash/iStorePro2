@@ -38,17 +38,18 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({ value, onChange, placehol
     const displayValue = format(value);
 
     return (
-        <div className="relative w-full">
+        <div className={`relative w-full flex items-center overflow-hidden ${className}`}>
             {showPrefix && (
-                <span className={`pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm ${disabled ? 'text-gray-400' : 'text-muted'}`}>R$</span>
+                <span className={`pointer-events-none pl-3 text-sm font-bold whitespace-nowrap shrink-0 ${disabled ? 'text-gray-400' : 'text-muted'}`}>R$</span>
             )}
             <input
                 type="text"
                 value={displayValue}
                 onChange={handleChange}
                 placeholder={placeholder}
-                className={`${className} ${showPrefix ? 'pl-10' : 'pl-4'} pr-4 text-right`}
+                className={`flex-1 w-full h-full bg-transparent border-none outline-none focus:ring-0 px-2 placeholder:text-gray-300 ${disabled ? 'cursor-not-allowed' : ''} text-inherit`}
                 disabled={disabled}
+                data-testid="unit-price-input"
             />
         </div>
     );

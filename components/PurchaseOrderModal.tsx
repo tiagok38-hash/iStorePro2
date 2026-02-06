@@ -924,29 +924,52 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         </div>
                     </div>
 
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mt-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                            <div className="flex flex-col gap-2">
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mt-2">
+                        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto flex-1">
+                            <div className="flex flex-col gap-3 justify-center min-w-[240px]">
                                 <label className="flex items-center space-x-2 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={currentItem.hasImei}
-                                        onChange={e => handleCurrentItemChange('hasImei', e.target.checked)}
-                                        disabled={productType === 'Apple'}
-                                        className={`form-checkbox h-4 w-4 text-accent rounded ${productType === 'Apple' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        onChange={e => {
+                                            const checked = e.target.checked;
+                                            handleCurrentItemChange('hasImei', checked);
+                                            if (!checked) setIsMinimumStockEnabled(true);
+                                            else setIsMinimumStockEnabled(false);
+                                        }}
+                                        className="form-checkbox h-4 w-4 text-accent rounded"
                                     />
                                     <span className="text-sm font-semibold text-gray-600">Controlar por IMEI/Serial</span>
                                 </label>
-                                {productType !== 'Apple' && (
+
+                                <div className={`flex items-center gap-3 transition-all duration-300 ${currentItem.hasImei ? 'opacity-40 pointer-events-none grayscale' : 'opacity-100'}`}>
                                     <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" checked={isMinimumStockEnabled} onChange={(e) => handleToggleMinimumStock(e.target.checked)} className="form-checkbox h-4 w-4 text-accent rounded" />
+                                        <input
+                                            type="checkbox"
+                                            checked={isMinimumStockEnabled}
+                                            onChange={(e) => handleToggleMinimumStock(e.target.checked)}
+                                            disabled={currentItem.hasImei}
+                                            className="form-checkbox h-4 w-4 text-accent rounded"
+                                        />
                                         <span className="text-sm font-semibold text-gray-600">Estoque mínimo</span>
                                     </label>
-                                )}
+
+                                    <div className="flex items-center gap-2 ml-auto bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Qtd:</span>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={currentItem.minimumStock ?? 1}
+                                            onChange={(e) => handleCurrentItemChange('minimumStock', parseInt(e.target.value) || 1)}
+                                            disabled={currentItem.hasImei || !isMinimumStockEnabled}
+                                            className="w-12 bg-transparent text-center font-bold text-sm outline-none border-b-2 border-transparent focus:border-accent transition-colors"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-3 px-3 border rounded-xl bg-gray-100/50 border-gray-200 h-11 transition-all focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent w-full sm:w-64 shadow-inner">
+                            <div className="flex-1 min-w-[200px] flex items-end">
+                                <div className="flex items-center gap-3 px-3 border rounded-xl bg-gray-100/50 border-gray-200 h-11 transition-all focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent w-full shadow-inner">
                                     <BarcodeIcon className="h-4 w-4 text-muted shrink-0" />
                                     <input
                                         type="text"
@@ -956,22 +979,10 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                         placeholder="CÓDIGO DE BARRAS..."
                                     />
                                 </div>
-                                {isMinimumStockEnabled && productType !== 'Apple' && (
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-xs font-bold text-gray-500 uppercase">Qtd. Mínima:</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={currentItem.minimumStock ?? 1}
-                                            onChange={(e) => handleCurrentItemChange('minimumStock', parseInt(e.target.value) || 1)}
-                                            className={`${inputClasses} w-20 h-8 text-center font-bold`}
-                                        />
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        <button type="button" onClick={handleAddItem} className="w-full lg:w-auto px-8 py-3 bg-success text-white rounded-xl font-bold hover:bg-success/90 flex items-center justify-center gap-2 transition-all shadow-lg shadow-success/20">
+                        <button type="button" onClick={handleAddItem} className="w-full lg:w-auto px-8 py-3 bg-success text-white rounded-xl font-bold hover:bg-success/90 flex items-center justify-center gap-2 transition-all shadow-lg shadow-success/20 h-11">
                             <PlusIcon className="h-6 w-6" /> Adicionar Item
                         </button>
                     </div>

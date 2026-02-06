@@ -162,7 +162,16 @@ export const useSaleForm = ({
         if (totalQuantity > product.stock) { showToast('Quantidade insuficiente em estoque.', 'warning'); return; }
 
         if (existingItem) {
-            setCart(cart.map(item => item.id === product.id ? { ...item, quantity: totalQuantity } : item));
+            let finalPrice = product.price;
+            if (selectedPriceType === 'cost') finalPrice = (product.costPrice || 0) + (product.additionalCostPrice || 0) || product.price;
+            else if (selectedPriceType === 'wholesale') finalPrice = product.wholesalePrice || product.price;
+
+            setCart(cart.map(item => item.id === product.id ? {
+                ...item,
+                quantity: totalQuantity,
+                salePrice: finalPrice,
+                priceType: selectedPriceType
+            } : item));
         } else {
             let finalPrice = product.price;
             if (selectedPriceType === 'cost') finalPrice = (product.costPrice || 0) + (product.additionalCostPrice || 0) || product.price;
@@ -192,8 +201,28 @@ export const useSaleForm = ({
     }, [cart, saleToEdit, showToast]);
 
     const handleCartItemUpdate = useCallback((productId: string, field: keyof CartItem, value: any) => {
-        setCart(currentCart => currentCart.map(item => item.id === productId ? { ...item, [field]: value } : item));
-    }, []);
+        setCart(currentCart => {
+            return currentCart.map(item => {
+                if (item.id === productId) {
+                    if (field === 'quantity') {
+                        const newQty = parseInt(value, 10);
+                        if (isNaN(newQty) || newQty < 1) return item;
+
+                        // Check uniqueness inside the update to ensure safety, though UI handles it too
+                        if (item.serialNumber || item.imei1) return item;
+
+                        if (newQty > item.stock) {
+                            showToast(`Estoque insuficiente. Máximo disponível: ${item.stock}`, 'warning');
+                            return { ...item, quantity: item.stock };
+                        }
+                        return { ...item, quantity: newQty };
+                    }
+                    return { ...item, [field]: value };
+                }
+                return item;
+            });
+        });
+    }, [showToast]);
 
     const handleOpenTradeInModal = useCallback(async () => {
         if (!selectedCustomerId) {
