@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
 import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
+import { sendSaleNotification } from './telegramService.ts';
 
 // --- CACHE SYSTEM ---
 const cache: Record<string, { data: any, timestamp: number }> = {};
@@ -1766,6 +1767,65 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         }
     }
 
+    // TELEGRAM NOTIFICATION: Send notification for finalized sales
+    if (saleData.status === 'Finalizada') {
+        try {
+            // Calculate profit from items
+            let totalProfit = 0;
+            const productDescriptions: string[] = [];
+
+            if (data.items && Array.isArray(data.items)) {
+                for (const item of data.items) {
+                    const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                    totalProfit += itemProfit;
+                    // Build product description
+                    if (item.productName || item.model) {
+                        productDescriptions.push(item.productName || item.model);
+                    }
+                }
+            }
+
+            // Get product description (first item or combined)
+            let productDescription = productDescriptions.length > 0
+                ? productDescriptions.join(' + ')
+                : 'Produto';
+
+            // Calculate daily profit (all finalized sales today)
+            let dailyProfit = totalProfit;
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const { data: todaySales } = await supabase
+                    .from('sales')
+                    .select('items')
+                    .gte('date', today)
+                    .in('status', ['Finalizada', 'Editada']);
+
+                if (todaySales && todaySales.length > 0) {
+                    dailyProfit = 0;
+                    for (const sale of todaySales) {
+                        const items = sale.items || [];
+                        for (const item of items) {
+                            dailyProfit += ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                        }
+                    }
+                    // Add current sale profit (not yet in DB)
+                    dailyProfit += totalProfit;
+                }
+            } catch (dailyError) {
+                console.warn('[addSale] Could not calculate daily profit:', dailyError);
+            }
+
+            await sendSaleNotification({
+                productDescription,
+                profit: totalProfit,
+                dailyProfit
+            });
+        } catch (telegramError) {
+            // Don't fail the sale if Telegram notification fails
+            console.warn('[addSale] Telegram notification failed:', telegramError);
+        }
+    }
+
     clearCache(['sales', 'products', 'cash_sessions']);
     return mappedSale;
 };
@@ -1926,6 +1986,55 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 userName,
                 userId
             );
+        }
+
+        // TELEGRAM NOTIFICATION: Send notification when pending sale is finalized
+        try {
+            let totalProfit = 0;
+            const productDescriptions: string[] = [];
+
+            for (const item of updated.items || []) {
+                const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                totalProfit += itemProfit;
+                if (item.productName || item.model) {
+                    productDescriptions.push(item.productName || item.model);
+                }
+            }
+
+            const productDescription = productDescriptions.length > 0
+                ? productDescriptions.join(' + ')
+                : 'Produto';
+
+            // Calculate daily profit
+            let dailyProfit = totalProfit;
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const { data: todaySales } = await supabase
+                    .from('sales')
+                    .select('items')
+                    .gte('date', today)
+                    .in('status', ['Finalizada', 'Editada']);
+
+                if (todaySales && todaySales.length > 0) {
+                    dailyProfit = 0;
+                    for (const sale of todaySales) {
+                        const items = sale.items || [];
+                        for (const item of items) {
+                            dailyProfit += ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                        }
+                    }
+                }
+            } catch (dailyError) {
+                console.warn('[updateSale] Could not calculate daily profit:', dailyError);
+            }
+
+            await sendSaleNotification({
+                productDescription,
+                profit: totalProfit,
+                dailyProfit
+            });
+        } catch (telegramError) {
+            console.warn('[updateSale] Telegram notification failed:', telegramError);
         }
     }
 
