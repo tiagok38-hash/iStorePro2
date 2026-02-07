@@ -42,13 +42,13 @@ const BottomNav: React.FC = () => {
     const itemWidthClass = "flex-none w-[20%] min-w-[20%]";
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-gray-800 lg:hidden z-50 pb-4 pt-2">
+        <div className="fixed bottom-0 left-0 right-0 bg-[#111827] border-t border-gray-800 lg:hidden z-50 pb-2 pt-2">
 
             <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                 {visibleNavItems.map((item) => {
                     const isPDV = item.name === 'PDV';
                     const linkClasses = ({ isActive }: { isActive: boolean }) => `
-                        flex flex-col items-center justify-center py-2 transition-colors ${itemWidthClass}
+                        flex flex-col items-center justify-center py-1.5 transition-colors ${itemWidthClass}
                         ${isActive ? 'text-blue-500' : 'text-gray-400 hover:text-gray-200'}
                     `;
 
@@ -61,7 +61,7 @@ const BottomNav: React.FC = () => {
                                     e.preventDefault();
                                     window.open(`#${item.to}`, '_blank');
                                 }}
-                                className={`flex flex-col items-center justify-center py-2 transition-colors ${itemWidthClass} text-gray-400 hover:text-gray-200`}
+                                className={`flex flex-col items-center justify-center py-1.5 transition-colors ${itemWidthClass} text-gray-400 hover:text-gray-200`}
                             >
                                 {React.cloneElement(item.icon, { className: 'h-5 w-5 mb-1' })}
                                 <span className="text-[10px] truncate w-full text-center px-1 font-medium">{item.name}</span>
@@ -84,7 +84,7 @@ const BottomNav: React.FC = () => {
                 {/* Logout Action */}
                 <button
                     onClick={handleLogout}
-                    className={`flex flex-col items-center justify-center py-2 transition-colors ${itemWidthClass} text-red-500/80 hover:text-red-400`}
+                    className={`flex flex-col items-center justify-center py-1.5 transition-colors ${itemWidthClass} text-red-500/80 hover:text-red-400`}
                 >
                     <LogoutIcon className="h-5 w-5 mb-1" />
                     <span className="text-[10px] truncate w-full text-center px-1 font-medium">Sair</span>
