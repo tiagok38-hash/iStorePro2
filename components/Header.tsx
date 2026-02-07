@@ -7,14 +7,11 @@ import { getCompanyInfo } from '../services/mockApi.ts';
 
 const Logo: React.FC = () => (
     <Link to="/" className="flex items-center h-full overflow-hidden">
-        <div className="relative h-8 w-40 flex items-center overflow-hidden">
-            <img
-                src="/logo_header_wide.png"
-                alt="iStorePro"
-                className="absolute h-[240%] w-auto max-w-none left-0 top-[52%] -translate-y-1/2"
-                style={{ mixBlendMode: 'multiply' }}
-            />
-        </div>
+        <img
+            src="/Design sem nome-4.png"
+            alt="iStorePro"
+            className="h-10 w-auto object-contain"
+        />
     </Link>
 );
 
@@ -59,7 +56,7 @@ const Header: React.FC<HeaderProps> = () => {
     }, []);
 
     return (
-        <header className="bg-surface h-10 flex items-center justify-between px-4 border-b border-border lg:hidden sticky top-0 z-30">
+        <header className="bg-surface h-[50px] flex items-center justify-between px-4 border-b border-border lg:hidden sticky top-0 z-30">
             <Logo />
 
             <div className="flex items-center gap-3">

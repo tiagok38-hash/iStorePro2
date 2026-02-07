@@ -67,7 +67,10 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                 break;
         }
 
-        const productMap = products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as Record<string, Product>);
+        const productMap = products.reduce((acc, p) => {
+            acc[p.id] = p;
+            return acc;
+        }, {} as Record<string, Product>);
         const validSales = sales.filter(s => {
             if (s.status === 'Cancelada') return false;
             const d = new Date(s.date);
@@ -179,7 +182,10 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 });
 
 const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className?: string }> = React.memo(({ sales, customers, className }) => {
-    const customerMap = useMemo(() => customers.reduce((acc, c) => ({ ...acc, [c.id]: c.name }), {} as Record<string, string>), [customers]);
+    const customerMap = useMemo(() => customers.reduce((acc, c) => {
+        acc[c.id] = c.name;
+        return acc;
+    }, {} as Record<string, string>), [customers]);
 
     const todaysSalesList = useMemo(() => {
         const todayStr = new Date().toDateString();
@@ -1054,7 +1060,10 @@ const Dashboard: React.FC = () => {
         let billingChartData: { name: string; faturamento: number; lucro: number }[] = [];
         const relevantSales = sales.filter(s => s.status !== 'Cancelada');
 
-        const productMapData = products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as Record<string, Product>);
+        const productMapData = products.reduce((acc, p) => {
+            acc[p.id] = p;
+            return acc;
+        }, {} as Record<string, Product>);
 
         const calculateProfit = (sale: Sale) => {
             const cost = (sale.items || []).reduce((sum, item) => {
@@ -1157,7 +1166,10 @@ const Dashboard: React.FC = () => {
 
         const recentSales = sortedSales.slice(0, 5);
 
-        const productMap = products.reduce((acc, p) => ({ ...acc, [p.id]: p.model }), {} as Record<string, string>);
+        const productMap = products.reduce((acc, p) => {
+            acc[p.id] = p.model;
+            return acc;
+        }, {} as Record<string, string>);
 
         const recentSoldItems: SoldItemInfo[] = sortedSales
             .flatMap(sale => sale.items.map(item => ({

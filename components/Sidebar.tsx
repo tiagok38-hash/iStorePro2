@@ -87,7 +87,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         navigate('/login');
     };
 
-    const navItems = [
+    // --- OPTIMIZATION: Defined outside component to prevent re-creation ---
+    const NAV_ITEMS = [
         { name: 'Dashboard', to: '/', icon: <Squares2x2Icon />, permissionKey: 'canAccessDashboard' },
         { name: 'Estoque', to: '/products', icon: <ArchiveBoxIcon />, permissionKey: 'canAccessEstoque' },
         { name: 'Vendas', to: '/vendas', icon: <BanknotesIcon />, permissionKey: 'canAccessVendas' },
@@ -101,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         if (!permissions) {
             return [];
         }
-        return navItems.filter(item => {
+        return NAV_ITEMS.filter(item => {
             if (item.name === 'Clientes e Fornecedores') {
                 return permissions.canAccessClientes || permissions.canAccessFornecedores;
             }
@@ -114,24 +115,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         <aside
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`hidden lg:flex fixed inset-y-0 left-0 z-40 bg-[#111827] text-gray-200 flex-col h-screen border-r border-gray-800 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:sticky ${effectiveIsCollapsed ? 'lg:w-20' : 'lg:w-64'} ${isLoggingOut ? 'opacity-0 -translate-x-full' : ''}`}
+            className={`hidden lg:flex fixed inset-y-0 left-0 z-40 bg-[#111827] text-gray-200 flex-col h-screen border-r border-gray-800 transform transition-all duration-200 ease-out lg:translate-x-0 lg:sticky ${effectiveIsCollapsed ? 'lg:w-24' : 'lg:w-64'} ${isLoggingOut ? 'opacity-0 -translate-x-full' : ''}`}
         >
-            <div className="flex items-center h-16 overflow-hidden">
-                {/* Fixed Logo Container - Matches collapsed sidebar width (w-20) */}
+            <div className="flex items-center h-[90px] overflow-hidden">
+                {/* Fixed Logo Container - Matches collapsed sidebar width */}
                 {/* Logo Container */}
-                <div className={`flex items-center transition-all duration-300 ${effectiveIsCollapsed ? 'w-20 justify-center' : 'w-full px-4'}`}>
-                    <Link to="/" className="flex items-center overflow-hidden">
+                <div className={`flex items-center transition-all duration-200 ${effectiveIsCollapsed ? 'w-full justify-center' : 'w-full px-2'}`}>
+                    <Link to="/" className="flex items-center overflow-hidden whitespace-nowrap transition-all duration-200 gap-0">
                         <img
-                            src="/logo_sidebar.png"
+                            src="/logo_sidebar_icon.png"
                             alt="Logo"
-                            className={`h-11 w-auto object-contain transition-all duration-300 ${effectiveIsCollapsed ? 'max-w-[140px] translate-x-[-35px]' : 'max-w-full'}`}
+                            className="min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] w-[80px] h-[80px] object-contain shrink-0 transition-all duration-200 relative z-10"
+                        />
+                        <img
+                            src="/logo_sidebar_text.png"
+                            alt="iStore Pro"
+                            className={`w-[140px] h-auto object-contain transition-all duration-200 ease-out origin-left translate-y-[4px] ${effectiveIsCollapsed ? 'ml-0 max-w-0 opacity-0' : '-ml-4 max-w-[140px] opacity-100'}`}
                         />
                     </Link>
                 </div>
 
                 {/* Expanded Content: Toggle Button */}
                 {!effectiveIsCollapsed && (
-                    <div className="flex items-center ml-auto pr-4 animate-fade-in">
+                    <div className="flex items-center ml-auto pr-4 animate-fade-in translate-y-[6px]">
                         <button
                             onClick={toggleCollapse}
                             className="hidden lg:flex p-1.5 rounded-md text-gray-500 hover:bg-gray-800 hover:text-white transition-colors"
@@ -141,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
                     </div>
                 )}
             </div>
-            <nav className="flex-1 px-3 py-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <nav className="flex-1 px-3 py-6 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 <div className="space-y-1">
                     {visibleNavItems.map(item => (
                         <NavItem key={item.name} to={item.to} icon={item.icon} label={item.name} isCollapsed={effectiveIsCollapsed} onCloseSidebar={onCloseSidebar} target={item.target as React.HTMLAttributeAnchorTarget} />
