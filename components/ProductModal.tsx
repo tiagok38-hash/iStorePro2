@@ -746,7 +746,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const totalCost = useMemo(() => (formData.costPrice || 0) + (formData.additionalCostPrice || 0), [formData.costPrice, formData.additionalCostPrice]);
 
     const labelClasses = "block text-xs font-medium text-muted mb-1";
-    const inputClasses = "w-full p-2 border rounded bg-transparent border-border focus:ring-success focus:border-success text-sm";
+    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm";
 
     if (!visible && !isOpen) return null;
 
@@ -777,7 +777,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             <a
                                 href="/#/company?tab=marcas"
                                 target="_blank"
-                                className="hidden md:inline-block text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 hover:bg-blue-100 transition-all whitespace-nowrap"
+                                className="hidden md:inline-block text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 hover:bg-blue-100 transition-all whitespace-nowrap"
                             >
                                 Para cadastrar marcas/categorias/grades, <span className="underline">clique aqui</span>.
                             </a>
@@ -830,13 +830,13 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     <PlusIcon className="h-6 w-6 text-gray-800" />
                                     <h3 className="text-xl font-bold text-gray-800">Checklist de produtos Seminovos</h3>
                                 </div>
-                                <div className="flex items-center gap-2 text-orange-500 bg-orange-50 p-3 rounded-lg border border-orange-100 mb-6">
+                                <div className="flex items-center gap-2 text-orange-500 bg-orange-50 p-3 rounded-xl border border-orange-100 mb-6">
                                     <span className="font-bold text-sm">⚠️ Marque as opções que apresentam defeito ou avaria.</span>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0 max-h-[240px] overflow-y-auto custom-scrollbar pr-2 border border-gray-100 rounded-xl p-4 bg-gray-50/50">
                                     {checklistItems.map(item => (
-                                        <label key={item} className="flex items-center gap-4 cursor-pointer p-2 hover:bg-gray-100 rounded-lg transition-colors group border border-transparent hover:border-gray-200">
+                                        <label key={item} className="flex items-center gap-4 cursor-pointer p-2 hover:bg-gray-100 rounded-xl transition-colors group border border-transparent hover:border-gray-200">
                                             <div className={`w-10 h-5 rounded-full p-0.5 transition-colors relative shrink-0 ${formData.checklist?.[item] ? 'bg-red-500' : 'bg-gray-300'}`}>
                                                 <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${formData.checklist?.[item] ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </div>
@@ -908,7 +908,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             <div className="space-y-5">
                                 <div className="flex flex-wrap items-center gap-4">
                                     {!product?.id && (
-                                        <div className="flex justify-start items-center p-1 bg-gray-100 rounded-2xl border border-gray-200 w-fit">
+                                        <div className="flex justify-start items-center p-1 bg-gray-100 rounded-xl border border-gray-200 w-fit">
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -932,7 +932,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         </div>
                                     )}
                                     {isTradeInMode && (
-                                        <div className="flex-1 min-w-[300px] p-3 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-center">
+                                        <div className="flex-1 min-w-[300px] p-3 bg-blue-50 border border-blue-200 rounded-3xl flex items-center justify-center">
                                             <span className="text-[10px] md:text-sm text-primary text-center">
                                                 Para cadastrar Marcas, Categorias e Grades, <a href="/#/company?tab=marcas" target="_blank" rel="noopener noreferrer" className="font-semibold underline hover:text-blue-700">clique aqui</a>
                                             </span>
@@ -944,14 +944,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Categoria*</label>
-                                            <select name="category" value={formData.category || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" required>
+                                            <select name="category" value={formData.category || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" required>
                                                 <option value="">Selecione</option>
                                                 {Object.keys(appleProductHierarchy).map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Modelo*</label>
-                                            <select name="model" value={formData.model || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.category} required>
+                                            <select name="model" value={formData.model || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.category} required>
                                                 <option value="">Selecione</option>
                                                 {availableAppleModels.map(m => <option key={m} value={m}>{m}</option>)}
                                             </select>
@@ -959,7 +959,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         {!isMemoryless && (
                                             <div className="space-y-2">
                                                 <label className={labelClasses}>Memória*</label>
-                                                <select value={appleStorage} onChange={handleAppleStorageChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.model} required>
+                                                <select value={appleStorage} onChange={handleAppleStorageChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.model} required>
                                                     <option value="">Selecione</option>
                                                     {availableAppleMemories.map(m => <option key={m} value={m}>{m}</option>)}
                                                 </select>
@@ -967,7 +967,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         )}
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Cor*</label>
-                                            <select name="color" value={formData.color || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.model || (!isMemoryless && !appleStorage)} required>
+                                            <select name="color" value={formData.color || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.model || (!isMemoryless && !appleStorage)} required>
                                                 <option value="">Selecione</option>
                                                 {availableAppleColors.map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
@@ -977,21 +977,21 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Marca*</label>
-                                            <select name="brand" value={formData.brand || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" required>
+                                            <select name="brand" value={formData.brand || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" required>
                                                 <option value="">Selecione</option>
                                                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Categoria*</label>
-                                            <select name="category" value={formData.category || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.brand} required>
+                                            <select name="category" value={formData.category || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.brand} required>
                                                 <option value="">Selecione</option>
                                                 {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Modelo*</label>
-                                            <select name="model" value={formData.model || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.category} required>
+                                            <select name="model" value={formData.model || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.category} required>
                                                 <option value="">Selecione</option>
                                                 {filteredModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                             </select>
@@ -1036,16 +1036,16 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="space-y-2"><label className={labelClasses}>IMEI 1</label><input type="text" name="imei1" value={formData.imei1 || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
-                                <div className="space-y-2"><label className={labelClasses}>IMEI 2</label><input type="text" name="imei2" value={formData.imei2 || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
-                                <div className="space-y-2"><label className={labelClasses}>Nº de Série</label><input type="text" name="serialNumber" value={formData.serialNumber || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
-                                <div className="space-y-2"><label className={labelClasses}>Código de Barras</label><input type="text" value={formData.barcodes?.[0] || ''} onChange={(e) => setFormData(p => ({ ...p, barcodes: e.target.value ? [e.target.value] : [] }))} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
+                                <div className="space-y-2"><label className={labelClasses}>IMEI 1</label><input type="text" name="imei1" value={formData.imei1 || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
+                                <div className="space-y-2"><label className={labelClasses}>IMEI 2</label><input type="text" name="imei2" value={formData.imei2 || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
+                                <div className="space-y-2"><label className={labelClasses}>Nº de Série</label><input type="text" name="serialNumber" value={formData.serialNumber || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
+                                <div className="space-y-2"><label className={labelClasses}>Código de Barras</label><input type="text" value={formData.barcodes?.[0] || ''} onChange={(e) => setFormData(p => ({ ...p, barcodes: e.target.value ? [e.target.value] : [] }))} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="space-y-2">
                                     <label className={labelClasses}>Condição*</label>
-                                    <select name="condition" value={formData.condition || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm">
+                                    <select name="condition" value={formData.condition || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm">
                                         {formData.condition && !conditionOptions.some(c => c.name.toLowerCase() === formData.condition?.toLowerCase()) && (
                                             <option value={formData.condition}>{formData.condition}</option>
                                         )}
@@ -1053,11 +1053,11 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     </select>
                                 </div>
                                 {productType === 'Apple' && formData.condition === 'Seminovo' && (
-                                    <div className="space-y-2"><label className={labelClasses}>Bateria (%)</label><input type="number" name="batteryHealth" min="0" max="100" value={formData.batteryHealth ?? 100} onChange={handleNumberChange} className="w-full p-3 bg-white border border-gray-200 rounded-2xl text-sm font-black text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
+                                    <div className="space-y-2"><label className={labelClasses}>Bateria (%)</label><input type="number" name="batteryHealth" min="0" max="100" value={formData.batteryHealth ?? 100} onChange={handleNumberChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
                                 )}
                                 <div className="space-y-2">
                                     <label className={labelClasses}>Tempo de Garantia*</label>
-                                    <select name="warranty" value={formData.warranty || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${showErrors && !formData.warranty ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
+                                    <select name="warranty" value={formData.warranty || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${showErrors && !formData.warranty ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
                                         <option value="">Selecione...</option>
                                         {formData.warranty && !warrantyOptions.some(w => w.name.toLowerCase() === formData.warranty?.toLowerCase()) && (
                                             <option value={formData.warranty}>{formData.warranty}</option>
@@ -1067,7 +1067,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 </div>
                                 <div className="space-y-2">
                                     <label className={labelClasses}>Local de Estoque*</label>
-                                    <select name="storageLocation" value={formData.storageLocation || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${showErrors && !formData.storageLocation ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-2xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
+                                    <select name="storageLocation" value={formData.storageLocation || ''} onChange={handleInputChange} className={`w-full p-3 bg-white border ${showErrors && !formData.storageLocation ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm`}>
                                         <option value="">Selecione...</option>
                                         {formData.storageLocation && !locationOptions.some(l => l.name.toLowerCase() === formData.storageLocation?.toLowerCase()) && (
                                             <option value={formData.storageLocation}>{formData.storageLocation}</option>
@@ -1084,7 +1084,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         <div className="flex-grow">
                                             <SearchableDropdown options={supplierOptions} value={formData.supplierId || null} onChange={(val) => setFormData(p => ({ ...p, supplierId: val || undefined }))} placeholder="Buscar..." />
                                         </div>
-                                        <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="p-3 bg-gray-100 text-gray-500 hover:bg-primary/10 hover:text-primary rounded-2xl transition-all"><PlusIcon className="h-6 w-6" /></button>
+                                        <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="p-3 bg-gray-100 text-gray-500 hover:bg-primary/10 hover:text-primary rounded-xl transition-all"><PlusIcon className="h-6 w-6" /></button>
                                     </div>
                                 </div>
 
@@ -1112,7 +1112,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Custo Adicional</label>
-                                        <CurrencyInput value={formData.additionalCostPrice} onChange={handlePriceChange('additionalCostPrice')} className="w-full p-3 bg-white border border-gray-200 rounded-2xl font-bold text-lg text-gray-600 outline-none shadow-sm" />
+                                        <CurrencyInput value={formData.additionalCostPrice} onChange={handlePriceChange('additionalCostPrice')} className="w-full p-3 bg-white border border-gray-200 rounded-xl font-bold text-lg text-gray-600 outline-none shadow-sm" />
                                     </div>
                                 </div>
 
@@ -1138,7 +1138,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest px-1">Preço de Atacado</label>
-                                        <CurrencyInput value={formData.wholesalePrice} onChange={(val) => setFormData(p => ({ ...p, wholesalePrice: val || 0 }))} className="w-full p-3 bg-white border border-orange-200 rounded-2xl font-bold text-lg text-orange-600 outline-none shadow-sm" />
+                                        <CurrencyInput value={formData.wholesalePrice} onChange={(val) => setFormData(p => ({ ...p, wholesalePrice: val || 0 }))} className="w-full p-3 bg-white border border-orange-200 rounded-xl font-bold text-lg text-orange-600 outline-none shadow-sm" />
                                     </div>
                                 </div>
                             </div>

@@ -88,7 +88,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 h-10 border rounded-lg bg-white border-gray-200 text-sm font-medium text-gray-700 hover:border-primary/50 transition-colors w-full sm:w-40"
+                className="flex items-center gap-2 px-3 h-10 border rounded-xl bg-white border-gray-200 text-sm font-medium text-gray-700 hover:border-primary/50 transition-colors w-full sm:w-40"
                 title={title}
             >
                 <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
@@ -100,11 +100,11 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
             {isOpen && (
                 <div className="absolute top-full left-0 mt-2 p-4 bg-white border border-gray-100 rounded-xl shadow-2xl z-[100] w-64 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center justify-between mb-4">
-                        <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-xl transition-colors">
                             <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
                         </button>
                         <span className="text-xs font-black uppercase text-gray-800">{monthName}</span>
-                        <button type="button" onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button type="button" onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded-xl transition-colors">
                             <ChevronRightIcon className="w-4 h-4 text-gray-600" />
                         </button>
                     </div>
@@ -131,7 +131,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
                                         setIsOpen(false);
                                     }}
                                     className={`
-                                        h-8 w-8 text-[11px] font-bold rounded-lg transition-all
+                                        h-8 w-8 text-[11px] font-bold rounded-xl transition-all
                                         ${disabled ? 'text-gray-200 cursor-not-allowed' :
                                             selected ? 'bg-primary text-white shadow-lg shadow-primary/30' :
                                                 isToday(day) ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}
@@ -150,7 +150,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
                                 onChange('');
                                 setIsOpen(false);
                             }}
-                            className="flex-1 px-2 py-1.5 text-[10px] font-black uppercase text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="flex-1 px-2 py-1.5 text-[10px] font-black uppercase text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
                         >
                             Limpar
                         </button>
@@ -162,7 +162,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
                                 setViewDate(today);
                                 setIsOpen(false);
                             }}
-                            className="flex-1 px-2 py-1.5 text-[10px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors"
+                            className="flex-1 px-2 py-1.5 text-[10px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-xl transition-colors"
                         >
                             Hoje
                         </button>

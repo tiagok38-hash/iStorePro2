@@ -131,7 +131,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                     const isCash = method.trim().toLowerCase() === 'dinheiro';
                                     const isPromissoria = method.trim().toLowerCase().includes('promiss');
                                     return (
-                                        <div key={method} className={`p-1.5 px-2 md:p-2 md:px-3 rounded-lg border flex items-center justify-between gap-1 transition-all ${isCash ? 'bg-success/5 border-success/30 ring-1 ring-success/10' : isPromissoria ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
+                                        <div key={method} className={`p-1.5 px-2 md:p-2 md:px-3 rounded-xl border flex items-center justify-between gap-1 transition-all ${isCash ? 'bg-success/5 border-success/30 ring-1 ring-success/10' : isPromissoria ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
                                             <span className={`text-[7px] md:text-[9px] font-bold uppercase tracking-wider truncate shrink ${isCash ? 'text-success' : isPromissoria ? 'text-red-600' : 'text-gray-500'}`}>
                                                 {method}
                                             </span>
@@ -199,14 +199,14 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                     <div className="flex gap-2 w-full md:w-auto">
                         <button
                             onClick={() => setActiveView('pdv')}
-                            className="flex-1 px-3 md:px-6 py-2 md:py-3 bg-success text-white rounded-lg md:rounded-xl font-black shadow-lg shadow-success/20 hover:bg-success/90 transition-all flex items-center justify-center gap-2 text-xs md:text-sm uppercase transform active:scale-95"
+                            className="flex-1 px-3 md:px-6 py-2 md:py-3 bg-success text-white rounded-xl font-black shadow-lg shadow-success/20 hover:bg-success/90 transition-all flex items-center justify-center gap-2 text-xs md:text-sm uppercase transform active:scale-95"
                         >
                             <ShoppingCartPlusIcon className="h-4 w-4 md:h-5 md:w-5" />
                             NOVA VENDA
                         </button>
                         <button
                             onClick={() => handleCloseSession(targetSession)}
-                            className="px-3 md:px-6 py-2 md:py-3 bg-white text-danger border-2 border-danger rounded-lg md:rounded-xl font-black hover:bg-danger hover:text-white transition-all flex items-center justify-center gap-2 text-xs md:text-sm uppercase transform active:scale-95"
+                            className="px-3 md:px-6 py-2 md:py-3 bg-white text-danger border-2 border-danger rounded-xl font-black hover:bg-danger hover:text-white transition-all flex items-center justify-center gap-2 text-xs md:text-sm uppercase transform active:scale-95"
                         >
                             <XCircleIcon className="h-4 w-4 md:h-5 md:w-5" />
                             FECHAR
@@ -215,7 +215,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                 ) : targetSession.status === 'fechado' && (
                     <button
                         onClick={() => handleReopenSession(targetSession)}
-                        className="w-full md:w-auto px-4 md:px-6 py-2 md:py-3 bg-blue-500 text-white rounded-lg md:rounded-xl font-black shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-all flex items-center justify-center gap-2 text-xs md:text-sm uppercase"
+                        className="w-full md:w-auto px-4 md:px-6 py-2 md:py-3 bg-blue-500 text-white rounded-xl font-black shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-all flex items-center justify-center gap-2 text-xs md:text-sm uppercase"
                     >
                         <ArrowPathRoundedSquareIcon className="h-4 w-4 md:h-5 md:w-5" />
                         REABRIR CAIXA
@@ -297,7 +297,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                                 <button onClick={() => handleViewClick(sale)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"><EyeIcon className="h-4 w-4" /></button>
                                                 <button onClick={() => handlePrintClick(sale)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><PrinterIcon className="h-4 w-4" /></button>
                                                 {sale.status !== 'Cancelada' && (
-                                                    <button onClick={() => setCancelConfirmSale(sale.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><TrashIcon className="h-4 w-4" /></button>
+                                                    <button onClick={() => setCancelConfirmSale(sale.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><TrashIcon className="h-4 w-4" /></button>
                                                 )}
                                             </div>
                                         </td>
@@ -316,7 +316,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                         sessionSales.map(sale => {
                             const hasPromissoria = (sale.payments || []).some(p => p.method?.toLowerCase().includes('promiss'));
                             return (
-                                <div key={sale.id} className="p-2 mb-2 rounded-lg border border-white/20 shadow-sm flex items-center justify-between gap-3 glass-panel bg-white/40 hover:bg-white/60">
+                                <div key={sale.id} className="p-2 mb-2 rounded-xl border border-white/20 shadow-sm flex items-center justify-between gap-3 glass-panel bg-white/40 hover:bg-white/60">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <span className="font-bold text-primary text-[10px] whitespace-nowrap">#{sale.id}</span>
@@ -360,7 +360,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
             {/* Modal de Visualização de Movimentações (Manteve Original, mas densificado) */}
             {viewMovementsType && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
-                    <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden animate-scale-in">
+                    <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-scale-in">
                         <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
                             <h3 className="font-black text-gray-800 flex items-center gap-2 uppercase tracking-tight text-sm">
                                 <CashIcon className={`h-5 w-5 ${viewMovementsType === 'sangria' ? 'text-red-500' : 'text-green-600'}`} />
@@ -404,7 +404,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
             {/* Cancel Confirmation Modal */}
             {cancelConfirmSale && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
                         <div className="p-6">
                             <div className="text-center mb-6">
                                 <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">

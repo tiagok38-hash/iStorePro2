@@ -43,7 +43,7 @@ const PendingItemsTable: React.FC<{ items: PurchaseItem[] }> = ({ items }) => (
                                 })()}
                             </span>
                             <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-gray-500 font-bold uppercase tracking-tighter">
-                                <span className="bg-gray-100 px-1.5 rounded">{item.productDetails.condition}</span>
+                                <span className="bg-gray-100 px-1.5 rounded-xl">{item.productDetails.condition}</span>
                                 <span>{item.productDetails.warranty}</span>
                                 {item.productDetails.storageLocation && <span className="text-accent">| {item.productDetails.storageLocation}</span>}
                             </div>
@@ -110,10 +110,10 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                                         })()}
                                     </span>
                                     <div className="flex flex-wrap items-center gap-x-2 text-[9px] text-gray-500 font-bold uppercase tracking-tighter">
-                                        <span className="bg-gray-100 px-1.5 rounded">{product.condition}</span>
+                                        <span className="bg-gray-100 px-1.5 rounded-xl">{product.condition}</span>
                                         <span>{product.warranty}</span>
                                         <span className="text-accent underline decoration-accent/30">{product.storageLocation || 'S/L'}</span>
-                                        {variationsText && <span className="bg-blue-100 text-blue-700 px-1 rounded">{variationsText}</span>}
+                                        {variationsText && <span className="bg-blue-100 text-blue-700 px-1 rounded-xl">{variationsText}</span>}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0 text-[10px] text-gray-400 mt-0.5 font-medium font-mono">
                                         {product.imei1 && <span>IMEI: {product.imei1}</span>}
@@ -156,7 +156,7 @@ const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () 
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-            <div className="bg-surface rounded-[2rem] shadow-2xl p-4 md:p-8 w-full max-w-5xl mx-4 max-h-[95vh] flex flex-col animate-scale-in border border-gray-100 overflow-hidden">
+            <div className="bg-surface rounded-3xl shadow-2xl p-4 md:p-8 w-full max-w-5xl mx-4 max-h-[95vh] flex flex-col animate-scale-in border border-gray-100 overflow-hidden">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-50">
                     <div className="flex items-center gap-4">
                         <div className="bg-gray-900 text-white p-3 rounded-2xl transform -rotate-3 shadow-lg">

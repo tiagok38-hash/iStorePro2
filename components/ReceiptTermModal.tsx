@@ -54,7 +54,7 @@ const ReceiptTermModal: React.FC<ReceiptTermModalProps> = ({ item, onSave, onClo
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[60] p-4">
-            <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow-xl w-full max-w-2xl">
+            <form onSubmit={handleSubmit} className="bg-surface rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden">
                 <div className="flex justify-between items-center p-4 border-b">
                     <h3 className="flex items-center gap-2 font-bold text-lg text-primary">
                         <PlusIcon className="h-5 w-5" />
@@ -71,7 +71,7 @@ const ReceiptTermModal: React.FC<ReceiptTermModalProps> = ({ item, onSave, onClo
                             name="name"
                             value={formData.name || ''}
                             onChange={handleNameChange}
-                            className="w-full p-2 border rounded bg-transparent border-border"
+                            className="w-full p-2 border rounded-xl bg-transparent border-border"
                             placeholder="Insira o nome"
                             autoFocus
                             required
@@ -79,8 +79,8 @@ const ReceiptTermModal: React.FC<ReceiptTermModalProps> = ({ item, onSave, onClo
                     </div>
 
                     {/* Warranty Term Section */}
-                    <div className="border border-border rounded-lg">
-                        <div className={`flex justify-between items-center p-3 bg-surface-secondary ${formData.warrantyTerm?.showOnReceipt ? 'rounded-t-lg' : 'rounded-lg'}`}>
+                    <div className="border border-border rounded-xl overflow-hidden">
+                        <div className={`flex justify-between items-center p-3 bg-surface-secondary ${formData.warrantyTerm?.showOnReceipt ? '' : ''}`}>
                             <h4 className="font-semibold text-primary">Termo de Garantia</h4>
                             <div className="flex items-center gap-4 text-sm">
                                 <span>Exibir no recibo</span>
@@ -97,15 +97,15 @@ const ReceiptTermModal: React.FC<ReceiptTermModalProps> = ({ item, onSave, onClo
                                 value={formData.warrantyTerm?.content || ''}
                                 onChange={(e) => handleSectionChange('warrantyTerm', 'content', e.target.value)}
                                 rows={4}
-                                className="w-full p-3 bg-surface rounded-b-lg focus:ring-0 focus:outline-none border-t border-border"
+                                className="w-full p-3 bg-surface focus:ring-0 focus:outline-none border-t border-border"
                                 placeholder="Digite os termos aqui..."
                             />
                         )}
                     </div>
 
                     {/* Warranty Exclusions Section */}
-                    <div className="border border-border rounded-lg">
-                        <div className={`flex justify-between items-center p-3 bg-surface-secondary ${formData.warrantyExclusions?.showOnReceipt ? 'rounded-t-lg' : 'rounded-lg'}`}>
+                    <div className="border border-border rounded-xl overflow-hidden">
+                        <div className={`flex justify-between items-center p-3 bg-surface-secondary ${formData.warrantyExclusions?.showOnReceipt ? '' : ''}`}>
                             <h4 className="font-semibold text-primary">A garantia não cobre</h4>
                             <div className="flex items-center gap-4 text-sm">
                                 <span>Exibir no recibo</span>
@@ -122,15 +122,15 @@ const ReceiptTermModal: React.FC<ReceiptTermModalProps> = ({ item, onSave, onClo
                                 value={formData.warrantyExclusions?.content || ''}
                                 onChange={(e) => handleSectionChange('warrantyExclusions', 'content', e.target.value)}
                                 rows={4}
-                                className="w-full p-3 bg-surface rounded-b-lg focus:ring-0 focus:outline-none border-t border-border"
+                                className="w-full p-3 bg-surface focus:ring-0 focus:outline-none border-t border-border"
                                 placeholder="Digite os termos aqui..."
                             />
                         )}
                     </div>
 
                     {/* Image Rights Section */}
-                    <div className="border border-border rounded-lg">
-                        <div className={`flex justify-between items-center p-3 bg-surface-secondary ${formData.imageRights?.showOnReceipt ? 'rounded-t-lg' : 'rounded-lg'}`}>
+                    <div className="border border-border rounded-xl overflow-hidden">
+                        <div className={`flex justify-between items-center p-3 bg-surface-secondary ${formData.imageRights?.showOnReceipt ? '' : ''}`}>
                             <h4 className="font-semibold text-primary">Direito de Imagem</h4>
                             <div className="flex items-center gap-4 text-sm">
                                 <span>Exibir no recibo</span>
@@ -147,7 +147,7 @@ const ReceiptTermModal: React.FC<ReceiptTermModalProps> = ({ item, onSave, onClo
                                 value={formData.imageRights?.content || ''}
                                 onChange={(e) => handleSectionChange('imageRights', 'content', e.target.value)}
                                 rows={4}
-                                className="w-full p-3 bg-surface rounded-b-lg focus:ring-0 focus:outline-none border-t border-border"
+                                className="w-full p-3 bg-surface focus:ring-0 focus:outline-none border-t border-border"
                                 placeholder="Digite os termos aqui..."
                             />
                         )}

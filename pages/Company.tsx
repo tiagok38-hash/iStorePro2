@@ -121,17 +121,17 @@ const DadosEmpresaTab: React.FC = () => {
         }
     };
 
-    const inputClasses = "w-full p-2 border rounded bg-transparent border-border focus:ring-success focus:border-success text-sm h-10 disabled:bg-gray-100";
+    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-10 disabled:bg-gray-100";
     const labelClasses = "block text-sm font-medium text-primary mb-1";
 
     if (loading) return <div className="flex justify-center items-center p-8"><SpinnerIcon /></div>;
 
     return (
-        <div className="glass-card p-6 space-y-6">
+        <div className="bg-surface rounded-3xl border border-border p-6 space-y-6 shadow-sm">
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Forms */}
                 <div className="flex-1 space-y-6">
-                    <div className="p-4 glass-panel border border-white/20 rounded-lg space-y-4">
+                    <div className="p-4 border border-gray-100 bg-white/50 rounded-3xl space-y-4 shadow-sm">
                         <h3 className="font-semibold text-primary">Dados Principais</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div><label className={labelClasses}>Nome Fantasia</label><input name="name" value={companyData.name || ''} onChange={handleInputChange} className={inputClasses} disabled={!canEdit} required /></div>
@@ -140,7 +140,7 @@ const DadosEmpresaTab: React.FC = () => {
                             <div><label className={labelClasses}>Inscrição Estadual</label><input name="inscricaoEstadual" value={companyData.inscricaoEstadual || ''} onChange={handleInputChange} className={inputClasses} disabled={!canEdit} /></div>
                         </div>
                     </div>
-                    <div className="p-4 glass-panel border border-white/20 rounded-lg space-y-4">
+                    <div className="p-4 border border-gray-100 bg-white/50 rounded-3xl space-y-4 shadow-sm">
                         <h3 className="font-semibold text-primary">Contato</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div><label className={labelClasses}>WhatsApp</label><input name="whatsapp" value={companyData.whatsapp || ''} onChange={handleInputChange} className={inputClasses} maxLength={15} disabled={!canEdit} required /></div>
@@ -148,10 +148,10 @@ const DadosEmpresaTab: React.FC = () => {
                             <div><label className={labelClasses}>Instagram</label><input name="instagram" value={companyData.instagram || ''} onChange={handleInputChange} className={inputClasses} placeholder="@suaempresa" disabled={!canEdit} /></div>
                         </div>
                     </div>
-                    <div className="p-4 glass-panel border border-white/20 rounded-lg space-y-4">
+                    <div className="p-4 border border-gray-100 bg-white/50 rounded-3xl space-y-4 shadow-sm">
                         <div className="flex justify-between items-center">
                             <h3 className="font-semibold text-primary">Endereço</h3>
-                            {canEdit && <button onClick={handleClearAddress} className="text-sm text-accent p-1 rounded-md hover:bg-accent-light">Limpar</button>}
+                            {canEdit && <button onClick={handleClearAddress} className="text-sm text-accent p-1 rounded-xl hover:bg-accent-light">Limpar</button>}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                             <div className="sm:col-span-1"><label className={labelClasses}>CEP</label><input name="cep" value={companyData.cep || ''} onChange={handleInputChange} className={inputClasses} disabled={!canEdit} required /></div>
@@ -166,7 +166,7 @@ const DadosEmpresaTab: React.FC = () => {
                 </div>
                 {/* Logo */}
                 <div className="w-full lg:w-52 flex-shrink-0">
-                    <div className="p-4 glass-panel border border-white/20 rounded-lg text-center sticky top-8">
+                    <div className="p-4 border border-gray-100 bg-white/50 rounded-3xl text-center sticky top-8 shadow-sm">
                         <h3 className="font-semibold text-primary mb-4">Logo</h3>
                         <input
                             type="file"
@@ -454,8 +454,8 @@ const MarcasECategoriasTab: React.FC = () => {
 
     // Generic list renderer
     const renderList = (title: string, items: Item[], type: ModalType, onSelect: ((id: string) => void) | null, selectedId: string | null, onAdd: () => void, disabled: boolean = false) => (
-        <div className={`glass-panel border border-white/20 rounded-xl overflow-hidden flex flex-col h-full bg-white/20 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-            <div className="flex justify-between items-center p-3 bg-white/30 border-b border-white/20 backdrop-blur-sm">
+        <div className={`p-0 border border-gray-100 bg-white/50 rounded-3xl overflow-hidden flex flex-col h-full shadow-sm ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className="flex justify-between items-center p-3 bg-gray-50/50 border-b border-gray-100 backdrop-blur-sm">
                 <h3 className="font-semibold text-primary">{title}</h3>
                 {canManage && (
                     <button onClick={onAdd} disabled={disabled} className="p-1 text-success disabled:text-muted"><PlusIcon className="h-5 w-5" /></button>
@@ -472,9 +472,9 @@ const MarcasECategoriasTab: React.FC = () => {
                     >
                         <div className="flex items-center gap-3 flex-grow min-w-0">
                             {type === 'model' && (item as ProductModel).imageUrl ? (
-                                <img src={(item as ProductModel).imageUrl} alt={item.name} className="h-9 w-9 rounded-lg object-cover flex-shrink-0 shadow-sm border border-white/50" />
+                                <img src={(item as ProductModel).imageUrl} alt={item.name} className="h-9 w-9 rounded-xl object-cover flex-shrink-0 shadow-sm border border-white/50" />
                             ) : type === 'model' ? (
-                                <div className="h-9 w-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 border border-dashed border-gray-300">
+                                <div className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 border border-dashed border-gray-300">
                                     <PhotographIcon className="h-4 w-4 text-gray-400" />
                                 </div>
                             ) : null}
@@ -482,12 +482,12 @@ const MarcasECategoriasTab: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             {type === 'model' && canManage && (
-                                <button onClick={(e) => { e.stopPropagation(); handlePhotoIconClick(item.id); }} className="p-1.5 rounded-md hover:bg-white/60 text-muted hover:text-primary transition-colors" title="Foto do Modelo"><PhotographIcon className="h-4 w-4" /></button>
+                                <button onClick={(e) => { e.stopPropagation(); handlePhotoIconClick(item.id); }} className="p-1.5 rounded-xl hover:bg-white/60 text-muted hover:text-primary transition-colors" title="Foto do Modelo"><PhotographIcon className="h-4 w-4" /></button>
                             )}
                             {canManage && (
                                 <>
-                                    <button onClick={(e) => { e.stopPropagation(); type.includes('grade') ? setGradesModal({ type, item } as any) : (type === 'model' ? handleOpenSubcategoryModal(item) : handleOpenMarcasModal(type as any, item)); }} className="p-1.5 rounded-md hover:bg-white/60 text-muted hover:text-primary transition-colors" title="Editar"><EditIcon className="h-4 w-4" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); type.includes('grade') ? setGradesItemToDelete({ type, item } as any) : setMarcasItemToDelete({ type, item }); }} className="p-1.5 rounded-md hover:bg-red-50 text-muted hover:text-danger transition-colors" title="Excluir"><TrashIcon className="h-4 w-4" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); type.includes('grade') ? setGradesModal({ type, item } as any) : (type === 'model' ? handleOpenSubcategoryModal(item) : handleOpenMarcasModal(type as any, item)); }} className="p-1.5 rounded-xl hover:bg-white/60 text-muted hover:text-primary transition-colors" title="Editar"><EditIcon className="h-4 w-4" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); type.includes('grade') ? setGradesItemToDelete({ type, item } as any) : setMarcasItemToDelete({ type, item }); }} className="p-1.5 rounded-xl hover:bg-red-50 text-muted hover:text-danger transition-colors" title="Excluir"><TrashIcon className="h-4 w-4" /></button>
                                 </>
                             )}
                         </div>
@@ -500,7 +500,7 @@ const MarcasECategoriasTab: React.FC = () => {
     return (
         <div className="space-y-8">
             <input type="file" ref={photoInputRef} onChange={handlePhotoChange} className="hidden" accept="image/*" />
-            <div className="glass-card p-6">
+            <div className="bg-surface rounded-3xl border border-border p-6 shadow-sm">
                 <h3 className="font-semibold text-lg text-primary mb-4">Marcas, Categorias e Subcategorias</h3>
                 {loadingMarcas ? (
                     <div className="p-12 glass-panel border border-white/20 rounded-xl flex justify-center"><SpinnerIcon /></div>
@@ -513,7 +513,7 @@ const MarcasECategoriasTab: React.FC = () => {
                 )}
             </div>
 
-            <div className="glass-card p-6">
+            <div className="bg-surface rounded-3xl border border-border p-6 shadow-sm">
                 <h3 className="font-semibold text-lg text-primary mb-4">Grades e Variações</h3>
                 {loadingGrades ? (
                     <div className="p-12 glass-panel border border-white/20 rounded-xl flex justify-center"><SpinnerIcon /></div>
@@ -692,7 +692,7 @@ const AuditoriaTab: React.FC = () => {
                 const modelName = product ? product.model : 'Produto desconhecido';
                 const moreCount = sale.items.length - 1;
                 return (
-                    <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-2 rounded border border-gray-100">
+                    <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-2 rounded-xl border border-gray-100">
                         <ArchiveBoxIcon className="w-4 h-4 text-gray-400" />
                         <span>
                             {modelName}
@@ -715,7 +715,7 @@ const AuditoriaTab: React.FC = () => {
                 if (product.batteryHealth) identifiers.push(`Bateria: ${product.batteryHealth}%`);
 
                 return (
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500 bg-gray-50 p-2 rounded border border-gray-100">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500 bg-gray-50 p-2 rounded-xl border border-gray-100">
                         <ArchiveBoxIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
                         <span className="font-medium">{product.model}</span>
                         {identifiers.length > 0 && (
@@ -737,7 +737,7 @@ const AuditoriaTab: React.FC = () => {
                 const modelName = firstItem.productDetails.model; // Purchase items store details directly
                 const moreCount = purchase.items.length - 1;
                 return (
-                    <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-2 rounded border border-gray-100">
+                    <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-2 rounded-xl border border-gray-100">
                         <ArchiveBoxIcon className="w-4 h-4 text-gray-400" />
                         <span>
                             {modelName}
@@ -806,7 +806,7 @@ const AuditoriaTab: React.FC = () => {
     if (loading) return <div className="flex justify-center items-center h-full p-8"><SpinnerIcon /></div>;
 
     return (
-        <div className="glass-card p-4 md:p-6">
+        <div className="bg-surface rounded-3xl border border-border p-4 md:p-6 shadow-sm">
             {/* Filtros de Período */}
             {/* Filtros de Período */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 pb-4 border-b border-border">
@@ -981,7 +981,7 @@ const AuditoriaTab: React.FC = () => {
                                 };
 
                                 return (
-                                    <div key={log.id} className="relative mb-3 pl-2 group hover:bg-gray-50 rounded -ml-2 p-1 transition-colors">
+                                    <div key={log.id} className="relative mb-3 pl-2 group hover:bg-gray-50 rounded-xl -ml-2 p-1 transition-colors">
                                         <div className={`absolute left-0 top-2 transform -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${bg} ring-4 ring-surface shadow-sm`}><Icon className={`w-3.5 h-3.5 ${color}`} /></div>
                                         <div className="ml-6">
                                             <div className="text-sm leading-snug flex flex-wrap items-baseline gap-1">
@@ -1112,7 +1112,7 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-lg">
+            <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-2xl">
                 <div>
                     <h4 className="text-lg font-semibold text-primary">{title}</h4>
                 </div>
@@ -1122,7 +1122,7 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
                     </button>
                 )}
             </div>
-            <div className="border border-gray-200 rounded-b-lg">
+            <div className="border border-gray-200 rounded-b-2xl overflow-hidden shadow-sm">
                 <table className="w-full text-sm">
                     <thead className="bg-gray-100">
                         <tr>
@@ -1233,7 +1233,7 @@ const BackupRestauracaoTab: React.FC = () => {
     };
 
     return (
-        <div className="bg-surface rounded-lg border border-border p-8 space-y-8">
+        <div className="bg-surface rounded-3xl border border-border p-8 space-y-8 shadow-sm">
             <LoadingOverlay isVisible={isBackingUp} message="Gerando Backup do Sistema..." type="backup" />
             <LoadingOverlay isVisible={isRestoring} message="Restaurando Dados do Sistema..." type="restore" />
             <div className="max-w-2xl">
@@ -1369,11 +1369,11 @@ const ParametrosTab: React.FC = () => {
         }
     };
 
-    const tabClasses = (tabName: string) => `px-3 py-1 rounded-md text-sm font-medium ${activeSubTab === tabName ? 'bg-primary text-white' : 'hover:bg-gray-200'}`;
+    const tabClasses = (tabName: string) => `px-5 py-2 rounded-xl text-[10.5px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeSubTab === tabName ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`;
 
     return (
-        <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4 shadow-sm">
+            <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm flex-wrap">
                 <button onClick={() => setActiveSubTab('condicao')} className={tabClasses('condicao')}>Condição</button>
                 <button onClick={() => setActiveSubTab('local')} className={tabClasses('local')}>Local de estoque</button>
                 <button onClick={() => setActiveSubTab('garantia')} className={tabClasses('garantia')}>Garantia</button>
@@ -1384,14 +1384,14 @@ const ParametrosTab: React.FC = () => {
             {activeSubTab === 'garantia' && <ParameterManager permissions={permissions} title="Garantias" items={warranties} fields={[{ name: 'name', label: 'Nome', type: 'text' }, { name: 'days', label: 'Dias', type: 'number' }]} api={{ add: addWarranty, update: updateWarranty, del: deleteWarranty }} fetchData={fetchData} />}
             {activeSubTab === 'termos' && (
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-lg">
+                    <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-2xl">
                         <div>
                             <h4 className="text-lg font-semibold text-primary">Termos de Garantia</h4>
                             <p className="text-sm text-muted">Crie termos personalizados para cada tipo de situação. Ex: Termos para vendas de Apple, Xiaomi, etc.</p>
                         </div>
                         {permissions?.canManageParameters && <button onClick={() => handleOpenTermModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400"><PlusIcon className="h-5 w-5" /></button>}
                     </div>
-                    <div className="border border-gray-200 rounded-b-lg">
+                    <div className="border border-gray-200 rounded-b-2xl overflow-hidden shadow-sm">
                         <table className="w-full text-sm">
                             <thead className="bg-gray-100"><tr><th className="p-3 font-semibold text-left">Nome</th><th className="p-3 font-semibold text-right">Ações</th></tr></thead>
                             <tbody>
@@ -1468,7 +1468,7 @@ const MeiosDePagamentoTab: React.FC = () => {
     };
 
     return (
-        <div className="bg-surface rounded-lg border border-border p-4 md:p-6 space-y-4">
+        <div className="bg-surface rounded-3xl border border-border p-4 md:p-6 space-y-4 shadow-sm">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h4 className="text-lg md:text-xl font-bold text-primary">Meios de Pagamentos</h4>
@@ -1483,7 +1483,7 @@ const MeiosDePagamentoTab: React.FC = () => {
             {/* Mobile View: Cards */}
             <div className="block md:hidden space-y-3">
                 {paymentMethods.map(method => (
-                    <div key={method.id} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-3">
+                    <div key={method.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-3">
                         <div className="flex justify-between items-start">
                             <div>
                                 <h5 className="font-semibold text-gray-900">{method.name}</h5>
@@ -1512,7 +1512,7 @@ const MeiosDePagamentoTab: React.FC = () => {
             </div>
 
             {/* Desktop View: Table */}
-            <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
                         <tr>
@@ -1669,10 +1669,10 @@ const PerfilTab: React.FC = () => {
 
     return (
         <div>
-            <div className="bg-surface rounded-lg border border-border p-6 space-y-6">
+            <div className="bg-surface rounded-3xl border border-border p-6 space-y-6 shadow-sm">
                 <div className="flex flex-col lg:flex-row gap-8">
                     <div className="w-full lg:w-52 flex-shrink-0">
-                        <div className="p-4 border rounded-lg text-center sticky top-8">
+                        <div className="p-4 border border-gray-100 bg-white/50 rounded-2xl text-center sticky top-8 shadow-sm">
                             <h3 className="font-semibold text-primary mb-4">Foto de Perfil</h3>
                             <input type="file" ref={photoInputRef} onChange={handlePhotoChange} className="hidden" accept="image/*" />
                             <div className="relative w-40 h-40 mx-auto">
@@ -1719,14 +1719,14 @@ const PerfilTab: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex-1 space-y-6">
-                        <div className="p-4 border rounded-lg space-y-4">
+                        <div className="p-4 border border-gray-100 bg-white/50 rounded-3xl space-y-4 shadow-sm">
                             <h3 className="font-semibold text-primary">Dados Pessoais</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className={labelClasses}>Nome</label><input name="name" value={formData.name || ''} onChange={handleInputChange} className={inputClasses} disabled={!canEdit} /></div>
                                 <div><label className={labelClasses}>Email</label><input name="email" type="email" value={formData.email || ''} onChange={handleInputChange} className={inputClasses} disabled={!canEdit} /></div>
                             </div>
                         </div>
-                        <div className="p-4 border rounded-lg space-y-4">
+                        <div className="p-4 border border-gray-100 bg-white/50 rounded-3xl space-y-4 shadow-sm">
                             <h3 className="font-semibold text-primary">Endereço</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                                 <div className="sm:col-span-1"><label className={labelClasses}>CEP</label><input name="zip" value={formData.address?.zip || ''} onChange={handleAddressChange} className={inputClasses} disabled={!canEdit} /></div>
@@ -1738,7 +1738,7 @@ const PerfilTab: React.FC = () => {
                                 <div className="sm:col-span-1"><label className={labelClasses}>UF</label><input name="state" value={formData.address?.state || ''} onChange={handleAddressChange} className={inputClasses} disabled={!canEdit} /></div>
                             </div>
                         </div>
-                        <div className="p-4 border rounded-lg space-y-4">
+                        <div className="p-4 border border-gray-100 bg-white/50 rounded-3xl space-y-4 shadow-sm">
                             <h3 className="font-semibold text-primary">Alterar Senha</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div><label className={labelClasses}>Senha Atual</label><input name="currentPassword" type="password" onChange={handleInputChange} value={formData.currentPassword || ''} className={inputClasses} placeholder="••••••••" disabled={!canEdit} /></div>
@@ -1831,12 +1831,12 @@ const Company: React.FC = () => {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-primary">Empresa</h1>
-            <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-1 glass-card p-1 rounded-lg">
+            <div className="flex flex-wrap items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
                 {visibleTabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setSearchParams({ tab: tab.id })}
-                        className={`px-3 py-2 md:py-1.5 rounded-md text-sm font-medium transition-colors flex-grow md:flex-grow-0 text-center ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'text-gray-500 hover:text-primary hover:bg-white/40'}`}
+                        className={`px-7 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 flex-grow md:flex-grow-0 text-center ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         {tab.label}
                     </button>
@@ -1860,7 +1860,7 @@ const ManagementModal: React.FC<ManagementModalProps> = ({ type, item, onSave, o
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onSave(type, { ...item, name }); };
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in">
-            <form onSubmit={handleSubmit} className="glass-card shadow-2xl p-6 w-full max-w-sm animate-scale-in">
+            <form onSubmit={handleSubmit} className="bg-surface rounded-3xl shadow-2xl p-6 w-full max-w-sm animate-scale-in border border-border">
                 <h3 className="font-bold text-lg mb-4">{item?.id ? 'Editar' : 'Adicionar'} {type === 'gradeValue' ? 'Valor da Grade' : type}</h3>
                 <input
                     type="text"
@@ -1891,7 +1891,7 @@ const PhotoOptionsModal: React.FC<{
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto backdrop-blur-sm">
-            <div className="glass-card rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in animate-scale-in">
+            <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in animate-scale-in border border-border">
                 <div className="p-4 border-b border-white/20 flex justify-between items-center bg-white/30 backdrop-blur-md">
                     <h3 className="font-semibold text-primary">Opções da Foto</h3>
                     <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
@@ -1899,11 +1899,11 @@ const PhotoOptionsModal: React.FC<{
                     </button>
                 </div>
                 <div className="p-4 space-y-3">
-                    <button onClick={onTakePhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-lg border border-border hover:bg-gray-50 transition-all font-medium text-primary shadow-sm hover:shadow-md">
+                    <button onClick={onTakePhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border border-border hover:bg-gray-50 transition-all font-medium text-primary shadow-sm hover:shadow-md">
                         <CameraIcon className="h-6 w-6 text-accent" />
                         Tirar Foto
                     </button>
-                    <button onClick={onUploadPhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-lg border border-border hover:bg-gray-50 transition-all font-medium text-primary shadow-sm hover:shadow-md">
+                    <button onClick={onUploadPhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border border-border hover:bg-gray-50 transition-all font-medium text-primary shadow-sm hover:shadow-md">
                         <DocumentArrowUpIcon className="h-6 w-6 text-success" />
                         Fazer Upload
                     </button>

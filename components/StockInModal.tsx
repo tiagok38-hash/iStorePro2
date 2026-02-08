@@ -338,7 +338,7 @@ const StockInModal: React.FC<{
         setDetails(newDetails);
     };
 
-    const inputClassesCompact = "w-full p-1.5 border rounded bg-transparent border-border focus:ring-success focus:border-success text-sm";
+    const inputClassesCompact = "w-full p-1.5 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm";
 
 
     const handleToggleMinimumStock = (checked: boolean) => {
@@ -540,7 +540,7 @@ const StockInModal: React.FC<{
         }
     };
 
-    const inputClasses = "w-full py-2 px-3 border rounded-lg bg-transparent border-border focus:ring-success focus:border-success text-sm transition-all";
+    const inputClasses = "w-full py-2 px-3 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm transition-all";
 
     const renderBulkMode = () => (
         <>
@@ -567,7 +567,7 @@ const StockInModal: React.FC<{
                                     <div className="font-medium text-primary">{detail.itemDescription}</div>
                                 </td>
                                 <td className="p-3 text-center">
-                                    <span className="bg-gray-100 px-2 py-1 rounded font-bold">{detail.quantity}</span>
+                                    <span className="bg-gray-100 px-2 py-1 rounded-xl font-bold">{detail.quantity}</span>
                                 </td>
                                 <td className="p-3">
                                     <select
@@ -640,13 +640,13 @@ const StockInModal: React.FC<{
             < div className="block md:hidden space-y-3 p-3 bg-gray-50/50" >
                 {
                     details.map((detail, index) => (
-                        <div key={index} className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
+                        <div key={index} className="bg-white border border-border rounded-3xl shadow-sm overflow-hidden">
                             <div className="bg-surface-secondary px-4 py-2.5 border-b border-border flex justify-between items-center">
                                 <div className="flex items-center gap-2 overflow-hidden">
-                                    <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md min-w-[24px] text-center">#{index + 1}</span>
+                                    <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-xl min-w-[24px] text-center">#{index + 1}</span>
                                     <h3 className="font-bold text-primary text-xs truncate">{detail.itemDescription}</h3>
                                 </div>
-                                <span className="bg-primary/10 text-primary text-[10px] px-2 py-1 rounded-full font-bold whitespace-nowrap">Qtd: {detail.quantity}</span>
+                                <span className="bg-primary/10 text-primary text-[10px] px-2 py-1 rounded-xl font-bold whitespace-nowrap">Qtd: {detail.quantity}</span>
                             </div>
                             <div className="p-3 space-y-3">
                                 <div className="grid grid-cols-2 gap-2">
@@ -682,12 +682,12 @@ const StockInModal: React.FC<{
                                     </div>
                                 </div>
 
-                                <div className="bg-gray-50/80 p-2 rounded border border-border/50">
+                                <div className="bg-gray-50/80 p-2 rounded-xl border border-border/50">
                                     <div className="flex justify-between items-center mb-1.5 px-1">
                                         <span className="text-[9px] font-bold text-muted uppercase">Custo: {formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</span>
                                         <div className="flex items-center gap-1.5">
                                             <span className="text-[9px] font-bold text-muted">Markup %</span>
-                                            <input type="number" step="0.1" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className="w-12 h-6 border rounded text-[10px] text-center font-bold border-border" />
+                                            <input type="number" step="0.1" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className="w-12 h-6 border rounded-xl text-[10px] text-center font-bold border-border" />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
@@ -697,7 +697,7 @@ const StockInModal: React.FC<{
                                                 <CurrencyInput
                                                     value={detail.salePrice}
                                                     onChange={val => handleDetailChange(index, 'salePrice', val)}
-                                                    className={`w-full h-11 border rounded-lg text-sm font-black text-primary ${errors[index] ? 'border-danger ring-1 ring-danger' : 'border-success/30'}`}
+                                                    className={`w-full h-11 border rounded-xl text-sm font-black text-primary ${errors[index] ? 'border-danger ring-1 ring-danger' : 'border-success/30'}`}
                                                 />
                                             </div>
                                             <div className="flex flex-col">
@@ -705,7 +705,7 @@ const StockInModal: React.FC<{
                                                 <CurrencyInput
                                                     value={detail.wholesalePrice}
                                                     onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
-                                                    className={`w-full h-11 border rounded-lg text-sm font-bold text-orange-600 border-orange-100 bg-orange-50/30`}
+                                                    className={`w-full h-11 border rounded-xl text-sm font-bold text-orange-600 border-orange-100 bg-orange-50/30`}
                                                     placeholder="---"
                                                 />
                                             </div>
@@ -754,7 +754,7 @@ const StockInModal: React.FC<{
                                         <div className="max-w-[200px] break-words">{detail.itemDescription}</div>
                                     </td>
                                     <td className="p-1 text-center">
-                                        <span className={`px-2 py-1 rounded font-bold text-sm ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
+                                        <span className={`px-2 py-1 rounded-xl font-bold text-sm ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
                                             {detail.quantity}
                                         </span>
                                     </td>
@@ -851,15 +851,15 @@ const StockInModal: React.FC<{
                 < div className="block md:hidden space-y-3 p-3 bg-gray-50/50" >
                     {
                         details.map((detail, index) => (
-                            <div key={index} className={`bg-surface border border-border rounded-lg shadow-sm overflow-hidden animate-fade-in ${!detail.hasImei ? 'border-l-4 border-l-success' : ''}`} style={{ animationDelay: `${index * 30}ms` }}>
+                            <div key={index} className={`bg-surface border border-border rounded-3xl shadow-sm overflow-hidden animate-fade-in ${!detail.hasImei ? 'border-l-4 border-l-success' : ''}`} style={{ animationDelay: `${index * 30}ms` }}>
                                 {/* Compact Header */}
                                 <div className="bg-surface-secondary px-4 py-2.5 border-b border-border flex justify-between items-center">
                                     <div className="flex items-center gap-2 overflow-hidden">
-                                        <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md min-w-[24px] text-center">#{index + 1}</span>
+                                        <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-xl min-w-[24px] text-center">#{index + 1}</span>
                                         <h3 className="font-bold text-primary text-xs truncate">{detail.itemDescription}</h3>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
+                                        <span className={`px-2 py-0.5 rounded-xl font-bold text-[10px] ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
                                             Qtd: {detail.quantity}
                                         </span>
                                     </div>
@@ -877,7 +877,7 @@ const StockInModal: React.FC<{
                                                     value={detail.imei1}
                                                     onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
                                                     onKeyDown={e => handleKeyDown(e, index, 'imei1')}
-                                                    className={`${inputClassesCompact} pl-14 h-11 text-sm font-semibold rounded-lg ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                    className={`${inputClassesCompact} pl-14 h-11 text-sm font-semibold rounded-xl ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                                 />
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
@@ -889,7 +889,7 @@ const StockInModal: React.FC<{
                                                         value={detail.imei2}
                                                         onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
                                                         onKeyDown={e => handleKeyDown(e, index, 'imei2')}
-                                                        className={`${inputClassesCompact} pl-14 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                        className={`${inputClassesCompact} pl-14 h-11 text-[11px] rounded-xl ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                                     />
                                                 </div>
                                                 <div className="relative group">
@@ -900,7 +900,7 @@ const StockInModal: React.FC<{
                                                         value={detail.serialNumber}
                                                         onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
                                                         onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
-                                                        className={`${inputClassesCompact} pl-10 h-11 text-[11px] rounded-lg ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                        className={`${inputClassesCompact} pl-10 h-11 text-[11px] rounded-xl ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                                     />
                                                 </div>
                                             </div>
@@ -911,19 +911,19 @@ const StockInModal: React.FC<{
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-muted uppercase mb-0.5 ml-1">Condição</label>
-                                            <select value={detail.condition} onChange={e => handleDetailChange(index, 'condition', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-lg`}>
+                                            <select value={detail.condition} onChange={e => handleDetailChange(index, 'condition', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-xl`}>
                                                 {conditionOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-muted uppercase mb-0.5 ml-1">Local</label>
-                                            <select value={detail.storageLocation} onChange={e => handleDetailChange(index, 'storageLocation', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-lg`}>
+                                            <select value={detail.storageLocation} onChange={e => handleDetailChange(index, 'storageLocation', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-xl`}>
                                                 {locationOptions.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-muted uppercase mb-0.5 ml-1">Garantia</label>
-                                            <select value={detail.warranty} onChange={e => handleDetailChange(index, 'warranty', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-lg`}>
+                                            <select value={detail.warranty} onChange={e => handleDetailChange(index, 'warranty', e.target.value)} className={`${inputClassesCompact} h-11 py-0 rounded-xl`}>
                                                 {warrantyOptions.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
                                             </select>
                                         </div>
@@ -931,7 +931,7 @@ const StockInModal: React.FC<{
                                             <div className="flex flex-col">
                                                 <label className="text-[9px] font-bold text-muted uppercase mb-0.5 ml-1">Saúde Bateria</label>
                                                 <div className="relative">
-                                                    <input type="number" value={detail.batteryHealth} onChange={e => handleDetailChange(index, 'batteryHealth', e.target.value)} className={`${inputClassesCompact} h-11 text-center font-bold text-blue-600 pr-5 rounded-lg`} />
+                                                    <input type="number" value={detail.batteryHealth} onChange={e => handleDetailChange(index, 'batteryHealth', e.target.value)} className={`${inputClassesCompact} h-11 text-center font-bold text-blue-600 pr-5 rounded-xl`} />
                                                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted">%</span>
                                                 </div>
                                             </div>
@@ -940,12 +940,12 @@ const StockInModal: React.FC<{
                                     </div>
 
                                     {/* Compact Pricing Row */}
-                                    <div className="bg-gray-50/80 p-2 rounded border border-border/50">
+                                    <div className="bg-gray-50/80 p-2 rounded-xl border border-border/50">
                                         <div className="flex justify-between items-center mb-1.5 px-1">
                                             <span className="text-[9px] font-bold text-muted uppercase">Custo: {formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</span>
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-[9px] font-bold text-muted">Markup %</span>
-                                                <input type="number" step="0.1" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className="w-12 h-6 border rounded text-[10px] text-center font-bold border-border" />
+                                                <input type="number" step="0.1" value={detail.markup === null ? '' : detail.markup} onChange={e => handleDetailChange(index, 'markup', e.target.value)} className="w-12 h-6 border rounded-xl text-[10px] text-center font-bold border-border" />
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
@@ -954,7 +954,7 @@ const StockInModal: React.FC<{
                                                 <CurrencyInput
                                                     value={detail.salePrice}
                                                     onChange={val => handleDetailChange(index, 'salePrice', val)}
-                                                    className={`w-full h-11 border rounded-lg text-sm font-black text-primary ${errors[index] ? 'border-danger ring-1 ring-danger' : 'border-success/30'}`}
+                                                    className={`w-full h-11 border rounded-xl text-sm font-black text-primary ${errors[index] ? 'border-danger ring-1 ring-danger' : 'border-success/30'}`}
                                                 />
                                             </div>
                                             <div className="flex flex-col">
@@ -962,7 +962,7 @@ const StockInModal: React.FC<{
                                                 <CurrencyInput
                                                     value={detail.wholesalePrice}
                                                     onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
-                                                    className={`w-full h-11 border rounded-lg text-sm font-bold text-orange-600 border-orange-100 bg-orange-50/30`}
+                                                    className={`w-full h-11 border rounded-xl text-sm font-bold text-orange-600 border-orange-100 bg-orange-50/30`}
                                                     placeholder="---"
                                                 />
                                             </div>
@@ -979,7 +979,7 @@ const StockInModal: React.FC<{
 
     return createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-end md:items-center z-[99999] p-0 md:p-4 animate-fade-in">
-            <div className="bg-surface w-full max-w-[99vw] h-[100dvh] md:h-auto md:max-h-[95vh] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-surface w-full max-w-[99vw] h-[100dvh] md:h-auto md:max-h-[95vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center p-4 md:p-6 border-b border-border bg-surface sticky top-0 z-20 gap-4">
                     <div>
                         <h2 className="text-lg md:text-2xl font-black text-primary leading-tight">Lançar Compra #{purchaseOrder.displayId}</h2>
@@ -1054,7 +1054,7 @@ const StockInModal: React.FC<{
 
                     <button
                         onClick={() => setIsContinuousScanEnabled(!isContinuousScanEnabled)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${isContinuousScanEnabled ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-500' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${isContinuousScanEnabled ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-500' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                         <BoltIcon className={`h-5 w-5 ${isContinuousScanEnabled ? 'animate-pulse' : ''}`} />
                         {isContinuousScanEnabled ? 'Leitura Contínua ATIVA' : 'Leitura Contínua'}

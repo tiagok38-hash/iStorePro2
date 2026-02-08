@@ -27,7 +27,7 @@ const Button: React.FC<ButtonProps> = ({
     return (
         <button
             className={`
-                flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium text-sm
+                flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-sm
                 transition-all duration-200 active:scale-95 
                 disabled:opacity-70 disabled:cursor-not-allowed
                 ${variantClasses[variant]}
@@ -38,7 +38,7 @@ const Button: React.FC<ButtonProps> = ({
         >
             {loading ? (
                 <>
-                    <SpinnerIcon className="w-4 h-4 text-current animate-spin" style={{ width: '1rem', height: '1rem' }} />
+                    <SpinnerIcon className="w-4 h-4 text-current animate-spin" />
                     <span>{typeof children === 'string' ? 'Processando...' : children}</span>
                 </>
             ) : (

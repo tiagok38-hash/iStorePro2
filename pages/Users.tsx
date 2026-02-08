@@ -126,11 +126,11 @@ const PermissionProfileModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-surface p-6 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div className="bg-surface p-6 rounded-3xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-border">
                 <h2 className="text-xl font-bold mb-4">{profile?.id ? 'Editar' : 'Criar'} Perfil de Permissão</h2>
                 <div className="mb-4">
                     <label className="block text-sm font-medium mb-1">Nome do Perfil</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded-md" />
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded-xl" />
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2">
                     {permissionGroups.map(group => (
@@ -143,7 +143,7 @@ const PermissionProfileModal: React.FC<{
                                             type="checkbox"
                                             checked={!!permissions[perm.key]}
                                             onChange={e => handlePermissionChange(perm.key, e.target.checked)}
-                                            className="form-checkbox h-4 w-4 text-accent rounded focus:ring-accent"
+                                            className="form-checkbox h-4 w-4 text-accent rounded-xl focus:ring-accent"
                                         />
                                         <span className="text-sm">{perm.label}</span>
                                     </label>
@@ -207,11 +207,11 @@ const UserModal: React.FC<{
 
     if (!isOpen) return null;
 
-    const inputClasses = "w-full p-2 border rounded-md bg-surface text-primary border-border focus:ring-1 focus:ring-success focus:border-success";
+    const inputClasses = "w-full p-2 border rounded-xl bg-surface text-primary border-border focus:ring-1 focus:ring-success focus:border-success";
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-surface p-6 rounded-lg shadow-xl w-full max-w-lg">
+            <div className="bg-surface p-6 rounded-3xl shadow-xl w-full max-w-lg border border-border">
                 <h2 className="text-xl font-bold mb-4">{user?.id ? 'Editar' : 'Novo'} Usuário</h2>
                 <div className="space-y-4">
                     <div><label className="block text-sm font-medium">Nome*</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className={inputClasses} required /></div>
@@ -357,7 +357,7 @@ const Users: React.FC = () => {
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-primary">Cadastre usuários e perfis de permissões</h1>
-                <button className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md font-semibold text-sm hover:bg-red-100">
+                <button className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl font-semibold text-sm hover:bg-red-100">
                     <PlayCircleIcon className="h-5 w-5" />
                     Assistir Tutorial
                 </button>
@@ -365,16 +365,16 @@ const Users: React.FC = () => {
 
             <div className="w-full lg:max-w-5xl space-y-8">
                 {/* Users Section */}
-                <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
+                <div className="bg-surface rounded-3xl border border-border p-6 space-y-4 shadow-sm">
                     <div className="flex justify-end items-center">
-                        <button onClick={handleAddUser} className="flex items-center gap-2 px-3 py-2 bg-primary text-on-primary rounded-md font-semibold text-sm hover:bg-opacity-90">
+                        <button onClick={handleAddUser} className="flex items-center gap-2 px-3 py-2 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-opacity-90">
                             <UserPlusIcon className="h-5 w-5" />
                             Novo Usuário
                         </button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-secondary uppercase bg-surface-secondary">
+                            <thead className="text-xs text-secondary uppercase bg-surface-secondary rounded-t-2xl">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Login do Usuário</th>
                                     <th className="px-4 py-3 font-medium">Nome</th>
@@ -404,20 +404,20 @@ const Users: React.FC = () => {
                 </div>
 
                 {/* Permission Profiles Section */}
-                <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
+                <div className="bg-surface rounded-3xl border border-border p-6 space-y-4 shadow-sm">
                     <div className="flex justify-between items-center">
                         <div>
                             <h2 className="text-lg font-bold text-primary">Perfil de permissões para usuários</h2>
                             <p className="text-sm text-muted">Crie perfis de permissões para seus colaboradores e defina quais permissões cada perfil terá acesso.</p>
                         </div>
-                        <button onClick={handleAddProfile} className="flex items-center gap-2 px-4 py-2 bg-secondary text-on-primary rounded-md font-semibold text-sm hover:bg-opacity-90">
+                        <button onClick={handleAddProfile} className="flex items-center gap-2 px-4 py-2 bg-secondary text-on-primary rounded-xl font-semibold text-sm hover:bg-opacity-90">
                             <UserGroupIcon className="h-5 w-5" />
                             Criar perfil
                         </button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-secondary uppercase bg-surface-secondary">
+                            <thead className="text-xs text-secondary uppercase bg-surface-secondary rounded-t-2xl">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">Nome do Perfil</th>
                                     <th className="px-4 py-3 font-medium text-right">Ações</th>

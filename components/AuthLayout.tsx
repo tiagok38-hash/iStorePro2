@@ -25,7 +25,7 @@ const AuthLayout: React.FC = () => {
                 <div className="mb-8 flex flex-col items-center gap-3" style={{ transform: 'translateY(8vh)' }}>
                     <img src="/logo_login_new.png" alt="iStore" className="h-[357px] object-contain" />
                 </div>
-                <div className="w-full glass-card p-8 rounded-2xl shadow-2xl border border-white/20 backdrop-blur-xl">
+                <div className="w-full glass-card p-8 rounded-3xl shadow-2xl border border-white/20 backdrop-blur-xl">
                     <Outlet />
                 </div>
             </div>

@@ -47,7 +47,7 @@ const getStartDateForPeriod = (period: 'hoje' | '7dias' | '15dias' | 'Mes'): str
 // --- Sub-components ---
 
 const KpiCard: React.FC<{ title: string; value: string; bgColor: string; textColor?: string }> = React.memo(({ title, value, bgColor, textColor = 'text-primary' }) => (
-    <div className={`p-2.5 sm:p-4 rounded-xl ${bgColor} ${textColor} flex flex-col justify-center min-h-[64px] sm:min-h-[auto]`}>
+    <div className={`p-2.5 sm:p-4 rounded-3xl ${bgColor} ${textColor} flex flex-col justify-center min-h-[64px] sm:min-h-[auto]`}>
         <h3 className="text-[10px] sm:text-sm font-bold uppercase tracking-wider opacity-70 leading-tight">{title}</h3>
         <p className="text-base sm:text-2xl font-black mt-0.5 sm:mt-1 truncate">{value}</p>
     </div>
@@ -131,7 +131,7 @@ const SaleActionsDropdown: React.FC<{ onEdit: () => void; onView: () => void; on
         <div className="relative">
             <button ref={buttonRef} onClick={handleToggle} className="p-2 rounded-full hover:bg-surface-secondary text-muted active:bg-gray-200 transition-colors"><EllipsisVerticalIcon className="h-5 w-5" /></button>
             {isOpen && createPortal(
-                <div ref={dropdownRef} style={style} className="rounded-lg shadow-xl bg-surface ring-1 ring-black ring-opacity-10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div ref={dropdownRef} style={style} className="rounded-xl shadow-xl bg-surface ring-1 ring-black ring-opacity-10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                     <div className="py-1">
                         <button onClick={createHandler(onView)} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary active:bg-gray-100`}><EyeIcon className="h-4 w-4" /> Visualizar</button>
                         {permissions?.canEditSale && (
@@ -575,7 +575,7 @@ const Vendas: React.FC = () => {
         }
     };
 
-    const periodButtonClasses = (period: string) => `px-3 py-1 rounded-md text-sm font-medium transition-colors ${activePeriod === period ? 'bg-primary text-white' : 'bg-surface-secondary hover:bg-border'}`;
+    const periodButtonClasses = (period: string) => `rounded-xl font-black uppercase tracking-widest transition-all duration-300 ${activePeriod === period ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`;
 
     return (
         <div className="space-y-4 sm:space-y-6">
@@ -611,20 +611,20 @@ const Vendas: React.FC = () => {
                             max={toDateValue()}
                             className="w-full sm:w-auto"
                         />
-                        <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-lg h-10 mb-[1px]">
-                            <button onClick={() => handlePeriodChange('hoje')} className={`${periodButtonClasses('hoje')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Hoje</button>
-                            <button onClick={() => handlePeriodChange('ontem')} className={`${periodButtonClasses('ontem')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Ontem</button>
-                            <button onClick={() => handlePeriodChange('semana')} className={`${periodButtonClasses('semana')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Semana</button>
-                            <button onClick={() => handlePeriodChange('7dias')} className={`${periodButtonClasses('7dias')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>7d</button>
-                            <button onClick={() => handlePeriodChange('Mes')} className={`${periodButtonClasses('Mes')} px-3 py-1 text-xs sm:text-sm whitespace-nowrap`}>Mês</button>
+                        <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm h-11 mb-[1px]">
+                            <button onClick={() => handlePeriodChange('hoje')} className={`${periodButtonClasses('hoje')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Hoje</button>
+                            <button onClick={() => handlePeriodChange('ontem')} className={`${periodButtonClasses('ontem')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Ontem</button>
+                            <button onClick={() => handlePeriodChange('semana')} className={`${periodButtonClasses('semana')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Semana</button>
+                            <button onClick={() => handlePeriodChange('7dias')} className={`${periodButtonClasses('7dias')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>7d</button>
+                            <button onClick={() => handlePeriodChange('Mes')} className={`${periodButtonClasses('Mes')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Mês</button>
                         </div>
                         <button onClick={handleClearFilter} className="h-10 px-2 text-xs sm:text-sm text-muted hover:text-primary mb-[1px]">Limpar</button>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         {permissions?.canCreateSale && (
-                            <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-success text-on-primary rounded-md font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center">+ NOVA VENDA</button>
+                            <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-success text-on-primary rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center">+ NOVA VENDA</button>
                         )}
-                        <button onClick={() => setIsSimulatorOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-secondary text-white rounded-md hover:bg-primary font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
+                        <button onClick={() => setIsSimulatorOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-secondary text-white rounded-xl hover:bg-primary font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
                             <CreditCardIcon className="h-4 w-4" />
                             Simulador de cartão
                         </button>
@@ -636,7 +636,7 @@ const Vendas: React.FC = () => {
                         <select
                             value={sellerFilter}
                             onChange={e => setSellerFilter(e.target.value)}
-                            className="flex-1 sm:flex-none p-1.5 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[120px]"
+                            className="flex-1 sm:flex-none p-1.5 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[120px]"
                         >
                             <option value="todos">Vendedores</option>
                             {sellerUsers.map(user => (
@@ -646,7 +646,7 @@ const Vendas: React.FC = () => {
                         <select
                             value={statusFilter}
                             onChange={e => setStatusFilter(e.target.value)}
-                            className="flex-1 sm:flex-none p-1.5 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[100px]"
+                            className="flex-1 sm:flex-none p-1.5 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[100px]"
                         >
                             <option value="todos">Status</option>
                             <option value="Finalizada">Finalizada</option>
@@ -666,13 +666,13 @@ const Vendas: React.FC = () => {
                             placeholder="Buscar cliente ou ID"
                             value={customerSearch}
                             onChange={e => setCustomerSearch(e.target.value)}
-                            className="w-full p-2 pl-9 border rounded-md bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-shadow"
+                            className="w-full p-2 pl-9 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-shadow"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="glass-card">
+            <div className="bg-surface rounded-3xl border border-border shadow-sm">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-12">
                         <SuspenseFallback />
@@ -684,7 +684,7 @@ const Vendas: React.FC = () => {
                         <p className="text-gray-500 mb-6 max-w-md">{error}</p>
                         <button
                             onClick={() => fetchData()}
-                            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors shadow-sm"
+                            className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             Tentar Novamente
                         </button>
@@ -748,7 +748,7 @@ const Vendas: React.FC = () => {
                                                         {getStatusBadge(sale.status)}
                                                         {/* Only show Promissória tag if sale is NOT cancelled */}
                                                         {sale.status !== 'Cancelada' && sale.payments.some(p => p.type === 'pending') && (
-                                                            <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-full bg-red-50 text-red-700 border border-red-200 shadow-sm">Promissória</span>
+                                                            <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-xl bg-red-50 text-red-700 border border-red-200 shadow-sm">Promissória</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -793,7 +793,7 @@ const Vendas: React.FC = () => {
                                     <button
                                         onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className="p-1 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                                        className="p-1 rounded-xl hover:bg-gray-200 disabled:opacity-50"
                                     >
                                         <ChevronLeftIcon className="h-5 w-5" />
                                     </button>
@@ -801,7 +801,7 @@ const Vendas: React.FC = () => {
                                     <button
                                         onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === pageCount}
-                                        className="p-1 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                                        className="p-1 rounded-xl hover:bg-gray-200 disabled:opacity-50"
                                     >
                                         <ChevronRightIcon className="h-5 w-5" />
                                     </button>
@@ -813,7 +813,7 @@ const Vendas: React.FC = () => {
             </div>
 
             {statusFilter === 'Promissoria' && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex justify-between items-center">
+                <div className="bg-red-50 border border-red-200 rounded-3xl p-4 flex justify-between items-center text-red-800 shadow-sm">
                     <span className="font-bold text-red-800">Total Pago em Promissória (nesta lista):</span>
                     <span className="text-xl font-black text-red-700">
                         {formatCurrency(filteredSales.reduce((acc, sale) => acc + sale.payments.filter(p => p.type === 'pending').reduce((sum, p) => sum + p.value, 0), 0))}
@@ -860,18 +860,18 @@ const Vendas: React.FC = () => {
             {
                 isPrintChoiceOpen && saleToReprint && (
                     <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[70]">
-                        <div className="bg-surface p-6 rounded-lg shadow-xl w-full max-w-sm">
+                        <div className="bg-surface p-6 rounded-3xl shadow-xl w-full max-w-sm">
                             <h3 className="text-lg font-bold mb-4 text-primary">Escolha o Formato de Impressão</h3>
                             <p className="text-sm text-muted mb-6">Selecione o layout para o recibo da venda #{saleToReprint.id}.</p>
                             <div className="flex flex-col gap-4">
-                                <button onClick={() => { setReceiptModalFormat('A4'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-lg hover:bg-surface-secondary hover:border-accent">
+                                <button onClick={() => { setReceiptModalFormat('A4'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-xl hover:bg-surface-secondary hover:border-accent">
                                     <DocumentTextIcon className="h-8 w-8 text-accent" />
                                     <div>
                                         <p className="font-semibold">Formato A4</p>
                                         <p className="text-xs text-muted">Layout padrão para impressoras comuns.</p>
                                     </div>
                                 </button>
-                                <button onClick={() => { setReceiptModalFormat('thermal'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-lg hover:bg-surface-secondary hover:border-accent">
+                                <button onClick={() => { setReceiptModalFormat('thermal'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-xl hover:bg-surface-secondary hover:border-accent">
                                     <TicketIcon className="h-8 w-8 text-accent" />
                                     <div>
                                         <p className="font-semibold">Cupom 80mm</p>
@@ -879,7 +879,7 @@ const Vendas: React.FC = () => {
                                     </div>
                                 </button>
                             </div>
-                            <button onClick={() => { setIsPrintChoiceOpen(false); setSaleToReprint(null); }} className="mt-6 w-full px-4 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300">Cancelar</button>
+                            <button onClick={() => { setIsPrintChoiceOpen(false); setSaleToReprint(null); }} className="mt-6 w-full px-4 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 transition-colors">Cancelar</button>
                         </div>
                     </div>
                 )

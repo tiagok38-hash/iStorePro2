@@ -67,13 +67,13 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
     const modalContent = (
         <div className="fixed inset-0 z-[99999] bg-white lg:bg-black/60 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center lg:p-4">
             {/* Mobile: Fullscreen | Desktop: Centered Modal */}
-            <div className="bg-white w-full h-full lg:h-auto lg:max-h-[90vh] lg:max-w-4xl lg:rounded-2xl lg:shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-white w-full h-full lg:h-auto lg:max-h-[90vh] lg:max-w-4xl lg:rounded-3xl lg:shadow-2xl flex flex-col overflow-hidden">
 
                 {/* Header - Fixed */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         Atualização de Preço em Massa
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-xl border border-indigo-100">
                             Encontrados: {searchedProducts.length}
                         </span>
                     </h2>
@@ -91,7 +91,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                         <select
                             value={conditionFilter}
                             onChange={e => setConditionFilter(e.target.value)}
-                            className="flex-shrink-0 px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            className="flex-shrink-0 px-3 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                         >
                             <option value="todas">Todas</option>
                             <option>Novo</option>
@@ -150,7 +150,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                             </p>
                                         )}
                                         <div className="grid grid-cols-3 gap-2 text-center mt-2">
-                                            <div className="bg-gray-50 rounded-lg py-1">
+                                            <div className="bg-gray-50 rounded-xl py-1">
                                                 <p className="text-[10px] text-gray-500 uppercase">Custo</p>
                                                 <p className="text-xs font-medium">{formatCurrency(product.costPrice || 0)}</p>
                                             </div>

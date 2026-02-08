@@ -38,7 +38,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">Gerenciamento de Caixas</h2>
                 {currentUserOpenSession && (
-                    <button onClick={() => onViewDetails(currentUserOpenSession)} className="px-4 py-2 bg-success text-white rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-success/20 hover:bg-success/90 transition-all text-[10px] md:text-xs uppercase">
+                    <button onClick={() => onViewDetails(currentUserOpenSession)} className="px-4 py-2 bg-success text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-success/20 hover:bg-success/90 transition-all text-[10px] md:text-xs uppercase">
                         <PlusIcon className="h-4 w-4 md:h-5 md:w-5" /> MEU CAIXA
                     </button>
                 )}
@@ -72,7 +72,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                             placeholder="Operador, ID do caixa ou venda..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full p-2 pl-9 md:pl-10 border rounded-lg text-xs md:text-sm bg-white/50 border-white/30 focus:ring-2 focus:ring-success/20 outline-none backdrop-blur-sm shadow-sm"
+                            className="w-full p-2 pl-9 md:pl-10 border rounded-xl text-xs md:text-sm bg-white/50 border-white/30 focus:ring-2 focus:ring-success/20 outline-none backdrop-blur-sm shadow-sm"
                         />
                     </div>
                 </div>
@@ -101,7 +101,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
                                             <span className="font-bold text-primary">#{session.displayId}</span>
-                                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase border ${session.status === 'aberto' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{session.status}</span>
+                                            <span className={`px-2 py-0.5 rounded-xl text-[9px] font-black uppercase border ${session.status === 'aberto' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{session.status}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 font-semibold">{userMap[session.userId]}</td>
@@ -130,25 +130,25 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                     {sessions.length === 0 ? (
                         <div className="p-8 text-center text-sm text-muted italic">Nenhum caixa encontrado.</div>
                     ) : sessions.map(session => (
-                        <div key={session.id} className="p-1.5 glass-panel bg-white/40 hover:bg-white/60 transition-colors border border-white/20 mb-2 rounded-lg shadow-sm">
+                        <div key={session.id} className="p-1.5 glass-panel bg-white/40 hover:bg-white/60 transition-colors border border-white/20 mb-2 rounded-xl shadow-sm">
                             <div className="flex items-center justify-between mb-1">
                                 <div className="flex items-center gap-1.5">
                                     <span className="font-bold text-primary text-[10px]">#{session.displayId}</span>
-                                    <span className={`px-1 py-0.5 rounded text-[7px] font-black uppercase ${session.status === 'aberto' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{session.status}</span>
+                                    <span className={`px-1 py-0.5 rounded-xl text-[7px] font-black uppercase ${session.status === 'aberto' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{session.status}</span>
                                 </div>
                                 <div className="text-[9px] font-bold text-gray-800 uppercase tracking-tight">{userMap[session.userId]}</div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-1 mb-1.5">
-                                <div className="bg-gray-50 p-1 rounded border border-gray-100">
+                                <div className="bg-gray-50 p-1 rounded-lg border border-gray-100">
                                     <div className="text-[6px] text-muted font-bold uppercase mb-0.5 leading-none">Abertura</div>
                                     <div className="text-[9px] font-bold text-gray-700">{formatCurrency(session.openingBalance)}</div>
                                 </div>
-                                <div className="bg-success/5 p-1 rounded border border-success/10">
+                                <div className="bg-success/5 p-1 rounded-lg border border-success/10">
                                     <div className="text-[6px] text-success font-bold uppercase mb-0.5 leading-none">Vendas</div>
                                     <div className="text-[9px] font-bold text-success">{formatCurrency(session.transactionsValue)}</div>
                                 </div>
-                                <div className="bg-primary/5 p-1 rounded border border-primary/10">
+                                <div className="bg-primary/5 p-1 rounded-lg border border-primary/10">
                                     <div className="text-[6px] text-primary font-bold uppercase mb-0.5 leading-none">Dinheiro Gaveta</div>
                                     <div className="text-[9px] font-black text-primary">{formatCurrency(session.cashInRegister)}</div>
                                 </div>
@@ -162,9 +162,9 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <button onClick={() => onViewDetails(session)} className="p-1 px-2 bg-gray-50 text-gray-500 rounded-lg border border-gray-100 transition-colors"><EyeIcon className="h-3.5 w-3.5" /></button>
-                                    {session.status === 'aberto' && <button onClick={() => onCloseSession(session)} className="p-1 px-2 bg-red-50 text-red-600 rounded-lg border border-red-100 transition-colors"><XCircleIcon className="h-3.5 w-3.5" /></button>}
-                                    {session.status === 'fechado' && <button onClick={() => onReopen(session)} className="p-1 px-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-100 transition-colors"><ArrowPathRoundedSquareIcon className="h-3.5 w-3.5" /></button>}
+                                    <button onClick={() => onViewDetails(session)} className="p-1 px-2 bg-gray-50 text-gray-500 rounded-xl border border-gray-100 transition-colors"><EyeIcon className="h-3.5 w-3.5" /></button>
+                                    {session.status === 'aberto' && <button onClick={() => onCloseSession(session)} className="p-1 px-2 bg-red-50 text-red-600 rounded-xl border border-red-100 transition-colors"><XCircleIcon className="h-3.5 w-3.5" /></button>}
+                                    {session.status === 'fechado' && <button onClick={() => onReopen(session)} className="p-1 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 transition-colors"><ArrowPathRoundedSquareIcon className="h-3.5 w-3.5" /></button>}
                                 </div>
                             </div>
                         </div>

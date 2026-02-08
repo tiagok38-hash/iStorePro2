@@ -49,8 +49,8 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({ activeView, onViewChange
                                 onClick={() => onViewChange(item.view)}
                                 className={`flex flex-col items-center justify-center transition-all duration-300 group
                                     ${isActive
-                                        ? 'w-12 h-12 md:w-14 md:h-14 bg-[#50CA93] rounded-2xl shadow-lg shadow-[#50CA93]/30 scale-110 md:scale-100'
-                                        : 'w-12 h-12 text-gray-400 hover:text-white hover:bg-white/5 rounded-2xl'}
+                                        ? 'w-12 h-12 md:w-14 md:h-14 bg-[#50CA93] rounded-3xl shadow-lg shadow-[#50CA93]/30 scale-110 md:scale-100'
+                                        : 'w-12 h-12 text-gray-400 hover:text-white hover:bg-white/5 rounded-3xl'}
                                 `}
                             >
                                 {React.cloneElement(item.icon as React.ReactElement, {

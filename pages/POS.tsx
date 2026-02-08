@@ -539,7 +539,7 @@ const POS: React.FC = () => {
 
                 {showFormatSelector && (
                     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-scale-in">
+                        <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm animate-scale-in">
                             <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">Selecionar Formato</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <button onClick={() => { setReceiptFormat('A4'); setShowFormatSelector(false); }} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-100 hover:border-primary transition-all group">
@@ -549,7 +549,7 @@ const POS: React.FC = () => {
                                     <PrinterIcon className="h-8 w-8 text-gray-400 group-hover:text-primary" /><span className="font-bold text-sm">Térmica 80mm</span>
                                 </button>
                             </div>
-                            <button onClick={() => { setShowFormatSelector(false); setReceiptSale(null); }} className="mt-6 w-full py-3 bg-gray-100 rounded-lg text-gray-500 font-bold">Cancelar</button>
+                            <button onClick={() => { setShowFormatSelector(false); setReceiptSale(null); }} className="mt-6 w-full py-3 bg-gray-100 rounded-xl text-gray-500 font-bold">Cancelar</button>
                         </div>
                     </div>
                 )}
@@ -559,18 +559,18 @@ const POS: React.FC = () => {
 
                 {isOpeningSessionModalOpen && (
                     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-scale-in">
+                        <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm animate-scale-in">
                             <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Abrir Caixa</h3>
                             <div className="mb-6">
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Valor Inicial (Fundo de Troco)</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">R$</span>
-                                    <input type="number" step="0.01" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-lg font-bold outline-none" placeholder="0,00" autoFocus />
+                                    <input type="number" step="0.01" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg font-bold outline-none" placeholder="0,00" autoFocus />
                                 </div>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={() => setIsOpeningSessionModalOpen(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-lg font-bold">Cancelar</button>
-                                <button onClick={handleConfirmOpenSession} className="flex-1 py-3 bg-success text-white rounded-lg font-bold shadow-lg shadow-success/20">ABRIR CAIXA</button>
+                                <button onClick={() => setIsOpeningSessionModalOpen(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold">Cancelar</button>
+                                <button onClick={handleConfirmOpenSession} className="flex-1 py-3 bg-success text-white rounded-xl font-bold shadow-lg shadow-success/20">ABRIR CAIXA</button>
                             </div>
                         </div>
                     </div>

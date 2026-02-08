@@ -87,12 +87,12 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, o
         onSave(formData);
     };
 
-    const inputClasses = "w-full p-2 border rounded bg-transparent border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all";
+    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all";
     const labelClasses = "block text-sm font-medium text-primary mb-1";
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[70] p-4">
-            <div className="bg-surface rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="bg-surface rounded-3xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center p-4 border-b border-border">
                     <div className="flex items-center gap-2">
                         <CreditCardIcon className="h-5 w-5 text-primary" />
@@ -149,7 +149,7 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, o
                             <div className="mt-6 border-t border-border pt-4">
                                 <h4 className="font-bold text-base mb-3 text-primary">Taxas da Maquininha</h4>
 
-                                <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-border">
+                                <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-border">
                                     <div className="flex items-center justify-between">
                                         <label className="text-sm font-semibold text-gray-700 w-24">Débito</label>
                                         <div className="w-32">

@@ -240,14 +240,14 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
 
     if (!isOpen) return null;
 
-    const inputClasses = "w-full p-2 border rounded bg-transparent border-border focus:ring-success focus:border-success text-sm h-10";
+    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-10";
     const labelClasses = "block text-xs font-medium text-muted mb-1";
     const tabClasses = (tabName: 'aparelho' | 'checklist' | 'fotos_acessorios') =>
-        `px-4 py-2 text-sm font-semibold rounded-md ${activeTab === tabName ? 'bg-primary text-white' : 'bg-gray-200 text-secondary'}`;
+        `px-4 py-2 text-sm font-semibold rounded-xl ${activeTab === tabName ? 'bg-primary text-white' : 'bg-gray-200 text-secondary'}`;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[60] p-4">
-            <div className="bg-surface rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col">
+            <div className="bg-surface rounded-3xl shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col">
                 <div className="flex justify-between items-center p-4 border-b border-border">
                     <div className="flex items-center gap-2">
                         <button onClick={() => setActiveTab('aparelho')} className={tabClasses('aparelho')}>APARELHO</button>
@@ -260,7 +260,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                 {activeTab === 'aparelho' && (
                     <div className="p-6 space-y-4 overflow-y-auto">
                         <h3 className="font-semibold text-lg flex items-center gap-2"><PlusIcon /> Aparelho para troca</h3>
-                        <div className="text-sm text-primary bg-blue-50 p-3 rounded-md border border-blue-200 text-center">
+                        <div className="text-sm text-primary bg-blue-50 p-3 rounded-xl border border-blue-200 text-center">
                             Para cadastrar Marcas, Categorias, e Grades, <a href="/#/company?tab=marcas" target="_blank" rel="noopener noreferrer" className="font-semibold underline hover:text-blue-700">clique aqui</a>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
@@ -306,7 +306,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                 {activeTab === 'checklist' && (
                     <div className="p-6 space-y-4 overflow-y-auto">
                         <h3 className="font-semibold text-lg flex items-center gap-2">Checklist de produtos Seminovo</h3>
-                        <p className="text-sm text-yellow-600 bg-yellow-100 p-2 rounded-md">Marque as opções que apresentam defeito ou avaria.</p>
+                        <p className="text-sm text-yellow-600 bg-yellow-100 p-2 rounded-xl">Marque as opções que apresentam defeito ou avaria.</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
                             {checklistItems.map(item => (
                                 <label key={item} className="flex items-center gap-2 cursor-pointer">
@@ -332,7 +332,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                                     <label className={labelClasses}>Custo de Reparo:</label>
                                     <CurrencyInput value={checklistData.repairCost} onChange={v => setChecklistData(p => ({ ...p, repairCost: v || 0 }))} className={inputClasses} />
                                 </div>
-                                <div className="text-xs text-muted bg-gray-100 p-2 rounded-md">
+                                <div className="text-xs text-muted bg-gray-100 p-2 rounded-xl">
                                     <strong>Obs:</strong> Insira o custo de reparo no campo "Custo Adicionais" para que o custo do produto seja somado com o custo de reparo.
                                 </div>
                             </div>
@@ -344,7 +344,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                     <div className="p-6 space-y-6 overflow-y-auto">
                         <section>
                             <h3 className="font-semibold text-lg flex items-center gap-2 mb-3">Itens Inclusos / Acessórios</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 bg-gray-50 p-4 rounded-3xl border border-gray-100">
                                 {accessoryItems.map(item => (
                                     <label key={item} className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={accessoriesData[item]} onChange={() => handleAccessoryToggle(item)} className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent" />
@@ -362,7 +362,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
 
                             <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                                 {photos.map((photo, index) => (
-                                    <div key={index} className="relative group aspect-square border rounded-md overflow-hidden bg-gray-100 shadow-sm">
+                                    <div key={index} className="relative group aspect-square border rounded-xl overflow-hidden bg-gray-100 shadow-sm">
                                         <img src={photo} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
                                         <button
                                             onClick={() => handleRemovePhoto(index)}
@@ -376,7 +376,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                                 {photos.length < 6 && (
                                     <button
                                         onClick={() => setIsCameraOpen(true)}
-                                        className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md text-muted hover:border-primary hover:text-primary transition-colors bg-gray-50 hover:bg-white"
+                                        className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl text-muted hover:border-primary hover:text-primary transition-colors bg-gray-50 hover:bg-white"
                                     >
                                         <PlusIcon className="h-8 w-8 mb-1" />
                                         <span className="text-xs font-medium">Adicionar Foto</span>
@@ -388,7 +388,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                 )}
 
                 <div className="flex justify-end items-center p-4 border-t border-border mt-auto">
-                    <button type="button" onClick={handleSaveClick} disabled={isSaving} className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 font-semibold disabled:bg-muted">
+                    <button type="button" onClick={handleSaveClick} disabled={isSaving} className="px-6 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 font-semibold disabled:bg-muted">
                         {isSaving ? <SpinnerIcon className="h-5 w-5" /> : 'Salvar'}
                     </button>
                 </div>

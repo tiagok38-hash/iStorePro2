@@ -20,7 +20,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, 
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-fade-in" aria-modal="true" role="dialog">
-      <div className="glass-card rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4 animate-scale-in">
+      <div className="glass-card rounded-3xl shadow-2xl p-8 w-full max-w-sm mx-4 animate-scale-in">
         <h2 className="text-2xl font-black text-primary mb-2">{title}</h2>
         <p className="text-sm text-muted mb-8 leading-relaxed">{message}</p>
 

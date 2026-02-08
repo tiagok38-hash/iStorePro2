@@ -37,7 +37,7 @@ const PurchaseHistoryModal: React.FC<{
             <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm" onClick={onClose} />
 
             {/* Modal Container */}
-            <div className="relative bg-surface w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-lg shadow-xl sm:max-w-3xl flex flex-col overflow-hidden">
+            <div className="relative bg-surface w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-3xl shadow-xl sm:max-w-3xl flex flex-col overflow-hidden border border-border">
                 {/* Fixed Header */}
                 <div className="flex justify-between items-center p-4 border-b bg-white flex-shrink-0">
                     <h2 className="text-lg font-bold text-primary">Histórico de {customer.name}</h2>
@@ -76,7 +76,7 @@ const PurchaseHistoryModal: React.FC<{
 
                         if (totalDebt > 0) {
                             return (
-                                <div className="mb-4 bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                                <div className="mb-4 bg-red-50 border border-red-200 rounded-xl overflow-hidden shadow-sm">
                                     <div className="p-3 flex items-center justify-between border-b border-red-200 bg-red-100/30">
                                         <span className="text-red-800 font-bold flex items-center gap-2 text-sm">
                                             <span className="w-2 h-2 rounded-full bg-red-600"></span>
@@ -117,7 +117,7 @@ const PurchaseHistoryModal: React.FC<{
                         sales.length === 0 ? <p className="text-muted text-center py-4">Nenhuma compra encontrada.</p> : (
                             <ul className="space-y-3">
                                 {[...sales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(sale => (
-                                    <li key={sale.id} className="border border-border p-3 rounded-md bg-surface-secondary">
+                                    <li key={sale.id} className="border border-border p-3 rounded-xl bg-surface-secondary">
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1">
                                                 <div className="flex flex-wrap items-center gap-2 text-xs font-semibold mb-1">
@@ -134,7 +134,7 @@ const PurchaseHistoryModal: React.FC<{
                                                     {sale.payments.map(p => `${p.method} (${formatCurrency(p.value)})`).join(', ')}
                                                 </div>
                                             </div>
-                                            <button onClick={() => onViewSale(sale)} className="ml-2 px-2 py-1 bg-gray-200 text-secondary text-xs font-semibold rounded-md hover:bg-gray-300">
+                                            <button onClick={() => onViewSale(sale)} className="ml-2 px-2 py-1 bg-gray-200 text-secondary text-xs font-semibold rounded-xl hover:bg-gray-300">
                                                 Ver
                                             </button>
                                         </div>
@@ -147,7 +147,7 @@ const PurchaseHistoryModal: React.FC<{
                         (!customer.tradeInHistory || customer.tradeInHistory.length === 0) ? <p className="text-muted text-center py-4">Nenhuma troca/venda encontrada.</p> : (
                             <ul className="space-y-3">
                                 {[...customer.tradeInHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tradeIn => (
-                                    <li key={tradeIn.id} className="border border-border p-3 rounded-md bg-surface-secondary">
+                                    <li key={tradeIn.id} className="border border-border p-3 rounded-xl bg-surface-secondary">
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <span className="block font-bold text-primary text-sm">{tradeIn.model}</span>
@@ -180,7 +180,7 @@ const PurchaseHistoryModal: React.FC<{
 
                 {/* Fixed Footer */}
                 <div className="flex justify-end p-4 border-t bg-gray-50 flex-shrink-0">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 font-semibold text-sm">Fechar</button>
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 font-semibold text-sm">Fechar</button>
                 </div>
             </div>
         </div>
@@ -607,7 +607,7 @@ const CustomersAndSuppliers: React.FC = () => {
     };
 
     const renderCustomersTab = () => (
-        <div className="glass-card p-4 sm:p-6">
+        <div className="bg-surface rounded-3xl border border-border p-4 sm:p-6 shadow-sm">
             {/* Mobile Header: Full Width Search & Scrollable Filters */}
             <div className="flex flex-col gap-3 mb-4 md:hidden">
                 <div className="relative w-full">
@@ -617,18 +617,18 @@ const CustomersAndSuppliers: React.FC = () => {
                         placeholder="Buscar cliente..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-2.5 border rounded-lg w-full bg-gray-50 border-gray-200 focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm"
+                        className="pl-9 pr-4 py-2.5 border rounded-xl w-full bg-gray-50 border-gray-200 focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm"
                     />
                 </div>
 
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
-                    <div className="shrink-0 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 flex items-center h-9">
+                    <div className="shrink-0 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-200 flex items-center h-9">
                         Total: {customers.length}
                     </div>
 
                     <button
                         onClick={() => setCustomerSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                        className="shrink-0 px-3 py-1.5 bg-white text-secondary rounded-lg border border-gray-200 flex items-center gap-1.5 text-xs font-medium active:bg-gray-50 h-9 shadow-sm"
+                        className="shrink-0 px-3 py-1.5 bg-white text-secondary rounded-xl border border-gray-200 flex items-center gap-1.5 text-xs font-medium active:bg-gray-50 h-9 shadow-sm"
                     >
                         <ArrowsUpDownIcon className="h-3.5 w-3.5" />
                         {customerSortOrder === 'newest' ? 'Recentes' : 'Antigos'}
@@ -638,7 +638,7 @@ const CustomersAndSuppliers: React.FC = () => {
                         <select
                             value={birthdayFilter}
                             onChange={e => setBirthdayFilter(e.target.value)}
-                            className="appearance-none pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-secondary focus:outline-none focus:ring-0 h-9 shadow-sm"
+                            className="appearance-none pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-secondary focus:outline-none focus:ring-0 h-9 shadow-sm"
                         >
                             <option value="none">Aniversários</option>
                             <option value="dia">Hoje</option>
@@ -650,21 +650,21 @@ const CustomersAndSuppliers: React.FC = () => {
 
                     <button
                         onClick={() => setShowDebtorsOnly(prev => !prev)}
-                        className={`shrink-0 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showDebtorsOnly ? 'bg-red-500 text-white border border-red-600' : 'bg-white text-secondary border border-gray-200'}`}
+                        className={`shrink-0 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showDebtorsOnly ? 'bg-red-500 text-white border border-red-600' : 'bg-white text-secondary border border-gray-200'}`}
                     >
                         <span>Devedores ({customers.filter(c => c.active !== false && (customerStats.debts.get(c.id) || 0) > 0).length})</span>
                     </button>
 
                     <button
                         onClick={() => setShowInactive(prev => !prev)}
-                        className={`shrink-0 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showInactive ? 'bg-orange-500 text-white border border-orange-600' : 'bg-white text-secondary border border-gray-200'}`}
+                        className={`shrink-0 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showInactive ? 'bg-orange-500 text-white border border-orange-600' : 'bg-white text-secondary border border-gray-200'}`}
                     >
                         <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
                 </div>
 
                 {permissions?.canCreateCustomer && (
-                    <button onClick={() => handleOpenModal()} className="w-full py-3 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-bold shadow-sm active:scale-[0.98] transition-transform">
+                    <button onClick={() => handleOpenModal()} className="w-full py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-bold shadow-sm active:scale-[0.98] transition-transform">
                         <PlusIcon className="h-5 w-5" /> Adicionar Cliente
                     </button>
                 )}
@@ -675,14 +675,14 @@ const CustomersAndSuppliers: React.FC = () => {
                 <div className="flex items-center gap-4 w-full sm:w-auto">
                     <div className="relative flex-grow sm:flex-grow-0">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted"><SearchIcon /></span>
-                        <input type="text" placeholder="Buscar por nome ou email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 p-2 border rounded-md w-full sm:w-80 bg-transparent border-border focus:ring-primary focus:border-primary h-10" />
+                        <input type="text" placeholder="Buscar por nome ou email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 p-2 border rounded-xl w-full sm:w-80 bg-transparent border-border focus:ring-primary focus:border-primary h-10" />
                     </div>
-                    <span className="bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-sm font-medium border border-gray-200">
+                    <span className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-medium border border-gray-200">
                         Total: {customers.length}
                     </span>
                     <button
                         onClick={() => setCustomerSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                        className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 flex items-center gap-2 text-sm font-medium"
+                        className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 flex items-center gap-2 text-sm font-medium"
                     >
                         <ArrowsUpDownIcon className="h-4 w-4" />
                         <span>{customerSortOrder === 'newest' ? 'Mais Recentes' : 'Mais Antigos'}</span>
@@ -690,14 +690,14 @@ const CustomersAndSuppliers: React.FC = () => {
                     <div className="relative" ref={birthdayDropdownRef}>
                         <button
                             onClick={() => setIsBirthdayDropdownOpen(prev => !prev)}
-                            className={`h-10 px-3 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${birthdayFilter !== 'none' ? 'bg-accent text-white' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                            className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${birthdayFilter !== 'none' ? 'bg-accent text-white' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
                         >
                             <BirthdayCakeIcon className="h-4 w-4" />
                             <span>Aniversariantes</span>
                             <ChevronDownIcon className={`h-4 w-4 transition-transform ${isBirthdayDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {isBirthdayDropdownOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-40 bg-surface rounded-md shadow-lg border border-border z-10">
+                            <div className="absolute top-full right-0 mt-2 w-40 bg-surface rounded-xl shadow-lg border border-border z-10">
                                 <button onClick={() => { setBirthdayFilter('dia'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Do Dia</button>
                                 <button onClick={() => { setBirthdayFilter('semana'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Da Semana</button>
                                 <button onClick={() => { setBirthdayFilter('mês'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Do Mês</button>
@@ -709,14 +709,14 @@ const CustomersAndSuppliers: React.FC = () => {
                     <div className="relative" ref={rankingDropdownRef}>
                         <button
                             onClick={() => setIsRankingDropdownOpen(prev => !prev)}
-                            className={`h-10 px-3 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${rankingFilter !== 'none' ? 'bg-accent text-white' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                            className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${rankingFilter !== 'none' ? 'bg-accent text-white' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
                         >
                             <ChartBarIcon className="h-4 w-4" />
                             <span>Ranking</span>
                             <ChevronDownIcon className={`h-4 w-4 transition-transform ${isRankingDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {isRankingDropdownOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-surface rounded-md shadow-lg border border-border z-10">
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-surface rounded-xl shadow-lg border border-border z-10">
                                 <button onClick={() => { setRankingFilter('highest'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Mais Compram</button>
                                 <button onClick={() => { setRankingFilter('lowest'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Menos Compram</button>
                                 <div className="border-t border-border my-1"></div>
@@ -726,21 +726,21 @@ const CustomersAndSuppliers: React.FC = () => {
                     </div>
                     <button
                         onClick={() => setShowDebtorsOnly(prev => !prev)}
-                        className={`h-10 px-3 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${showDebtorsOnly ? 'bg-red-600 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                        className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${showDebtorsOnly ? 'bg-red-600 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
                     >
                         <CurrencyDollarIcon className="h-4 w-4" />
                         <span>Devedores ({customers.filter(c => c.active !== false && (customerStats.debts.get(c.id) || 0) > 0).length})</span>
                     </button>
                     <button
                         onClick={() => setShowInactive(prev => !prev)}
-                        className={`h-10 px-3 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${showInactive ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                        className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${showInactive ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
                     >
                         <EyeSlashIcon className="h-4 w-4" />
                         <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
                 </div>
                 {permissions?.canCreateCustomer && (
-                    <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 w-full sm:w-auto flex items-center justify-center gap-2 h-10"><PlusIcon className="h-5 w-5" /> Adicionar Cliente</button>
+                    <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 w-full sm:w-auto flex items-center justify-center gap-2 h-10"><PlusIcon className="h-5 w-5" /> Adicionar Cliente</button>
                 )}
             </div>
 
@@ -750,14 +750,14 @@ const CustomersAndSuppliers: React.FC = () => {
                         {/* Mobile View: Ultra Compact Strip Cards */}
                         <div className="md:hidden space-y-2">
                             {filteredCustomers.map(customer => (
-                                <div key={customer.id} className="bg-white/60 backdrop-blur-sm p-3 rounded-lg border border-white/40 shadow-sm relative overflow-hidden">
+                                <div key={customer.id} className="bg-white/60 backdrop-blur-sm p-3 rounded-3xl border border-white/40 shadow-sm relative overflow-hidden">
                                     <div className="flex items-start gap-3">
                                         {/* Avatar Left */}
                                         <div className="relative shrink-0">
                                             {customer.avatarUrl ? (
-                                                <img src={customer.avatarUrl} alt={customer.name} className="h-10 w-10 rounded-lg object-cover border border-gray-100" />
+                                                <img src={customer.avatarUrl} alt={customer.name} className="h-10 w-10 rounded-xl object-cover border border-gray-100" />
                                             ) : (
-                                                <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
+                                                <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
                                                     <UserCircleIcon className="h-6 w-6" />
                                                 </div>
                                             )}
@@ -769,13 +769,13 @@ const CustomersAndSuppliers: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 <h3 className="font-bold text-gray-900 truncate text-[13px] sm:text-sm">{customer.name}</h3>
                                                 {customer.active === false && (
-                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-orange-100 text-orange-700 border border-orange-200 uppercase">Inativo</span>
+                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-xl bg-orange-100 text-orange-700 border border-orange-200 uppercase">Inativo</span>
                                                 )}
                                             </div>
                                             {/* Tag + Phone on same line */}
                                             <div className="flex flex-wrap items-center gap-1.5 mb-1">
                                                 {suppliers.some(s => s.name.trim().toLowerCase() === customer.name.trim().toLowerCase()) && (
-                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
                                                         Cliente & Fornecedor
                                                     </span>
                                                 )}
@@ -914,7 +914,7 @@ const CustomersAndSuppliers: React.FC = () => {
     );
 
     const renderSuppliersTab = () => (
-        <div className="bg-surface rounded-lg border border-border p-4 sm:p-6">
+        <div className="bg-surface rounded-3xl border border-border p-4 sm:p-6 shadow-sm">
             {/* Mobile Header: Full Width Search & Scrollable Filters */}
             <div className="flex flex-col gap-3 mb-4 md:hidden">
                 <div className="relative w-full">
@@ -976,14 +976,14 @@ const CustomersAndSuppliers: React.FC = () => {
                         {/* Mobile View: Ultra Compact Strip Cards */}
                         <div className="md:hidden space-y-2">
                             {filteredSuppliers.map(supplier => (
-                                <div key={supplier.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
+                                <div key={supplier.id} className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
                                     <div className="flex items-start gap-3">
                                         {/* Avatar Left */}
                                         <div className="relative shrink-0">
                                             {supplier.avatarUrl ? (
-                                                <img src={supplier.avatarUrl} alt={supplier.name} className="h-10 w-10 rounded-lg object-cover border border-gray-100" />
+                                                <img src={supplier.avatarUrl} alt={supplier.name} className="h-10 w-10 rounded-xl object-cover border border-gray-100" />
                                             ) : (
-                                                <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
+                                                <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
                                                     <UserCircleIcon className="h-6 w-6" />
                                                 </div>
                                             )}
@@ -1085,12 +1085,12 @@ const CustomersAndSuppliers: React.FC = () => {
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-primary">Clientes e Fornecedores</h1>
 
-            <div className="inline-flex items-center gap-1 bg-surface-secondary p-1 rounded-lg">
+            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
                 {availableTabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id as any); setSearchTerm(''); }}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-primary'}`}
+                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         {tab.label}
                     </button>

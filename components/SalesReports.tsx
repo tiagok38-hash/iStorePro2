@@ -401,7 +401,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
     return (
         <div className="space-y-8 animate-fade-in">
             {/* 1. Filters */}
-            <div className="bg-surface p-4 rounded-xl border border-border flex flex-wrap items-end gap-4 shadow-sm">
+            <div className="bg-surface p-4 rounded-3xl border border-border flex flex-wrap items-end gap-4 shadow-sm">
                 <CustomDatePicker label="De" value={startDate} onChange={setStartDate} />
                 <CustomDatePicker label="Até" value={endDate} onChange={setEndDate} />
                 <div>
@@ -409,7 +409,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                     <select
                         value={sellerId}
                         onChange={e => setSellerId(e.target.value)}
-                        className="h-10 pl-3 pr-8 rounded-lg border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="h-10 pl-3 pr-8 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                     >
                         <option value="todos">Todos</option>
                         {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -417,12 +417,12 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                 </div>
                 <button
                     onClick={() => { setStartDate(new Date().toISOString().split('T')[0]); setEndDate(new Date().toISOString().split('T')[0]); setSellerId('todos'); }}
-                    className="h-10 px-4 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 text-gray-600"
+                    className="h-10 px-4 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 text-gray-600"
                 >
                     Limpar
                 </button>
                 <div className="flex-1 text-right">
-                    <button onClick={handleExport} className="h-10 px-4 bg-primary text-white rounded-lg font-bold text-sm shadow hover:bg-primary/90 flex items-center gap-2 ml-auto">
+                    <button onClick={handleExport} className="h-10 px-4 bg-primary text-white rounded-xl font-bold text-sm shadow hover:bg-primary/90 flex items-center gap-2 ml-auto">
                         <DocumentArrowUpIcon className="w-4 h-4 transform rotate-180" />
                         Exportar CSV
                     </button>
@@ -431,20 +431,20 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
 
             {/* 2. Financial Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-3xl">
                     <h3 className="text-sm font-medium text-blue-800">Faturamento</h3>
                     <p className="text-2xl font-bold text-blue-900 mt-1">{formatCurrency(financials.totalSales)}</p>
                 </div>
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
+                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-3xl">
                     <h3 className="text-sm font-medium text-emerald-800">Lucro Bruto</h3>
                     <p className="text-2xl font-bold text-emerald-900 mt-1">{formatCurrency(financials.profit)}</p>
                     <p className="text-xs font-semibold text-emerald-700 mt-1">Margem: {financials.margin.toFixed(1)}%</p>
                 </div>
-                <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl">
+                <div className="bg-purple-50 border border-purple-100 p-4 rounded-3xl">
                     <h3 className="text-sm font-medium text-purple-800">Ticket Médio</h3>
                     <p className="text-2xl font-bold text-purple-900 mt-1">{formatCurrency(financials.avgTicket)}</p>
                 </div>
-                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl">
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-3xl">
                     <h3 className="text-sm font-medium text-orange-800">Descontos</h3>
                     <p className="text-2xl font-bold text-orange-900 mt-1">{formatCurrency(financials.totalDiscounts)}</p>
                 </div>
@@ -453,7 +453,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             {/* 3. Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Payment Methods */}
-                <div className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col">
+                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm flex flex-col">
                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <span className="w-1 h-6 bg-purple-500 rounded-full"></span>
                         Formas de Pagamento
@@ -480,16 +480,16 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                 </div>
 
                 {/* Salesperson Rankings */}
-                <div className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col">
+                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm flex flex-col">
                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
                         Ranking de Vendedores
                     </h3>
                     <div className="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[300px]">
                         {sellerStats.map((s, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-600 text-xs">
+                                    <div className="w-8 h-8 rounded-xl bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-600 text-xs">
                                         {idx + 1}º
                                     </div>
                                     <div>
@@ -509,14 +509,14 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
 
             {/* 4. Product Analysis (Apple vs Other & Categories) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-4">Apple vs Outros</h3>
                     <div className="space-y-4">
                         {(() => {
                             const totalGross = typeStats.apple.revenue + typeStats.other.revenue;
                             return (
                                 <>
-                                    <div className="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
+                                    <div className="p-4 bg-gray-50 rounded-xl flex justify-between items-center">
                                         <div>
                                             <p className="font-bold text-gray-900">Apple</p>
                                             <div className="flex gap-2">
@@ -528,7 +528,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                         </div>
                                         <p className="font-bold text-lg">{formatCurrency(typeStats.apple.revenue)}</p>
                                     </div>
-                                    <div className="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
+                                    <div className="p-4 bg-gray-50 rounded-xl flex justify-between items-center">
                                         <div>
                                             <p className="font-bold text-gray-900">Não Apple</p>
                                             <div className="flex gap-2">
@@ -546,7 +546,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                     </div>
                 </div>
 
-                <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-4">Top Categorias</h3>
                     <div className="overflow-y-auto max-h-[200px] space-y-2">
                         {typeStats.categoryList.map((cat, idx) => (
@@ -563,7 +563,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             </div>
 
             {/* 5. Critical: Report by Model */}
-            <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+            <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <h3 className="font-bold text-xl text-gray-800 flex items-center gap-2">
                         <span className="w-1 h-6 bg-indigo-600 rounded-full"></span>
@@ -575,7 +575,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                             placeholder="Buscar modelo..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border rounded-lg text-sm w-full sm:w-96 focus:ring-2 focus:ring-primary/20 outline-none"
+                            className="pl-10 pr-4 py-2 border rounded-xl text-sm w-full sm:w-96 focus:ring-2 focus:ring-primary/20 outline-none"
                         />
                         <SearchIcon className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
                     </div>
@@ -601,7 +601,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                         {m.model} <span className="text-gray-500 text-xs ml-1">{m.storage !== 'N/A' ? m.storage : ''}</span>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${m.condition === 'Novo' ? 'bg-green-100 text-green-700' :
+                                        <span className={`px-2 py-1 rounded-xl text-xs font-bold ${m.condition === 'Novo' ? 'bg-green-100 text-green-700' :
                                             m.condition === 'Seminovo' ? 'bg-blue-100 text-blue-700' :
                                                 m.condition === 'CPO' ? 'bg-orange-100 text-orange-700' :
                                                     m.condition === 'Vitrine' ? 'bg-purple-100 text-purple-700' :
@@ -629,7 +629,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
 
             {/* 6. Cancelled Sales */}
             {cancelledSales.length > 0 && (
-                <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
                     <h3 className="font-bold text-red-600 mb-4">Vendas Canceladas ({cancelledSales.length})</h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">

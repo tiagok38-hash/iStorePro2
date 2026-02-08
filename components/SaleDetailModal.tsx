@@ -52,11 +52,11 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
     return (
         <>
             <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-end sm:items-center z-[60] sm:p-4 pt-[calc(env(safe-area-inset-top)+40px)] pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pt-0 lg:pb-0">
-                <div className="bg-surface rounded-t-2xl sm:rounded-lg shadow-xl w-full sm:max-w-3xl max-h-full sm:max-h-[90vh] flex flex-col overflow-hidden">
+                <div className="bg-surface rounded-t-3xl sm:rounded-3xl shadow-xl w-full sm:max-w-3xl max-h-full sm:max-h-[90vh] flex flex-col overflow-hidden">
                     <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border shrink-0">
                         <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Detalhes da Venda #{sale.id}</h2>
                         <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => setIsPrintChoiceOpen(true)} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-md text-xs sm:text-sm hover:bg-opacity-90">
+                            <button onClick={() => setIsPrintChoiceOpen(true)} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm hover:bg-opacity-90">
                                 <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Imprimir
                             </button>
                             <button onClick={onClose} className="p-1 text-muted hover:text-danger"><CloseIcon className="h-6 w-6" /></button>
@@ -80,7 +80,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                         {/* Items Sold */}
                         <div>
                             <h3 className="font-semibold text-lg text-primary mb-2">Itens Vendidos</h3>
-                            <div className="border border-border rounded-lg overflow-hidden">
+                            <div className="border border-border rounded-xl overflow-hidden">
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-xs text-secondary uppercase bg-surface-secondary">
                                         <tr>
@@ -127,7 +127,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                 {product.variations && product.variations.length > 0 && (
                                                                     <div className="mt-2 flex flex-wrap gap-1.5">
                                                                         {product.variations.map((variation, index) => (
-                                                                            <span key={variation.gradeId || index} className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                                                                            <span key={variation.gradeId || index} className="px-2 py-0.5 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700 border border-gray-200">
                                                                                 {variation.valueName ? `${variation.gradeName}: ${variation.valueName}` : variation.gradeName}
                                                                             </span>
                                                                         ))}
@@ -141,10 +141,10 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                         <div className="flex flex-col items-end gap-1">
                                                             <span>{formatCurrency(item.unitPrice)}</span>
                                                             {item.priceType === 'cost' && (
-                                                                <span className="px-1 py-0.5 text-[8px] bg-sky-50 text-sky-600 rounded border border-sky-100 font-black uppercase tracking-tighter leading-none">Custo</span>
+                                                                <span className="px-1 py-0.5 text-[8px] bg-sky-50 text-sky-600 rounded-xl border border-sky-100 font-black uppercase tracking-tighter leading-none">Custo</span>
                                                             )}
                                                             {item.priceType === 'wholesale' && (
-                                                                <span className="px-1 py-0.5 text-[8px] bg-orange-50 text-orange-600 rounded border border-orange-100 font-black uppercase tracking-tighter leading-none">Atacado</span>
+                                                                <span className="px-1 py-0.5 text-[8px] bg-orange-50 text-orange-600 rounded-xl border border-orange-100 font-black uppercase tracking-tighter leading-none">Atacado</span>
                                                             )}
                                                         </div>
                                                     </td>
@@ -170,7 +170,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                 const isWithInterest = payment.type === 'Com Juros';
 
                                                 return (
-                                                    <div key={payment.id} className="p-3 bg-surface-secondary rounded-md text-sm">
+                                                    <div key={payment.id} className="p-3 bg-surface-secondary rounded-xl text-sm">
                                                         <div className="flex justify-between items-center mb-2">
                                                             <p className="font-medium text-primary">{payment.method}</p>
                                                             <span className="font-semibold">{formatCurrency(totalCharged)}</span>
@@ -191,7 +191,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                 );
                                             }
                                             return (
-                                                <div key={payment.id} className="p-3 bg-surface-secondary rounded-md">
+                                                <div key={payment.id} className="p-3 bg-surface-secondary rounded-xl">
                                                     <div className="flex justify-between items-center">
                                                         <p className="font-medium text-primary">{payment.method}</p>
                                                         <span className="font-semibold">{formatCurrency(payment.value + (payment.fees || 0))}</span>
@@ -214,7 +214,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                 {legacyTradedInProduct && (
                                     <div>
                                         <h3 className="font-semibold text-primary mb-2">Aparelho Recebido na Troca (Histórico)</h3>
-                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-1 text-primary">
+                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm space-y-1 text-primary">
                                             <p><strong>Modelo:</strong> {legacyTradedInProduct.model}</p>
                                             <div className="text-xs text-blue-800/80 font-normal mt-1 flex flex-wrap items-center gap-x-2">
                                                 {legacyTradedInProduct.serialNumber && <span>S/N: {legacyTradedInProduct.serialNumber}</span>}
@@ -240,7 +240,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                             {legacyTradedInProduct.variations && legacyTradedInProduct.variations.length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                                     {legacyTradedInProduct.variations.map((variation, index) => (
-                                                        <span key={variation.gradeId || index} className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                                                        <span key={variation.gradeId || index} className="px-2 py-0.5 text-xs font-semibold rounded-xl bg-blue-100 text-blue-700 border border-blue-200">
                                                             {variation.valueName ? `${variation.gradeName}: ${variation.valueName}` : variation.gradeName}
                                                         </span>
                                                     ))}
@@ -255,11 +255,11 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
 
                             {/* Right side: Financial Summary */}
                             <div className="space-y-2 text-sm">
-                                <div className="flex justify-between p-2 bg-surface-secondary rounded-md">
+                                <div className="flex justify-between p-2 bg-surface-secondary rounded-xl">
                                     <span className="text-muted">Subtotal:</span>
                                     <span className="font-medium">{formatCurrency(sale.subtotal)}</span>
                                 </div>
-                                <div className="flex justify-between p-2 bg-surface-secondary rounded-md">
+                                <div className="flex justify-between p-2 bg-surface-secondary rounded-xl">
                                     <span className="text-muted">Desconto:</span>
                                     <span className="font-medium text-danger">-{formatCurrency(sale.discount)}</span>
                                 </div>
@@ -267,14 +267,14 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                     <span className="font-semibold text-base text-primary">Total da Venda:</span>
                                     <span className="font-bold text-xl text-primary">{formatCurrency(sale.total)}</span>
                                 </div>
-                                <div className="flex justify-between p-2 bg-green-50 rounded-md">
+                                <div className="flex justify-between p-2 bg-green-50 rounded-xl">
                                     <span className="text-muted">Total Pago:</span>
                                     <span className="font-medium text-success">{formatCurrency(totalPaid)}</span>
                                 </div>
                             </div>
                         </div>
                         {sale.status === 'Cancelada' && (
-                            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
                                 <h3 className="font-bold text-red-800 mb-1">Venda Cancelada</h3>
                                 <p className="text-sm text-red-700">
                                     <span className="font-semibold">Motivo:</span> {sale.cancellationReason || 'Motivo não informado'}
@@ -285,36 +285,36 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                         {sale.observations && (
                             <div className="pt-4 border-t border-border">
                                 <h3 className="font-semibold text-primary mb-2">Observações (Comprovante)</h3>
-                                <p className="text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-lg whitespace-pre-wrap">{sale.observations}</p>
+                                <p className="text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-xl whitespace-pre-wrap">{sale.observations}</p>
                             </div>
                         )}
                         {sale.internalObservations && (
                             <div className="pt-4 border-t border-border">
                                 <h3 className="font-semibold text-primary mb-2">Observações Internas</h3>
-                                <p className="text-sm p-3 bg-gray-50 border border-gray-200 rounded-lg italic text-gray-600 whitespace-pre-wrap">{sale.internalObservations}</p>
+                                <p className="text-sm p-3 bg-gray-50 border border-gray-200 rounded-xl italic text-gray-600 whitespace-pre-wrap">{sale.internalObservations}</p>
                             </div>
                         )}
                     </div>
                     <div className="flex justify-end items-center p-4 border-t border-border mt-auto">
-                        <button onClick={onClose} className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Fechar</button>
+                        <button onClick={onClose} className="px-6 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700">Fechar</button>
                     </div>
                 </div>
             </div>
 
             {isPrintChoiceOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[70]">
-                    <div className="bg-surface p-6 rounded-lg shadow-xl w-full max-w-sm">
+                    <div className="bg-surface p-6 rounded-3xl shadow-xl w-full max-w-sm">
                         <h3 className="text-lg font-bold mb-4 text-primary">Escolha o Formato de Impressão</h3>
                         <p className="text-sm text-muted mb-6">Selecione o layout para o recibo da venda #{sale.id}.</p>
                         <div className="flex flex-col gap-4">
-                            <button onClick={() => { setReceiptModalFormat('A4'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-lg hover:bg-surface-secondary hover:border-accent">
+                            <button onClick={() => { setReceiptModalFormat('A4'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-xl hover:bg-surface-secondary hover:border-accent">
                                 <DocumentTextIcon className="h-8 w-8 text-accent" />
                                 <div>
                                     <p className="font-semibold">Formato A4</p>
                                     <p className="text-xs text-muted">Layout padrão para impressoras comuns.</p>
                                 </div>
                             </button>
-                            <button onClick={() => { setReceiptModalFormat('thermal'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-lg hover:bg-surface-secondary hover:border-accent">
+                            <button onClick={() => { setReceiptModalFormat('thermal'); setIsPrintChoiceOpen(false); }} className="w-full text-left flex items-center gap-4 p-4 border rounded-xl hover:bg-surface-secondary hover:border-accent">
                                 <TicketIcon className="h-8 w-8 text-accent" />
                                 <div>
                                     <p className="font-semibold">Cupom 80mm</p>
@@ -322,7 +322,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                 </div>
                             </button>
                         </div>
-                        <button onClick={() => { setIsPrintChoiceOpen(false); }} className="mt-6 w-full px-4 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300">Cancelar</button>
+                        <button onClick={() => { setIsPrintChoiceOpen(false); }} className="mt-6 w-full px-4 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300">Cancelar</button>
                     </div>
                 </div>
             )}

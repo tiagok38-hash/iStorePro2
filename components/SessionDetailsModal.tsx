@@ -16,7 +16,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({ session, sale
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="bg-gray-50 border-b border-gray-100 p-6 flex justify-between items-start">
                     <div>
@@ -27,12 +27,12 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({ session, sale
                         <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                             <div className="flex items-center gap-1"><UsersIcon className="h-4 w-4" /> {userMap[session.userId]}</div>
                             <div className="flex items-center gap-1"><CalendarDaysIcon className="h-4 w-4" /> {new Date(session.openTime).toLocaleDateString()}</div>
-                            <div className={`font-bold px-2 py-0.5 rounded uppercase text-xs ${session.status === 'aberto' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            <div className={`font-bold px-2 py-0.5 rounded-xl uppercase text-xs ${session.status === 'aberto' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                 {session.status}
                             </div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-red-500">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-xl transition-colors text-gray-400 hover:text-red-500">
                         <XCircleIcon className="h-6 w-6" />
                     </button>
                 </div>
@@ -79,7 +79,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({ session, sale
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-gray-800">{formatCurrency(sale.total)}</td>
                                             <td className="px-4 py-3 text-center">
-                                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${sale.status === 'Cancelada' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                <span className={`px-2 py-0.5 rounded-xl text-[9px] font-black uppercase ${sale.status === 'Cancelada' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
                                                     {sale.status}
                                                 </span>
                                             </td>

@@ -210,14 +210,14 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
         onSave(formData, entityType, personType);
     };
 
-    const inputClasses = "p-2 border rounded-md bg-white border-border focus:ring-1 focus:ring-green-500 focus:border-green-500 w-full text-sm h-9";
+    const inputClasses = "p-2 border rounded-xl bg-white border-border focus:ring-1 focus:ring-green-500 focus:border-green-500 w-full text-sm h-9";
     const labelClasses = "block text-xs font-bold text-gray-700 mb-0.5 uppercase tracking-wide";
 
-    const entityTypeClasses = (type: string) => `flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-colors ${entityType === type ? 'bg-green-100 border-green-300 text-green-800 font-semibold' : ''}`;
-    const personTypeClasses = (type: string) => `flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-colors ${personType === type ? 'bg-green-100 border-green-300 text-green-800 font-semibold' : ''}`;
+    const entityTypeClasses = (type: string) => `flex items-center gap-2 p-2 border rounded-xl cursor-pointer transition-colors ${entityType === type ? 'bg-green-100 border-green-300 text-green-800 font-semibold' : ''}`;
+    const personTypeClasses = (type: string) => `flex items-center gap-2 p-2 border rounded-xl cursor-pointer transition-colors ${personType === type ? 'bg-green-100 border-green-300 text-green-800 font-semibold' : ''}`;
 
     const TabButton: React.FC<{ name: string; icon: React.ReactNode; label: string }> = ({ name, icon, label }) => (
-        <button type="button" onClick={() => setActiveTab(name)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold text-sm transition-colors ${activeTab === name ? 'bg-green-100 text-green-700' : 'text-gray-500 hover:bg-gray-100'}`}>
+        <button type="button" onClick={() => setActiveTab(name)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-sm transition-colors ${activeTab === name ? 'bg-green-100 text-green-700' : 'text-gray-500 hover:bg-gray-100'}`}>
             {icon}
             {label}
         </button>
@@ -232,17 +232,17 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
             />
 
             {/* Modal Container */}
-            <div className="relative glass-card w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-lg shadow-2xl sm:max-w-3xl flex flex-col animate-fade-in-up overflow-hidden">
+            <div className="relative glass-card w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-3xl shadow-2xl sm:max-w-3xl flex flex-col animate-fade-in-up overflow-hidden">
                 {/* Header - Always visible */}
                 <div className="flex justify-between items-center p-3 border-b border-white/20 bg-white/40 backdrop-blur-md shadow-sm flex-shrink-0">
                     <div className="flex items-center gap-2">
-                        <div className="bg-green-100 p-1.5 rounded-full"><UserCircleIcon className="h-5 w-5 text-green-600" /></div>
+                        <div className="bg-green-100 p-1.5 rounded-xl"><UserCircleIcon className="h-5 w-5 text-green-600" /></div>
                         <h2 className="text-base sm:text-lg font-bold text-gray-800">Cadastro de Cliente/Fornecedor</h2>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-2.5 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                        className="p-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
                         aria-label="Fechar modal"
                     >
                         <CloseIcon className="h-6 w-6" />
@@ -288,7 +288,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                         </button>
 
                                         {isPhotoMenuOpen && (
-                                            <div ref={photoMenuRef} className="absolute top-0 left-full ml-2 w-36 bg-white rounded-md shadow-xl border border-gray-100 z-20 overflow-hidden">
+                                            <div ref={photoMenuRef} className="absolute top-0 left-full ml-2 w-36 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden">
                                                 <button
                                                     type="button"
                                                     onClick={() => { fileInputRef.current?.click(); setIsPhotoMenuOpen(false); }}
@@ -361,7 +361,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                             </div>
                                         </>
                                     )}
-                                    <div className="text-right pt-2"><button type="button" onClick={() => setActiveTab('endereco')} className="px-3 py-1.5 bg-gray-700 text-white rounded-md text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors">Endereço →</button></div>
+                                    <div className="text-right pt-2"><button type="button" onClick={() => setActiveTab('endereco')} className="px-3 py-1.5 bg-gray-700 text-white rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors">Endereço →</button></div>
                                 </div>
                             </div>
                         )}
@@ -376,8 +376,8 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                             <input name="zip" value={formData.address?.zip || ''} onChange={handleCepChange} className={`${inputClasses} ${errors.zip ? 'border-red-500' : ''}`} maxLength={8} />
                                             <p className="text-red-600 text-[10px] mt-0.5 min-h-[15px]">{errors.zip}</p>
                                         </div>
-                                        <button type="button" className="px-3 h-9 bg-green-500 text-white rounded-md text-xs flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm"><SearchIcon className="h-4 w-4" /></button>
-                                        <button type="button" onClick={handleClearAddress} className="px-3 h-9 bg-gray-200 text-gray-700 rounded-md text-xs flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm"><TrashIcon className="h-4 w-4" /></button>
+                                        <button type="button" className="px-3 h-9 bg-green-500 text-white rounded-xl text-xs flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm"><SearchIcon className="h-4 w-4" /></button>
+                                        <button type="button" onClick={handleClearAddress} className="px-3 h-9 bg-gray-200 text-gray-700 rounded-xl text-xs flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm"><TrashIcon className="h-4 w-4" /></button>
                                     </div>
                                 </div>
                                 {/* Logradouro + Número */}
@@ -400,7 +400,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                     </div>
 
                     <div className="flex justify-end p-3 bg-white/30 border-t border-white/20 gap-2 flex-shrink-0">
-                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 font-bold text-xs uppercase tracking-wide hover:bg-gray-100 transition-colors">
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs uppercase tracking-wide hover:bg-gray-100 transition-colors">
                             Cancelar
                         </button>
                         <Button type="submit" variant="success" loading={isSaving} icon={<CheckIcon className="h-4 w-4" />} className="text-xs font-bold uppercase tracking-wide">

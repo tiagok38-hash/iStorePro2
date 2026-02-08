@@ -10,7 +10,7 @@ import { toDateValue } from '../utils/dateUtils.ts';
 import SalesReports from '../components/SalesReports.tsx';
 
 const KpiCard: React.FC<{ title: string; value: string; className?: string }> = ({ title, value, className }) => (
-    <div className={`p-4 rounded-xl border shadow-sm backdrop-blur-md ${className || 'glass-card'}`}>
+    <div className={`p-4 rounded-3xl border shadow-sm backdrop-blur-md ${className || 'bg-surface border-border'}`}>
         <h3 className="text-sm font-medium text-gray-600">{title}</h3>
         <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
     </div>
@@ -20,7 +20,7 @@ const KpiCard: React.FC<{ title: string; value: string; className?: string }> = 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="glass-card p-4 border border-white/20 rounded-xl shadow-xl min-w-[200px]">
+            <div className="glass-card p-4 border border-white/20 rounded-3xl shadow-xl min-w-[200px]">
                 <p className="font-bold text-gray-800 mb-2 border-b pb-1">{label}</p>
                 {payload.map((entry: any, index: number) => (
                     <div key={index} className="flex items-center justify-between gap-4 py-1">
@@ -224,7 +224,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                     value={formatCurrency(avgTicket)}
                     className="bg-orange-50/50 border-orange-100/50"
                 />
-                <div className="p-4 rounded-xl border shadow-sm bg-indigo-50/50 border-indigo-100/50 backdrop-blur-md">
+                <div className="p-4 rounded-3xl border shadow-sm bg-indigo-50/50 border-indigo-100/50 backdrop-blur-md">
                     <h3 className="text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1 flex items-center gap-1">
                         Categoria Vencedora
                         <TrophyIcon className="w-3 h-3" />
@@ -243,7 +243,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 </div>
             </div>
 
-            <div className="glass-card p-4 rounded-xl flex flex-wrap items-end gap-6 shadow-sm">
+            <div className="bg-surface rounded-3xl p-4 flex flex-wrap items-end gap-6 shadow-sm border border-border">
                 <CustomDatePicker
                     label="Data Inicial"
                     value={startDate}
@@ -258,14 +258,14 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 />
                 <div>
                     <label className="text-[10px] font-black uppercase tracking-wider text-muted mb-1 block pl-1">Vendedor</label>
-                    <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="p-2 border rounded-lg bg-white border-gray-200 h-10 w-48 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
+                    <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="p-2 border rounded-xl bg-white border-gray-200 h-10 w-48 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
                         <option value="todos">Todos os vendedores</option>
                         {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                     </select>
                 </div>
             </div>
 
-            <div className="glass-card rounded-xl p-6 shadow-sm">
+            <div className="bg-surface rounded-3xl p-6 shadow-sm border border-border">
                 <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
                     <span className="w-1 h-6 bg-primary rounded-full"></span>
                     Evolução Diária
@@ -295,7 +295,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="glass-card p-6 rounded-xl shadow-sm flex flex-col">
+                <div className="glass-card p-6 rounded-3xl shadow-sm flex flex-col">
                     <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
                         <span className="w-1 h-6 bg-purple-500 rounded-full"></span>
                         Formas de Pagamento
@@ -332,7 +332,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                     </div>
                 </div>
 
-                <div className="glass-card p-6 rounded-xl shadow-sm flex flex-col">
+                <div className="bg-surface p-6 rounded-3xl shadow-sm flex flex-col border border-border">
                     <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
                         <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
                         Top 10 Produtos
@@ -369,7 +369,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 </div>
             </div>
 
-            <div className="glass-card rounded-lg p-6">
+            <div className="bg-surface rounded-3xl p-6 border border-border shadow-sm">
                 <h2 className="text-xl font-semibold text-primary mb-4">Relatório Detalhado de Vendas</h2>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-muted">
@@ -592,12 +592,12 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
     const getStatus = (product: Product) => {
         if (product.stock <= 0) {
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-800">Zerado</span>;
+            return <span className="px-2 py-1 text-xs font-semibold rounded-xl bg-gray-200 text-gray-800">Zerado</span>;
         }
         if (product.minimumStock != null && product.stock <= product.minimumStock) {
-            return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Baixo</span>;
+            return <span className="px-2 py-1 text-xs font-semibold rounded-xl bg-red-100 text-red-800">Baixo</span>;
         }
-        return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">OK</span>;
+        return <span className="px-2 py-1 text-xs font-semibold rounded-xl bg-green-100 text-green-800">OK</span>;
     };
 
     return (
@@ -609,7 +609,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
                 <div
                     onClick={() => setStockFilter('parado')}
-                    className="p-4 rounded-xl border shadow-sm bg-red-50/50 border-red-100/50 backdrop-blur-md cursor-pointer hover:shadow-md transition-shadow group relative overflow-hidden"
+                    className="p-4 rounded-3xl border shadow-sm bg-red-50/50 border-red-100/50 backdrop-blur-md cursor-pointer hover:shadow-md transition-shadow group relative overflow-hidden"
                 >
                     <div className="flex justify-between items-start relative z-10">
                         <h3 className="text-sm font-medium text-red-800">Estoque Parado</h3>
@@ -617,7 +617,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             <select
                                 value={idleDays}
                                 onChange={(e) => setIdleDays(Number(e.target.value))}
-                                className="bg-white border border-red-200 text-[10px] font-black rounded-lg px-2 py-1 focus:ring-2 focus:ring-red-200 outline-none cursor-pointer text-red-700 shadow-sm hover:border-red-300 transition-colors"
+                                className="bg-white border border-red-200 text-[10px] font-black rounded-xl px-2 py-1 focus:ring-2 focus:ring-red-200 outline-none cursor-pointer text-red-700 shadow-sm hover:border-red-300 transition-colors"
                             >
                                 <option value={15}>15 dias</option>
                                 <option value={30}>30 dias</option>
@@ -632,10 +632,10 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                     </div>
                 </div>
 
-                <div className="p-4 rounded-xl border shadow-sm bg-indigo-50/50 border-indigo-100/50 backdrop-blur-md">
+                <div className="p-4 rounded-3xl border shadow-sm bg-indigo-50/50 border-indigo-100/50 backdrop-blur-md">
                     <div className="flex justify-between items-start mb-2">
                         <h3 className="text-[10px] font-black uppercase tracking-wider text-indigo-800">Estoque Apple</h3>
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-xl bg-indigo-100 text-indigo-700">
                             {kpis.appleCount} {kpis.appleCount === 1 ? 'item' : 'itens'}
                         </span>
                     </div>
@@ -657,10 +657,10 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                     </div>
                 </div>
 
-                <div className="p-4 rounded-xl border shadow-sm bg-purple-50/50 border-purple-100/50 backdrop-blur-md">
+                <div className="p-4 rounded-3xl border shadow-sm bg-purple-50/50 border-purple-100/50 backdrop-blur-md">
                     <div className="flex justify-between items-start mb-2">
                         <h3 className="text-[10px] font-black uppercase tracking-wider text-purple-800">Estoque Outros</h3>
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-xl bg-purple-100 text-purple-700">
                             {kpis.otherCount} {kpis.otherCount === 1 ? 'item' : 'itens'}
                         </span>
                     </div>
@@ -683,7 +683,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                 </div>
             </div>
 
-            <div className="glass-card p-4 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
+            <div className="bg-surface rounded-3xl border border-border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-4 flex-1">
                     <div className="relative flex-1 max-w-md">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -694,7 +694,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             placeholder="Buscar produto..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg bg-white border-gray-200 focus:ring-2 focus:ring-primary/20 outline-none h-10"
+                            className="w-full pl-10 pr-4 py-2 border rounded-xl bg-white border-gray-200 focus:ring-2 focus:ring-primary/20 outline-none h-10"
                         />
                     </div>
 
@@ -702,7 +702,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                         <select
                             value={brandFilter}
                             onChange={(e) => setBrandFilter(e.target.value)}
-                            className="h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-primary/20"
+                            className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-primary/20"
                         >
                             <option value="todos">Todos</option>
                             <option value="apple">Apple</option>
@@ -712,14 +712,14 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg self-start lg:self-center">
+                <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-3xl border border-gray-200 shadow-sm self-start lg:self-center">
                     {['todos', 'baixo', 'zerado', 'parado'].map((filter) => (
                         <button
                             key={filter}
                             onClick={() => setStockFilter(filter)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-tight transition-all ${stockFilter === filter
-                                ? 'bg-white text-primary shadow-sm'
-                                : 'text-gray-500 hover:text-gray-900'
+                            className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${stockFilter === filter
+                                ? 'bg-primary text-white shadow-lg shadow-gray-900/10'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
                                 }`}
                         >
                             {filter}
@@ -728,11 +728,11 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                 </div>
             </div>
 
-            <div className="glass-card rounded-xl p-6 shadow-sm">
+            <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                     <div className="flex items-center gap-2">
                         <h2 className="text-xl font-bold text-gray-800">Inventário Detalhado</h2>
-                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{filteredProducts.length}</span>
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-xl">{filteredProducts.length}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                         <span>Exibir:</span>
@@ -801,7 +801,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                                                 <span className="text-[10px] text-gray-500 font-medium">
                                                     {product.createdAt ? new Date(product.createdAt).toLocaleDateString('pt-BR') : '-'}
                                                 </span>
-                                                <span className="mt-0.5 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black border border-red-200">
+                                                <span className="mt-0.5 px-2 py-0.5 rounded-xl bg-red-100 text-red-700 text-[10px] font-black border border-red-200">
                                                     {Math.floor((Date.now() - (product.createdAt ? new Date(product.createdAt).getTime() : Date.now())) / (1000 * 60 * 60 * 24))} DIAS
                                                 </span>
                                             </div>
@@ -831,14 +831,14 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-3 py-1 text-sm border rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Anterior
                             </button>
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-3 py-1 text-sm border rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Próxima
                             </button>
@@ -848,7 +848,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col">
+                <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col">
                     <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
                         <span className="w-1 h-6 bg-indigo-500 rounded-full"></span>
                         Produtos Mais Vendidos (Qtd)
@@ -868,7 +868,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                     </div>
                 </div>
 
-                <div className="bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col">
+                <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col">
                     <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
                         <span className="w-1 h-6 bg-teal-500 rounded-full"></span>
                         Maiores Margens de Lucro (%)
@@ -913,7 +913,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
 
 const PlaceholderReport: React.FC<{ title: string }> = ({ title }) => (
-    <div className="bg-surface p-6 rounded-lg border border-border text-center text-muted mt-6">
+    <div className="bg-surface p-6 rounded-2xl border border-border text-center text-muted mt-6">
         <h2 className="text-xl font-semibold mb-4">{title}</h2>
         <p>Este relatório está em desenvolvimento.</p>
     </div>
@@ -976,7 +976,7 @@ const Reports: React.FC = () => {
                 {activeTab === 'estoque' && (
                     <button
                         onClick={() => setIsPriceListModalOpen(true)}
-                        className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-bold text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                        className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -986,12 +986,12 @@ const Reports: React.FC = () => {
                 )}
             </div>
 
-            <div className="inline-flex items-center gap-1 bg-surface-secondary p-1 rounded-lg">
+            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id); setSearchParams({ tab: tab.id }); }}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-primary'}`}
+                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         {tab.label}
                     </button>

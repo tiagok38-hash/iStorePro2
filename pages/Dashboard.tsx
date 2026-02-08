@@ -10,14 +10,14 @@ import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 
 // --- Components ---
 const InfoBanner: React.FC = React.memo(() => (
-    <div className="bg-accent-light text-accent text-sm font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+    <div className="bg-accent-light text-accent text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 border border-accent/10 shadow-sm shadow-accent/5">
         <SmartphoneIcon className="h-4 w-4" />
         <span>Bem-vindo ao iStore! Fique de olho para novidades.</span>
     </div>
 ));
 
 const LowStockBanner: React.FC<{ count: number }> = React.memo(({ count }) => (
-    <Link to="/reports?tab=estoque&filter=low_stock" className="bg-danger-light text-danger text-sm font-medium px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-red-200 transition-colors">
+    <Link to="/reports?tab=estoque&filter=low_stock" className="bg-danger-light text-danger text-sm font-medium px-4 py-2 rounded-3xl flex items-center gap-2 hover:bg-red-200 transition-all border border-danger/10 shadow-sm shadow-danger/5">
         <TagIcon className="h-4 w-4" />
         <span className="font-semibold">Produtos com estoque baixo: {count}</span>
     </Link>
@@ -25,13 +25,13 @@ const LowStockBanner: React.FC<{ count: number }> = React.memo(({ count }) => (
 
 
 const StatCard: React.FC<{ title: string; value: string; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon }) => (
-    <div className={`p-6 glass-card ${className || ''}`}>
+    <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm ${className || ''}`}>
         <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
                 {icon && <div className="text-secondary">{icon}</div>}
                 <h3 className="text-sm font-black text-secondary uppercase tracking-wider">{title}</h3>
             </div>
-            <button className="text-xs font-semibold text-muted bg-surface-secondary px-3 py-1 rounded-full hover:bg-border">ATUALIZAR</button>
+            <button className="text-[10px] font-black tracking-widest text-muted bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-all">ATUALIZAR</button>
         </div>
         <p className="text-3xl font-bold text-primary mt-2">{value}</p>
         {subValue1 && <p className="text-sm text-blue-600 font-semibold mt-1">{subValue1}</p>}
@@ -39,6 +39,33 @@ const StatCard: React.FC<{ title: string; value: string; subValue1?: string; sub
         {subValue3 && <p className="text-base text-success font-semibold">{subValue3}</p>}
     </div>
 ));
+
+const ProfitTooltip: React.FC<any> = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        const formattedLabel = (() => {
+            if (!label) return '';
+            if (label.toString().endsWith('h')) return `Hora: ${label}`;
+            if (['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'].includes(label)) return `Mês: ${label}`;
+            if (/^\d{1,2}$/.test(label)) return `Dia: ${label}`;
+            return label;
+        })();
+
+        return (
+            <div className="bg-white/95 backdrop-blur-md p-4 border border-border rounded-3xl shadow-2xl shadow-emerald-500/10 ring-1 ring-black/5 animate-fade-in">
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 border-b border-emerald-50 pb-2 flex items-center gap-2">
+                    <ClockIcon className="w-3 h-3" /> {formattedLabel}
+                </p>
+                <div className="flex items-center gap-3 mt-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200"></div>
+                    <span className="text-sm font-black text-gray-800 tracking-tight">
+                        {formatCurrency(payload[0].value)}
+                    </span>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
 
 const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: string }> = React.memo(({ sales, products, className }) => {
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
@@ -122,10 +149,10 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-6 glass-card flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shadow-sm">
+                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                         <CurrencyDollarIcon className="h-6 w-6" />
                     </div>
                     <div>
@@ -157,8 +184,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                         </defs>
                         <Tooltip
                             cursor={false}
-                            contentStyle={{ backgroundColor: 'var(--color-surface)', borderRadius: '16px', border: '1px solid var(--color-border)' }}
-                            formatter={(val: number) => [formatCurrency(val), 'Lucro']}
+                            content={<ProfitTooltip />}
                         />
                         <Area type="monotone" dataKey="value" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={2} />
                     </AreaChart>
@@ -166,7 +192,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
             </div>
 
             <div className="mt-4 pt-3 border-t border-border">
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50/50 p-3 border border-emerald-100/50 shadow-sm">
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 to-green-50/50 p-3 border border-emerald-100/50 shadow-sm">
                     <div className="relative flex justify-between items-center z-10">
                         <span className="text-[11px] font-bold uppercase tracking-wide text-emerald-600/80">
                             Margem de Lucro (% do Faturamento)
@@ -219,7 +245,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className
         <div className={`p-6 glass-card h-full flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl shadow-sm">
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm">
                         <ClockIcon className="h-6 w-6" />
                     </div>
                     <div>
@@ -281,6 +307,43 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className
     );
 });
 
+const BillingTooltip: React.FC<any> = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        const formattedLabel = (() => {
+            if (!label) return '';
+            const lbl = label.toString();
+            if (lbl.endsWith('h')) return `Hora: ${lbl}`;
+            if (['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'].includes(lbl)) return `Mês: ${lbl}`;
+            if (['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].includes(lbl)) return `Dia: ${lbl}`;
+            if (/^\d{1,2}$/.test(lbl)) return `Dia: ${lbl}`;
+            if (/^\d{4}$/.test(lbl)) return `Ano: ${lbl}`;
+            return lbl;
+        })();
+
+        return (
+            <div className="bg-white/95 backdrop-blur-md p-4 border border-border rounded-3xl shadow-2xl shadow-indigo-500/10 ring-1 ring-black/5 animate-fade-in">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-2 flex items-center gap-2">
+                    <ClockIcon className="w-3 h-3" /> {formattedLabel}
+                </p>
+                <div className="space-y-2.5">
+                    {payload.map((entry: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between gap-10">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.fill }}></div>
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{entry.name}</span>
+                            </div>
+                            <span className="text-xs font-black tracking-tight" style={{ color: entry.dataKey === 'lucro' ? '#10b981' : '#3b82f6' }}>
+                                {formatCurrency(entry.value)}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
 const BillingChart: React.FC<{
     data: { name: string; faturamento: number; lucro: number }[];
     period: 'day' | 'week' | 'month' | 'year' | 'all_years';
@@ -288,28 +351,30 @@ const BillingChart: React.FC<{
     className?: string;
 }> = React.memo(({ data, period, onPeriodChange, className }) => {
     return (
-        <div className={`p-6 glass-card h-full ${className || ''}`}>
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <ChartBarIcon className="h-4 w-4 text-primary" />
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Faturamento vs Lucro</h3>
+        <div className={`p-6 glass-card h-full flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+            <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
+                        <ChartBarIcon className="h-6 w-6" />
                     </div>
-                    <div className="flex gap-4 mt-4">
-                        <div className="flex items-center gap-1.5 font-bold">
-                            <div className="w-3 h-3 rounded-full bg-accent"></div>
-                            <span className="text-[10px] text-muted uppercase">Faturamento</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-bold">
-                            <div className="w-3 h-3 rounded-full bg-success"></div>
-                            <span className="text-[10px] text-muted uppercase">Lucro</span>
+                    <div>
+                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Faturamento x Lucro</h3>
+                        <div className="flex gap-4 mt-2">
+                            <div className="flex items-center gap-1.5 font-bold">
+                                <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
+                                <span className="text-[10px] text-muted uppercase">Faturamento</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 font-bold">
+                                <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
+                                <span className="text-[10px] text-muted uppercase">Lucro</span>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <select
                     value={period}
                     onChange={(e) => onPeriodChange(e.target.value as any)}
-                    className="text-xs font-semibold text-muted bg-surface-secondary px-3 py-1 rounded-full border-0 focus:ring-2 focus:ring-accent cursor-pointer"
+                    className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500/20 cursor-pointer outline-none transition-all"
                 >
                     <option value="day">Hoje</option>
                     <option value="week">Semana</option>
@@ -318,20 +383,21 @@ const BillingChart: React.FC<{
                     <option value="all_years">Anos</option>
                 </select>
             </div>
-            <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} barGap={1} barCategoryGap="20%">
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
-                    <YAxis axisLine={false} tickLine={false} width={65} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} tickFormatter={(value) => formatCurrency(value).replace(',00', '')} />
-                    <Tooltip
-                        cursor={{ fill: '#9ca3af', opacity: 0.1, radius: 4 }}
-                        contentStyle={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '1rem' }}
-                        formatter={(value: number) => [formatCurrency(value), '']}
-                    />
-                    <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
-                    <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
-                </BarChart>
-            </ResponsiveContainer>
+            <div className="flex-1">
+                <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} barGap={1} barCategoryGap="20%">
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+                        <YAxis axisLine={false} tickLine={false} width={65} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} tickFormatter={(value) => formatCurrency(value).replace(',00', '')} />
+                        <Tooltip
+                            cursor={{ fill: '#9ca3af', opacity: 0.1, radius: 8 }}
+                            content={<BillingTooltip />}
+                        />
+                        <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
+                        <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
         </div>
     );
 });
@@ -463,10 +529,10 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
 
     return (
 
-        <div className={`p-6 glass-card flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl shadow-sm">
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm">
                         <CreditCardIcon className="h-6 w-6" />
                     </div>
                     <div>
@@ -530,9 +596,9 @@ interface SoldItemInfo {
 const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: string }> = React.memo(({ soldItems, className }) => {
     return (
 
-        <div className={`p-6 glass-card flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl shadow-sm">
+                <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
                     <TagIcon className="h-6 w-6" />
                 </div>
                 <div>
@@ -580,9 +646,9 @@ const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: 
 const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: string }> = React.memo(({ products, className }) => {
     return (
 
-        <div className={`p-6 glass-card flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl shadow-sm">
+                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                     <PlusIcon className="h-6 w-6" />
                 </div>
                 <div>
@@ -642,10 +708,10 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: strin
 const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: string }> = React.memo(({ products, className }) => {
     return (
 
-        <div className={`p-6 glass-card flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl shadow-sm">
+                    <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
                         <DeviceExchangeIcon className="h-6 w-6" />
                     </div>
                     <div>
@@ -727,10 +793,10 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string }> = Re
     }, [products]);
 
     return (
-        <div className={`p-6 glass-card group hover:scale-[1.01] transition-all duration-300 ${className}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm group hover:scale-[1.01] transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl shadow-sm">
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
                         <ArchiveBoxIcon className="h-6 w-6" />
                     </div>
                     <div>
@@ -937,7 +1003,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
 
     return (
-        <div className={`p-6 glass-card flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 ${className || 'bg-surface'}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl shadow-sm">

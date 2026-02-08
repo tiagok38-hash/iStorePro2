@@ -46,7 +46,7 @@ const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: str
             {!isCollapsed && <span className="ml-3 whitespace-nowrap">{label}</span>}
         </NavLink>
         {isCollapsed && (
-            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-white text-accent text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-bold shadow-sm">
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-white text-accent text-xs rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-bold shadow-sm">
                 {label}
             </div>
         )}
@@ -115,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         <aside
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`hidden lg:flex fixed inset-y-0 left-4 top-4 bottom-4 z-40 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] rounded-2xl flex-col h-[calc(100vh-32px)] shadow-2xl transform transition-all duration-300 ease-out lg:translate-x-0 lg:sticky lg:top-4 text-white ${effectiveIsCollapsed ? 'lg:w-24' : 'lg:w-72'} ${isLoggingOut ? 'opacity-0 -translate-x-full' : ''}`}
+            className={`hidden lg:flex fixed inset-y-0 left-4 top-4 bottom-4 z-40 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] rounded-3xl flex-col h-[calc(100vh-32px)] shadow-2xl transform transition-all duration-300 ease-out lg:translate-x-0 lg:sticky lg:top-4 text-white ${effectiveIsCollapsed ? 'lg:w-24' : 'lg:w-72'} ${isLoggingOut ? 'opacity-0 -translate-x-full' : ''}`}
         >
             <div className="flex items-center h-[90px] overflow-hidden">
                 {/* Fixed Logo Container - Matches collapsed sidebar width */}
@@ -171,7 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
                                             <div className="h-9 w-9 rounded-full bg-white/20 animate-pulse"></div>
                                         )}
                                         {user && (
-                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-white text-accent text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-bold">
+                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-white text-accent text-xs rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-bold">
                                                 {user.name}
                                             </div>
                                         )}
@@ -191,7 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
                                 )}
                             </div>
                             <div className="text-center pt-4 border-t border-white/20">
-                                <button onClick={handleLogout} title="Sair" className="text-white/60 hover:text-white p-1 rounded-md transition-colors">
+                                <button onClick={handleLogout} title="Sair" className="text-white/60 hover:text-white p-1 rounded-xl transition-colors">
                                     <LogoutIcon className="h-5 w-5" />
                                 </button>
                             </div>
@@ -253,7 +253,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
                                     </div>
                                 </div>
                             )}
-                            <button onClick={handleLogout} title="Sair" className="text-white/60 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors">
+                            <button onClick={handleLogout} title="Sair" className="text-white/60 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors">
                                 <LogoutIcon className="h-5 w-5" />
                             </button>
                         </div>
@@ -261,7 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
                 </div>
             </div>
             {/* Mobile Footer Gradient Overlay */}
-            <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#7B61FF]/20 to-transparent pointer-events-none rounded-b-2xl" />
+            <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#7B61FF]/20 to-transparent pointer-events-none rounded-b-3xl" />
         </aside>
     );
 };

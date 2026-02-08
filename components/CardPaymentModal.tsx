@@ -184,13 +184,13 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                             <div className="flex p-1 bg-gray-100 rounded-xl border border-gray-200 shadow-inner h-[40px] box-border">
                                 <button
                                     onClick={() => setTransactionType('credit')}
-                                    className={`flex-1 rounded-lg text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'credit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`flex-1 rounded-xl text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'credit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     Crédito
                                 </button>
                                 <button
                                     onClick={() => setTransactionType('debit')}
-                                    className={`flex-1 rounded-lg text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'debit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`flex-1 rounded-xl text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'debit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     Débito
                                 </button>
@@ -259,13 +259,13 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setFeeType('noInterest')}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-black transition-all border shadow-sm ${feeType === 'noInterest' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'noInterest' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
                                     >
                                         Sem Juros
                                     </button>
                                     <button
                                         onClick={() => setFeeType('withInterest')}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-black transition-all border shadow-sm ${feeType === 'withInterest' ? 'bg-primary border-primary text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'withInterest' ? 'bg-primary border-primary text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
                                     >
                                         Com Juros (Repasse)
                                     </button>

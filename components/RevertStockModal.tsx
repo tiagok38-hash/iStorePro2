@@ -27,7 +27,7 @@ const RevertStockModal: React.FC<RevertStockModalProps> = ({ purchase, products,
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[70] p-4 animate-fade-in">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
                 {/* Header */}
                 <div className="flex justify-center items-center p-4 border-b border-gray-200">
                     <h2 className="text-lg font-bold text-gray-700">
@@ -56,7 +56,7 @@ const RevertStockModal: React.FC<RevertStockModalProps> = ({ purchase, products,
                     </div>
 
                     {/* Table */}
-                    <div className="w-full border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="w-full border border-gray-200 rounded-3xl overflow-hidden">
                         <table className="w-full text-xs text-left">
                             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase">
                                 <tr>
@@ -86,11 +86,11 @@ const RevertStockModal: React.FC<RevertStockModalProps> = ({ purchase, products,
                                                 {p.brand} {p.model} {p.color} {p.capacity}
                                             </td>
                                             <td className="px-3 py-2 text-center font-bold">{p.stock}</td>
-                                            <td className="px-3 py-2 text-gray-600 font-mono bg-gray-50 rounded px-1">{p.imei1 || '-'}</td>
-                                            <td className="px-3 py-2 text-gray-600 font-mono bg-gray-50 rounded px-1">{p.imei2 || '-'}</td>
-                                            <td className="px-3 py-2 text-gray-600 font-mono bg-gray-50 rounded px-1">{p.serialNumber || '-'}</td>
+                                            <td className="px-3 py-2 text-gray-600 font-mono bg-gray-50 rounded-xl px-1">{p.imei1 || '-'}</td>
+                                            <td className="px-3 py-2 text-gray-600 font-mono bg-gray-50 rounded-xl px-1">{p.imei2 || '-'}</td>
+                                            <td className="px-3 py-2 text-gray-600 font-mono bg-gray-50 rounded-xl px-1">{p.serialNumber || '-'}</td>
                                             <td className="px-3 py-2 text-center">
-                                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px]">{p.condition}</span>
+                                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-xl text-[10px]">{p.condition}</span>
                                             </td>
                                             <td className={`px-3 py-2 text-center font-bold ${getBatteryColor(p.batteryHealth)}`}>
                                                 {p.batteryHealth && p.condition !== 'Novo' ? `${p.batteryHealth}%` : '-'}
@@ -120,7 +120,7 @@ const RevertStockModal: React.FC<RevertStockModalProps> = ({ purchase, products,
                 <div className="p-4 border-t border-gray-200 flex justify-center gap-4 bg-gray-50">
                     <button
                         onClick={onClose}
-                        className="px-8 py-2 bg-white border border-gray-300 text-gray-700 rounded-md font-semibold hover:bg-gray-50"
+                        className="px-8 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50"
                         disabled={isReverting}
                     >
                         Fechar
@@ -128,7 +128,7 @@ const RevertStockModal: React.FC<RevertStockModalProps> = ({ purchase, products,
                     <button
                         onClick={onConfirm}
                         disabled={isReverting}
-                        className="px-8 py-2 bg-red-600 text-white rounded-md font-bold hover:bg-red-700 disabled:opacity-70 flex items-center gap-2"
+                        className="px-8 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 disabled:opacity-70 flex items-center gap-2"
                     >
                         {isReverting ? <SpinnerIcon className="w-5 h-5" /> : 'SIM, REVERTER'}
                     </button>

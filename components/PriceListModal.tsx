@@ -766,7 +766,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
 
     const modalContent = (
         <div className="fixed top-0 left-0 right-0 bottom-[72px] sm:bottom-0 z-[99999] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-surface w-full max-w-4xl max-h-full sm:max-h-[90vh] rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in duration-200">
+            <div className="bg-surface w-full max-w-4xl max-h-full sm:max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in duration-200">
                 {/* Header */}
                 <div className="p-3 sm:p-6 border-b border-border bg-gradient-to-r from-indigo-600/5 to-purple-600/5 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
@@ -794,9 +794,9 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <button
                                     onClick={() => { setSelectedType('apple'); setStep('filters'); }}
-                                    className="group relative p-4 sm:p-8 rounded-2xl sm:rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-all duration-300 text-left"
+                                    className="group relative p-4 sm:p-8 rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-all duration-300 text-left"
                                 >
-                                    <div className="p-2 sm:p-4 bg-white rounded-xl sm:rounded-2xl shadow-sm mb-3 sm:mb-4 inline-block group-hover:scale-110 transition-transform">
+                                    <div className="p-2 sm:p-4 bg-white rounded-xl shadow-sm mb-3 sm:mb-4 inline-block group-hover:scale-110 transition-transform">
                                         <AppleIcon className="w-6 h-6 sm:w-10 sm:h-10 text-gray-800" />
                                     </div>
                                     <h4 className="text-lg sm:text-xl font-black text-gray-800 mb-0.5 sm:mb-1">Produtos Apple</h4>
@@ -807,9 +807,9 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                 </button>
                                 <button
                                     onClick={() => { setSelectedType('other'); setStep('filters'); }}
-                                    className="group relative p-4 sm:p-8 rounded-2xl sm:rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-purple-50 hover:border-purple-200 transition-all duration-300 text-left"
+                                    className="group relative p-4 sm:p-8 rounded-3xl border-2 border-transparent bg-gray-50 hover:bg-purple-50 hover:border-purple-200 transition-all duration-300 text-left"
                                 >
-                                    <div className="p-2 sm:p-4 bg-white rounded-xl sm:rounded-2xl shadow-sm mb-3 sm:mb-4 inline-block group-hover:scale-110 transition-transform">
+                                    <div className="p-2 sm:p-4 bg-white rounded-xl shadow-sm mb-3 sm:mb-4 inline-block group-hover:scale-110 transition-transform">
                                         <SmartphoneIcon className="w-6 h-6 sm:w-10 sm:h-10 text-gray-800" />
                                     </div>
                                     <h4 className="text-lg sm:text-xl font-black text-gray-800 mb-0.5 sm:mb-1">Outros Produtos</h4>
@@ -851,7 +851,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                         <button
                                                             key={brand}
                                                             onClick={() => toggleSelection(selectedBrands, setSelectedBrands, brand)}
-                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedBrands.includes(brand)
+                                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedBrands.includes(brand)
                                                                 ? 'bg-purple-600 text-white shadow-md'
                                                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                                 }`}
@@ -944,7 +944,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                             <button
                                                                 key={st}
                                                                 onClick={() => toggleSelection(selectedStorages, setSelectedStorages, st)}
-                                                                className={`px-2 py-1 rounded text-[10px] font-black transition-all ${selectedStorages.includes(st)
+                                                                className={`px-2 py-1 rounded-xl text-[10px] font-black transition-all ${selectedStorages.includes(st)
                                                                     ? 'bg-gray-800 text-white'
                                                                     : 'bg-gray-100 text-gray-500'
                                                                     }`}
@@ -976,7 +976,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                     )}
 
                                     {/* Local de Estoque Choice */}
-                                    <div className="space-y-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <div className="space-y-4 p-4 bg-gray-50 rounded-3xl border border-gray-100">
                                         <div className="flex items-center justify-between">
                                             <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                                 Exibir Local de Estoque?
@@ -992,7 +992,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                             <select
                                                 value={selectedLocationId || ''}
                                                 onChange={e => setSelectedLocationId(e.target.value || null)}
-                                                className="w-full p-2 border border-gray-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                className="w-full p-2 border border-gray-300 rounded-xl text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                                             >
                                                 <option value="">Filtrar por Local (Opcional)</option>
                                                 {locations.map(loc => (
@@ -1103,7 +1103,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                             }
                                                         }
                                                     }}
-                                                    className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-2 ${selectedPriceTypes.includes(price.id)
+                                                    className={`p-3 rounded-xl border-2 transition-all flex items-center gap-2 ${selectedPriceTypes.includes(price.id)
                                                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
                                                         : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
                                                         }`}
@@ -1146,7 +1146,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                         <button
                             onClick={handleGenerate}
                             disabled={step === 'type' || filteredForStep.length === 0}
-                            className="px-4 sm:px-8 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-sm uppercase tracking-widest shadow-lg shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95 flex items-center gap-2"
+                            className="px-4 sm:px-8 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] sm:text-sm uppercase tracking-widest shadow-lg shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95 flex items-center gap-2"
                         >
                             <DocumentTextIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             Gerar Relatório

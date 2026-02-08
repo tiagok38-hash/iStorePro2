@@ -210,7 +210,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
     return (
         <React.Fragment>
-            <div className="glass-card rounded-xl shadow-lg overflow-hidden animate-slide-up">
+            <div className="glass-card rounded-3xl shadow-lg overflow-hidden animate-slide-up">
                 <div className="p-2 md:p-4 space-y-3 md:space-y-4">
                     <section>
                         <div className="flex items-center justify-between mb-1 sm:mb-2 pb-1.5 sm:pb-2 border-b border-gray-100">
@@ -275,11 +275,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     <div className="flex flex-col gap-1 cursor-pointer flex-grow" onClick={() => { handleAddToCart(p); setProductSearch(''); }}>
                                                         <p className="font-bold text-gray-900 text-base md:text-lg group-hover:text-success transition-colors leading-tight">{p.model}</p>
                                                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[11px] md:text-xs font-black border border-emerald-100 uppercase tracking-tighter">
+                                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-xl text-[11px] md:text-xs font-black border border-emerald-100 uppercase tracking-tighter">
                                                                 Estoque: {p.stock}
                                                             </span>
                                                             {(p.serialNumber || p.imei1 || (p.variations && p.variations.length > 0) || p.condition || p.warranty) && (
-                                                                <div className="text-[10px] md:text-xs text-muted flex items-center gap-1.5 font-medium bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                                                <div className="text-[10px] md:text-xs text-muted flex items-center gap-1.5 font-medium bg-gray-50 px-2 py-0.5 rounded-xl border border-gray-100">
                                                                     {p.condition && (
                                                                         <span className="text-gray-950 font-black uppercase tracking-tighter">{p.condition}</span>
                                                                     )}
@@ -381,7 +381,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     {(item.serialNumber || item.imei1) ? (
                                                         item.quantity
                                                     ) : (
-                                                        <div className="flex items-center justify-center border rounded-lg bg-white border-gray-300 h-9 w-32 mx-auto overflow-hidden shadow-sm">
+                                                        <div className="flex items-center justify-center border rounded-xl bg-white border-gray-300 h-9 w-32 mx-auto overflow-hidden shadow-sm">
                                                             <button
                                                                 onClick={() => handleCartItemUpdate(item.id, 'quantity', Math.max(1, (item.quantity || 1) - 1))}
                                                                 className="h-full w-9 hover:bg-gray-100 text-gray-600 hover:text-red-600 transition-colors border-r border-gray-200 flex items-center justify-center shrink-0"
@@ -410,7 +410,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                             <CurrencyInput
                                                                 value={item.salePrice}
                                                                 onChange={(val) => handleCartItemUpdate(item.id, 'salePrice', val || 0)}
-                                                                className="h-9 text-[14px] border rounded-lg bg-white border-gray-200 focus:ring-2 focus:ring-success/20 outline-none font-black text-left"
+                                                                className="h-9 text-[14px] border rounded-xl bg-white border-gray-200 focus:ring-2 focus:ring-success/20 outline-none font-black text-left"
                                                             />
                                                         </div>
                                                     </div>
@@ -418,10 +418,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 <td className="px-4 py-3 text-right font-black text-gray-900 tabular-nums text-base">
                                                     <div className="flex items-center justify-end gap-2">
                                                         {item.priceType === 'cost' && (
-                                                            <span className="w-14 text-center py-1 text-[8px] bg-sky-50 text-sky-600 rounded-md border border-sky-100 font-black uppercase tracking-tighter leading-none shrink-0">Custo</span>
+                                                            <span className="w-14 text-center py-1 text-[8px] bg-sky-50 text-sky-600 rounded-xl border border-sky-100 font-black uppercase tracking-tighter leading-none shrink-0">Custo</span>
                                                         )}
                                                         {item.priceType === 'wholesale' && (
-                                                            <span className="w-14 text-center py-1 text-[8px] bg-orange-50 text-orange-600 rounded-md border border-orange-100 font-black uppercase tracking-tighter leading-none shrink-0">Atacado</span>
+                                                            <span className="w-14 text-center py-1 text-[8px] bg-orange-50 text-orange-600 rounded-xl border border-orange-100 font-black uppercase tracking-tighter leading-none shrink-0">Atacado</span>
                                                         )}
                                                         <span>
                                                             {formatCurrency(
@@ -466,7 +466,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <button onClick={() => handleRemoveFromCart(item.id)} className="p-1 text-red-500 bg-red-50 rounded-lg flex-shrink-0"><XCircleIcon className="h-5 w-5" /></button>
+                                            <button onClick={() => handleRemoveFromCart(item.id)} className="p-1 text-red-500 bg-red-50 rounded-xl flex-shrink-0"><XCircleIcon className="h-5 w-5" /></button>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-3 items-end pt-2 border-t border-gray-50">
@@ -475,7 +475,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 <CurrencyInput
                                                     value={item.salePrice}
                                                     onChange={(val) => handleCartItemUpdate(item.id, 'salePrice', val || 0)}
-                                                    className="h-9 text-[13px] border rounded-lg bg-gray-50 border-gray-100 font-bold text-center"
+                                                    className="h-9 text-[13px] border rounded-xl bg-gray-50 border-gray-100 font-bold text-center"
                                                 />
                                             </div>
                                             <div className="text-right">
@@ -484,7 +484,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 </label>
                                                 <div className="flex items-center justify-end gap-2">
                                                     {!(item.serialNumber || item.imei1) && (
-                                                        <div className="flex items-center border rounded-lg bg-white border-gray-300 h-8 w-28 overflow-hidden shadow-sm">
+                                                        <div className="flex items-center border rounded-xl bg-white border-gray-300 h-8 w-28 overflow-hidden shadow-sm">
                                                             <button
                                                                 onClick={() => handleCartItemUpdate(item.id, 'quantity', Math.max(1, (item.quantity || 1) - 1))}
                                                                 className="h-full w-8 hover:bg-gray-100 text-gray-600 hover:text-red-600 transition-colors border-r border-gray-200 flex items-center justify-center shrink-0"
@@ -508,10 +508,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     )}
                                                     <div className="font-black text-[15px] text-primary tabular-nums flex items-center justify-end gap-1.5 item-total-price">
                                                         {item.priceType === 'cost' && (
-                                                            <span className="w-12 text-center py-0.5 text-[7px] bg-sky-50 text-sky-600 rounded border border-sky-100 font-black uppercase tracking-tighter leading-none shrink-0">Custo</span>
+                                                            <span className="w-12 text-center py-0.5 text-[7px] bg-sky-50 text-sky-600 rounded-xl border border-sky-100 font-black uppercase tracking-tighter leading-none shrink-0">Custo</span>
                                                         )}
                                                         {item.priceType === 'wholesale' && (
-                                                            <span className="w-12 text-center py-0.5 text-[7px] bg-orange-50 text-orange-600 rounded border border-orange-100 font-black uppercase tracking-tighter leading-none shrink-0">Atacado</span>
+                                                            <span className="w-12 text-center py-0.5 text-[7px] bg-orange-50 text-orange-600 rounded-xl border border-orange-100 font-black uppercase tracking-tighter leading-none shrink-0">Atacado</span>
                                                         )}
                                                         <span>
                                                             {formatCurrency(
@@ -534,7 +534,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                             <section className="lg:col-span-2">
                                 <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-2 pb-1 border-b border-gray-100 uppercase text-[10px] sm:text-xs tracking-widest"><CalculatorIcon className="h-4 w-4 text-success" /> Financeiro</h3>
 
-                                <div className="glass-panel bg-white/40 rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3 shadow-sm border border-white/20">
+                                <div className="glass-panel bg-white/40 rounded-3xl p-3 sm:p-4 space-y-2 sm:space-y-3 shadow-sm border border-white/20">
                                     <div className="flex justify-between items-center text-gray-600">
                                         <span className="text-xs sm:text-sm font-bold">Subtotal</span>
                                         <span className="text-sm sm:text-base font-bold text-gray-800">{formatCurrency(subtotal)}</span>
@@ -583,7 +583,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     </div>
 
                                     {paymentInput && (
-                                        <div className="p-2 bg-success-light border border-success/30 rounded-lg flex items-end gap-2 animate-slide-down">
+                                        <div className="p-2 bg-success-light border border-success/30 rounded-xl flex items-end gap-2 animate-slide-down">
                                             <div className="flex-grow">
                                                 <label className="text-[9px] font-bold text-success-dark mb-1 block">Valor ({paymentInput.method})</label>
                                                 <CurrencyInput value={paymentInput.amount} onChange={v => setPaymentInput(p => p ? { ...p, amount: v || 0 } : null)} className="h-9 text-sm border-success/50 bg-white" />
@@ -593,7 +593,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                         </div>
                                     )}
 
-                                    <div className="rounded-lg border border-white/20 overflow-hidden bg-white/40">
+                                    <div className="rounded-xl border border-white/20 overflow-hidden bg-white/40">
                                         <table className="w-full text-xs">
                                             <thead className="bg-gray-50">
                                                 <tr className="text-left font-bold text-muted uppercase text-[9px]">
@@ -619,7 +619,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
                                                             {/* Trade-in details */}
                                                             {p.tradeInDetails && (
-                                                                <div className="mt-1 p-1 bg-blue-50/50 rounded border border-blue-100/50">
+                                                                <div className="mt-1 p-1 bg-blue-50/50 rounded-xl border border-blue-100/50">
                                                                     <span className="block font-bold text-gray-800 text-[11px] mb-0.5">{p.tradeInDetails.model}</span>
                                                                     <span className="block text-[10px] text-gray-600 font-medium">
                                                                         {p.tradeInDetails.imei1 ? `IMEI: ${p.tradeInDetails.imei1}` : `S/N: ${p.tradeInDetails.serialNumber}`}
@@ -646,7 +646,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                         </table>
                                     </div>
 
-                                    <div className={`p-2 rounded-lg flex items-center justify-between font-bold uppercase tracking-widest text-[10px] border ${Math.abs(balance) < 0.01
+                                    <div className={`p-2 rounded-xl flex items-center justify-between font-bold uppercase tracking-widest text-[10px] border ${Math.abs(balance) < 0.01
                                         ? 'bg-success text-white border-transparent'
                                         : balance < 0
                                             ? 'bg-blue-50 text-blue-700 border-blue-200'
@@ -771,7 +771,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
             {productToConfirm && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-[95%] max-w-md overflow-hidden animate-scale-in">
+                    <div className="bg-white rounded-3xl shadow-2xl w-[95%] max-w-md overflow-hidden animate-scale-in">
                         <div className="bg-gray-50 border-b border-gray-100 p-3 sm:p-4">
                             <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2"><CheckIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />Confirmar Produto</h3>
                         </div>

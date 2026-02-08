@@ -30,7 +30,7 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({ isOpen, onClose, 
 
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
                 <div className={`px-6 py-4 flex justify-between items-center ${isSangria ? 'bg-red-50' : 'bg-green-50'} border-b ${isSangria ? 'border-red-100' : 'border-green-100'}`}>
                     <h3 className={`font-bold text-lg ${isSangria ? 'text-red-700' : 'text-green-700'} flex items-center gap-2`}>
                         <CashIcon className="h-6 w-6" />
@@ -45,7 +45,7 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({ isOpen, onClose, 
                         <CurrencyInput
                             value={amount}
                             onChange={setAmount}
-                            className={`w-full text-2xl font-black p-3 rounded-lg border focus:ring-2 outline-none ${isSangria ? 'focus:ring-red-200 border-red-200 text-red-600' : 'focus:ring-green-200 border-green-200 text-green-600'}`}
+                            className={`w-full text-2xl font-black p-3 rounded-xl border focus:ring-2 outline-none ${isSangria ? 'focus:ring-red-200 border-red-200 text-red-600' : 'focus:ring-green-200 border-green-200 text-green-600'}`}
                             placeholder="R$ 0,00"
                             autoFocus
                         />
@@ -57,18 +57,18 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({ isOpen, onClose, 
                             type="text"
                             value={reason}
                             onChange={e => setReason(e.target.value)}
-                            className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 outline-none"
+                            className="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary/20 outline-none"
                             placeholder={isSangria ? "Ex: Pagamento de fornecedor" : "Ex: Reforço de caixa"}
                             required
                         />
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
+                        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancelar</button>
                         <button
                             type="submit"
                             disabled={amount <= 0}
-                            className={`flex-1 px-4 py-3 text-white font-bold rounded-lg shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed ${isSangria ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-green-500 hover:bg-green-600 shadow-green-200'}`}
+                            className={`flex-1 px-4 py-3 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed ${isSangria ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-green-500 hover:bg-green-600 shadow-green-200'}`}
                         >
                             Confirmar
                         </button>

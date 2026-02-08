@@ -41,7 +41,7 @@ const Login: React.FC = () => {
         }
     };
 
-    const inputClasses = "w-full px-4 py-2 border rounded-md bg-white/50 border-white/30 focus:ring-2 focus:ring-accent focus:border-transparent transition placeholder-gray-400 text-primary shadow-sm backdrop-blur-sm";
+    const inputClasses = "w-full px-4 py-2 border rounded-xl bg-white/50 border-white/30 focus:ring-2 focus:ring-accent focus:border-transparent transition placeholder-gray-400 text-primary shadow-sm backdrop-blur-sm";
 
     return (
         <React.Fragment>
@@ -86,7 +86,7 @@ const Login: React.FC = () => {
                     <button
                         type="submit"
                         disabled={loading || isExiting}
-                        className="w-full px-4 py-2.5 bg-primary text-on-primary rounded-md font-semibold hover:bg-opacity-90 transition disabled:bg-muted flex items-center justify-center"
+                        className="w-full px-4 py-2.5 bg-primary text-on-primary rounded-xl font-semibold hover:bg-opacity-90 transition disabled:bg-muted flex items-center justify-center"
                     >
                         {(loading || isExiting) ? <SpinnerIcon className="h-5 w-5" /> : 'Entrar'}
                     </button>

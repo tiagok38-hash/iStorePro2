@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter, WarrantyParameter } from '../types.ts';
 import { formatCurrency, getCompanyInfo, getReceiptTerms, getWarranties } from '../services/mockApi.ts';
 import { CloseIcon, PrinterIcon, SpinnerIcon } from './icons.tsx';
@@ -76,7 +77,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
     };
 
     return (
-        <div className="font-sans text-black receipt-body flex flex-col" id="receipt-content" style={{ width: '100%', maxWidth: '210mm', minHeight: '280mm', margin: '0' }}>
+        <div className="font-sans text-black receipt-body flex flex-col bg-white" id="receipt-content" style={{ width: '100%', maxWidth: '210mm', margin: '0 auto' }}>
             <div className="flex-1">
                 {/* Company Header - Logo bigger */}
                 <header className="flex justify-between items-start pb-1.5 border-b border-black">
@@ -125,7 +126,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                 <h2 className="font-bold text-center text-base my-2">RECIBO DE VENDA</h2>
 
                 {/* Products Table - Full Width */}
-                <section className="rounded-lg overflow-hidden border border-black">
+                <section className="rounded-xl overflow-hidden border border-black">
                     <table className="w-full text-left border-collapse text-[10px]">
                         <thead>
                             <tr>
@@ -169,7 +170,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                 {/* Payment + Totals - Side by Side */}
                 <section className="mt-2 flex justify-between gap-3 text-[10px]">
                     {/* Payment Section - 58% width */}
-                    <div className="border border-black p-2 rounded" style={{ width: '58%' }}>
+                    <div className="border border-black p-2 rounded-xl" style={{ width: '58%' }}>
                         <p className="font-bold mb-1 text-[11px] border-b border-gray-300 pb-0.5">PAGAMENTO</p>
                         <div className="space-y-1">
                             {sale.payments.map(p => {
@@ -219,14 +220,14 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                     </div>
 
                     {/* Totals Section - 40% width */}
-                    <div className="bg-white p-2 rounded border border-black text-[10px]" style={{ width: '40%' }}>
+                    <div className="bg-white p-2 rounded-xl border border-black text-[10px]" style={{ width: '40%' }}>
                         <div className="flex justify-between"><span className="font-semibold">ITENS</span><span>{totalItems}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">TAXAS CARTÃO</span><span>{formatCurrency(totalFees)}</span></div>
                         <div className="flex justify-between border-t border-black pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">{formatCurrency(totalFees > 0 ? sale.total + totalFees : sale.total)}</span></div>
                         {/* Highlighted PAGO section */}
-                        <div className="flex justify-between bg-black text-white px-2 py-1 rounded mt-1 border-2 border-gray-800">
+                        <div className="flex justify-between bg-black text-white px-2 py-1 rounded-xl mt-1 border-2 border-gray-800">
                             <span className="font-black text-[12px]">PAGO</span>
                             <span className="font-black text-[12px]">{formatCurrency(totalPaid)}</span>
                         </div>
@@ -235,7 +236,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
 
                 {/* Observations - just above warranty section */}
                 {sale.observations && (
-                    <section className="mt-4 py-1.5 border border-black rounded px-2 text-[10px]">
+                    <section className="mt-4 py-1.5 border border-black rounded-xl px-2 text-[10px]">
                         <span className="font-bold">OBSERVAÇÕES:</span> {sale.observations}
                     </section>
                 )}
@@ -440,8 +441,8 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
 
     const layoutProps = { sale, productMap, customer, salesperson, companyInfo, activeTerm, totalPaid, totalItems, totalFees, warranties };
 
-    return (
-        <div id="print-modal-overlay" className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+40px)] bottom-[calc(env(safe-area-inset-bottom)+64px)] lg:inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[60] p-2 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto">
+    return createPortal(
+        <div id="print-modal-overlay" className="fixed inset-0 lg:inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[200] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-2 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto">
             <style>
                 {`
                     @media print {
@@ -505,15 +506,16 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         ` : `
                             @page { 
                                 size: A4 portrait; 
-                                margin: 5mm 8mm; /* Top/Bottom 5mm, Left/Right 8mm */
+                                margin: 0; /* Let .receipt-body handle margins */
                             }
                             .receipt-body { 
                                 font-size: 10pt !important; 
                                 color: black !important; 
-                                width: 100% !important;
-                                max-width: 100% !important;
-                                margin: 0 !important;
-                                padding: 2mm 5mm !important; /* Reduced top padding */
+                                width: 210mm !important; /* Force A4 Width */
+                                min-height: 297mm !important; /* Force A4 Height */
+                                margin: 0 auto !important;
+                                padding: 10mm 15mm !important;
+                                box-sizing: border-box !important;
                             }
                         `}
 
@@ -565,11 +567,11 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                     }
                 `}
             </style>
-            <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full rounded-lg lg:rounded-none overflow-hidden`} id="print-container">
+            <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full print:max-h-none print:h-auto rounded-3xl print:rounded-none overflow-hidden print:overflow-visible`} id="print-container">
                 <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white">
                     <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Recibo da Venda #{sale.id}</h2>
                     <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                        <button onClick={handlePrint} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-md text-xs sm:text-sm hover:bg-opacity-90">
+                        <button onClick={handlePrint} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm hover:bg-opacity-90">
                             <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Imprimir
                         </button>
                         <button onClick={onClose} className="p-1 text-muted hover:text-danger"><CloseIcon className="h-6 w-6" /></button>
@@ -581,7 +583,8 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

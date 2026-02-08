@@ -58,9 +58,9 @@ const SalesHistoryTab: React.FC<{ product: Product, sales: Sale[], customers: Cu
                                     <td className="px-4 py-3">{findSalespersonName(sale.salespersonId)}</td>
                                     <td className="px-4 py-3 font-semibold text-primary text-center">{saleItem.quantity}</td>
                                     <td className="px-4 py-3 text-right">
-                                        <span className={`mr-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${(saleItem.priceType === 'wholesale') ? 'bg-orange-100 text-orange-800' :
-                                                (saleItem.priceType === 'cost') ? 'bg-blue-100 text-blue-800' :
-                                                    'bg-green-100 text-green-800'
+                                        <span className={`mr-2 px-1.5 py-0.5 rounded-xl text-[10px] font-bold uppercase ${(saleItem.priceType === 'wholesale') ? 'bg-orange-100 text-orange-800' :
+                                            (saleItem.priceType === 'cost') ? 'bg-blue-100 text-blue-800' :
+                                                'bg-green-100 text-green-800'
                                             }`}>
                                             {(saleItem.priceType === 'wholesale') ? 'Atacado' :
                                                 (saleItem.priceType === 'cost') ? 'Custo' : 'Venda'}
@@ -123,7 +123,7 @@ const PriceHistoryTab: React.FC<{ product: Product }> = ({ product }) => {
                             <tr key={entry.id} className="bg-surface border-b border-border">
                                 <td className="px-4 py-4 whitespace-nowrap">{formatDateTime(entry.timestamp)}</td>
                                 <td className="px-4 py-4">
-                                    <span className={`px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap ${typeConfig.color}`}>
+                                    <span className={`px-2 py-1 rounded-xl text-xs font-semibold whitespace-nowrap ${typeConfig.color}`}>
                                         {typeConfig.label}
                                     </span>
                                 </td>
@@ -276,7 +276,7 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
                         <tr key={entry.id} className="bg-surface border-b border-border">
                             <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(entry.timestamp)}</td>
                             <td className="px-4 py-3">
-                                <span className={`px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap ${reasonColors[entry.reason] || 'bg-gray-100 text-gray-700'}`}>
+                                <span className={`px-2 py-1 rounded-xl text-xs font-semibold whitespace-nowrap ${reasonColors[entry.reason] || 'bg-gray-100 text-gray-700'}`}>
                                     {entry.reason}
                                 </span>
                             </td>
@@ -336,7 +336,7 @@ const AuditHistoryTab: React.FC<{ logs: AuditLog[]; typeFilter?: AuditActionType
                         <tr key={log.id} className="bg-surface border-b border-border">
                             <td className="px-6 py-4">{formatDateTime(log.timestamp)}</td>
                             <td className="px-6 py-4">
-                                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-semibold whitespace-nowrap">
+                                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold whitespace-nowrap">
                                     {actionTranslations[log.action] || log.action}
                                 </span>
                             </td>
@@ -408,7 +408,7 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
     return (
         <>
             <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-                <div className="bg-surface rounded-lg shadow-xl p-6 w-full max-w-7xl mx-4 max-h-[90vh] flex flex-col">
+                <div className="bg-surface rounded-3xl shadow-xl p-6 w-full max-w-7xl mx-4 max-h-[90vh] flex flex-col">
                     <h2 className="text-xl font-bold text-primary mb-2">Histórico do Produto</h2>
                     <p className="text-muted mb-4 font-semibold">{product.model}</p>
 
@@ -431,7 +431,7 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
                     </div>
 
                     <div className="flex justify-end mt-6 pt-4 border-t border-border">
-                        <button type="button" onClick={onClose} className="px-6 py-2 bg-danger text-white rounded-md hover:bg-danger/90">
+                        <button type="button" onClick={onClose} className="px-6 py-2 bg-danger text-white rounded-xl hover:bg-danger/90">
                             Fechar
                         </button>
                     </div>

@@ -40,12 +40,12 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ supplier, onClose, onSave
         onSave(formData as Supplier);
     };
 
-    const inputClasses = "p-2 border rounded-md bg-white border-border focus:ring-1 focus:ring-success focus:border-success w-full text-sm h-10";
+    const inputClasses = "p-2 border rounded-xl bg-white border-border focus:ring-1 focus:ring-success focus:border-success w-full text-sm h-10";
     const labelClasses = "block text-sm font-medium text-gray-700 mb-1";
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 transition-opacity">
-            <div className="bg-surface rounded-lg shadow-2xl w-full max-w-2xl">
+            <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-2xl">
                 <div className="flex justify-between items-center p-4 border-b">
                     <h2 className="text-lg font-bold text-primary">{supplier?.id ? 'Editar' : 'Adicionar'} Fornecedor</h2>
                     <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-gray-200">
@@ -66,8 +66,8 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ supplier, onClose, onSave
                         <div><label className={labelClasses}>Endereço</label><textarea name="address" value={formData.address || ''} onChange={handleChange} className={`${inputClasses} h-20`} /></div>
                     </div>
                     <div className="flex justify-end p-4 bg-gray-50 border-t">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 mr-2">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 bg-success text-white rounded-md hover:bg-success/90">Salvar</button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 mr-2">Cancelar</button>
+                        <button type="submit" className="px-4 py-2 bg-success text-white rounded-xl hover:bg-success/90">Salvar</button>
                     </div>
                 </form>
             </div>

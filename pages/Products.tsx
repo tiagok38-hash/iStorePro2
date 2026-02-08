@@ -93,7 +93,7 @@ const ProductActionsDropdown: React.FC<{ onHistory: () => void, onUpdateStock: (
         <div>
             <button ref={buttonRef} onClick={handleToggle} className="p-1 rounded-full hover:bg-gray-200 text-muted"><EllipsisVerticalIcon className="h-5 w-5" /></button>
             {isOpen && createPortal(
-                <div ref={dropdownRef} style={style} className="rounded-md shadow-lg bg-surface ring-1 ring-black ring-opacity-5">
+                <div ref={dropdownRef} style={style} className="rounded-xl shadow-lg bg-surface ring-1 ring-black ring-opacity-5">
                     <div className="py-1">
                         <button onClick={() => { onHistory(); setIsOpen(false); }} className={`${menuItemClasses} text-secondary hover:bg-surface-secondary`}>
                             <DocumentTextIcon className="h-4 w-4" /> Histórico
@@ -702,53 +702,73 @@ const Products: React.FC = () => {
 
     const renderEstoqueTab = () => (
         <div className="w-full space-y-6">
-            <div className="glass-card p-4 space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="bg-surface rounded-3xl border border-border shadow-sm p-4 space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
                     {permissions?.canCreatePurchase && (
-                        <button onClick={() => setIsNewPurchaseModalOpen(true)} className="px-4 py-2 bg-gray-800 text-white rounded-md font-semibold flex items-center gap-2 text-sm hover:bg-gray-700 h-10">
+                        <button
+                            onClick={() => setIsNewPurchaseModalOpen(true)}
+                            className="h-10 px-4 bg-gray-800 text-white rounded-xl font-bold flex items-center gap-2 text-[11px] hover:bg-gray-700 transition-all active:scale-95 shadow-sm uppercase tracking-wider"
+                        >
                             <PlusIcon className="h-5 w-5" /> Nova compra
                         </button>
                     )}
-                    <Link to="/company?tab=parametros" className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><Cog6ToothIcon className="h-5 w-5" /> Parâmetros</Link>
+                    <Link
+                        to="/company?tab=parametros"
+                        className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
+                    >
+                        <Cog6ToothIcon className="h-5 w-5 text-gray-500" /> Parâmetros
+                    </Link>
                     {permissions?.canEditProduct && (
-                        <button onClick={() => setIsBulkUpdateModalOpen(true)} className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><TagIcon className="h-5 w-5" /> Atualização de preço</button>
+                        <button
+                            onClick={() => setIsBulkUpdateModalOpen(true)}
+                            className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
+                        >
+                            <TagIcon className="h-5 w-5 text-gray-500" /> Atualização de preço
+                        </button>
                     )}
                     {permissions?.canEditProduct && (
-                        <button onClick={() => setIsBulkLocationUpdateModalOpen(true)} className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><MapPinIcon className="h-5 w-5" /> Atualização de local</button>
+                        <button
+                            onClick={() => setIsBulkLocationUpdateModalOpen(true)}
+                            className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
+                        >
+                            <MapPinIcon className="h-5 w-5 text-gray-500" /> Atualização de local
+                        </button>
                     )}
-                    <button className="px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 text-sm font-medium flex items-center gap-2"><TicketIcon className="h-5 w-5" /> Etiquetas</button>
+                    <button className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider">
+                        <TicketIcon className="h-5 w-5 text-gray-500" /> Etiquetas
+                    </button>
                     <button
                         onClick={() => setIsPriceListModalOpen(true)}
-                        className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-bold flex items-center gap-2 shadow-sm uppercase tracking-wide transition-all active:scale-95"
+                        className="h-10 px-5 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-xl hover:opacity-95 text-[11px] font-black flex items-center gap-2 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20"
                     >
                         <DocumentTextIcon className="h-5 w-5" /> Gerar Relatório
                     </button>
                     <div className="flex-grow"></div>
-                    <p className="text-sm font-semibold text-secondary whitespace-nowrap">Total de registros: {filteredProducts.length}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-70">Total: {filteredProducts.length}</p>
                 </div>
                 <div className="flex flex-wrap items-end gap-4 justify-between">
                     <div className="flex flex-wrap items-end gap-4 flex-grow">
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Status</label>
-                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="h-10 p-2 border rounded-md text-sm bg-transparent border-border">
+                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border">
                                 <option>Todos</option><option>Em estoque</option><option>Sem estoque</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Condição</label>
-                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 p-2 border rounded-md text-sm bg-transparent border-border">
+                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border">
                                 <option value="Todos">Todos</option><option>Novo</option><option>Seminovo</option><option>CPO</option><option>Openbox</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Local</label>
-                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="h-10 p-2 border rounded-md text-sm bg-transparent border-border">
+                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border">
                                 <option value="Todos">Todos</option><option>Loja</option><option>Caruaru</option>
                             </select>
                         </div>
                         <div className="relative flex-grow min-w-[250px]">
                             <label className="block text-xs font-medium text-muted mb-1">Buscar produto</label>
-                            <input type="text" placeholder="digite para buscar por SKU, descricao, IMEI, numero de serie e codigo de barras..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="p-2 border rounded-md w-full bg-transparent border-border pr-8 h-10" />
+                            <input type="text" placeholder="digite para buscar por SKU, descricao, IMEI, numero de serie e codigo de barras..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="p-2 border rounded-xl w-full bg-transparent border-border pr-8 h-10" />
                             {searchTerm && (<button onClick={() => setSearchTerm('')} className="absolute right-2 bottom-2 text-muted hover:text-primary" aria-label="Limpar busca"><XCircleIcon className="h-5 w-5" /></button>)}
                         </div>
                     </div>
@@ -758,7 +778,7 @@ const Products: React.FC = () => {
                             <select
                                 value={itemsPerPage}
                                 onChange={e => { setItemsPerPage(Number(e.target.value) as 15 | 20 | 30); setCurrentPage(1); }}
-                                className="h-10 p-2 border rounded-md text-sm bg-transparent border-border"
+                                className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border"
                             >
                                 <option value={15}>15</option>
                                 <option value={20}>20</option>
@@ -767,7 +787,7 @@ const Products: React.FC = () => {
                         </div>
                         <button
                             onClick={() => setInventorySortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                            className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 flex items-center gap-2 text-sm font-medium"
+                            className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 flex items-center gap-2 text-sm font-medium"
                         >
                             <ArrowsUpDownIcon className="h-4 w-4" />
                             <span>{inventorySortOrder === 'newest' ? 'Mais Recentes' : 'Mais Antigos'}</span>
@@ -775,7 +795,7 @@ const Products: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <div className="glass-card">
+            <div className="bg-surface rounded-3xl border border-border shadow-sm">
                 {loading ? <div className="flex justify-center py-8"><SpinnerIcon /></div> : (
                     filteredProducts.length === 0 ? <p className="text-center text-muted p-6">Nenhum produto encontrado.</p> : (
                         <div className="overflow-x-auto custom-scrollbar">
@@ -810,13 +830,13 @@ const Products: React.FC = () => {
 
                                         return (<tr key={product.id} className="bg-surface border-b border-border last:border-0 hover:bg-surface-secondary">
                                             <td className="px-2 py-2 text-center">
-                                                <span className={`px-2 py-0.5 text-sm font-bold rounded-md border ${stockColorClass}`}>{product.stock}</span>
+                                                <span className={`px-2 py-0.5 text-sm font-bold rounded-xl border ${stockColorClass}`}>{product.stock}</span>
                                             </td>
                                             <td className="px-2 py-2 font-medium text-primary whitespace-normal max-w-[350px]">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold text-sm truncate" title={product.model}>{product.model}</span>
                                                     {product.origin === 'Troca' && (
-                                                        <span className="flex-shrink-0 px-1 py-0 text-[8px] font-bold rounded bg-rose-50 text-rose-400 border border-rose-100 uppercase tracking-tighter">
+                                                        <span className="flex-shrink-0 px-1 py-0 text-[8px] font-bold rounded-lg bg-rose-50 text-rose-400 border border-rose-100 uppercase tracking-tighter">
                                                             Troca
                                                         </span>
                                                     )}
@@ -864,15 +884,15 @@ const Products: React.FC = () => {
                                             </td>
                                             <td className="px-1 py-2">
                                                 {(product.origin === 'Troca' || (supplier && supplier.linkedCustomerId)) ? (
-                                                    <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                                                    <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-xl bg-purple-100 text-purple-700 border border-purple-200">
                                                         Cliente
                                                     </span>
                                                 ) : (supplier ? (
-                                                    <span className={`px-1.5 py-0.5 text-[9px] font-medium rounded-full ${supplierLabelColor}`}>
+                                                    <span className={`px-1.5 py-0.5 text-[9px] font-medium rounded-xl ${supplierLabelColor}`}>
                                                         {supplier.name}
                                                     </span>
                                                 ) : (product.supplier ? (
-                                                    <span className={`px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-gray-100 text-gray-700 border border-gray-200`}>
+                                                    <span className={`px-1.5 py-0.5 text-[9px] font-medium rounded-xl bg-gray-100 text-gray-700 border border-gray-200`}>
                                                         {product.supplier}
                                                     </span>
                                                 ) : (
@@ -885,7 +905,7 @@ const Products: React.FC = () => {
                                             <td className={`px-1 py-2 text-sm font-bold ${markup >= 0 ? 'text-success' : 'text-danger'}`}>{markup.toFixed(0)}%</td>
                                             <td className="px-2 py-2 text-center text-xs">{(product as any).warranty || (product as any).warranty_period || (product as any).garantia || '-'}</td>
                                             <td className="px-2 py-2 text-center">
-                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${getConditionTagClasses(product.condition)}`}>
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-xl ${getConditionTagClasses(product.condition)}`}>
                                                     {product.condition}
                                                 </span>
                                             </td>
@@ -926,7 +946,7 @@ const Products: React.FC = () => {
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="p-2 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-2 rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <ChevronLeftIcon className="h-5 w-5" />
                             </button>
@@ -936,7 +956,7 @@ const Products: React.FC = () => {
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="p-2 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="p-2 rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <ChevronRightIcon className="h-5 w-5" />
                             </button>
@@ -948,19 +968,19 @@ const Products: React.FC = () => {
     );
 
     const renderComprasTab = () => {
-        const periodButtonClasses = (period: string) => `px-3 py-1 rounded-md text-sm font-medium transition-colors ${activePeriod === period ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`;
+        const periodButtonClasses = (period: string) => `px-3 py-1 rounded-xl text-sm font-medium transition-colors ${activePeriod === period ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`;
 
         return (
             <div className="space-y-6">
                 {/* BLOCO SUPERIOR ÚNICO - CONTROLE */}
-                <div className="bg-surface p-6 rounded-lg border border-border shadow-sm flex flex-col gap-6">
+                <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col gap-6">
 
                     {/* LINHA 1: Ações e Período */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         {permissions?.canCreatePurchase && (
                             <button
                                 onClick={() => setIsNewPurchaseModalOpen(true)}
-                                className="px-4 py-2 bg-gray-900 text-white rounded-md font-semibold flex items-center gap-2 text-sm hover:bg-gray-800 transition-colors shadow-sm"
+                                className="h-10 px-4 bg-gray-800 text-white rounded-xl font-bold flex items-center gap-2 text-[11px] hover:bg-gray-700 transition-all active:scale-95 shadow-sm uppercase tracking-wider h-10"
                             >
                                 <PlusIcon className="h-5 w-5" /> Nova compra
                             </button>
@@ -984,7 +1004,7 @@ const Products: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 h-10 mb-[1px]">
+                            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 h-10 mb-[1px]">
                                 <button onClick={() => handlePeriodChange('hoje')} className={periodButtonClasses('hoje')}>Hoje</button>
                                 <button onClick={() => handlePeriodChange('semana')} className={periodButtonClasses('semana')}>Semana</button>
                                 <button onClick={() => handlePeriodChange('mes')} className={periodButtonClasses('mes')}>Mês</button>
@@ -1021,7 +1041,7 @@ const Products: React.FC = () => {
                             <select
                                 value={statusFilter}
                                 onChange={e => setStatusFilter(e.target.value)}
-                                className="w-full lg:w-48 p-2.5 border rounded-md bg-white border-gray-200 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
+                                className="w-full lg:w-48 p-2.5 border rounded-xl bg-white border-gray-200 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
                             >
                                 <option value="Todos">Filtrar por Status</option>
                                 <option value="Pendente">Pendente</option>
@@ -1037,13 +1057,13 @@ const Products: React.FC = () => {
                                     placeholder="digite para buscar por ID da compra, Fornecedor e Codigo localizador..."
                                     value={purchaseSearchTerm}
                                     onChange={e => setPurchaseSearchTerm(e.target.value)}
-                                    className="w-full p-2.5 pl-9 border rounded-md bg-white border-gray-200 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all h-10"
+                                    className="w-full p-2.5 pl-9 border rounded-xl bg-white border-gray-200 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all h-10"
                                 />
                             </div>
 
                             <button
                                 onClick={() => setPurchaseSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                                className="w-full lg:w-auto px-4 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-gray-200 h-10 flex-shrink-0 min-w-[110px]"
+                                className="w-full lg:w-auto px-4 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-gray-200 h-10 flex-shrink-0 min-w-[110px]"
                             >
                                 <ArrowsUpDownIcon className="h-4 w-4" />
                                 <span>{purchaseSortOrder === 'newest' ? 'Recente' : 'Antigo'}</span>
@@ -1053,7 +1073,7 @@ const Products: React.FC = () => {
                 </div>
 
                 {/* BLOCO DA TABELA (Sem filtros internos) */}
-                <div className="bg-surface rounded-lg border border-border">
+                <div className="bg-surface rounded-3xl border border-border shadow-sm">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-secondary uppercase bg-gray-50">
@@ -1169,12 +1189,12 @@ const Products: React.FC = () => {
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-primary">Estoque e Compras</h1>
 
-            <div className="inline-flex items-center gap-1 bg-surface-secondary p-1 rounded-lg">
+            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
                 {availableTabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-primary'}`}
+                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         {tab.label}
                     </button>

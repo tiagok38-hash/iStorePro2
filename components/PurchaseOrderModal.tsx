@@ -695,7 +695,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     </div>
 
                     {formData.origin === 'Importação' && (
-                        <div className="col-span-2 grid grid-cols-2 gap-2 bg-gray-50 border border-dashed border-gray-200 p-2 rounded-lg animate-fade-in">
+                        <div className="col-span-2 grid grid-cols-2 gap-2 bg-gray-50 border border-dashed border-gray-200 p-2 rounded-2xl animate-fade-in">
                             <div>
                                 <label className="text-[10px] font-bold text-muted block mb-0.5">Dólar (R$)</label>
                                 <CurrencyInput
@@ -761,7 +761,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                     type="button"
                                     onClick={handlePrintTerm}
                                     title="Imprimir Termo"
-                                    className="h-10 w-10 flex-shrink-0 bg-gray-100 text-gray-600 rounded-md flex items-center justify-center hover:bg-gray-200 border border-gray-200"
+                                    className="h-10 w-10 flex-shrink-0 bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center hover:bg-gray-200 border border-gray-200"
                                 >
                                     <PrinterIcon className="h-5 w-5" />
                                 </button>

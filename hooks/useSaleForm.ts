@@ -323,8 +323,6 @@ export const useSaleForm = ({
 
     const handleConfirmCardPayment = useCallback(({ payment, feeToAddToSale }: { payment: Payment; feeToAddToSale: number }) => {
         setPayments(prev => [...prev, payment]);
-        // FIX: Do NOT add fees to sale total. Using feeToAddToSale only for tracking if needed, but not affecting sale total.
-        // if (feeToAddToSale > 0) setCardFees(prev => prev + feeToAddToSale);
         setIsCardPaymentModalOpen(false);
     }, []);
 

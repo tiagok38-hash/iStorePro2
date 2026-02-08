@@ -43,8 +43,12 @@ const BottomNav: React.FC = () => {
 
     return (
         <div
-            className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#9c89ff] to-[#7B61FF] border-t border-white/20 lg:hidden z-[100] pt-3 pb-2 rounded-t-[24px] shadow-[0_-10px_30px_rgba(123,97,255,0.2)]"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 8px)', touchAction: 'manipulation' }}
+            className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#9c89ff] to-[#7B61FF] border-t border-white/20 lg:hidden z-[100] pt-3 shadow-[0_-10px_30px_rgba(123,97,255,0.2)]"
+            style={{
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 8px)',
+                minHeight: 'calc(env(safe-area-inset-bottom, 12px) + 64px)',
+                touchAction: 'manipulation'
+            }}
         >
             <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] px-2">
                 {visibleNavItems.map((item) => {
