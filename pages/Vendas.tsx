@@ -611,14 +611,14 @@ const Vendas: React.FC = () => {
                             max={toDateValue()}
                             className="w-full sm:w-auto"
                         />
-                        <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm h-11 mb-[1px]">
-                            <button onClick={() => handlePeriodChange('hoje')} className={`${periodButtonClasses('hoje')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Hoje</button>
-                            <button onClick={() => handlePeriodChange('ontem')} className={`${periodButtonClasses('ontem')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Ontem</button>
-                            <button onClick={() => handlePeriodChange('semana')} className={`${periodButtonClasses('semana')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Semana</button>
-                            <button onClick={() => handlePeriodChange('7dias')} className={`${periodButtonClasses('7dias')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>7d</button>
-                            <button onClick={() => handlePeriodChange('Mes')} className={`${periodButtonClasses('Mes')} px-4 py-2 text-xs sm:text-sm whitespace-nowrap`}>Mês</button>
+                        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl border border-gray-200 shadow-sm h-10">
+                            <button onClick={() => handlePeriodChange('hoje')} className={`${periodButtonClasses('hoje')} px-3 sm:px-4 py-2 text-[10px] sm:text-xs whitespace-nowrap h-8 flex items-center`}>Hoje</button>
+                            <button onClick={() => handlePeriodChange('ontem')} className={`${periodButtonClasses('ontem')} px-3 sm:px-4 py-2 text-[10px] sm:text-xs whitespace-nowrap h-8 flex items-center`}>Ontem</button>
+                            <button onClick={() => handlePeriodChange('semana')} className={`${periodButtonClasses('semana')} px-3 sm:px-4 py-2 text-[10px] sm:text-xs whitespace-nowrap h-8 flex items-center`}>Semana</button>
+                            <button onClick={() => handlePeriodChange('7dias')} className={`${periodButtonClasses('7dias')} px-3 sm:px-4 py-2 text-[10px] sm:text-xs whitespace-nowrap h-8 flex items-center`}>7d</button>
+                            <button onClick={() => handlePeriodChange('Mes')} className={`${periodButtonClasses('Mes')} px-3 sm:px-4 py-2 text-[10px] sm:text-xs whitespace-nowrap h-8 flex items-center`}>Mês</button>
                         </div>
-                        <button onClick={handleClearFilter} className="h-10 px-2 text-xs sm:text-sm text-muted hover:text-primary mb-[1px]">Limpar</button>
+                        <button onClick={handleClearFilter} className="h-10 px-2 text-xs sm:text-sm text-muted hover:text-primary">Limpar</button>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         {permissions?.canCreateSale && (
