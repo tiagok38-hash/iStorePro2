@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/favicon-custom.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="iStore" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>iStore - Gerenciador de Vendas e Estoque</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Global Reset & Optimizations */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      /* Remove gray highlight on tap (iOS) */
+    }
+
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      /* Improved font rendering on Windows */
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+
+    /* Hide arrows from number inputs */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* Premium SaaS Design - Glassmorphism & Modern UI */
+    :root {
+      /* Base Colors (RGB for Tailwind opacity support) */
+      --color-background: 246 245 251;
+      /* #F6F5FB */
+
+      --color-surface: 255 255 255;
+      /* Base white, opacity handled in classes */
+      --color-surface-secondary: 249 250 251;
+
+      --color-border: 255 255 255;
+      /* #FFFFFF (opacity 0.35 in usage) */
+
+      --color-primary: 42 42 46;
+      /* #2A2A2E */
+      --color-on-primary: 255 255 255;
+
+      --color-secondary: 107 107 122;
+      /* #6B6B7A */
+      --color-muted: 156 163 175;
+
+      --color-accent: 123 97 255;
+      /* #7B61FF */
+      --color-accent-light: 236 233 255;
+
+      --color-danger: 255 107 107;
+      /* #FF6B6B */
+      --color-danger-light: 255 235 235;
+
+      --color-success: 111 211 163;
+      /* #6FD3A3 */
+      --color-success-light: 232 250 240;
+
+      --color-warning: 255 196 107;
+      /* #FFC46B */
+
+      --color-info: 123 97 255;
+      /* #7B61FF */
+    }
+
+    body {
+      background-color: rgb(var(--color-background));
+      color: rgb(var(--color-primary));
+      font-family: 'Outfit', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-image:
+        radial-gradient(circle at 15% 50%, rgba(123, 97, 255, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(138, 123, 217, 0.08), transparent 25%);
+      background-attachment: fixed;
+    }
+
+    /* Glassmorphism Utilities */
+    .glass {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 20px 40px rgba(123, 97, 255, 0.12);
+      transform: translateZ(0);
+    }
+
+    .glass-strong {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 20px 40px rgba(123, 97, 255, 0.15);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 10px 30px rgba(123, 97, 255, 0.08);
+      border-radius: 20px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      isolation: isolate;
+      transform: translateZ(0);
+    }
+
+    .glass-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px rgba(123, 97, 255, 0.12);
+    }
+
+    /* Scrollbar */
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(123, 97, 255, 0.2) transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(123, 97, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(123, 97, 255, 0.4);
+    }
+
+    /* Form Elements - Forced visibility */
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.7) !important;
+      border: 1px solid rgba(123, 97, 255, 0.18) !important;
+      /* Lilás mais suave e borda mais fina */
+      border-radius: 10px !important;
+      color: rgb(var(--color-primary));
+    }
+
+    /* Mandatory / Required fields markup */
+    input:required:not([type="checkbox"]):not([type="radio"]),
+    select:required,
+    textarea:required,
+    [required],
+    .border-red-500,
+    .border-red-400,
+    .border-danger {
+      border-color: rgba(255, 107, 107, 0.6) !important;
+      /* Vermelho suave/claro para obrigatórios/erros */
+      background: rgba(255, 250, 250, 0.8) !important;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none !important;
+      background: rgba(255, 255, 255, 1) !important;
+      box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.15) !important;
+      border-color: #7B61FF !important;
+      /* Foco sempre lilás forte */
+    }
+
+    /* Keep red border on focus if it's an error/required but user clicked it */
+    input:required:focus,
+    select:required:focus,
+    .border-red-500:focus {
+      border-color: #FF5252 !important;
+      /* Vermelho um pouco mais vivo no foco */
+      box-shadow: 0 0 0 4px rgba(255, 82, 82, 0.1) !important;
+    }
+
+    input::placeholder {
+      color: #9CA3AF;
+    }
+
+    /* Animations */
+    @keyframes fade-in-up {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .animate-fade-in-up {
+      animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out forwards;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: 'rgb(var(--color-background) / <alpha-value>)',
+            surface: 'rgb(var(--color-surface) / <alpha-value>)',
+            'surface-secondary': 'rgb(var(--color-surface-secondary) / <alpha-value>)',
+            border: 'rgb(var(--color-border) / <alpha-value>)',
+            primary: 'rgb(var(--color-primary) / <alpha-value>)',
+            'on-primary': 'rgb(var(--color-on-primary) / <alpha-value>)',
+            secondary: 'rgb(var(--color-secondary) / <alpha-value>)',
+            muted: 'rgb(var(--color-muted) / <alpha-value>)',
+            // Brand Colors
+            accent: 'rgb(var(--color-accent) / <alpha-value>)',
+            'accent-light': 'rgb(var(--color-accent-light) / <alpha-value>)',
+            // State Colors
+            danger: 'rgb(var(--color-danger) / <alpha-value>)',
+            'danger-light': 'rgb(var(--color-danger-light) / <alpha-value>)',
+            success: 'rgb(var(--color-success) / <alpha-value>)',
+            'success-light': 'rgb(var(--color-success-light) / <alpha-value>)',
+            warning: 'rgb(var(--color-warning) / <alpha-value>)',
+            info: 'rgb(var(--color-info) / <alpha-value>)',
+          },
+          fontFamily: {
+            sans: ['Outfit', 'Inter', 'SF Pro Display', 'system-ui', 'sans-serif'],
+          },
+          backgroundImage: {
+            'gradient-primary': 'linear-gradient(135deg, #7B61FF 0%, #9F8CFF 100%)',
+            'gradient-secondary': 'linear-gradient(135deg, #5B4B8A 0%, #8A7BD9 100%)',
+            'gradient-surface': 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 100%)',
+          },
+          boxShadow: {
+            DEFAULT: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+            'glass': '0 20px 40px rgba(123, 97, 255, 0.12)',
+            'glass-sm': '0 8px 20px rgba(123, 97, 255, 0.08)',
+            'glass-xs': '0 4px 10px rgba(123, 97, 255, 0.04)',
+            'neon': '0 0 15px rgba(123, 97, 255, 0.4)',
+          },
+          borderRadius: {
+            'xl': '1rem',
+            '2xl': '1.25rem',
+            '3xl': '1.5rem',
+          },
+          backdropBlur: {
+            'xs': '2px',
+          }
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.8.2",
+    "recharts": "https://aistudiocdn.com/recharts@^3.1.2",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body class="bg-background text-primary antialiased">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

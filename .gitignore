@@ -1,0 +1,53 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+build
+
+# Environment files (IMPORTANTE: nunca commitar)
+.env
+.env.local
+.env.*.local
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.cursor
+
+# Agent/AI directories
+.agent
+.gemini
+
+# Development scripts (pasta scripts/)
+scripts/
+
+# Backups locais
+backups/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# Metadata
+metadata.json
+
+backup_*.zip
