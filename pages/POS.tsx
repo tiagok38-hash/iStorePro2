@@ -443,7 +443,7 @@ const POS: React.FC = () => {
             <PosSidebar activeView={activeView} onViewChange={handleViewChange} />
             <div className="flex-1 flex flex-col min-w-0">
                 <PosHeader cashId={currentUserOpenSession?.displayId} onOpenStockSearch={() => setIsStockSearchModalOpen(true)} />
-                <main className="flex-1 overflow-auto p-2 pb-20 md:p-6 md:pb-6">
+                <main className="flex-1 overflow-auto px-4 pb-24 md:p-6 md:pb-6">
                     {activeView === 'caixas' && (
                         <CaixasView
                             sessions={filteredSessions} userMap={userMap}
