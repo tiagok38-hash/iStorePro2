@@ -77,12 +77,12 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
     };
 
     return (
-        <div className="font-sans text-black receipt-body flex flex-col bg-white" id="receipt-content">
+        <div className="font-sans text-black receipt-body bg-white" id="receipt-content">
             <div className="flex-1">
                 {/* Company Header - Logo bigger */}
-                <header className="flex justify-between items-start pb-1.5 border-b border-black">
-                    <div className="flex items-center gap-4">
-                        {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-20 w-20 object-contain" />}
+                <header className="flex justify-between items-start pb-1.5 border-b border-black print:pb-0.5">
+                    <div className="flex items-center gap-4 print:gap-2">
+                        {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-20 w-20 object-contain print:h-14 print:w-14" />}
                         <div>
                             <h1 className="font-bold text-xl leading-tight text-black">{companyInfo?.name}</h1>
                             <p className="text-[10px] leading-tight">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
@@ -103,7 +103,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                 </header>
 
                 {/* Sale Info Row */}
-                <section className="flex justify-between items-start border-b border-black py-1.5 text-[10px]">
+                <section className="flex justify-between items-start border-b border-black py-1.5 text-[10px] print:py-0.5 print:text-[9px]">
                     <div className="flex gap-4">
                         <span><b>ID:</b> #{sale.id}</span>
                         <span><b>Caixa:</b> #{sale.posTerminal.replace(/\D/g, '') || 'N/A'}</span>
@@ -112,7 +112,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                 </section>
 
                 {/* Customer Data - Larger font */}
-                <section className="py-1.5 border-b border-black text-[11px]">
+                <section className="py-1.5 border-b border-black text-[11px] print:py-0.5 print:text-[10px]">
                     <div className="flex flex-wrap gap-x-6">
                         <span><b>Cliente:</b> {customer?.name}</span>
                         <span><b>CPF:</b> {customer?.cpf || '-'}</span>
@@ -123,7 +123,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                 {/* Observations moved to just above warranty section */}
 
                 {/* Title */}
-                <h2 className="font-bold text-center text-base my-2">RECIBO DE VENDA</h2>
+                <h2 className="font-bold text-center text-base my-2 print:my-0.5 print:text-sm">RECIBO DE VENDA</h2>
 
                 {/* Products Table - Full Width */}
                 <section className="rounded-xl overflow-hidden border border-black">
@@ -168,7 +168,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                 </section>
 
                 {/* Payment + Totals - Side by Side */}
-                <section className="mt-2 flex justify-between gap-3 text-[10px]">
+                <section className="mt-2 flex justify-between gap-3 text-[10px] print:mt-1 print:gap-2 print:text-[9px]">
                     {/* Payment Section - 58% width */}
                     <div className="border border-black p-2 rounded-xl" style={{ width: '58%' }}>
                         <p className="font-bold mb-1 text-[11px] border-b border-gray-300 pb-0.5">PAGAMENTO</p>
@@ -236,30 +236,30 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
 
                 {/* Observations - just above warranty section */}
                 {sale.observations && (
-                    <section className="mt-4 py-1.5 border border-black rounded-xl px-2 text-[10px]">
+                    <section className="mt-4 py-1.5 border border-black rounded-xl px-2 text-[10px] print:mt-1 print:py-0.5 print:text-[9px]">
                         <span className="font-bold">OBSERVAÇÕES:</span> {sale.observations}
                     </section>
                 )}
 
                 {/* Warranty Terms - More spacing, larger font */}
                 {activeTerm && (
-                    <section className="mt-3 space-y-2">
+                    <section className="mt-3 space-y-2 print:mt-1 print:space-y-0.5">
                         {activeTerm.warrantyTerm?.showOnReceipt && activeTerm.warrantyTerm.content && (
                             <div>
-                                <h3 className="font-bold uppercase text-[11px] mb-1.5">GARANTIA</h3>
-                                <p className="whitespace-pre-wrap text-justify text-[9px] leading-snug">{activeTerm.warrantyTerm.content}</p>
+                                <h3 className="font-bold uppercase text-[11px] mb-1.5 print:text-[9px] print:mb-0.5">GARANTIA</h3>
+                                <p className="whitespace-pre-wrap text-justify text-[9px] leading-snug print:text-[8px] print:leading-tight">{activeTerm.warrantyTerm.content}</p>
                             </div>
                         )}
                         {activeTerm.warrantyExclusions?.showOnReceipt && activeTerm.warrantyExclusions.content && (
-                            <div className="mt-1">
-                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">A GARANTIA NÃO COBRE:</h3>
-                                <ul className="list-none space-y-0 text-[8px] leading-snug columns-2">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
+                            <div className="mt-1 print:mt-0.5">
+                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1 print:text-[9px] print:mb-0.5">A GARANTIA NÃO COBRE:</h3>
+                                <ul className="list-none space-y-0 text-[8px] leading-snug columns-2 print:text-[7px] print:leading-tight">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
                             </div>
                         )}
                         {activeTerm.imageRights?.showOnReceipt && activeTerm.imageRights.content && (
-                            <div className="mt-1">
-                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1">DIREITO DE IMAGEM</h3>
-                                <p className="whitespace-pre-wrap text-justify text-[8px] leading-snug">{activeTerm.imageRights.content}</p>
+                            <div className="mt-1 print:mt-0.5">
+                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1 print:text-[9px] print:mb-0.5">DIREITO DE IMAGEM</h3>
+                                <p className="whitespace-pre-wrap text-justify text-[8px] leading-snug print:text-[7px] print:leading-tight">{activeTerm.imageRights.content}</p>
                             </div>
                         )}
                     </section>
@@ -267,7 +267,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
             </div>
 
             {/* System Promo Footer - Pushed to bottom with mt-auto */}
-            <div className="mt-auto pt-6 text-center" style={{ fontSize: '8px', color: '#9ca3af' }}>
+            <div className="mt-auto pt-6 text-center print:pt-2" style={{ fontSize: '8px', color: '#9ca3af' }}>
                 <p>iStore Pro - O melhor sistema para sua loja de eletronicos. Saiba mais em istorepro.com.br</p>
             </div>
         </div>
@@ -509,16 +509,17 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         ` : `
                             @page { 
                                 size: A4 portrait; 
-                                margin: 10mm; 
+                                margin: 5mm 10mm; 
                             }
                             .receipt-body { 
-                                font-size: 10pt !important; 
+                                font-size: 9.5pt !important; 
                                 color: black !important; 
                                 width: 100% !important; 
                                 max-width: 100% !important;
                                 margin: 0 !important;
                                 padding: 0 !important;
                                 box-sizing: border-box !important;
+                                overflow: visible !important;
                             }
                         `}
 
