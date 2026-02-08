@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Payment, PaymentMethodParameter, CardConfigData, PaymentMethodType } from '../types.ts';
 import { CloseIcon, CreditCardIcon, CheckIcon, ChevronDownIcon, InfoIcon } from './icons.tsx';
 import { formatCurrency, getPaymentMethods } from '../services/mockApi.ts';
@@ -153,8 +154,8 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 bg-white z-[100] flex flex-col font-sans animate-fade-in">
+    const modalContent = (
+        <div className="fixed inset-0 bg-white z-[99999] flex flex-col font-sans animate-fade-in">
             <div className="flex-1 flex flex-col w-full h-full max-w-3xl mx-auto overflow-hidden">
                 {/* Header - Compacto */}
                 <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/80 sticky top-0 z-10">
@@ -362,6 +363,8 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
             </div>
         </div>
     );
+
+    return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default CardPaymentModal;

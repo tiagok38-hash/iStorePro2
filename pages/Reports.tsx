@@ -258,7 +258,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 />
                 <div>
                     <label className="text-[10px] font-black uppercase tracking-wider text-muted mb-1 block pl-1">Vendedor</label>
-                    <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="p-2 border rounded-xl bg-white border-gray-200 h-10 w-48 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
+                    <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="px-3 border rounded-xl bg-white border-gray-200 h-10 w-48 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
                         <option value="todos">Todos os vendedores</option>
                         {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                     </select>
@@ -617,7 +617,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             <select
                                 value={idleDays}
                                 onChange={(e) => setIdleDays(Number(e.target.value))}
-                                className="bg-white border border-red-200 text-[10px] font-black rounded-xl px-2 py-1 focus:ring-2 focus:ring-red-200 outline-none cursor-pointer text-red-700 shadow-sm hover:border-red-300 transition-colors"
+                                className="bg-white border border-red-200 text-[10px] font-black rounded-xl px-3 py-1 focus:ring-2 focus:ring-red-200 outline-none cursor-pointer text-red-700 shadow-sm hover:border-red-300 transition-colors"
                             >
                                 <option value={15}>15 dias</option>
                                 <option value={30}>30 dias</option>
@@ -739,7 +739,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                         <select
                             value={itemsPerPage}
                             onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                            className="border border-gray-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-primary/20 outline-none"
+                            className="border border-gray-300 rounded px-3 py-1 bg-white focus:ring-2 focus:ring-primary/20 outline-none"
                         >
                             <option value={15}>15</option>
                             <option value={30}>30</option>

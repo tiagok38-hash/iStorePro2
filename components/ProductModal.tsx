@@ -372,7 +372,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
             // Explicitly ensure important fields are set in formData from the incoming product
             initialData.supplierId = product.supplierId;
             initialData.warranty = preservedWarranty || (product.brand === 'Apple' ? '1 ano' : '');
-            initialData.storageLocation = preservedStorageLocation || 'Loja';
+            initialData.storageLocation = preservedStorageLocation || 'Loja Santa Cruz';
 
             setFormData(initialData);
             setIsMinimumStockEnabled(!!(initialData.minimumStock && initialData.minimumStock > 0));
@@ -380,7 +380,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
         } else {
             const defaults = {
-                stock: 1, batteryHealth: 100, condition: isTradeInMode ? 'Seminovo' : 'Novo', warranty: isTradeInMode ? '' : '1 ano', storageLocation: isTradeInMode ? '' : 'Loja', variations: [], barcodes: [], createdBy: user?.name || 'Keiler', origin: 'Compra'
+                stock: 1, batteryHealth: 100, condition: isTradeInMode ? 'Seminovo' : 'Novo', warranty: isTradeInMode ? '' : '1 ano', storageLocation: isTradeInMode ? '' : 'Loja Santa Cruz', variations: [], barcodes: [], createdBy: user?.name || 'Keiler', origin: 'Compra'
             };
             setFormData(defaults);
             setProductType('Apple'); // Default for new - Always Apple for trade-in mode
@@ -746,7 +746,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const totalCost = useMemo(() => (formData.costPrice || 0) + (formData.additionalCostPrice || 0), [formData.costPrice, formData.additionalCostPrice]);
 
     const labelClasses = "block text-xs font-medium text-muted mb-1";
-    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm";
+    const inputClasses = "w-full px-3 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-11 transition-all outline-none";
 
     if (!visible && !isOpen) return null;
 

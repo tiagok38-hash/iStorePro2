@@ -207,7 +207,7 @@ const UserModal: React.FC<{
 
     if (!isOpen) return null;
 
-    const inputClasses = "w-full p-2 border rounded-xl bg-surface text-primary border-border focus:ring-1 focus:ring-success focus:border-success";
+    const inputClasses = "w-full px-3 py-2 border rounded-xl bg-surface text-primary border-border focus:ring-1 focus:ring-success focus:border-success";
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">

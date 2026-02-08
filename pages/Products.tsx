@@ -750,20 +750,20 @@ const Products: React.FC = () => {
                     <div className="flex flex-wrap items-end gap-4 flex-grow">
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Status</label>
-                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border">
+                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border">
                                 <option>Todos</option><option>Em estoque</option><option>Sem estoque</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Condição</label>
-                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border">
+                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border">
                                 <option value="Todos">Todos</option><option>Novo</option><option>Seminovo</option><option>CPO</option><option>Openbox</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Local</label>
-                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border">
-                                <option value="Todos">Todos</option><option>Loja</option><option>Caruaru</option>
+                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border">
+                                <option value="Todos">Todos</option><option>Loja Santa Cruz</option><option>Caruaru</option>
                             </select>
                         </div>
                         <div className="relative flex-grow min-w-[250px]">
@@ -778,7 +778,7 @@ const Products: React.FC = () => {
                             <select
                                 value={itemsPerPage}
                                 onChange={e => { setItemsPerPage(Number(e.target.value) as 15 | 20 | 30); setCurrentPage(1); }}
-                                className="h-10 p-2 border rounded-xl text-sm bg-transparent border-border"
+                                className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border"
                             >
                                 <option value={15}>15</option>
                                 <option value={20}>20</option>
@@ -1041,7 +1041,7 @@ const Products: React.FC = () => {
                             <select
                                 value={statusFilter}
                                 onChange={e => setStatusFilter(e.target.value)}
-                                className="w-full lg:w-48 p-2.5 border rounded-xl bg-white border-gray-200 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
+                                className="w-full lg:w-48 px-3 border rounded-xl bg-white border-gray-200 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
                             >
                                 <option value="Todos">Filtrar por Status</option>
                                 <option value="Pendente">Pendente</option>

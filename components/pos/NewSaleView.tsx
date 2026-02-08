@@ -220,16 +220,14 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                             </h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 bg-white/40 p-1 rounded-xl">
-                            <div className="md:col-span-2 flex flex-col justify-end">
-                                <div className="h-10 sm:h-12 flex flex-col justify-end">
-                                    <CustomDatePicker
-                                        label="Data"
-                                        value={saleDate}
-                                        onChange={setSaleDate}
-                                        max={toDateValue()}
-                                        className="w-full"
-                                    />
-                                </div>
+                            <div className="md:col-span-2">
+                                <label className={labelClasses}>Data</label>
+                                <CustomDatePicker
+                                    value={saleDate}
+                                    onChange={setSaleDate}
+                                    max={toDateValue()}
+                                    className="w-full"
+                                />
                             </div>
                             <div className="md:col-span-7 flex flex-col justify-end">
                                 <label className={labelClasses}>Cliente Selecionado*</label>
@@ -690,7 +688,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                             <button onClick={props.onCancel} className="h-10 sm:h-12 px-4 sm:px-8 bg-red-100 text-red-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-red-200 transition-all">Sair</button>
                             <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0 || isSaving} className="h-10 sm:h-12 px-4 sm:px-8 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50">Pendente</button>
                         </div>
-                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01 || isSaving} className="h-12 sm:h-12 px-8 sm:px-14 bg-slate-800 text-white rounded-xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-lg hover:bg-slate-700 transition-all disabled:bg-gray-200 flex items-center justify-center gap-2">
+                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01 || isSaving} className="h-12 sm:h-12 px-8 sm:px-14 bg-success text-white rounded-xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-lg hover:bg-success-dark transition-all disabled:bg-gray-200 flex items-center justify-center gap-2">
                             {isSaving ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

@@ -436,7 +436,11 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
     }, [receiptTerms, sale.warrantyTerm]);
 
     const handlePrint = () => {
-        window.print();
+        // Use a small timeout to ensure UI state is stable before printing, 
+        // which helps with mobile browsers triggers.
+        setTimeout(() => {
+            window.print();
+        }, 100);
     };
 
     const layoutProps = { sale, productMap, customer, salesperson, companyInfo, activeTerm, totalPaid, totalItems, totalFees, warranties };
@@ -469,20 +473,17 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             visibility: visible !important;
                         }
 
-                        /* Position print container absolute at top left of PAGE */
+                        /* Fix for print container on mobile */
                         #print-container {
-                            position: absolute !important;
-                            left: 0 !important;
-                            top: 0 !important;
+                            position: relative !important;
                             width: 100% !important;
                             margin: 0 !important;
                             padding: 0 !important;
                             background: white !important;
-                            
-                            /* Remove any potential shadows or borders */
                             box-shadow: none !important;
                             border: none !important;
                             border-radius: 0 !important;
+                            display: block !important;
                         }
 
                         /* Override specific elements inside if needed */
@@ -509,17 +510,18 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         ` : `
                             @page { 
                                 size: A4 portrait; 
-                                margin: 5mm 10mm; 
+                                margin: 8mm; /* Standard margin */
                             }
                             .receipt-body { 
-                                font-size: 9.5pt !important; 
+                                font-size: 10pt !important; /* Back to desktop scale */
                                 color: black !important; 
-                                width: 100% !important; 
-                                max-width: 100% !important;
-                                margin: 0 !important;
+                                width: 210mm !important; /* Force desktop width */
+                                max-width: 210mm !important;
+                                margin: 0 auto !important;
                                 padding: 0 !important;
                                 box-sizing: border-box !important;
                                 overflow: visible !important;
+                                min-height: auto !important;
                             }
                         `}
 

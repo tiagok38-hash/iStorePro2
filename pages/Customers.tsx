@@ -638,7 +638,7 @@ const CustomersAndSuppliers: React.FC = () => {
                         <select
                             value={birthdayFilter}
                             onChange={e => setBirthdayFilter(e.target.value)}
-                            className="appearance-none pl-8 pr-8 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-secondary focus:outline-none focus:ring-0 h-9 shadow-sm"
+                            className="appearance-none px-3 pr-8 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-secondary focus:outline-none focus:ring-0 h-9 shadow-sm"
                         >
                             <option value="none">Aniversários</option>
                             <option value="dia">Hoje</option>

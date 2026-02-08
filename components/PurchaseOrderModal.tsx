@@ -26,7 +26,7 @@ interface PurchaseOrderModalProps {
 type CurrentItemType = Omit<PurchaseItem, 'id'> & { storage?: string, variations: ProductVariation[], barcode?: string };
 
 const emptyItem: CurrentItemType = {
-    productDetails: { brand: 'Apple', category: '', subCategory: '', model: '', color: '', condition: 'Novo', warranty: '1 ano', storageLocation: 'Loja' },
+    productDetails: { brand: 'Apple', category: '', subCategory: '', model: '', color: '', condition: 'Novo', warranty: '1 ano', storageLocation: 'Loja Santa Cruz' },
     barcode: '',
     quantity: 1,
     unitCost: 0,
@@ -213,7 +213,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     color: item.productDetails?.color || '',
                     condition: item.productDetails?.condition || 'Novo',
                     warranty: item.productDetails?.warranty || '1 ano',
-                    storageLocation: item.productDetails?.storageLocation || 'Loja',
+                    storageLocation: item.productDetails?.storageLocation || 'Loja Santa Cruz',
                 },
                 barcodes: itemAny.barcode ? [itemAny.barcode] : [],
                 quantity: Number(item.quantity || 0),
@@ -538,7 +538,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         color: item.productDetails?.color || '',
                         condition: item.productDetails?.condition || 'Novo',
                         warranty: item.productDetails?.warranty || '1 ano',
-                        storageLocation: item.productDetails?.storageLocation || 'Loja',
+                        storageLocation: item.productDetails?.storageLocation || 'Loja Santa Cruz',
                     },
                     barcodes: item.barcode ? [item.barcode] : [],
                     quantity: Number(item.quantity || 0),
@@ -655,7 +655,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         return gradeValues.filter(v => v.gradeId === currentGradeId);
     }, [gradeValues, currentGradeId]);
 
-    const inputClasses = "w-full p-2.5 border rounded-xl bg-transparent border-border focus:ring-2 focus:ring-success/20 focus:border-success text-sm h-11 transition-all outline-none";
+    const inputClasses = "w-full px-3 border rounded-xl bg-transparent border-border focus:ring-2 focus:ring-success/20 focus:border-success text-sm h-11 transition-all outline-none";
     const labelClasses = "block text-[11px] font-bold text-muted uppercase tracking-wider mb-1.5 ml-1";
 
     const renderStep1 = () => (
@@ -1041,7 +1041,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-100 pt-3 mt-2">
                     <div className="w-full sm:w-1/3">
                         <label className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1 block">Observações</label>
-                        <textarea name="observations" value={formData.observations || ''} onChange={handleFormChange} className={`${inputClasses} h-10 py-1.5`} placeholder="Notas..." />
+                        <textarea name="observations" value={formData.observations || ''} onChange={handleFormChange} className={`${inputClasses} h-20 py-2.5`} placeholder="Notas..." />
                     </div>
                     <div className="flex flex-col items-end gap-1 text-right">
                         <div className="flex gap-4 text-xs"><span className="text-muted">Subtotal:</span><span className="font-bold text-gray-700">{formatCurrency(subTotal)}</span></div>

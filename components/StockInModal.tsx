@@ -174,7 +174,7 @@ const StockInModal: React.FC<{
                 condition: item.productDetails.condition || 'Novo',
                 batteryHealth: 100,
                 warranty: item.productDetails.warranty || '1 ano',
-                storageLocation: item.productDetails.storageLocation || 'Loja',
+                storageLocation: item.productDetails.storageLocation || 'Loja Santa Cruz',
                 costPrice: item.unitCost,
                 additionalCostPrice: item.additionalUnitCost,
                 markup: null, salePrice: null, wholesalePrice: null,
@@ -338,7 +338,7 @@ const StockInModal: React.FC<{
         setDetails(newDetails);
     };
 
-    const inputClassesCompact = "w-full p-1.5 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm";
+    const inputClassesCompact = "w-full px-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm transition-all outline-none";
 
 
     const handleToggleMinimumStock = (checked: boolean) => {
@@ -540,7 +540,7 @@ const StockInModal: React.FC<{
         }
     };
 
-    const inputClasses = "w-full py-2 px-3 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm transition-all";
+    const inputClasses = "w-full px-3 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-11 transition-all outline-none";
 
     const renderBulkMode = () => (
         <>
@@ -573,7 +573,7 @@ const StockInModal: React.FC<{
                                     <select
                                         value={detail.condition}
                                         onChange={(e) => handleDetailChange(index, 'condition', e.target.value)}
-                                        className={`${inputClasses} h-10`}
+                                        className={`${inputClasses} h-11`}
                                     >
                                         {conditionOptions.length === 0 ? <option>Carregando...</option> : <>
                                             {detail.condition && !conditionOptions.some(c => c.name.toLowerCase() === detail.condition?.toLowerCase()) && <option value={detail.condition}>{detail.condition}</option>}
@@ -585,7 +585,7 @@ const StockInModal: React.FC<{
                                     <select
                                         value={detail.storageLocation}
                                         onChange={(e) => handleDetailChange(index, 'storageLocation', e.target.value)}
-                                        className={`${inputClasses} h-10`}
+                                        className={`${inputClasses} h-11`}
                                     >
                                         {locationOptions.length === 0 ? <option>Carregando...</option> : <>
                                             {detail.storageLocation && !locationOptions.some(l => l.name.toLowerCase() === detail.storageLocation?.toLowerCase()) && <option value={detail.storageLocation}>{detail.storageLocation}</option>}
@@ -598,7 +598,7 @@ const StockInModal: React.FC<{
                                     <select
                                         value={detail.warranty}
                                         onChange={(e) => handleDetailChange(index, 'warranty', e.target.value)}
-                                        className={`${inputClasses} h-10`}
+                                        className={`${inputClasses} h-11`}
                                     >
                                         {warrantyOptions.length === 0 ? <option>Carregando...</option> : <>
                                             {detail.warranty && !warrantyOptions.some(w => w.name.toLowerCase() === detail.warranty?.toLowerCase()) && <option value={detail.warranty}>{detail.warranty}</option>}
@@ -612,14 +612,14 @@ const StockInModal: React.FC<{
                                         step="0.01"
                                         value={detail.markup === null ? '' : detail.markup}
                                         onChange={e => handleDetailChange(index, 'markup', e.target.value)}
-                                        className={`${inputClasses} h-10 text-right`}
+                                        className={`${inputClasses} h-11 text-right`}
                                     />
                                 </td>
                                 <td className="p-3">
                                     <CurrencyInput
                                         value={detail.wholesalePrice}
                                         onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
-                                        className={`${inputClasses} h-10 text-orange-600`}
+                                        className={`${inputClasses} h-11 text-orange-600`}
                                         placeholder="Opcional"
                                     />
                                 </td>
@@ -627,7 +627,7 @@ const StockInModal: React.FC<{
                                     <CurrencyInput
                                         value={detail.salePrice}
                                         onChange={val => handleDetailChange(index, 'salePrice', val)}
-                                        className={`${inputClasses} h-10 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`}
+                                        className={`${inputClasses} h-11 ${errors[index] ? 'border-danger ring-1 ring-danger' : ''}`}
                                     />
                                 </td>
                             </tr>
@@ -766,7 +766,7 @@ const StockInModal: React.FC<{
                                                 value={detail.imei1}
                                                 onChange={e => handleDetailChange(index, 'imei1', e.target.value)}
                                                 onKeyDown={e => handleKeyDown(e, index, 'imei1')}
-                                                className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                className={`${inputClasses} h-11 w-full text-sm ${duplicateErrors[index]?.imei1 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                                 placeholder={isContinuousScanEnabled ? "Bipe..." : ""}
                                             />
                                         ) : (
@@ -781,7 +781,7 @@ const StockInModal: React.FC<{
                                                 value={detail.imei2}
                                                 onChange={e => handleDetailChange(index, 'imei2', e.target.value)}
                                                 onKeyDown={e => handleKeyDown(e, index, 'imei2')}
-                                                className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                className={`${inputClasses} h-11 w-full text-sm ${duplicateErrors[index]?.imei2 ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                             />
                                         ) : (
                                             <span className="text-muted text-center block">-</span>
@@ -795,7 +795,7 @@ const StockInModal: React.FC<{
                                                 value={detail.serialNumber}
                                                 onChange={e => handleDetailChange(index, 'serialNumber', e.target.value)}
                                                 onKeyDown={e => handleKeyDown(e, index, 'serialNumber')}
-                                                className={`${inputClasses} h-10 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
+                                                className={`${inputClasses} h-11 w-full text-sm ${duplicateErrors[index]?.serialNumber ? 'border-danger bg-red-50 ring-1 ring-danger' : ''} ${isContinuousScanEnabled ? 'focus:ring-2 focus:ring-yellow-500 font-mono transition-colors' : ''}`}
                                             />
                                         ) : (
                                             <span className="text-muted text-center block">-</span>

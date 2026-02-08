@@ -121,7 +121,7 @@ const DadosEmpresaTab: React.FC = () => {
         }
     };
 
-    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-10 disabled:bg-gray-100";
+    const inputClasses = "w-full px-3 py-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-10 disabled:bg-gray-100";
     const labelClasses = "block text-sm font-medium text-primary mb-1";
 
     if (loading) return <div className="flex justify-center items-center p-8"><SpinnerIcon /></div>;
@@ -814,7 +814,7 @@ const AuditoriaTab: React.FC = () => {
                     <span className="text-sm font-medium text-gray-600 mr-1">Período:</span>
                     <button
                         onClick={() => setPeriodFilter('last_hour')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${periodFilter === 'last_hour'
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${periodFilter === 'last_hour'
                             ? 'bg-primary text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
@@ -823,7 +823,7 @@ const AuditoriaTab: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setPeriodFilter('today')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${periodFilter === 'today'
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${periodFilter === 'today'
                             ? 'bg-primary text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
@@ -832,7 +832,7 @@ const AuditoriaTab: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setPeriodFilter('yesterday')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${periodFilter === 'yesterday'
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${periodFilter === 'yesterday'
                             ? 'bg-primary text-white shadow-md'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
@@ -1086,7 +1086,7 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-                <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow-xl p-6 w-full max-w-sm">
+                <form onSubmit={handleSubmit} className="bg-surface rounded-xl shadow-xl p-6 w-full max-w-sm">
                     <h3 className="font-bold text-lg mb-4">{item?.id ? 'Editar' : 'Novo'} Item</h3>
                     {fields.map(field => (
                         <div key={String(field.name)} className="mb-4">
@@ -1255,7 +1255,7 @@ const BackupRestauracaoTab: React.FC = () => {
                         <button
                             onClick={handleBackup}
                             disabled={isBackingUp || isRestoring || !permissions?.canManageBackups}
-                            className={`w-full flex items-center justify-center gap-2 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-opacity-90 disabled:opacity-50 transition-all ${!permissions?.canManageBackups ? 'cursor-not-allowed opacity-50' : ''}`}
+                            className={`w-full flex items-center justify-center gap-2 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-opacity-90 disabled:opacity-50 transition-all ${!permissions?.canManageBackups ? 'cursor-not-allowed opacity-50' : ''}`}
                         >
                             {isBackingUp ? <SpinnerIcon className="h-5 w-5" /> : <><ArchiveBoxIcon className="h-5 w-5" /> Baixar Backup</>}
                         </button>
@@ -1283,14 +1283,14 @@ const BackupRestauracaoTab: React.FC = () => {
                         <button
                             onClick={handleRestoreClick}
                             disabled={isBackingUp || isRestoring || !permissions?.canManageBackups}
-                            className={`w-full flex items-center justify-center gap-2 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-all shadow-sm ${!permissions?.canManageBackups ? 'cursor-not-allowed opacity-50' : ''}`}
+                            className={`w-full flex items-center justify-center gap-2 py-3 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 disabled:opacity-50 transition-all shadow-sm ${!permissions?.canManageBackups ? 'cursor-not-allowed opacity-50' : ''}`}
                         >
                             {isRestoring ? <SpinnerIcon className="h-5 w-5" /> : <><DocumentArrowUpIcon className="h-5 w-5" /> Importar e Restaurar</>}
                         </button>
                     </div>
                 </div>
 
-                <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
+                <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
                     <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5" />
                     <div className="text-xs text-blue-800 space-y-1">
                         <p className="font-bold">Informações Importantes:</p>
@@ -1507,7 +1507,7 @@ const MeiosDePagamentoTab: React.FC = () => {
                     </div>
                 ))}
                 {paymentMethods.length === 0 && (
-                    <div className="p-8 text-center text-muted border border-dashed rounded-lg bg-gray-50">Nenhum meio de pagamento cadastrado.</div>
+                    <div className="p-8 text-center text-muted border border-dashed rounded-xl bg-gray-50">Nenhum meio de pagamento cadastrado.</div>
                 )}
             </div>
 
@@ -1908,7 +1908,7 @@ const PhotoOptionsModal: React.FC<{
                         Fazer Upload
                     </button>
                     {hasPhoto && (
-                        <button onClick={onRemovePhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-lg border border-danger/10 text-danger hover:bg-danger/5 transition-all font-medium">
+                        <button onClick={onRemovePhoto} className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border border-danger/10 text-danger hover:bg-danger/5 transition-all font-medium">
                             <TrashIcon className="h-6 w-6" />
                             Remover Foto
                         </button>

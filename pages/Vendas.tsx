@@ -636,7 +636,7 @@ const Vendas: React.FC = () => {
                         <select
                             value={sellerFilter}
                             onChange={e => setSellerFilter(e.target.value)}
-                            className="flex-1 sm:flex-none p-1.5 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[120px]"
+                            className="flex-1 sm:flex-none px-3 py-1.5 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[120px]"
                         >
                             <option value="todos">Vendedores</option>
                             {sellerUsers.map(user => (
@@ -645,8 +645,8 @@ const Vendas: React.FC = () => {
                         </select>
                         <select
                             value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value)}
-                            className="flex-1 sm:flex-none p-1.5 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[100px]"
+                            onChange={e => setStatusFilter(e.target.value as any)}
+                            className="flex-1 sm:flex-none px-3 py-1.5 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[120px]"
                         >
                             <option value="todos">Status</option>
                             <option value="Finalizada">Finalizada</option>
@@ -695,16 +695,16 @@ const Vendas: React.FC = () => {
                             <table className="w-full text-sm">
                                 <thead className="text-left text-xs text-muted bg-gray-50/50 uppercase border-b border-white/20">
                                     <tr>
-                                        <th className="p-2 sm:p-3">ID</th>
-                                        <th className="p-2 sm:p-3">Data</th>
-                                        <th className="p-2 sm:p-3 hidden sm:table-cell">Vendedor</th>
-                                        <th className="p-2 sm:p-3">Cliente</th>
-                                        <th className="p-2 sm:p-3">Status</th>
-                                        <th className="p-2 sm:p-3 hidden md:table-cell">Origem</th>
-                                        <th className="p-2 sm:p-3">Total</th>
-                                        <th className="p-2 sm:p-3 hidden lg:table-cell">Taxas</th>
-                                        <th className="p-2 sm:p-3">Lucro</th>
-                                        <th className="p-2 sm:p-3 text-center">Ações</th>
+                                        <th className="px-6 py-4">ID</th>
+                                        <th className="px-6 py-4">Data</th>
+                                        <th className="px-6 py-4 hidden sm:table-cell">Vendedor</th>
+                                        <th className="px-6 py-4">Cliente</th>
+                                        <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4 hidden md:table-cell">Origem</th>
+                                        <th className="px-6 py-4">Total</th>
+                                        <th className="px-6 py-4 hidden lg:table-cell">Taxas</th>
+                                        <th className="px-6 py-4">Lucro</th>
+                                        <th className="px-6 py-4 text-center">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -720,13 +720,13 @@ const Vendas: React.FC = () => {
                                         const profit = revenue - cost;
                                         return (
                                             <tr key={sale.id} className="border-b border-white/10 hover:bg-white/30 text-xs sm:text-sm transition-colors duration-150">
-                                                <td className="p-2 sm:p-3 font-bold text-primary">{sale.id}</td>
-                                                <td className="p-2 sm:p-3 text-muted">
+                                                <td className="px-6 py-4 font-bold text-primary">{sale.id}</td>
+                                                <td className="px-6 py-4 text-muted">
                                                     <div className="font-medium">{new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                                                     <div className="text-[10px] opacity-70">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
                                                 </td>
-                                                <td className="p-2 sm:p-3 text-primary hidden sm:table-cell">{userMap[sale.salespersonId]?.name?.split(' ')[0] || 'N/A'}</td>
-                                                <td className="p-2 sm:p-3">
+                                                <td className="px-6 py-4 text-primary hidden sm:table-cell">{userMap[sale.salespersonId]?.name?.split(' ')[0] || 'N/A'}</td>
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-primary font-black sm:font-bold truncate max-w-[150px] sm:max-w-none text-[13px] sm:text-sm">{customerMap[sale.customerId]?.name || 'N/A'}</span>
                                                         {customerMap[sale.customerId]?.phone && (
@@ -743,7 +743,7 @@ const Vendas: React.FC = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="p-2 sm:p-3">
+                                                <td className="px-6 py-4">
                                                     <div className="flex gap-1 flex-wrap">
                                                         {getStatusBadge(sale.status)}
                                                         {/* Only show Promissória tag if sale is NOT cancelled */}
@@ -752,17 +752,17 @@ const Vendas: React.FC = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="p-2 sm:p-3 text-primary font-bold hidden md:table-cell">
+                                                <td className="px-6 py-4 text-primary font-bold hidden md:table-cell">
                                                     {(() => {
                                                         if (sale.origin === 'Balcão') return 'Vendas';
                                                         if (sale.origin === 'PDV' && !sale.cashSessionDisplayId && !sale.cashSessionId) return 'Vendas';
                                                         return sale.origin;
                                                     })()}
                                                 </td>
-                                                <td className="p-2 sm:p-3 font-bold text-primary">{formatCurrency(sale.total)}</td>
-                                                <td className="p-2 sm:p-3 text-muted hidden lg:table-cell">{formatCurrency(sale.payments.reduce((acc, p) => acc + (p.fees || 0), 0))}</td>
-                                                <td className={`p-2 sm:p-3 font-bold ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
-                                                <td className="p-2 sm:p-3">
+                                                <td className="px-6 py-4 font-bold text-primary">{formatCurrency(sale.total)}</td>
+                                                <td className="px-6 py-4 text-muted hidden lg:table-cell">{formatCurrency(sale.payments.reduce((acc, p) => acc + (p.fees || 0), 0))}</td>
+                                                <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
+                                                <td className="px-6 py-4">
                                                     <div className="flex justify-center">
                                                         <SaleActionsDropdown
                                                             permissions={permissions}
