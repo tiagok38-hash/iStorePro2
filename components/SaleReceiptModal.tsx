@@ -77,7 +77,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
     };
 
     return (
-        <div className="font-sans text-black receipt-body flex flex-col bg-white" id="receipt-content" style={{ width: '100%', maxWidth: '210mm', margin: '0 auto' }}>
+        <div className="font-sans text-black receipt-body flex flex-col bg-white" id="receipt-content">
             <div className="flex-1">
                 {/* Company Header - Logo bigger */}
                 <header className="flex justify-between items-start pb-1.5 border-b border-black">
@@ -450,8 +450,11 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         html, body {
                             margin: 0 !important;
                             padding: 0 !important;
-                            height: 100% !important;
-                            overflow: hidden !important;
+                            height: auto !important;
+                            min-height: 100% !important;
+                            width: 100% !important;
+                            min-width: auto !important;
+                            overflow: visible !important;
                             background: white !important;
                         }
                         
@@ -506,15 +509,15 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         ` : `
                             @page { 
                                 size: A4 portrait; 
-                                margin: 0; /* Let .receipt-body handle margins */
+                                margin: 10mm; 
                             }
                             .receipt-body { 
                                 font-size: 10pt !important; 
                                 color: black !important; 
-                                width: 210mm !important; /* Force A4 Width */
-                                min-height: 297mm !important; /* Force A4 Height */
-                                margin: 0 auto !important;
-                                padding: 10mm 15mm !important;
+                                width: 100% !important; 
+                                max-width: 100% !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
                                 box-sizing: border-box !important;
                             }
                         `}
