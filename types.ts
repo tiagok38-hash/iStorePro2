@@ -236,6 +236,7 @@ export interface Payment {
         batteryHealth?: number;
         condition?: string;
     };
+    internalNote?: string;
 }
 
 
@@ -474,6 +475,7 @@ export interface PaymentMethodParameter {
     name: string;
     type: PaymentMethodCategory;
     active: boolean;
+    allowInternalNotes?: boolean;
     config?: CardConfigData;
 }
 

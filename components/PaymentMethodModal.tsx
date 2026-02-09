@@ -145,6 +145,22 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, o
                             </div>
                         </div>
 
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-border">
+                            <div>
+                                <p className="font-bold text-sm text-primary">Habilitar Observação na Venda</p>
+                                <p className="text-xs text-muted">Permite anotar detalhes internos Curtos durante a venda.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={formData.allowInternalNotes || false}
+                                    onChange={e => setFormData(prev => ({ ...prev, allowInternalNotes: e.target.checked }))}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
                         {formData.type === 'card' && formData.config && (
                             <div className="mt-6 border-t border-border pt-4">
                                 <h4 className="font-bold text-base mb-3 text-primary">Taxas da Maquininha</h4>

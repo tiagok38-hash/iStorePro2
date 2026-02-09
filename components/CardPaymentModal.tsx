@@ -24,6 +24,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
     const [chargeAmount, setChargeAmount] = useState<number>(amountDue);
     const [feeType, setFeeType] = useState<'noInterest' | 'withInterest'>('withInterest');
     const [selectedInstallment, setSelectedInstallment] = useState<number>(1);
+    const [internalNote, setInternalNote] = useState<string>('');
 
     useEffect(() => {
         if (isOpen) {
@@ -42,6 +43,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
             setChargeAmount(amountDue > 0 ? amountDue : 0);
             setFeeType('withInterest');
             setSelectedInstallment(1);
+            setInternalNote('');
         }
     }, [isOpen, amountDue, initialTransactionType, initialMethodId]);
 
@@ -146,7 +148,8 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
             installments: calculations.installments,
             installmentsValue: calculations.installmentValue,
             feePercentage: calculations.feePercent,
-            fees: calculations.feeValue
+            fees: calculations.feeValue,
+            internalNote: internalNote
         };
 
         onConfirm({ payment, feeToAddToSale });
@@ -330,6 +333,21 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                                         });
                                 })()}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Observação Interna */}
+                    {selectedMethod?.allowInternalNotes && (
+                        <div className="space-y-1.5 pt-2">
+                            <label className="text-[9px] font-black text-blue-500 uppercase tracking-widest px-1">Anotação Interna (Opcional)</label>
+                            <input
+                                type="text"
+                                value={internalNote}
+                                onChange={e => setInternalNote(e.target.value)}
+                                className="w-full px-4 py-3 bg-blue-50 border-2 border-blue-100 rounded-xl font-bold text-sm text-blue-600 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-300 outline-none transition-all placeholder:text-blue-300"
+                                placeholder="Digite uma anotação curta..."
+                                maxLength={50}
+                            />
                         </div>
                     )}
                 </div>

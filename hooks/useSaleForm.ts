@@ -68,6 +68,7 @@ export const useSaleForm = ({
         method: PaymentMethodType | 'Cartão',
         amount: number,
         cardType?: 'Crédito' | 'Débito',
+        internalNote?: string,
     } | null>(null);
 
     const resetState = useCallback(() => {
@@ -303,7 +304,8 @@ export const useSaleForm = ({
             id: `pay-${Date.now()}`,
             method: method as PaymentMethodType,
             value: paymentInput.amount,
-            type: methodDef?.type
+            type: methodDef?.type,
+            internalNote: paymentInput.internalNote
         };
         setPayments(prev => [...prev, newPayment]);
         setPaymentInput(null);

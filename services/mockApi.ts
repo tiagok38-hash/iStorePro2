@@ -3594,14 +3594,15 @@ export const updateReceiptTerm = async (data: any, userId: string = 'system', us
 export const deleteReceiptTerm = (id: string, userId: string = 'system', userName: string = 'Sistema') => deleteItem('receipt_terms', id, 'receipt_terms', userId, userName);
 
 const serializePaymentMethod = (data: any) => {
-    const { type, active, config, ...rest } = data;
+    const { type, active, allowInternalNotes, config, ...rest } = data;
     const safeConfig = config || {};
     return {
         ...rest,
         config: {
             ...safeConfig,
             _meta_type: type || 'cash',
-            _meta_active: active !== undefined ? active : true
+            _meta_active: active !== undefined ? active : true,
+            _meta_allow_internal_notes: allowInternalNotes !== undefined ? allowInternalNotes : false
         }
     };
 };
@@ -3611,7 +3612,8 @@ const deserializePaymentMethod = (data: any) => {
     return {
         ...data,
         type: data.config?._meta_type || 'cash',
-        active: data.config?._meta_active !== undefined ? data.config._meta_active : true
+        active: data.config?._meta_active !== undefined ? data.config._meta_active : true,
+        allowInternalNotes: data.config?._meta_allow_internal_notes !== undefined ? data.config._meta_allow_internal_notes : false
     };
 };
 

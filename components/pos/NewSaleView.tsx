@@ -617,8 +617,20 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 <label className="text-[9px] font-bold text-success-dark mb-1 block">Valor ({paymentInput.method})</label>
                                                 <CurrencyInput value={paymentInput.amount} onChange={v => setPaymentInput(p => p ? { ...p, amount: v || 0 } : null)} />
                                             </div>
-                                            <button onClick={handleConfirmPayment} className="px-3 h-9 bg-success text-white rounded font-bold shadow-sm text-xs">OK</button>
-                                            <button onClick={() => setPaymentInput(null)} className="px-3 h-9 bg-white text-gray-500 rounded font-bold border border-gray-200 text-xs">X</button>
+                                            {paymentMethods.find(m => m.name === paymentInput.method)?.allowInternalNotes && (
+                                                <div className="flex-grow">
+                                                    <label className="text-[9px] font-bold text-success-dark mb-1 block">Obs. Interna (Opcional)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={paymentInput.internalNote || ''}
+                                                        onChange={e => setPaymentInput(p => p ? { ...p, internalNote: e.target.value } : null)}
+                                                        className="w-full h-10 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:ring-4 focus:ring-success/10 outline-none transition-all"
+                                                        placeholder="Anotação..."
+                                                    />
+                                                </div>
+                                            )}
+                                            <button onClick={handleConfirmPayment} className="px-3 h-10 bg-success text-white rounded-xl font-bold shadow-sm text-xs">OK</button>
+                                            <button onClick={() => setPaymentInput(null)} className="px-3 h-10 bg-white text-gray-500 rounded-xl font-bold border border-gray-200 text-xs">X</button>
                                         </div>
                                     )}
 
@@ -635,7 +647,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 {payments.map(p => (
                                                     <tr key={p.id}>
                                                         <td className="px-3 py-1.5">
-                                                            <div className="font-bold text-gray-700">{p.card || p.method}</div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="font-bold text-gray-700">{p.card || p.method}</div>
+                                                                {p.internalNote && <span className="text-[10px] text-blue-500 font-bold bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100/50 truncate max-w-[120px]" title={p.internalNote}>{p.internalNote}</span>}
+                                                            </div>
                                                             {/* Card payment details: installments and fee */}
                                                             {p.installments && p.installments > 0 && (
                                                                 <div className="text-[10px] text-gray-500 font-medium mt-0.5">
