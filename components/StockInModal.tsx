@@ -549,15 +549,15 @@ const StockInModal: React.FC<{
                 <table className="w-full text-sm min-w-[1000px]">
                     <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0 z-10">
                         <tr>
-                            <th className="pl-3 py-3 min-w-[200px]">Descrição</th>
+                            <th className="pl-3 py-3 min-w-[360px]">Descrição</th>
                             <th className="pl-3 py-3 w-20 text-center">Qtd.</th>
                             <th className="pl-3 py-3 min-w-[120px]">Condição</th>
                             <th className="pl-3 py-3 min-w-[130px]">Local</th>
                             <th className="pl-3 py-3 w-32">P. Custo</th>
                             <th className="pl-3 py-3 w-32">Garantia</th>
                             <th className="pl-3 py-3 w-24 text-center">Mkp %</th>
-                            <th className="pl-3 py-3 w-40">P. Atacado</th>
-                            <th className="pl-3 py-3 w-40">P. Venda</th>
+                            <th className="pl-3 py-3 w-20">P. Atacado</th>
+                            <th className="pl-3 py-3 w-20">P. Venda</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -734,17 +734,17 @@ const StockInModal: React.FC<{
                             <tr>
                                 <th className="pl-3 py-3 w-[170px] font-bold text-left">Descrição</th>
                                 <th className="pl-3 py-3 w-[50px] font-bold text-center">Qtd</th>
-                                <th className="pl-3 py-3 w-[130px] font-bold text-left">IMEI 1</th>
-                                <th className="pl-3 py-3 w-[130px] font-bold text-left">IMEI 2</th>
-                                <th className="pl-3 py-3 w-[130px] font-bold text-left">S/N</th>
+                                <th className="pl-3 py-3 w-[170px] font-bold text-left">IMEI 1</th>
+                                <th className="pl-3 py-3 w-[170px] font-bold text-left">IMEI 2</th>
+                                <th className="pl-3 py-3 w-[170px] font-bold text-left">S/N</th>
                                 <th className="pl-3 py-3 w-[110px] font-bold text-left">Condição</th>
                                 <th className="pl-3 py-3 w-[90px] font-bold text-left">Garantia</th>
                                 {hasAppleItems && <th className="pl-3 py-3 w-[60px] font-bold text-left">Bat %</th>}
                                 <th className="pl-3 py-3 w-[100px] font-bold text-left">Local</th>
                                 <th className="pl-3 py-3 w-[70px] font-bold text-left">Custo</th>
                                 <th className="pl-3 py-3 w-[70px] font-bold text-left">MKP%</th>
-                                <th className="pl-3 py-3 w-[120px] font-bold text-left">Atacado</th>
-                                <th className="pl-3 py-3 w-[120px] font-bold text-left">Venda</th>
+                                <th className="pl-3 py-3 w-[60px] font-bold text-left">Atacado</th>
+                                <th className="pl-3 py-3 w-[60px] font-bold text-left">Venda</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -839,8 +839,8 @@ const StockInModal: React.FC<{
                                             placeholder="%"
                                         />
                                     </td>
-                                    <td className="pl-3 py-1"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className="text-orange-600" placeholder="Opcional" /></td>
-                                    <td className="pl-3 py-1"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={errors[index] ? '!border-danger !ring-1 !ring-danger' : ''} /></td>
+                                    <td className="px-1 py-1"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className="text-orange-600 !text-xs" placeholder="---" /></td>
+                                    <td className="px-1 py-1"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${errors[index] ? '!border-danger !ring-1 !ring-danger' : ''} !text-xs`} /></td>
                                 </tr>
                             ))}
                         </tbody>
