@@ -1474,9 +1474,13 @@ const MeiosDePagamentoTab: React.FC = () => {
                     <h4 className="text-lg md:text-xl font-bold text-primary">Meios de Pagamentos</h4>
                 </div>
                 {permissions?.canManagePaymentMethods && (
-                    <button onClick={() => setEditingMethod({ active: true, type: 'cash' })} className="px-3 py-2 md:px-4 md:py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800 flex items-center gap-2">
+                    <Button
+                        onClick={() => setEditingMethod({ active: true, type: 'cash' })}
+                        icon={<PlusIcon className="h-4 w-4" />}
+                        className="bg-gray-900"
+                    >
                         Cadastrar
-                    </button>
+                    </Button>
                 )}
             </div>
 
