@@ -1415,6 +1415,7 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
                     query = query.lte('date', endDate);
                 }
             }
+            query = query.neq('status', 'Rascunho');
 
             // ROBUSTNESS: Always limit to last 1000 sales to prevent memory overflows.
             // For historical data beyond this, specialized reports should be used.

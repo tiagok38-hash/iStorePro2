@@ -440,6 +440,8 @@ const Vendas: React.FC = () => {
                 statusMatch = statusMatch && sale.status !== 'Cancelada';
             }
 
+            if (sale.status === 'Rascunho') return false;
+
             return dateMatch && sellerMatch && statusMatch && customerMatch;
         });
     }, [sales, startDate, endDate, sellerFilter, statusFilter, customerSearch, customerMap]);

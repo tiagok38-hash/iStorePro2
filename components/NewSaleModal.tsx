@@ -27,19 +27,8 @@ interface NewSaleModalProps {
 }
 
 import { createPortal } from 'react-dom';
-import { getNextSaleId } from '../services/mockApi.ts';
 
 const NewSaleModal: React.FC<NewSaleModalProps> = (props) => {
-    const [nextId, setNextId] = React.useState<string | null>(null);
-
-    React.useEffect(() => {
-        if (!props.saleToEdit && props.isOpen) {
-            getNextSaleId().then(setNextId);
-        } else {
-            setNextId(null);
-        }
-    }, [props.saleToEdit, props.isOpen]);
-
     if (!props.isOpen) return null;
 
     return createPortal(
@@ -47,7 +36,7 @@ const NewSaleModal: React.FC<NewSaleModalProps> = (props) => {
             <div className="bg-white rounded-none lg:rounded-2xl shadow-2xl w-full max-w-6xl h-[100dvh] lg:h-auto lg:max-h-[95vh] flex flex-col relative animate-scale-in">
                 <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
                     <h2 className="text-xl font-bold text-gray-800">
-                        {props.saleToEdit ? `Editar Venda #${props.saleToEdit.id}` : (nextId ? `Nova Venda #${nextId.replace('ID-', '')}` : 'Nova Venda')}
+                        {props.saleToEdit ? `Editar Venda #${props.saleToEdit.id}` : "Nova Venda"}
                     </h2>
                     <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><CloseIcon className="h-6 w-6 text-gray-500" /></button>
                 </div>

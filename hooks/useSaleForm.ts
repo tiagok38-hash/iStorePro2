@@ -129,6 +129,15 @@ export const useSaleForm = ({
         }
     }, [reservedId, saleToEdit]);
 
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (reservedId && !saleToEdit) {
+                cancelSaleReservation(reservedId);
+            }
+        };
+    }, [reservedId, saleToEdit]);
+
     useEffect(() => { setLocalSuppliers(suppliers); }, [suppliers]);
 
     const subtotal = useMemo(() => cart.reduce((total, item) => total + (item.salePrice || 0) * (item.quantity || 0), 0), [cart]);
@@ -513,6 +522,7 @@ export const useSaleForm = ({
                 showToast(`Venda #${savedSale.id} finalizada com sucesso!`, 'success');
             }
 
+            setReservedId(null);
             onSaleSaved(savedSale);
 
         } catch (error: any) {
