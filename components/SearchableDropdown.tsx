@@ -114,7 +114,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
                     value={searchTerm}
                     onChange={handleInputChange}
                     onFocus={handleFocus}
-                    className={`w-full p-2.5 pl-10 pr-10 border rounded-xl bg-white border-gray-300 focus:ring-2 focus:ring-success/20 focus:border-success text-sm h-full transition-all outline-none font-bold text-gray-800 shadow-sm ${selectedOption && !searchTerm ? 'placeholder:text-gray-800' : 'placeholder:text-gray-400'} ${className}`}
+                    className={`w-full p-2.5 pl-10 pr-10 border rounded-lg bg-white border-gray-300 focus:ring-2 focus:ring-success/20 focus:border-success text-sm h-full transition-all outline-none font-bold text-gray-800 shadow-sm ${selectedOption && !searchTerm ? 'placeholder:text-gray-800' : 'placeholder:text-gray-400'} ${className}`}
                 />
                 {(value || searchTerm) && (
                     <button
@@ -130,7 +130,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
             {showDropdown && createPortal(
                 <div
                     ref={dropdownRef}
-                    className="bg-white border border-border rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] max-h-64 overflow-y-auto custom-scrollbar animate-scale-in"
+                    className="bg-white border border-border rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.25)] max-h-64 overflow-y-auto custom-scrollbar animate-scale-in"
                     style={{ ...dropdownStyles, zIndex: 9999999 }}
                 >
                     <ul className="py-1.5">

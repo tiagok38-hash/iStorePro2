@@ -57,7 +57,7 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({ value, onChange, placehol
 
     return (
         <div className={`
-            flex items-center w-full h-11 bg-white border border-gray-200 rounded-lg transition-all overflow-hidden
+            flex items-center w-full h-11 bg-white border border-gray-300 rounded-lg transition-all overflow-hidden
             focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary
             ${disabled ? 'bg-gray-50 opacity-60' : ''}
             ${cleanClassName}
@@ -73,11 +73,12 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({ value, onChange, placehol
                 onChange={handleChange}
                 placeholder={placeholder}
                 className={`
-                    flex-1 !border-0 !outline-none !shadow-none !bg-transparent !p-0 h-full text-sm font-bold text-gray-800 appearance-none
+                    flex-1 !border-none !outline-none !shadow-none !bg-transparent !p-0 h-full text-sm font-bold text-gray-800 appearance-none
+                    focus:!ring-0 focus:!border-none focus:!outline-none
                     ${showPrefix ? 'ml-1' : 'ml-3'} mr-3
                     ${disabled ? 'cursor-not-allowed' : ''}
                 `}
-                style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                style={{ border: 'none', outline: 'none', boxShadow: 'none', padding: 0 }}
                 disabled={disabled}
                 data-testid="unit-price-input"
             />

@@ -651,7 +651,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         return gradeValues.filter(v => v.gradeId === currentGradeId);
     }, [gradeValues, currentGradeId]);
 
-    const inputClasses = "w-full px-3 border rounded-lg bg-white border-gray-200 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary text-sm h-11 transition-all outline-none";
+    const inputClasses = "w-full px-3 border rounded-lg bg-white border-gray-300 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary text-sm h-11 transition-all outline-none";
     const labelClasses = "block text-[11px] font-bold text-muted uppercase tracking-wider mb-1.5";
 
     const renderStep1 = () => (
@@ -697,7 +697,6 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                 <CurrencyInput
                                     value={formData.dollarRate}
                                     onChange={(v) => setFormData(prev => ({ ...prev, dollarRate: v || 0 }))}
-                                    className={`${inputClasses} w-full h-11 text-xs`}
                                 />
                             </div>
                             <div className="flex flex-col">
@@ -706,7 +705,6 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                     <CurrencyInput
                                         value={formData.shippingCost}
                                         onChange={(v) => setFormData(prev => ({ ...prev, shippingCost: v || 0 }))}
-                                        className={`${inputClasses} flex-1 h-full text-xs`}
                                         showPrefix={false}
                                     />
                                     <select
@@ -1061,7 +1059,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                 <CurrencyInput
                                     value={formData.additionalCost}
                                     onChange={v => setFormData(p => ({ ...p, additionalCost: v || 0 }))}
-                                    className="w-24 p-1 border-b border-gray-200 text-right text-xs bg-transparent outline-none focus:border-accent"
+                                    className="w-24 border-0"
                                 />
                             )}
                         </div>

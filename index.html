@@ -186,16 +186,20 @@
       padding-left: 0.75rem !important;
     }
 
-    /* Form Elements - Forced visibility */
+    /* Form Elements - Default Styles (Non-intrusive) */
     input:not([type="checkbox"]):not([type="radio"]),
     select,
     textarea {
       transition: all 0.2s ease;
-      background-color: rgba(255, 255, 255, 0.7) !important;
-      border: 1px solid rgba(123, 97, 255, 0.18) !important;
-      /* Lilás mais suave e borda mais fina */
-      border-radius: 16px !important;
+      background-color: #ffffff;
+      border: 1px solid #d1d5db;
+      /* gray-300 - Standard border */
+      border-radius: 8px;
+      /* rounded-lg - Standard radius */
       color: rgb(var(--color-primary));
+      font-size: 0.875rem;
+      /* text-sm */
+      outline: none;
     }
 
     /* Mandatory / Required fields markup */
@@ -206,28 +210,25 @@
     .border-red-500,
     .border-red-400,
     .border-danger {
-      border-color: rgba(255, 107, 107, 0.6) !important;
-      /* Vermelho suave/claro para obrigatórios/erros */
-      background-color: rgba(255, 250, 250, 0.8) !important;
+      border-color: rgba(255, 107, 107, 0.4);
+      background-color: rgba(255, 250, 250, 0.5);
     }
 
     input:focus,
     select:focus,
     textarea:focus {
-      outline: none !important;
-      background-color: rgba(255, 255, 255, 1) !important;
-      box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.15) !important;
-      border-color: #7B61FF !important;
-      /* Foco sempre lilás forte */
+      outline: none;
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.1);
+      border-color: #7B61FF;
     }
 
-    /* Keep red border on focus if it's an error/required but user clicked it */
+    /* Keep red border on focus if it's an error/required */
     input:required:focus,
     select:required:focus,
     .border-red-500:focus {
-      border-color: #FF5252 !important;
-      /* Vermelho um pouco mais vivo no foco */
-      box-shadow: 0 0 0 4px rgba(255, 82, 82, 0.1) !important;
+      border-color: #FF5252;
+      box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.1);
     }
 
     input::placeholder {
