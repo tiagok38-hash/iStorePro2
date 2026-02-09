@@ -695,12 +695,20 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 <div className="p-2 md:p-4 bg-gray-50/30 border-t border-white/20 space-y-3 sm:space-y-4">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         <div className="flex flex-col col-span-2 md:col-span-1">
-                            <label className={labelClasses}>Garantia</label>
+                            <label className={labelClasses}>Garantia*</label>
                             <div className="relative">
-                                <select value={warrantyTerm} onChange={e => setWarrantyTerm(e.target.value)} className="w-full pl-4 pr-10 border rounded-xl bg-white border-gray-300 text-sm h-10 sm:h-12 focus:ring-2 focus:ring-success/20 outline-none transition-all font-bold text-gray-800 shadow-sm appearance-none">
+                                <select
+                                    value={warrantyTerm}
+                                    onChange={e => setWarrantyTerm(e.target.value)}
+                                    className={`w-full pl-4 pr-10 border rounded-xl text-sm h-10 sm:h-12 focus:ring-2 outline-none transition-all font-bold shadow-sm appearance-none ${!warrantyTerm
+                                        ? 'bg-red-50 border-red-300 ring-2 ring-red-100 text-red-600'
+                                        : 'bg-white border-gray-300 focus:ring-success/20 text-gray-800'
+                                        }`}
+                                >
+                                    <option value="">Selecione o comprovante...</option>
                                     {receiptTerms.map(term => (<option key={term.id} value={term.name}>{term.name}</option>))}
                                 </select>
-                                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                <ChevronDownIcon className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none ${!warrantyTerm ? 'text-red-400' : 'text-gray-400'}`} />
                             </div>
                         </div>
 
@@ -717,9 +725,9 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-gray-100 sm:border-0 sm:pt-0">
                         <div className="grid grid-cols-2 sm:flex gap-2">
                             <button onClick={props.onCancel} className="h-10 sm:h-12 px-4 sm:px-8 bg-red-100 text-red-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-red-200 transition-all">Sair</button>
-                            <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0 || isSaving} className="h-10 sm:h-12 px-4 sm:px-8 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50">Pendente</button>
+                            <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0 || !warrantyTerm || isSaving} className="h-10 sm:h-12 px-4 sm:px-8 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50">Pendente</button>
                         </div>
-                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01 || isSaving} className="h-12 sm:h-12 px-8 sm:px-14 bg-success text-white rounded-xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-lg hover:bg-success-dark transition-all disabled:bg-gray-200 flex items-center justify-center gap-2">
+                        <button onClick={() => handleSave('Finalizada')} disabled={cart.length === 0 || balance > 0.01 || !warrantyTerm || isSaving} className="h-12 sm:h-12 px-8 sm:px-14 bg-success text-white rounded-xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-lg hover:bg-success-dark transition-all disabled:bg-gray-200 flex items-center justify-center gap-2">
                             {isSaving ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

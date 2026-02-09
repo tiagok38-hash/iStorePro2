@@ -63,7 +63,7 @@ const TopBar: React.FC = () => {
                         </div>
                         <div className="flex flex-col items-end">
                             <span className="text-[9px] text-muted font-black uppercase tracking-widest leading-none mb-0.5">{dateStr}</span>
-                            <span className="text-xs font-black text-gray-700 font-mono leading-none tracking-tight">{timeStr}</span>
+                            <span className="text-xs font-black text-gray-700 leading-none tracking-tight">{timeStr}</span>
                         </div>
                     </div>
                 </div>

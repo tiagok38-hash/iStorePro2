@@ -82,21 +82,14 @@ export const useSaleForm = ({
         setGlobalDiscountValue(0);
         setCardFees(0);
         setPayments([]);
+        setWarrantyTerm(''); // Reset to empty - user must select
         setObservations('');
         setInternalObservations('');
         setPaymentInput(null);
         setProductForTradeIn(null);
         setPendingTradeInProduct(null);
         setSelectedPriceType('sale');
-
-        const storedTermName = localStorage.getItem('pos_default_warranty_term');
-        if (storedTermName) {
-            setWarrantyTerm(storedTermName);
-        } else {
-            const defaultTerm = receiptTerms.find(t => t.name === 'IPHONE SEMINOVO') || (receiptTerms.length > 0 ? receiptTerms[0] : null);
-            if (defaultTerm) setWarrantyTerm(defaultTerm.name);
-        }
-    }, [receiptTerms]);
+    }, []);
 
     useEffect(() => {
         if (!initializedRef.current) {
@@ -234,12 +227,8 @@ export const useSaleForm = ({
             showToast("Cliente não encontrado.", "error");
             return;
         }
-
-
-
         try {
             const supplier = await findOrCreateSupplierFromCustomer(customer);
-
             setLocalSuppliers(prev => {
                 if (!prev.some(s => s.id === supplier.id)) return [...prev, supplier];
                 return prev;
@@ -292,7 +281,6 @@ export const useSaleForm = ({
         }
 
         if (isTradeIn) {
-
             handleOpenTradeInModal();
         }
         else if (isCard) {
@@ -447,6 +435,12 @@ export const useSaleForm = ({
             return;
         }
 
+        // Warranty term is required for both finalized and pending sales
+        if (!warrantyTerm) {
+            showToast('Selecione um comprovante de venda (Garantia) para continuar.', 'error');
+            return;
+        }
+
         if (!isPending && balance > 0.01) {
             showToast('Liquide o saldo para finalizar a venda.', 'error');
             return;
@@ -485,14 +479,8 @@ export const useSaleForm = ({
                 savedSale = await addSale(baseSaleData as any, user?.id, user?.name);
             }
 
-
             if (pendingTradeInProduct && savedSale) {
                 const salesperson = users.find(u => u.id === selectedSalespersonId);
-
-                // Add explicit audit log to link product to sale for history visibility
-                // We don't call updateProduct here because it might overwrite the stock: 1 
-                // that addSale just set (since pendingTradeInProduct still has stock: 0 locally).
-                // The observations are already updated in addSale/updateSale logic or can be added there.
                 await addAuditLog(
                     AuditActionType.STOCK_LAUNCH,
                     AuditEntityType.PRODUCT,

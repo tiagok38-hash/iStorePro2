@@ -79,16 +79,16 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
     return (
         <div className="font-sans text-black receipt-body bg-white" id="receipt-content">
             <div className="flex-1">
-                {/* Company Header - Logo bigger */}
-                <header className="flex justify-between items-start pb-1.5 border-b border-black print:pb-0.5">
-                    <div className="flex items-center gap-4 print:gap-2">
-                        {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-20 w-20 object-contain print:h-14 print:w-14" />}
+                {/* Company Header - More compact */}
+                <header className="flex justify-between items-start pb-1 border-b border-black">
+                    <div className="flex items-center gap-2">
+                        {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt={companyInfo.name || ''} className="h-16 w-16 object-contain" />}
                         <div>
-                            <h1 className="font-bold text-xl leading-tight text-black">{companyInfo?.name}</h1>
-                            <p className="text-[10px] leading-tight">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
-                            <p className="text-[10px] leading-tight">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''} - {companyInfo?.bairro}</p>
-                            <p className="text-[10px] leading-tight">{companyInfo?.city} ({companyInfo?.state}) - CEP: {formatCEP(companyInfo?.cep)}</p>
-                            <p className="text-[10px] leading-tight">
+                            <h1 className="font-bold text-lg leading-tight text-black">{companyInfo?.name}</h1>
+                            <p className="text-[9px] leading-tight">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
+                            <p className="text-[9px] leading-tight">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''} - {companyInfo?.bairro}</p>
+                            <p className="text-[9px] leading-tight">{companyInfo?.city} ({companyInfo?.state}) - CEP: {formatCEP(companyInfo?.cep)}</p>
+                            <p className="text-[9px] leading-tight">
                                 {companyInfo?.whatsapp && <span>WhatsApp: {companyInfo.whatsapp} </span>}
                                 {companyInfo?.instagram && <span>Instagram: {companyInfo.instagram} </span>}
                                 {companyInfo?.email && <span>Email: {companyInfo.email}</span>}
@@ -96,14 +96,14 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                         </div>
                     </div>
                     {/* Receipt ID and Date on right side */}
-                    <div className="text-right text-[10px]">
-                        <p className="font-bold text-sm">Recibo #{sale.id}</p>
+                    <div className="text-right text-[9px]">
+                        <p className="font-bold text-base">Recibo #{sale.id}</p>
                         <p>{new Date(sale.date).toLocaleDateString('pt-BR')} às {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                 </header>
 
                 {/* Sale Info Row */}
-                <section className="flex justify-between items-start border-b border-black py-1.5 text-[10px] print:py-0.5 print:text-[9px]">
+                <section className="flex justify-between items-start border-b border-black py-1 text-[9px]">
                     <div className="flex gap-4">
                         <span><b>ID:</b> #{sale.id}</span>
                         <span><b>Caixa:</b> #{sale.posTerminal.replace(/\D/g, '') || 'N/A'}</span>
@@ -111,8 +111,8 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                     <span><b>Vendedor:</b> {salesperson?.name}</span>
                 </section>
 
-                {/* Customer Data - Larger font */}
-                <section className="py-1.5 border-b border-black text-[11px] print:py-0.5 print:text-[10px]">
+                {/* Customer Data */}
+                <section className="py-1 border-b border-black text-[10px]">
                     <div className="flex flex-wrap gap-x-6">
                         <span><b>Cliente:</b> {customer?.name}</span>
                         <span><b>CPF:</b> {customer?.cpf || '-'}</span>
@@ -120,20 +120,18 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                     </div>
                 </section>
 
-                {/* Observations moved to just above warranty section */}
-
                 {/* Title */}
-                <h2 className="font-bold text-center text-base my-2 print:my-0.5 print:text-sm">RECIBO DE VENDA</h2>
+                <h2 className="font-bold text-center text-sm my-1 uppercase">RECIBO DE VENDA</h2>
 
                 {/* Products Table - Full Width */}
-                <section className="rounded-xl overflow-hidden border border-black">
-                    <table className="w-full text-left border-collapse text-[10px]">
+                <div className="rounded-xl overflow-hidden border border-black">
+                    <table className="w-full text-left border-collapse text-[9px]">
                         <thead>
-                            <tr>
-                                <th className="px-1.5 py-1 font-semibold border border-black">Descrição</th>
-                                <th className="px-1.5 py-1 font-semibold border border-black text-center" style={{ width: '40px' }}>Qtd</th>
-                                <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Unit.</th>
-                                <th className="px-1.5 py-1 font-semibold border border-black text-right" style={{ width: '75px' }}>Total</th>
+                            <tr className="bg-gray-50">
+                                <th className="px-1.5 py-0.5 font-semibold border border-black">Descrição</th>
+                                <th className="px-1.5 py-0.5 font-semibold border border-black text-center" style={{ width: '40px' }}>Qtd</th>
+                                <th className="px-1.5 py-0.5 font-semibold border border-black text-right" style={{ width: '65px' }}>Unit.</th>
+                                <th className="px-1.5 py-0.5 font-semibold border border-black text-right" style={{ width: '65px' }}>Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -142,73 +140,58 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                                 const warrantyExp = getWarrantyExpiration(sale.date, product?.warranty || '', warranties);
                                 return (
                                     <tr key={item.productId}>
-                                        <td className="px-1.5 py-1 align-top border border-black">
-                                            <p className="font-semibold leading-tight text-[10px]">{`SKU:${product?.sku || ''} ${product?.model || 'Produto'}`}</p>
-                                            <div className="text-[9px] text-gray-600 leading-tight">
+                                        <td className="px-1.5 py-0.5 align-top border border-black">
+                                            <p className="font-semibold leading-tight">{`SKU:${product?.sku || ''} ${product?.model || 'Produto'}`}</p>
+                                            <div className="text-[8px] text-gray-600 leading-tight">
                                                 {product?.imei1 && <span>IMEI1: {product.imei1} </span>}
                                                 {product?.imei2 && <span>IMEI2: {product.imei2} </span>}
                                                 {product?.serialNumber && <span>S/N: {product.serialNumber} </span>}
                                                 <span>{product?.condition}</span>
                                             </div>
                                             {warrantyExp && (
-                                                <p className="text-[9px] text-gray-700 leading-tight">
+                                                <p className="text-[8px] text-gray-700 leading-tight">
                                                     Garantia até {warrantyExp}
                                                     {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Bat: ${product.batteryHealth}%` : ''}
                                                 </p>
                                             )}
                                         </td>
-                                        <td className="px-1.5 py-1 text-center align-top border border-black">{item.quantity}</td>
-                                        <td className="px-1.5 py-1 text-right align-top border border-black">{formatCurrency(item.unitPrice)}</td>
-                                        <td className="px-1.5 py-1 text-right font-semibold align-top border border-black">{formatCurrency(item.unitPrice * item.quantity)}</td>
+                                        <td className="px-1.5 py-0.5 text-center align-top border border-black">{item.quantity}</td>
+                                        <td className="px-1.5 py-0.5 text-right align-top border border-black">{formatCurrency(item.unitPrice)}</td>
+                                        <td className="px-1.5 py-0.5 text-right font-semibold align-top border border-black">{formatCurrency(item.unitPrice * item.quantity)}</td>
                                     </tr>
                                 );
                             })}
                         </tbody>
                     </table>
-                </section>
+                </div>
 
                 {/* Payment + Totals - Side by Side */}
-                <section className="mt-2 flex justify-between gap-3 text-[10px] print:mt-1 print:gap-2 print:text-[9px]">
+                <section className="mt-1 flex justify-between gap-2 text-[9px]">
                     {/* Payment Section - 58% width */}
-                    <div className="border border-black p-2 rounded-xl" style={{ width: '58%' }}>
-                        <p className="font-bold mb-1 text-[11px] border-b border-gray-300 pb-0.5">PAGAMENTO</p>
-                        <div className="space-y-1">
+                    <div className="border border-black p-1.5 rounded-xl" style={{ width: '58%' }}>
+                        <p className="font-bold mb-0.5 text-[10px] border-b border-gray-300">PAGAMENTO</p>
+                        <div className="space-y-0.5">
                             {sale.payments.map(p => {
-                                // Format payment line based on type
                                 let methodName = p.method;
                                 let detailsLine = '';
-                                // Calculate total value with fees: p.value + p.fees (or just p.value if fees are already included)
                                 const totalValueWithFees = p.value + (p.fees || 0);
                                 let valueText = formatCurrency(totalValueWithFees);
 
-                                // Credit card with installments: "12x de R$ 47,52 (12,31% de taxa - Juros: R$ 70,19)"
                                 if (p.installments && p.installments > 1) {
                                     const installmentValue = p.installmentsValue || totalValueWithFees / p.installments;
                                     detailsLine = `${p.installments}x de ${formatCurrency(installmentValue)}`;
-                                    if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
-                                        const feeAmount = p.fees || 0;
-                                        detailsLine += ` (${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
-                                    }
-                                }
-                                // Debit with fee: "(Taxa 2,00% - Juros: R$ 2,04)"
-                                else if (p.method?.toLowerCase().includes('débito') && p.feePercentage && p.feePercentage > 0) {
-                                    const feeAmount = p.fees || 0;
-                                    detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}% - Juros: ${formatCurrency(feeAmount)})`;
-                                }
-                                // Credit single payment with fee
-                                else if (p.feePercentage && p.feePercentage > 0 && p.type !== 'Sem Juros') {
+                                } else if (p.feePercentage && p.feePercentage > 0) {
                                     detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}%)`;
                                 }
 
                                 return (
-                                    <div key={p.id} className="flex justify-between items-start border-b border-dashed border-gray-200 pb-0.5 last:border-b-0">
+                                    <div key={p.id} className="flex justify-between items-start border-b border-dashed border-gray-100 pb-0.5 last:border-b-0">
                                         <div className="flex-1">
                                             <span className="font-medium">{methodName}</span>
-                                            {detailsLine && <span className="text-gray-600 ml-1 text-[9px]">{detailsLine}</span>}
+                                            {detailsLine && <span className="text-gray-600 ml-1 text-[8px]">{detailsLine}</span>}
                                             {p.tradeInDetails && (
-                                                <p className="text-[9px] text-gray-600 italic leading-tight">
+                                                <p className="text-[8px] text-gray-600 italic leading-tight">
                                                     Troca: {p.tradeInDetails.model}
-                                                    {p.tradeInDetails.imei1 ? ` IMEI: ${p.tradeInDetails.imei1}` : p.tradeInDetails.serialNumber ? ` SN: ${p.tradeInDetails.serialNumber}` : ''}
                                                 </p>
                                             )}
                                         </div>
@@ -220,54 +203,53 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                     </div>
 
                     {/* Totals Section - 40% width */}
-                    <div className="bg-white p-2 rounded-xl border border-black text-[10px]" style={{ width: '40%' }}>
-                        <div className="flex justify-between"><span className="font-semibold">ITENS</span><span>{totalItems}</span></div>
+                    <div className="bg-white p-1.5 rounded-xl border border-black text-[9px]" style={{ width: '40%' }}>
                         <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
-                        <div className="flex justify-between"><span className="font-semibold">TAXAS CARTÃO</span><span>{formatCurrency(totalFees)}</span></div>
-                        <div className="flex justify-between border-t border-black pt-1 mt-1"><span className="font-bold">TOTAL</span><span className="font-bold">{formatCurrency(totalFees > 0 ? sale.total + totalFees : sale.total)}</span></div>
+                        {totalFees > 0 && <div className="flex justify-between"><span className="font-semibold">TAXAS</span><span>{formatCurrency(totalFees)}</span></div>}
+                        <div className="flex justify-between border-t border-black pt-0.5 mt-0.5 font-bold text-[10px] font-black uppercase tracking-tight"><span>TOTAL</span><span>{formatCurrency(sale.total + totalFees)}</span></div>
                         {/* Highlighted PAGO section */}
-                        <div className="flex justify-between bg-black text-white px-2 py-1 rounded-xl mt-1 border-2 border-gray-800">
-                            <span className="font-black text-[12px]">PAGO</span>
-                            <span className="font-black text-[12px]">{formatCurrency(totalPaid)}</span>
+                        <div className="flex justify-between bg-black text-white px-1.5 py-0.5 rounded-lg mt-0.5 border-black">
+                            <span className="font-black text-[10px]">PAGO</span>
+                            <span className="font-black text-[10px]">{formatCurrency(totalPaid)}</span>
                         </div>
                     </div>
                 </section>
 
-                {/* Observations - just above warranty section */}
+                {/* Observations */}
                 {sale.observations && (
-                    <section className="mt-4 py-1.5 border border-black rounded-xl px-2 text-[10px] print:mt-1 print:py-0.5 print:text-[9px]">
+                    <section className="mt-1.5 py-1 border border-black rounded-lg px-1.5 text-[8px]">
                         <span className="font-bold">OBSERVAÇÕES:</span> {sale.observations}
                     </section>
                 )}
 
-                {/* Warranty Terms - More spacing, larger font */}
+                {/* Warranty Terms - Compact */}
                 {activeTerm && (
-                    <section className="mt-3 space-y-2 print:mt-1 print:space-y-0.5">
+                    <section className="mt-2 space-y-1">
                         {activeTerm.warrantyTerm?.showOnReceipt && activeTerm.warrantyTerm.content && (
                             <div>
-                                <h3 className="font-bold uppercase text-[11px] mb-1.5 print:text-[9px] print:mb-0.5">GARANTIA</h3>
-                                <p className="whitespace-pre-wrap text-justify text-[9px] leading-snug print:text-[8px] print:leading-tight">{activeTerm.warrantyTerm.content}</p>
+                                <h3 className="font-bold uppercase text-[9px] mb-0.5 border-b border-black">GARANTIA</h3>
+                                <p className="whitespace-pre-wrap text-justify text-[8px] leading-tight">{activeTerm.warrantyTerm.content}</p>
                             </div>
                         )}
                         {activeTerm.warrantyExclusions?.showOnReceipt && activeTerm.warrantyExclusions.content && (
-                            <div className="mt-1 print:mt-0.5">
-                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1 print:text-[9px] print:mb-0.5">A GARANTIA NÃO COBRE:</h3>
-                                <ul className="list-none space-y-0 text-[8px] leading-snug columns-2 print:text-[7px] print:leading-tight">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
+                            <div className="mt-1">
+                                <h3 className="font-bold uppercase border-b border-black text-[9px] mb-0.5">A GARANTIA NÃO COBRE:</h3>
+                                <ul className="list-none space-y-0 text-[7px] leading-tight columns-2">{renderExclusions(activeTerm.warrantyExclusions.content)}</ul>
                             </div>
                         )}
                         {activeTerm.imageRights?.showOnReceipt && activeTerm.imageRights.content && (
-                            <div className="mt-1 print:mt-0.5">
-                                <h3 className="font-bold uppercase border-b border-black text-[10px] mb-1 print:text-[9px] print:mb-0.5">DIREITO DE IMAGEM</h3>
-                                <p className="whitespace-pre-wrap text-justify text-[8px] leading-snug print:text-[7px] print:leading-tight">{activeTerm.imageRights.content}</p>
+                            <div className="mt-1">
+                                <h3 className="font-bold uppercase border-b border-black text-[9px] mb-0.5">DIREITO DE IMAGEM</h3>
+                                <p className="whitespace-pre-wrap text-justify text-[7px] leading-tight">{activeTerm.imageRights.content}</p>
                             </div>
                         )}
                     </section>
                 )}
             </div>
 
-            {/* System Promo Footer - Pushed to bottom with mt-auto */}
-            <div className="mt-auto pt-6 text-center print:pt-2" style={{ fontSize: '8px', color: '#9ca3af' }}>
+            {/* System Promo Footer */}
+            <div className="pt-4 text-center" style={{ fontSize: '7px', color: '#9ca3af' }}>
                 <p>iStore Pro - O melhor sistema para sua loja de eletronicos. Saiba mais em istorepro.com.br</p>
             </div>
         </div>
@@ -460,6 +442,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             min-width: auto !important;
                             overflow: visible !important;
                             background: white !important;
+                            font-size: 9pt !important;
                         }
                         
                         /* Hide everything by default */
@@ -475,7 +458,9 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
 
                         /* Fix for print container on mobile */
                         #print-container {
-                            position: relative !important;
+                            position: absolute !important;
+                            left: 0 !important;
+                            top: 0 !important;
                             width: 100% !important;
                             margin: 0 !important;
                             padding: 0 !important;
@@ -484,11 +469,12 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             border: none !important;
                             border-radius: 0 !important;
                             display: block !important;
+                            max-width: none !important;
                         }
 
                         /* Override specific elements inside if needed */
                         .print-content-wrapper {
-                            padding: 0 !important;
+                            padding: 4mm !important;
                             margin: 0 !important;
                             background: white !important;
                             box-shadow: none !important;
@@ -510,23 +496,59 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         ` : `
                             @page { 
                                 size: A4 portrait; 
-                                margin: 8mm; /* Standard margin */
+                                margin: 6mm 8mm;
                             }
-                             .receipt-body { 
-                                 font-size: 10pt !important; /* Back to desktop scale */
-                                 color: black !important; 
-                                 width: 100% !important; /* Use available printable width */
-                                 max-width: 100% !important;
-                                 margin: 0 auto !important;
-                                 padding: 0 !important;
-                                 box-sizing: border-box !important;
-                                 overflow: visible !important;
-                                 min-height: auto !important;
-                             }
+                            
+                            .receipt-body { 
+                                font-size: 8pt !important;
+                                color: black !important; 
+                                width: 100% !important;
+                                max-width: 100% !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                box-sizing: border-box !important;
+                                overflow: visible !important;
+                                min-height: auto !important;
+                                page-break-inside: avoid !important;
+                            }
+                            
+                            /* Reduce spacing for compact print */
+                            .receipt-body section {
+                                margin-top: 2mm !important;
+                                margin-bottom: 2mm !important;
+                            }
+                            
+                            .receipt-body table {
+                                font-size: 7pt !important;
+                            }
+                            
+                            .receipt-body h1 {
+                                font-size: 12pt !important;
+                            }
+                            
+                            .receipt-body h2 {
+                                font-size: 10pt !important;
+                                margin: 2mm 0 !important;
+                            }
+                            
+                            .receipt-body h3 {
+                                font-size: 8pt !important;
+                            }
+                            
+                            /* Compact header */
+                            .receipt-body header img {
+                                height: 12mm !important;
+                                width: 12mm !important;
+                            }
+                            
+                            /* Prevent page break inside important sections */
+                            .receipt-body > div {
+                                page-break-inside: avoid !important;
+                            }
                         `}
 
                         .whitespace-pre-wrap { white-space: pre-wrap; }
-                        .columns-2 { columns: 2; column-gap: 8px; }
+                        .columns-2 { columns: 2; column-gap: 6px; }
                         
                         /* Force print color adjust */
                         * {
@@ -558,7 +580,6 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             flex: none !important;
                             height: auto !important;
                             overflow: visible !important;
-                            padding: 0 !important;
                         }
 
                         /* Ensure PAGO section prints with dark background - HIGHEST SPECIFICITY */
@@ -569,6 +590,12 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             background-color: #000 !important;
                             background: #000 !important;
                             color: #fff !important;
+                        }
+                        
+                        /* Fix footer to not push content */
+                        .receipt-body .mt-auto {
+                            margin-top: 4mm !important;
+                            padding-top: 2mm !important;
                         }
                     }
                 `}

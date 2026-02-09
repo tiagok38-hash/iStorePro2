@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Product, Sale, Customer, User, ProductCondition, PurchaseOrder, Supplier, StockStatus, Brand, Category, ProductModel, Grade, GradeValue, FinancialStatus, PermissionSet } from '../types.ts';
+import { Product, Sale, Customer, User, ProductCondition, PurchaseOrder, Supplier, StockStatus, Brand, Category, ProductModel, Grade, GradeValue, FinancialStatus, PermissionSet, StorageLocationParameter } from '../types.ts';
 import {
     getProducts, addProduct, updateProduct, deleteProduct, getProductSalesHistory,
     getCustomers, getUsers, updateProductStock, updateMultipleProducts,
     getPurchaseOrders, getSuppliers, deletePurchaseOrder, updatePurchaseFinancialStatus, addSupplier,
     getBrands, getCategories, getProductModels, getGrades, getGradeValues, revertPurchaseLaunch,
     formatCurrency, findOrCreateSupplierFromCustomer,
-    getSales
+    getSales, getStorageLocations
 } from '../services/mockApi.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -172,6 +172,7 @@ const Products: React.FC = () => {
     const [grades, setGrades] = useState<Grade[]>([]);
     const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
+    const [storageLocations, setStorageLocations] = useState<StorageLocationParameter[]>([]);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isPriceListModalOpen, setIsPriceListModalOpen] = useState(false);
@@ -213,10 +214,10 @@ const Products: React.FC = () => {
             // 1. Fetch metadata (lighter requests)
             const [
                 usersData, suppliersData, brandsData, categoriesData,
-                modelsData, gradesData, gradeValuesData
+                modelsData, gradesData, gradeValuesData, storageLocationsData
             ] = await Promise.all([
                 getUsers(), getSuppliers(), getBrands(), getCategories(),
-                getProductModels(), getGrades(), getGradeValues()
+                getProductModels(), getGrades(), getGradeValues(), getStorageLocations()
             ]);
 
             setUsers(usersData);
@@ -226,6 +227,7 @@ const Products: React.FC = () => {
             setProductModels(modelsData);
             setGrades(gradesData);
             setGradeValues(gradeValuesData);
+            setStorageLocations(storageLocationsData || []);
 
             // 2. Fetch main data (heavier requests)
             // ROBUSTNESS: Apply safety limits and date filters where appropriate
@@ -750,20 +752,23 @@ const Products: React.FC = () => {
                     <div className="flex flex-wrap items-end gap-4 flex-grow">
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Status</label>
-                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border">
+                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
                                 <option>Todos</option><option>Em estoque</option><option>Sem estoque</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Condição</label>
-                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border">
+                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
                                 <option value="Todos">Todos</option><option>Novo</option><option>Seminovo</option><option>CPO</option><option>Openbox</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Local</label>
-                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border">
-                                <option value="Todos">Todos</option><option>Loja Santa Cruz</option><option>Caruaru</option>
+                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
+                                <option value="Todos">Todos</option>
+                                {storageLocations.map(loc => (
+                                    <option key={loc.id} value={loc.name}>{loc.name}</option>
+                                ))}
                             </select>
                         </div>
                         <div className="relative flex-grow min-w-[250px]">
@@ -778,7 +783,7 @@ const Products: React.FC = () => {
                             <select
                                 value={itemsPerPage}
                                 onChange={e => { setItemsPerPage(Number(e.target.value) as 15 | 20 | 30); setCurrentPage(1); }}
-                                className="h-10 px-3 border rounded-xl text-sm bg-transparent border-border"
+                                className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white"
                             >
                                 <option value={15}>15</option>
                                 <option value={20}>20</option>
@@ -1116,7 +1121,7 @@ const Products: React.FC = () => {
                                                 <td className="px-4 py-3">
                                                     <button
                                                         onClick={() => handleCopyLocatorId(p.locatorId)}
-                                                        className="text-blue-500 hover:text-blue-700 hover:underline font-mono"
+                                                        className="text-blue-500 hover:text-blue-700 hover:underline font-bold"
                                                         title="Copiar Localizador"
                                                     >
                                                         {p.locatorId}
