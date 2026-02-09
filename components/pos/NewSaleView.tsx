@@ -49,17 +49,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         grades, gradeValues, receiptTerms, paymentMethods, onAddNewCustomer
     } = props;
 
-    const [nextId, setNextId] = React.useState<string | null>(null);
     const [matchingUnits, setMatchingUnits] = React.useState<Product[]>([]);
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
-
-    React.useEffect(() => {
-        if (!props.saleToEdit) {
-            getNextSaleId().then(setNextId);
-        } else {
-            setNextId(null);
-        }
-    }, [props.saleToEdit]);
 
     const { state, actions, refs } = useSaleForm(props);
 
@@ -70,7 +61,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
         localSuppliers, isCardPaymentModalOpen, cardTransactionType, cardMethodId,
         paymentInput, subtotal, totalItemDiscounts, globalDiscountAmount, total,
-        totalPaid, balance, isSaving, selectedPriceType
+        totalPaid, balance, isSaving, selectedPriceType, reservedId
     } = state;
 
     const {
@@ -80,8 +71,14 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput, setProductForTradeIn,
         handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
         handleRequestPayment, handleConfirmPayment, handleConfirmCardPayment,
-        handleRemovePayment, handleSaveTradeInProduct, handleSave, setSelectedPriceType
+        handleRemovePayment, handleSaveTradeInProduct, handleSave, setSelectedPriceType,
+        handleCancelReservation
     } = actions;
+
+    const handleCancelVenda = () => {
+        handleCancelReservation();
+        props.onCancel();
+    };
 
     const handleSelectUnit = (product: Product) => {
         handleAddToCart(product);
@@ -247,8 +244,15 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                         <div className="flex items-center justify-between mb-1 sm:mb-2 pb-1.5 sm:pb-2 border-b border-gray-100">
                             <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-[10px] sm:text-xs tracking-widest">
                                 <EditIcon className="h-3.5 w-3.5 text-success" />
-                                {props.saleToEdit ? `Dados da Venda #${props.saleToEdit.id}` : (nextId ? `Dados da Nova Venda #${nextId.replace('ID-', '')}` : 'Dados da Venda')}
+                                {props.saleToEdit ? `Dados da Venda #${props.saleToEdit.id}` : (reservedId ? `Dados da Nova Venda #${reservedId.replace('ID-', '')}` : 'Dados da Venda')}
                             </h3>
+                            <button
+                                type="button"
+                                onClick={handleCancelVenda}
+                                className="p-1 hover:bg-red-50 text-red-400 rounded-full transition-colors"
+                            >
+                                <XCircleIcon className="h-5 w-5" />
+                            </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 bg-white/40 p-1 rounded-xl">
                             <div className="md:col-span-2">

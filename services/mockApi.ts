@@ -1553,36 +1553,50 @@ const adjustProductStock = async (
     );
 };
 
-export const getNextSaleId = async (): Promise<string> => {
-    // Get all IDs to find the max and ensure uniqueness efficiently
-    // Improved ID generation: Fetch only the most recent IDs to avoid timeouts and RLS truncation issues
-    const { data: recentIds, error: fetchError } = await supabase
+export const getNextSaleId = async (userId: string = 'system'): Promise<string> => {
+    // 1. Encontrar o último ID numérico
+    const { data: recentIds } = await supabase
         .from('sales')
         .select('id')
         .order('createdAt', { ascending: false })
-        .limit(50);
+        .limit(10);
 
-    if (fetchError) {
-        console.warn('mockApi: Error fetching recent IDs, falling back to sequential check. error:', fetchError);
-    }
-
-    let nextNum = 1;
-    if (recentIds && recentIds.length > 0) {
-        const numbers = recentIds
-            .map((s: { id: string }) => {
+    const matchNext = (ids: any[]) => {
+        if (!ids || ids.length === 0) return 1;
+        const numbers = ids
+            .map(s => {
                 const match = s.id.match(/^ID-(\d+)$/);
                 return match ? parseInt(match[1], 10) : 0;
             })
-            .filter((n: number) => !isNaN(n) && n < 1000000000);
+            .filter(n => !isNaN(n));
+        return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    };
 
-        if (numbers.length > 0) {
-            nextNum = Math.max(...numbers) + 1;
-        }
-    } else {
-        const { count } = await supabase.from('sales').select('*', { count: 'exact', head: true });
-        nextNum = (count || 0) + 1;
+    let nextNum = matchNext(recentIds || []);
+
+    // 2. Tentar reservar o ID criando um registro rascunho
+    for (let attempts = 0; attempts < 10; attempts++) {
+        const candidateId = `ID-${nextNum + attempts}`;
+        const { error } = await supabase.from('sales').insert([{
+            id: candidateId,
+            status: 'Rascunho',
+            salesperson_id: userId,
+            createdAt: getNowISO(),
+            date: getNowISO()
+        }]);
+
+        if (!error) return candidateId;
+        if (error.code !== '23505') throw error;
     }
-    return `ID-${nextNum}`;
+
+    return `ID-${nextNum + 10}`;
+};
+
+export const cancelSaleReservation = async (id: string) => {
+    if (!id || !id.startsWith('ID-')) return;
+    // Deleta o rascunho para liberar o ID se for o último, ou marcar como cancelado
+    // Para manter a simplicidade e atender o pedido, vamos apenas remover se for status Rascunho
+    await supabase.from('sales').delete().eq('id', id).eq('status', 'Rascunho');
 };
 
 export const addSale = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
@@ -1648,19 +1662,27 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
     let success = false;
     let attempts = 0;
-    const maxAttempts = 50; // Increased to handle larger gaps from other users' sales (RLS)
-    let currentSaleId = `ID-${nextNum}`;
+    const maxAttempts = 50;
+    let currentSaleId = data.id || `ID-${nextNum}`;
     let finalSale: any = null;
 
     while (attempts < maxAttempts && !success) {
         attempts++;
         const currentId = attempts === 1 ? currentSaleId : `ID-${nextNum + attempts - 1}`;
 
-        const { data: insertedRows, error } = await supabase.from('sales').insert([{ ...saleData, id: currentId }]).select();
+        let res;
+        if (currentId.startsWith('ID-')) {
+            // Tenta upsert para aproveitar ID reservado ou criar novo
+            res = await supabase.from('sales').upsert([{ ...saleData, id: currentId }], { onConflict: 'id' }).select();
+        } else {
+            res = await supabase.from('sales').insert([{ ...saleData, id: currentId }]).select();
+        }
+
+        const { data: insertedRows, error } = res;
 
         if (error) {
-            if (error.code === '23505') { // Duplicate key
-                console.warn(`[addSale] Duplicate ID ${currentId}, retrying with next number...`);
+            if (error.code === '23505') {
+                console.warn(`[addSale] Duplicate ID ${currentId}, retrying...`);
                 continue;
             }
             console.error("Error adding sale:", JSON.stringify(error, null, 2));

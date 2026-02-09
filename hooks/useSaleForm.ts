@@ -7,7 +7,8 @@ import {
 } from '../types.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import {
-    findOrCreateSupplierFromCustomer, addSale, updateSale, updateProduct, addAuditLog
+    findOrCreateSupplierFromCustomer, addSale, updateSale, updateProduct, addAuditLog,
+    getNextSaleId, cancelSaleReservation
 } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
@@ -63,6 +64,7 @@ export const useSaleForm = ({
     const [cardTransactionType, setCardTransactionType] = useState<'credit' | 'debit'>('credit');
     const [cardMethodId, setCardMethodId] = useState<string>('');
     const [selectedPriceType, setSelectedPriceType] = useState<'sale' | 'cost' | 'wholesale'>('sale');
+    const [reservedId, setReservedId] = useState<string | null>(null);
 
     const [paymentInput, setPaymentInput] = useState<{
         method: PaymentMethodType | 'Cartão',
@@ -90,6 +92,7 @@ export const useSaleForm = ({
         setProductForTradeIn(null);
         setPendingTradeInProduct(null);
         setSelectedPriceType('sale');
+        setReservedId(null);
     }, []);
 
     useEffect(() => {
@@ -112,10 +115,19 @@ export const useSaleForm = ({
                 setInternalObservations(saleToEdit.internalObservations || '');
             } else {
                 resetState();
+                // Fetch next ID and reserve it
+                getNextSaleId(user?.id).then(setReservedId).catch(err => console.error("Error reserving ID:", err));
             }
             initializedRef.current = true;
         }
-    }, [saleToEdit, resetState, products]);
+    }, [saleToEdit, resetState, products, user?.id]);
+
+    const handleCancelReservation = useCallback(async () => {
+        if (reservedId && !saleToEdit) {
+            await cancelSaleReservation(reservedId);
+            setReservedId(null);
+        }
+    }, [reservedId, saleToEdit]);
 
     useEffect(() => { setLocalSuppliers(suppliers); }, [suppliers]);
 
@@ -466,6 +478,7 @@ export const useSaleForm = ({
             origin: saleToEdit?.origin || (openCashSessionId ? 'PDV' : 'Balcão'), warrantyTerm, observations, internalObservations,
             cashSessionId: saleToEdit?.cashSessionId || openCashSessionId || undefined,
             cashSessionDisplayId: saleToEdit?.cashSessionDisplayId || openCashSessionDisplayId || undefined,
+            id: saleToEdit?.id || reservedId || undefined
         };
 
         setIsSaving(true);
@@ -524,7 +537,7 @@ export const useSaleForm = ({
             pendingTradeInProduct, localSuppliers, isCardPaymentModalOpen,
             cardTransactionType, cardMethodId, paymentInput,
             subtotal, totalItemDiscounts, globalDiscountAmount, total, totalPaid, balance,
-            isSaving, selectedPriceType
+            isSaving, selectedPriceType, reservedId
         },
         actions: {
             setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setCart, setProductSearch,
@@ -534,7 +547,7 @@ export const useSaleForm = ({
             handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
             handleOpenTradeInModal, handleRequestPayment, handleConfirmPayment,
             handleConfirmCardPayment, handleRemovePayment, handleSaveTradeInProduct, handleSaveTradeInFromModal, handleSave,
-            setSelectedPriceType,
+            setSelectedPriceType, handleCancelReservation,
 
             resetState
         },

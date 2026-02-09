@@ -662,137 +662,141 @@ const CustomersAndSuppliers: React.FC = () => {
         <div className="bg-surface rounded-3xl border border-border p-4 sm:p-6 shadow-sm">
             {/* Mobile Header: Full Width Search & Scrollable Filters */}
             <div className="flex flex-col gap-3 mb-4 md:hidden">
-                <div className="relative w-full">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted"><SearchIcon className="w-4 h-4" /></span>
+                <div className="relative">
+                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Buscar cliente..."
+                        placeholder="Buscar por nome ou email..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-2.5 border rounded-xl w-full bg-gray-50 border-gray-200 focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm"
+                        className="pl-10 h-11 border rounded-xl w-full bg-white border-gray-200 focus:ring-primary focus:border-primary text-[13px] shadow-sm outline-none transition-all"
                     />
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
-                    <div className="shrink-0 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-200 flex items-center h-9">
-                        Total: {customers.length}
-                    </div>
-
+                <div className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4">
                     <button
                         onClick={() => setCustomerSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                        className="shrink-0 px-3 py-1.5 bg-white text-secondary rounded-xl border border-gray-200 flex items-center gap-1.5 text-xs font-medium active:bg-gray-50 h-9 shadow-sm"
+                        className="shrink-0 h-10 px-4 bg-gray-100 text-gray-700 rounded-xl border border-gray-200 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider hover:bg-gray-200 active:bg-gray-300 shadow-sm transition-all"
                     >
-                        <ArrowsUpDownIcon className="h-3.5 w-3.5" />
+                        <ArrowsUpDownIcon className="h-4 w-4 text-gray-500" />
                         {customerSortOrder === 'newest' ? 'Recentes' : 'Antigos'}
                     </button>
 
                     <div className="relative shrink-0">
                         <select
                             value={birthdayFilter}
-                            onChange={e => setBirthdayFilter(e.target.value)}
-                            className="appearance-none px-3 pr-8 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-secondary focus:outline-none focus:ring-0 h-9 shadow-sm"
+                            onChange={e => setBirthdayFilter(e.target.value as any)}
+                            className="appearance-none h-10 px-9 py-1.5 bg-gray-100 border border-gray-200 rounded-xl text-[10px] font-bold uppercase tracking-wider text-gray-700 focus:outline-none focus:ring-0 shadow-sm hover:bg-gray-200 transition-all"
                         >
                             <option value="none">Aniversários</option>
                             <option value="dia">Hoje</option>
-                            <option value="semana">Esta Semana</option>
-                            <option value="mês">Este Mês</option>
+                            <option value="semana">Semana</option>
+                            <option value="mês">Mês</option>
                         </select>
-                        <BirthdayCakeIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-pink-500 pointer-events-none" />
+                        <BirthdayCakeIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-pink-500 pointer-events-none" />
+                        <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
                     </div>
 
                     <button
                         onClick={() => setShowDebtorsOnly(prev => !prev)}
-                        className={`shrink-0 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showDebtorsOnly ? 'bg-red-500 text-white border border-red-600' : 'bg-white text-secondary border border-gray-200'}`}
+                        className={`shrink-0 h-10 px-4 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all ${showDebtorsOnly ? 'bg-red-500 text-white border border-red-600' : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'}`}
                     >
+                        <CurrencyDollarIcon className={`h-4 w-4 ${showDebtorsOnly ? 'text-white' : 'text-red-500'}`} />
                         <span>Devedores ({customers.filter(c => c.active !== false && (customerStats.debts.get(c.id) || 0) > 0).length})</span>
                     </button>
 
                     <button
                         onClick={() => setShowInactive(prev => !prev)}
-                        className={`shrink-0 px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-medium h-9 shadow-sm transition-colors ${showInactive ? 'bg-orange-500 text-white border border-orange-600' : 'bg-white text-secondary border border-gray-200'}`}
+                        className={`shrink-0 h-10 px-4 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all ${showInactive ? 'bg-orange-500 text-white border border-orange-600' : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'}`}
                     >
+                        <EyeSlashIcon className={`h-4 w-4 ${showInactive ? 'text-white' : 'text-orange-500'}`} />
                         <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
                 </div>
 
                 {permissions?.canCreateCustomer && (
-                    <button onClick={() => handleOpenModal()} className="w-full py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-bold shadow-sm active:scale-[0.98] transition-transform">
+                    <button onClick={() => handleOpenModal()} className="w-full h-12 bg-gray-800 text-white rounded-xl hover:bg-gray-700 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all">
                         <PlusIcon className="h-5 w-5" /> Adicionar Cliente
                     </button>
                 )}
             </div>
 
             {/* Desktop Header */}
-            <div className="hidden md:flex justify-between items-center mb-6 gap-4">
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <div className="relative flex-grow sm:flex-grow-0">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted"><SearchIcon /></span>
-                        <input type="text" placeholder="Buscar por nome ou email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 p-2 border rounded-xl w-full sm:w-80 bg-transparent border-border focus:ring-primary focus:border-primary h-10" />
+            <div className="hidden md:flex justify-between items-center mb-6 gap-3 bg-white/50 p-2 rounded-2xl border border-gray-100 shadow-sm relative z-50 flex-wrap lg:flex-nowrap">
+                <div className="flex items-center gap-2 flex-grow lg:flex-grow-0">
+                    <div className="relative min-w-[240px] flex-grow">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><SearchIcon className="h-4 w-4" /></span>
+                        <input type="text" placeholder="Buscar cliente..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-10 border rounded-xl w-full bg-white border-gray-200 focus:ring-primary focus:border-primary text-[13px] outline-none transition-all shadow-sm" />
                     </div>
-                    <span className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-medium border border-gray-200">
-                        Total: {customers.length}
-                    </span>
+
                     <button
                         onClick={() => setCustomerSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                        className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 flex items-center gap-2 text-sm font-medium"
+                        className="h-10 px-3 bg-gray-100 text-gray-600 rounded-xl border border-gray-200 hover:bg-gray-200 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shadow-sm"
                     >
-                        <ArrowsUpDownIcon className="h-4 w-4" />
-                        <span>{customerSortOrder === 'newest' ? 'Mais Recentes' : 'Mais Antigos'}</span>
+                        <ArrowsUpDownIcon className="h-4 w-4 text-gray-500" />
+                        <span>{customerSortOrder === 'newest' ? 'Recentes' : 'Antigos'}</span>
                     </button>
+
                     <div className="relative" ref={birthdayDropdownRef}>
                         <button
                             onClick={() => setIsBirthdayDropdownOpen(prev => !prev)}
-                            className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${birthdayFilter !== 'none' ? 'bg-accent text-white' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                            className={`h-10 px-3 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${birthdayFilter !== 'none' ? 'bg-pink-500 text-white border-pink-600 shadow-sm' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}
                         >
-                            <BirthdayCakeIcon className="h-4 w-4" />
+                            <BirthdayCakeIcon className={`h-4 w-4 ${birthdayFilter !== 'none' ? 'text-white' : 'text-pink-500'}`} />
                             <span>Aniversariantes</span>
-                            <ChevronDownIcon className={`h-4 w-4 transition-transform ${isBirthdayDropdownOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDownIcon className={`h-3 w-3 transition-transform ${isBirthdayDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {isBirthdayDropdownOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-40 bg-surface rounded-xl shadow-lg border border-border z-10">
-                                <button onClick={() => { setBirthdayFilter('dia'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Do Dia</button>
-                                <button onClick={() => { setBirthdayFilter('semana'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Da Semana</button>
-                                <button onClick={() => { setBirthdayFilter('mês'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Do Mês</button>
-                                <div className="border-t border-border my-1"></div>
-                                <button onClick={() => { setBirthdayFilter('none'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-surface-secondary">Limpar Filtro</button>
+                            <div className="absolute top-full left-0 mt-2 w-40 bg-white rounded-xl shadow-xl border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                                <button onClick={() => { setBirthdayFilter('dia'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider hover:bg-gray-50 rounded-t-xl transition-colors">Do Dia</button>
+                                <button onClick={() => { setBirthdayFilter('semana'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors">Da Semana</button>
+                                <button onClick={() => { setBirthdayFilter('mês'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors">Do Mês</button>
+                                <div className="border-t border-gray-100"></div>
+                                <button onClick={() => { setBirthdayFilter('none'); setIsBirthdayDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 rounded-b-xl transition-colors">Limpar</button>
                             </div>
                         )}
                     </div>
+
                     <div className="relative" ref={rankingDropdownRef}>
                         <button
                             onClick={() => setIsRankingDropdownOpen(prev => !prev)}
-                            className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${rankingFilter !== 'none' ? 'bg-accent text-white' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                            className={`h-10 px-3 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${rankingFilter !== 'none' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}
                         >
-                            <ChartBarIcon className="h-4 w-4" />
+                            <ChartBarIcon className={`h-4 w-4 ${rankingFilter !== 'none' ? 'text-white' : 'text-indigo-500'}`} />
                             <span>Ranking</span>
-                            <ChevronDownIcon className={`h-4 w-4 transition-transform ${isRankingDropdownOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDownIcon className={`h-3 w-3 transition-transform ${isRankingDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {isRankingDropdownOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-surface rounded-xl shadow-lg border border-border z-10">
-                                <button onClick={() => { setRankingFilter('highest'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Mais Compram</button>
-                                <button onClick={() => { setRankingFilter('lowest'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-surface-secondary">Menos Compram</button>
-                                <div className="border-t border-border my-1"></div>
-                                <button onClick={() => { setRankingFilter('none'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-surface-secondary">Limpar Ranking</button>
+                            <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                                <button onClick={() => { setRankingFilter('highest'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider hover:bg-gray-50 rounded-t-xl transition-colors">Mais Compram</button>
+                                <button onClick={() => { setRankingFilter('lowest'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors">Menos Compram</button>
+                                <div className="border-t border-gray-100"></div>
+                                <button onClick={() => { setRankingFilter('none'); setIsRankingDropdownOpen(false); }} className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 rounded-b-xl transition-colors">Limpar</button>
                             </div>
                         )}
                     </div>
+
                     <button
                         onClick={() => setShowDebtorsOnly(prev => !prev)}
-                        className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${showDebtorsOnly ? 'bg-red-600 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                        className={`h-10 px-3 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${showDebtorsOnly ? 'bg-red-600 text-white border-red-700 shadow-sm' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}
                     >
-                        <CurrencyDollarIcon className="h-4 w-4" />
+                        <CurrencyDollarIcon className={`h-4 w-4 ${showDebtorsOnly ? 'text-white' : 'text-red-500'}`} />
                         <span>Devedores ({customers.filter(c => c.active !== false && (customerStats.debts.get(c.id) || 0) > 0).length})</span>
                     </button>
+
                     <button
                         onClick={() => setShowInactive(prev => !prev)}
-                        className={`h-10 px-3 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors ${showInactive ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-200 text-secondary hover:bg-gray-300'}`}
+                        className={`h-10 px-3 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${showInactive ? 'bg-orange-500 text-white border-orange-600 shadow-sm' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}
                     >
-                        <EyeSlashIcon className="h-4 w-4" />
+                        <EyeSlashIcon className={`h-4 w-4 ${showInactive ? 'text-white' : 'text-orange-500'}`} />
                         <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
                 </div>
+
                 {permissions?.canCreateCustomer && (
-                    <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 w-full sm:w-auto flex items-center justify-center gap-2 h-10"><PlusIcon className="h-5 w-5" /> Adicionar Cliente</button>
+                    <button onClick={() => handleOpenModal()} className="h-10 px-5 bg-gray-800 text-white rounded-xl hover:bg-gray-700 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0">
+                        <PlusIcon className="h-5 w-5" /> Adicionar Cliente
+                    </button>
                 )}
             </div>
 
@@ -968,57 +972,56 @@ const CustomersAndSuppliers: React.FC = () => {
     const renderSuppliersTab = () => (
         <div className="bg-surface rounded-3xl border border-border p-4 sm:p-6 shadow-sm">
             {/* Mobile Header: Full Width Search & Scrollable Filters */}
-            <div className="flex flex-col gap-3 mb-4 md:hidden">
+            <div className="flex flex-col gap-4 mb-6 md:hidden">
                 <div className="relative w-full">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted"><SearchIcon className="w-4 h-4" /></span>
+                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                         type="text"
                         placeholder="Buscar fornecedor..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-2.5 border rounded-lg w-full bg-gray-50 border-gray-200 focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm"
+                        className="pl-10 h-11 border rounded-xl w-full bg-white border-gray-200 focus:ring-primary focus:border-primary text-[13px] shadow-sm outline-none transition-all"
                     />
                 </div>
-                {/* All 3 buttons on same line */}
-                <div className="flex gap-2 items-center">
+
+                <div className="flex gap-2 items-center overflow-x-auto pb-1 no-scrollbar -mx-4 px-4">
                     {permissions?.canCreateSupplier && (
-                        <button onClick={() => handleOpenModal()} className="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm active:scale-[0.98] transition-transform">
+                        <button onClick={() => handleOpenModal()} className="h-10 px-4 bg-gray-800 text-white rounded-xl hover:bg-gray-700 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all whitespace-nowrap">
                             <PlusIcon className="h-4 w-4" /> Adicionar
                         </button>
                     )}
-                    <div className="shrink-0 bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 flex items-center">
-                        Total: {suppliers.length}
-                    </div>
+
                     <button
                         onClick={() => setSupplierSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                        className="shrink-0 px-3 py-2 bg-white text-secondary rounded-lg border border-gray-200 flex items-center gap-1.5 text-xs font-medium active:bg-gray-50 shadow-sm"
+                        className="shrink-0 h-10 px-4 bg-gray-100 text-gray-700 rounded-xl border border-gray-200 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider hover:bg-gray-200 active:bg-gray-300 shadow-sm transition-all whitespace-nowrap"
                     >
-                        <ArrowsUpDownIcon className="h-3.5 w-3.5" />
+                        <ArrowsUpDownIcon className="h-4 w-4 text-gray-500" />
                         {supplierSortOrder === 'newest' ? 'Recentes' : 'Antigos'}
                     </button>
                 </div>
             </div>
 
             {/* Desktop Header */}
-            <div className="hidden md:flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <div className="relative flex-grow sm:flex-grow-0">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted"><SearchIcon /></span>
-                        <input type="text" placeholder="Buscar por nome ou CNPJ..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 p-2 border rounded-md w-full sm:w-80 bg-transparent border-border focus:ring-primary focus:border-primary" />
+            <div className="hidden md:flex justify-between items-center mb-6 gap-3 bg-white/50 p-2 rounded-2xl border border-gray-100 shadow-sm relative z-50 flex-wrap lg:flex-nowrap">
+                <div className="flex items-center gap-2 flex-grow lg:flex-grow-0">
+                    <div className="relative min-w-[280px] flex-grow">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><SearchIcon className="h-4 w-4" /></span>
+                        <input type="text" placeholder="Buscar fornecedor por nome ou CNPJ..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-10 border rounded-xl w-full bg-white border-gray-200 focus:ring-primary focus:border-primary text-[13px] outline-none transition-all shadow-sm" />
                     </div>
-                    <span className="bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-sm font-medium border border-gray-200">
-                        Total: {suppliers.length}
-                    </span>
+
                     <button
                         onClick={() => setSupplierSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                        className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-md hover:bg-gray-300 flex items-center gap-2 text-sm font-medium"
+                        className="h-10 px-4 bg-gray-100 text-gray-600 rounded-xl border border-gray-200 hover:bg-gray-200 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shadow-sm active:scale-95"
                     >
-                        <ArrowsUpDownIcon className="h-4 w-4" />
-                        <span>{supplierSortOrder === 'newest' ? 'Mais Recentes' : 'Mais Antigos'}</span>
+                        <ArrowsUpDownIcon className="h-4 w-4 text-gray-500" />
+                        <span>{supplierSortOrder === 'newest' ? 'Recentes' : 'Antigos'}</span>
                     </button>
                 </div>
+
                 {permissions?.canCreateSupplier && (
-                    <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 w-full sm:w-auto flex items-center justify-center gap-2"><PlusIcon className="h-5 w-5" />Adicionar Fornecedor</button>
+                    <button onClick={() => handleOpenModal()} className="h-10 px-5 bg-gray-800 text-white rounded-xl hover:bg-gray-700 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0">
+                        <PlusIcon className="h-5 w-5" /> Adicionar Fornecedor
+                    </button>
                 )}
             </div>
 

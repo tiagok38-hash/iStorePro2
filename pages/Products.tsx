@@ -187,7 +187,7 @@ const Products: React.FC = () => {
     const [productForHistory, setProductForHistory] = useState<Product | null>(null);
     const [productForStockUpdate, setProductForStockUpdate] = useState<Product | null>(null);
     const [productSalesHistory, setProductSalesHistory] = useState<Sale[]>([]);
-    const [filters, setFilters] = useState({ stock: 'Em estoque', condition: 'Todos', location: 'Todos' });
+    const [filters, setFilters] = useState({ stock: 'Em estoque', condition: 'Todos', location: 'Todos', type: 'Todos' });
     const [inventorySortOrder, setInventorySortOrder] = useState<'newest' | 'oldest'>('newest');
     const [itemsPerPage, setItemsPerPage] = useState<15 | 20 | 30>(15);
     const [currentPage, setCurrentPage] = useState(1);
@@ -323,7 +323,18 @@ const Products: React.FC = () => {
                 const stockMatch = filters.stock === 'Todos' ? true : filters.stock === 'Em estoque' ? p.stock > 0 : p.stock === 0;
                 const conditionMatch = filters.condition === 'Todos' ? true : p.condition === filters.condition;
                 const locationMatch = filters.location === 'Todos' ? true : p.storageLocation === filters.location;
-                return stockMatch && conditionMatch && locationMatch;
+
+                // Tipo de Produto Filter
+                let typeMatch = true;
+                if (filters.type === 'Produtos Apple') {
+                    typeMatch = (p.brand || '').toLowerCase() === 'apple';
+                } else if (filters.type === 'Produtos Variados') {
+                    typeMatch = (p.brand || '').toLowerCase() !== 'apple';
+                } else if (filters.type === 'Produtos de troca') {
+                    typeMatch = p.origin === 'Troca' || p.origin === 'Comprado de Cliente';
+                }
+
+                return stockMatch && conditionMatch && locationMatch && typeMatch;
             }
 
             const purchaseLocator = p.purchaseOrderId ? (purchaseLocatorMap.get(p.purchaseOrderId) || '') : '';
@@ -348,7 +359,17 @@ const Products: React.FC = () => {
             const conditionMatch = filters.condition === 'Todos' ? true : p.condition === filters.condition;
             const locationMatch = filters.location === 'Todos' ? true : p.storageLocation === filters.location;
 
-            return searchMatch && stockMatch && conditionMatch && locationMatch;
+            // Tipo de Produto Filter
+            let typeMatch = true;
+            if (filters.type === 'Produtos Apple') {
+                typeMatch = (p.brand || '').toLowerCase() === 'apple';
+            } else if (filters.type === 'Produtos Variados') {
+                typeMatch = (p.brand || '').toLowerCase() !== 'apple';
+            } else if (filters.type === 'Produtos de troca') {
+                typeMatch = p.origin === 'Troca' || p.origin === 'Comprado de Cliente';
+            }
+
+            return searchMatch && stockMatch && conditionMatch && locationMatch && typeMatch;
         });
 
         // Grouping Logic for Non-Unique Products
@@ -769,6 +790,15 @@ const Products: React.FC = () => {
                                 {storageLocations.map(loc => (
                                     <option key={loc.id} value={loc.name}>{loc.name}</option>
                                 ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-muted mb-1">Tipo de Produto</label>
+                            <select value={filters.type} onChange={e => handleFilterChange('type', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
+                                <option value="Todos">Todos</option>
+                                <option value="Produtos Apple">Produtos Apple</option>
+                                <option value="Produtos Variados">Produtos Variados</option>
+                                <option value="Produtos de troca">Produtos de troca</option>
                             </select>
                         </div>
                         <div className="relative flex-grow min-w-[250px]">
