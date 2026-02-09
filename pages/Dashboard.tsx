@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import { getProducts, getCustomers, getSales, getTodaysSales, formatCurrency, getPaymentMethods } from '../services/mockApi.ts';
 import { Product, Customer, Sale, TodaySale, PaymentMethodParameter } from '../types.ts';
-import { SpinnerIcon, SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon } from '../components/icons.tsx';
+import { SpinnerIcon, SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 
@@ -16,15 +16,15 @@ const InfoBanner: React.FC = React.memo(() => (
     </div>
 ));
 
-const LowStockBanner: React.FC<{ count: number }> = React.memo(({ count }) => (
+const LowStockBanner: React.FC<{ count: number; isPrivacyMode?: boolean }> = React.memo(({ count, isPrivacyMode }) => (
     <Link to="/reports?tab=estoque&filter=low_stock" className="bg-danger-light text-danger text-sm font-medium px-4 py-2 rounded-2xl flex items-center gap-2 hover:bg-red-200 transition-all border border-danger/10 shadow-sm shadow-danger/5 flex-1 justify-center">
         <TagIcon className="h-4 w-4" />
-        <span className="font-semibold text-center">Produtos com estoque baixo: {count}</span>
+        <span className="font-semibold text-center">Produtos com estoque baixo: {isPrivacyMode ? '***' : count}</span>
     </Link>
 ));
 
 
-const StatCard: React.FC<{ title: string; value: string; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon }) => (
+const StatCard: React.FC<{ title: string; value: string | number; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode; isPrivacyMode?: boolean }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon, isPrivacyMode }) => (
     <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm ${className || ''}`}>
         <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -33,10 +33,10 @@ const StatCard: React.FC<{ title: string; value: string; subValue1?: string; sub
             </div>
             <button className="text-[10px] font-black tracking-widest text-muted bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-all">ATUALIZAR</button>
         </div>
-        <p className="text-3xl font-bold text-primary mt-2">{value}</p>
-        {subValue1 && <p className="text-sm text-blue-600 font-semibold mt-1">{subValue1}</p>}
-        {subValue2 && <p className="text-base text-success font-semibold">{subValue2}</p>}
-        {subValue3 && <p className="text-base text-success font-semibold">{subValue3}</p>}
+        <p className="text-3xl font-bold text-primary mt-2">{isPrivacyMode ? '****' : value}</p>
+        {subValue1 && <p className="text-sm text-blue-600 font-semibold mt-1">{isPrivacyMode ? '****' : subValue1}</p>}
+        {subValue2 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue2}</p>}
+        {subValue3 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue3}</p>}
     </div>
 ));
 
@@ -67,7 +67,7 @@ const ProfitTooltip: React.FC<any> = ({ active, payload, label }) => {
     return null;
 };
 
-const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: string }> = React.memo(({ sales, products, className }) => {
+const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ sales, products, className, isPrivacyMode }) => {
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
     const { totalProfit, totalRevenue, chartData } = useMemo(() => {
@@ -157,7 +157,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                     </div>
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Lucro Estimado</h3>
-                        <p className="text-3xl font-black text-gray-800 tracking-tight mt-0.5">{formatCurrency(totalProfit)}</p>
+                        <p className="text-3xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
                 <select
@@ -209,7 +209,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     );
 });
 
-const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className?: string }> = React.memo(({ sales, customers, className }) => {
+const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ sales, customers, className, isPrivacyMode }) => {
     const customerMap = useMemo(() => customers.reduce((acc, c) => {
         acc[c.id] = c.name;
         return acc;
@@ -251,7 +251,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Vendas de Hoje</h3>
                         <div className="flex items-center gap-2">
-                            <span className="text-2xl font-black text-gray-800 tracking-tight">{formatCurrency(todaysSummary.total)}</span>
+                            <span className="text-2xl font-black text-gray-800 tracking-tight">{isPrivacyMode ? 'R$ ****' : formatCurrency(todaysSummary.total)}</span>
                         </div>
                     </div>
                 </div>
@@ -278,7 +278,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className
                                         {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
-                                <span className="font-bold text-primary text-lg">{formatCurrency(sale.total)}</span>
+                                <span className="font-bold text-primary text-lg">{isPrivacyMode ? 'R$ ****' : formatCurrency(sale.total)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <div className="flex flex-col gap-1.5">
@@ -288,7 +288,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className
                                     </p>
                                     <p className="text-xs text-muted flex items-center gap-1.5">
                                         <CubeIcon className="h-3.5 w-3.5 text-gray-400" />
-                                        {sale.items.reduce((sum, i) => sum + i.quantity, 0)} {sale.items.length === 1 ? 'item' : 'itens'}
+                                        {isPrivacyMode ? '***' : sale.items.reduce((sum, i) => sum + i.quantity, 0)} {sale.items.length === 1 ? 'item' : 'itens'}
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-1 justify-end">
@@ -345,11 +345,12 @@ const BillingTooltip: React.FC<any> = ({ active, payload, label }) => {
 };
 
 const BillingChart: React.FC<{
-    data: { name: string; faturamento: number; lucro: number }[];
-    period: 'day' | 'week' | 'month' | 'year' | 'all_years';
+    data: any[];
+    period: string;
     onPeriodChange: (period: 'day' | 'week' | 'month' | 'year' | 'all_years') => void;
     className?: string;
-}> = React.memo(({ data, period, onPeriodChange, className }) => {
+    isPrivacyMode?: boolean;
+}> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode }) => {
     return (
         <div className={`p-6 glass-card h-full flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-start mb-6">
@@ -388,10 +389,10 @@ const BillingChart: React.FC<{
                     <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} barGap={1} barCategoryGap="20%">
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
-                        <YAxis axisLine={false} tickLine={false} width={65} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} tickFormatter={(value) => formatCurrency(value).replace(',00', '')} />
+                        <YAxis axisLine={false} tickLine={false} width={65} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} tickFormatter={(value) => isPrivacyMode ? '****' : formatCurrency(value).replace(',00', '')} />
                         <Tooltip
                             cursor={{ fill: '#9ca3af', opacity: 0.1, radius: 8 }}
-                            content={<BillingTooltip />}
+                            content={isPrivacyMode ? () => null : <BillingTooltip />}
                         />
                         <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
                         <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
@@ -402,7 +403,7 @@ const BillingChart: React.FC<{
     );
 });
 
-const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string }> = React.memo(({ sales, activeMethods, className }) => {
+const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ sales, activeMethods, className, isPrivacyMode }) => {
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
     // Helper for colors
@@ -563,7 +564,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                             <div className="flex-grow">
                                 <div className="flex justify-between items-center mb-1">
                                     <span className="text-sm font-medium text-secondary">{label}</span>
-                                    <span className="text-sm font-bold text-primary">{formatCurrency(value)}</span>
+                                    <span className="text-sm font-bold text-primary">{isPrivacyMode ? 'R$ ****' : formatCurrency(value)}</span>
                                 </div>
                                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                     <div
@@ -579,7 +580,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
 
             <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
                 <span className="text-sm font-bold text-muted uppercase">Total Geral</span>
-                <span className="text-lg font-bold text-success">{formatCurrency(grandTotal)}</span>
+                <span className="text-lg font-bold text-success">{isPrivacyMode ? 'R$ ****' : formatCurrency(grandTotal)}</span>
             </div>
         </div>
     );
@@ -593,7 +594,7 @@ interface SoldItemInfo {
     productId: string;
 }
 
-const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: string }> = React.memo(({ soldItems, className }) => {
+const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ soldItems, className, isPrivacyMode }) => {
     return (
 
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
@@ -631,7 +632,7 @@ const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: 
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="py-2.5 text-center text-xs font-black text-primary">{item.quantity}</td>
+                                    <td className="py-2.5 text-center text-xs font-black text-primary">{isPrivacyMode ? '***' : item.quantity}</td>
                                     <td className="py-2.5 text-right text-[10px] font-bold text-gray-400 whitespace-nowrap">#{item.saleId.slice(-4).toUpperCase()}</td>
                                 </tr>
                             ))}
@@ -643,7 +644,7 @@ const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: 
     );
 });
 
-const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: string }> = React.memo(({ products, className }) => {
+const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     return (
 
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
@@ -693,7 +694,7 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: strin
                                         </div>
                                     </td>
                                     <td className="py-2 text-right text-xs font-black text-primary whitespace-nowrap align-top sm:align-middle pr-1">
-                                        {formatCurrency(product.costPrice)}
+                                        {isPrivacyMode ? 'R$ ****' : formatCurrency(product.costPrice)}
                                     </td>
                                 </tr>
                             ))}
@@ -705,7 +706,7 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: strin
     );
 });
 
-const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: string }> = React.memo(({ products, className }) => {
+const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     return (
 
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
@@ -754,7 +755,7 @@ const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: str
                                         </div>
                                     </td>
                                     <td className="py-2 text-right text-xs font-black text-primary whitespace-nowrap align-top sm:align-middle pr-1">
-                                        {formatCurrency(product.costPrice)}
+                                        {isPrivacyMode ? 'R$ ****' : formatCurrency(product.costPrice)}
                                     </td>
                                 </tr>
                             ))}
@@ -766,7 +767,7 @@ const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: str
     );
 });
 
-const StockStatsCard: React.FC<{ products: Product[]; className?: string }> = React.memo(({ products, className }) => {
+const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     const stats = useMemo(() => {
         // Status field does not strictly exist on Product type, use stock > 0
         const appleProducts = products.filter(p => p.stock > 0 && p.brand?.toLowerCase().includes('apple'));
@@ -801,7 +802,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string }> = Re
                     </div>
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Estoque</h3>
-                        <p className="text-3xl font-black text-gray-800 tracking-tight mt-0.5">{stats.total.count}</p>
+                        <p className="text-3xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
                     </div>
                 </div>
                 <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wide border border-blue-100 flex items-center gap-1">
@@ -825,22 +826,22 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string }> = Re
 
                     <div className="relative z-10 flex flex-col flex-1">
                         <div className="text-center mb-4">
-                            <p className="text-3xl font-black text-primary tracking-tight leading-none">{stats.apple.count}</p>
+                            <p className="text-3xl font-black text-primary tracking-tight leading-none">{isPrivacyMode ? '***' : stats.apple.count}</p>
                             <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Itens em Estoque</p>
                         </div>
 
                         <div className="space-y-2 text-xs mt-auto">
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-500 font-medium">Custo:</span>
-                                <span className="font-bold text-gray-800">{formatCurrency(stats.apple.cost)}</span>
+                                <span className="font-bold text-gray-800">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.apple.cost)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-500 font-medium">Venda:</span>
-                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{formatCurrency(stats.apple.value)}</span>
+                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.apple.value)}</span>
                             </div>
                             <div className="flex justify-between items-center pt-2 border-t border-gray-200/60">
                                 <span className="text-[10px] font-black text-gray-500 uppercase">Markup</span>
-                                <span className="bg-white text-green-700 px-2 py-0.5 rounded-full shadow-sm border border-gray-100 text-[10px] font-black">{stats.apple.markup.toFixed(1)}%</span>
+                                <span className="bg-white text-green-700 px-2 py-0.5 rounded-full shadow-sm border border-gray-100 text-[10px] font-black">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
                             </div>
                         </div>
                     </div>
@@ -905,7 +906,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string }> = Re
     );
 });
 
-const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; className?: string }> = React.memo(({ customers, sales, className }) => {
+const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ customers, sales, className, isPrivacyMode }) => {
     const navigate = useNavigate();
     const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('month');
 
@@ -1012,10 +1013,10 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Clientes</h3>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-3xl font-black text-gray-800 tracking-tight">{customers.length}</p>
+                            <p className="text-3xl font-black text-gray-800 tracking-tight">{isPrivacyMode ? '***' : customers.length}</p>
                             {newCustomersCount > 0 && (
                                 <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">
-                                    +{newCustomersCount}
+                                    +{isPrivacyMode ? '***' : newCustomersCount}
                                 </span>
                             )}
                         </div>
@@ -1057,7 +1058,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
                             Valores a receber (Total)
                         </span>
                         <span className="text-base font-bold text-rose-700 tracking-tight">
-                            {formatCurrency(totalDebt)}
+                            {isPrivacyMode ? 'R$ ****' : formatCurrency(totalDebt)}
                         </span>
                     </div>
                     {/* Decorative element */}
@@ -1078,6 +1079,13 @@ const Dashboard: React.FC = () => {
     const [sales, setSales] = useState<Sale[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
     const [billingPeriod, setBillingPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('year');
+    const [isPrivacyMode, setIsPrivacyMode] = useState(() => {
+        return localStorage.getItem('iStorePro_privacyMode') === 'true';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('iStorePro_privacyMode', isPrivacyMode.toString());
+    }, [isPrivacyMode]);
 
 
 
@@ -1367,12 +1375,30 @@ const Dashboard: React.FC = () => {
         <div className="space-y-6">
 
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
+                        <div className="relative group">
+                            <button
+                                onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+                                className={`p-2 rounded-xl transition-all duration-300 shadow-sm border ${isPrivacyMode ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'}`}
+                            >
+                                {isPrivacyMode ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
+                            {/* Modern Tooltip/Legend */}
+                            <div className="absolute left-0 bottom-full mb-3 hidden group-hover:block transition-all duration-300 z-[100]">
+                                <div className="bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl shadow-2xl whitespace-nowrap animate-slide-up relative underline-offset-4 decoration-indigo-400">
+                                    {isPrivacyMode ? 'Mostrar valores sensíveis' : 'Ocultar valores e estoque'}
+                                    {/* Tooltip Arrow */}
+                                    <div className="absolute top-full left-4 border-8 border-transparent border-t-gray-900"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <p className="text-muted">Meu Plano: <span className="font-semibold text-secondary">Plus (Trimestral)</span></p>
                 </div>
                 <div className="flex items-stretch gap-4 flex-1 sm:flex-initial">
-                    {lowStockCount > 0 && <LowStockBanner count={lowStockCount} />}
+                    {lowStockCount > 0 && <LowStockBanner count={lowStockCount} isPrivacyMode={isPrivacyMode} />}
                     <InfoBanner />
                 </div>
             </div>
@@ -1381,30 +1407,31 @@ const Dashboard: React.FC = () => {
             {inconsistentSalesWarning}
 
             <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
-                <StockStatsCard products={products} />
+                <StockStatsCard products={products} isPrivacyMode={isPrivacyMode} />
                 <CustomersStatsCard
                     customers={customers}
                     sales={sales}
+                    isPrivacyMode={isPrivacyMode}
                 />
-                <ProfitCard sales={sales} products={products} />
+                <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
-                    <SalesByDayCard sales={sales} customers={customers} />
+                    <SalesByDayCard sales={sales} customers={customers} isPrivacyMode={isPrivacyMode} />
                 </div>
                 <div className="lg:col-span-2 min-h-[400px]">
-                    <BillingChart data={dashboardMetrics.billingChartData} period={billingPeriod} onPeriodChange={setBillingPeriod} />
+                    <BillingChart data={dashboardMetrics.billingChartData} period={billingPeriod} onPeriodChange={setBillingPeriod} isPrivacyMode={isPrivacyMode} />
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <RecentAddedProductsCard products={recentAddedProducts} />
-                <RecentTradeInProductsCard products={recentTradeInProducts} />
+                <RecentAddedProductsCard products={recentAddedProducts} isPrivacyMode={isPrivacyMode} />
+                <RecentTradeInProductsCard products={recentTradeInProducts} isPrivacyMode={isPrivacyMode} />
                 <div className="h-full">
-                    <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} />
+                    <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} isPrivacyMode={isPrivacyMode} />
                 </div>
-                <RecentSoldProductsCard soldItems={recentSoldItems} />
+                <RecentSoldProductsCard soldItems={recentSoldItems} isPrivacyMode={isPrivacyMode} />
             </div>
         </div>
     );
