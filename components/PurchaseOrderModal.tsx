@@ -186,7 +186,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     }
 
     const saveDraft = async (currentItems: Partial<PurchaseItem>[]) => {
-        if (!formData.id) return;
+        // Only save if we have items or an ID already (to update)
+        if (!formData.id && currentItems.length === 0) return;
 
         const currentSubTotal = currentItems.reduce((sum, item) => sum + (item.finalUnitCost || 0) * (item.quantity || 0), 0);
 
@@ -228,27 +229,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         }) as PurchaseItem[];
 
         try {
-            await updatePurchaseOrder({
-                ...formData,
-                items: sanitizedItems,
-                total: currentTotal,
-                additionalCost: formData.additionalCost || 0
-            });
-        } catch (err) {
-            console.error("Auto-save error:", err);
-            showToast('Erro ao salvar rascunho automaticamente.', 'warning');
-        }
-    };
-
-    const goToStep2 = async () => {
-        if (!formData.supplierId) {
-            showToast('Por favor, selecione um fornecedor.', 'error');
-            return;
-        }
-
-        if (!formData.id && !purchaseOrderToEdit) {
-            setIsSaving(true);
-            try {
+            if (!formData.id) {
+                // Creation on demand
                 let currentSupplierName = formData.supplierName;
                 if (!currentSupplierName && formData.supplierId) {
                     const supplier = suppliers.find(s => s.id === formData.supplierId);
@@ -263,9 +245,9 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     origin: formData.origin!,
                     isCustomerPurchase,
                     purchaseTerm: formData.purchaseTerm,
-                    items: [],
-                    total: 0,
-                    additionalCost: 0,
+                    items: sanitizedItems,
+                    total: currentTotal,
+                    additionalCost: formData.additionalCost || 0,
                     stockStatus: 'Pendente',
                     financialStatus: 'Pendente',
                     createdBy: user?.name || 'Sistema',
@@ -278,17 +260,27 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
                 const newPO = await addPurchaseOrder(purchaseData);
                 setFormData(prev => ({ ...prev, ...newPO }));
-                showToast('Rascunho iniciado.', 'success');
-            } catch (error) {
-                console.error("Error creating draft:", error);
-                showToast('Erro ao iniciar rascunho.', 'error');
-                setIsSaving(false);
-                return;
-            } finally {
-                setIsSaving(false);
+            } else {
+                await updatePurchaseOrder({
+                    ...formData,
+                    items: sanitizedItems,
+                    total: currentTotal,
+                    additionalCost: formData.additionalCost || 0
+                });
             }
+        } catch (err) {
+            console.error("Auto-save error:", err);
+            showToast('Erro ao salvar rascunho automaticamente.', 'warning');
+        }
+    };
+
+    const goToStep2 = async () => {
+        if (!formData.supplierId) {
+            showToast('Por favor, selecione um fornecedor.', 'error');
+            return;
         }
 
+        // Simplified goToStep2: no database creation here
         setStep(2);
     }
 
@@ -508,6 +500,10 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             resetItem.storage = prevStorage;
         }
 
+        // Persist sticky fields: IMEI, Min Stock toggle, and Min Stock Quantity
+        resetItem.hasImei = currentItem.hasImei;
+        resetItem.minimumStock = currentItem.minimumStock;
+
         setCurrentItem(resetItem);
         setCurrentGradeId('');
         setCurrentValueId('');
@@ -655,14 +651,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         return gradeValues.filter(v => v.gradeId === currentGradeId);
     }, [gradeValues, currentGradeId]);
 
-    const inputClasses = "w-full px-3 border rounded-xl bg-transparent border-border focus:ring-2 focus:ring-success/20 focus:border-success text-sm h-11 transition-all outline-none";
-    const labelClasses = "block text-[11px] font-bold text-muted uppercase tracking-wider mb-1.5 ml-1";
+    const inputClasses = "w-full px-3 border rounded-lg bg-white border-gray-200 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary text-sm h-11 transition-all outline-none";
+    const labelClasses = "block text-[11px] font-bold text-muted uppercase tracking-wider mb-1.5";
 
     const renderStep1 = () => (
         <>
             <div className="flex justify-between items-center p-4 md:p-5 border-b border-gray-100 bg-white sticky top-0 z-50">
                 <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-gray-900 text-white rounded-2xl transform -rotate-3 shadow-lg">
+                    <div className="p-2.5 bg-gray-900 text-white rounded-lg transform -rotate-3 shadow-lg">
                         <ArrowRightCircleIcon className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
                     <div>
@@ -670,12 +666,12 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Registro de entrada de mercadoria</p>
                     </div>
                 </div>
-                <button type="button" onClick={() => handleCloseInternal(false)} className="p-2 md:p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 group shadow-sm">
+                <button type="button" onClick={() => handleCloseInternal(false)} className="p-2 md:p-3 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 group shadow-sm">
                     <XCircleIcon className="h-6 w-6 group-hover:scale-110 transition-transform" />
                 </button>
             </div>
             <div className="p-3 md:p-5 space-y-4 md:space-y-5 flex-1 overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end bg-gray-50/50 p-4 rounded-lg border border-gray-100">
                     <div>
                         <label className="text-xs font-bold text-muted block mb-1">Data da compra*</label>
                         <input
@@ -695,18 +691,18 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     </div>
 
                     {formData.origin === 'Importação' && (
-                        <div className="col-span-2 grid grid-cols-2 gap-2 bg-gray-50 border border-dashed border-gray-200 p-2 rounded-2xl animate-fade-in">
+                        <div className="col-span-2 grid grid-cols-2 gap-2 bg-gray-50 border border-dashed border-gray-200 p-2 rounded-lg animate-fade-in">
                             <div>
                                 <label className="text-[10px] font-bold text-muted block mb-0.5">Dólar (R$)</label>
                                 <CurrencyInput
                                     value={formData.dollarRate}
                                     onChange={(v) => setFormData(prev => ({ ...prev, dollarRate: v || 0 }))}
-                                    className={`${inputClasses} w-full h-9 text-xs`}
+                                    className={`${inputClasses} w-full h-11 text-xs`}
                                 />
                             </div>
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-muted block mb-0.5">Frete</label>
-                                <div className="flex gap-1 h-9">
+                                <div className="flex gap-1 h-11">
                                     <CurrencyInput
                                         value={formData.shippingCost}
                                         onChange={(v) => setFormData(prev => ({ ...prev, shippingCost: v || 0 }))}
@@ -733,7 +729,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     <div className="md:col-span-2">
                         <label className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1 ml-1 block">Fornecedor / Cliente*</label>
                         <div className="flex flex-col sm:flex-row gap-2">
-                            <div className="flex items-center h-11 bg-gray-100/50 px-3 rounded-xl border border-gray-200 shadow-sm shrink-0">
+                            <div className="flex items-center h-11 bg-gray-100/50 px-3 rounded-lg border border-gray-200 shadow-sm shrink-0">
                                 <input type="checkbox" id="isCustomerPurchase" checked={isCustomerPurchase} onChange={e => setIsCustomerPurchase(e.target.checked)} className="h-4 w-4 text-accent rounded" />
                                 <label htmlFor="isCustomerPurchase" className="ml-2 text-xs font-bold text-gray-600 cursor-pointer">De Cliente</label>
                             </div>
@@ -741,7 +737,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                 <div className="flex-1 min-w-0">
                                     <SearchableDropdown options={combinedSupplierOptions} value={formData.supplierId || null} onChange={handleSupplierChange} placeholder="Buscar..." />
                                 </div>
-                                <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="h-11 w-11 flex-shrink-0 bg-success text-white rounded-xl flex items-center justify-center hover:bg-success/90 transition-all active:scale-95 shadow-md shadow-success/10">
+                                <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="h-11 w-11 flex-shrink-0 bg-success text-white rounded-lg flex items-center justify-center hover:bg-success/90 transition-all active:scale-95 shadow-md shadow-success/10">
                                     <PlusIcon className="h-6 w-6" />
                                 </button>
                             </div>
@@ -761,7 +757,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                     type="button"
                                     onClick={handlePrintTerm}
                                     title="Imprimir Termo"
-                                    className="h-10 w-10 flex-shrink-0 bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center hover:bg-gray-200 border border-gray-200"
+                                    className="h-10 w-10 flex-shrink-0 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-200 border border-gray-200"
                                 >
                                     <PrinterIcon className="h-5 w-5" />
                                 </button>
@@ -775,7 +771,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     <button
                         type="button"
                         onClick={goToStep2}
-                        className="w-full md:w-auto px-10 py-3 bg-gray-900 text-white rounded-2xl hover:bg-black font-black shadow-2xl flex items-center justify-center gap-3 transition-all active:scale-95 group"
+                        className="w-full md:w-auto px-10 py-3 bg-gray-900 text-white rounded-lg hover:bg-black font-black shadow-2xl flex items-center justify-center gap-3 transition-all active:scale-95 group"
                     >
                         <span className="text-base md:text-lg font-bold">Avançar para Itens</span>
                         <ArrowRightCircleIcon className="h-6 w-6 md:h-7 md:w-7 group-hover:translate-x-1 transition-transform" />
@@ -789,7 +785,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         <>
             <div className="flex justify-between items-center p-4 md:p-5 border-b border-gray-100 bg-white sticky top-0 z-50">
                 <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-gray-900 text-white rounded-2xl transform -rotate-3 shadow-lg">
+                    <div className="p-2.5 bg-gray-900 text-white rounded-lg transform -rotate-3 shadow-lg">
                         <PlusIcon className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
                     <div>
@@ -797,12 +793,12 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Lançamento detalhado de produtos</p>
                     </div>
                 </div>
-                <button type="button" onClick={() => handleCloseInternal(false)} className="p-2 md:p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 group shadow-sm">
+                <button type="button" onClick={() => handleCloseInternal(false)} className="p-2 md:p-3 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 group shadow-sm">
                     <XCircleIcon className="h-6 w-6 group-hover:scale-110 transition-transform" />
                 </button>
             </div>
             <div className="p-3 md:p-5 space-y-4 md:space-y-5 flex-1 overflow-y-auto custom-scrollbar">
-                <div className="bg-gray-50/50 p-4 md:p-5 rounded-3xl border border-gray-100 space-y-4 md:space-y-5">
+                <div className="bg-gray-50/50 p-4 md:p-5 rounded-lg border border-gray-100 space-y-4 md:space-y-5">
 
                     <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                         <div className="flex items-center space-x-6">
@@ -838,8 +834,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                 <span className="font-bold text-gray-700">Produto</span>
                             </label>
                         </div>
-                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs md:text-sm text-blue-600">
-                            Para cadastrar Marcar, Categorias e Grades, <a href="/#/company?tab=marcas" target="_blank" rel="noopener noreferrer" className="font-bold underline">clique aqui</a>
+                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs md:text-sm text-blue-600">
+                            Para cadastrar Marcas, Categorias, Modelos e Grades, <a href="/#/company?tab=marcas" target="_blank" rel="noopener noreferrer" className="font-bold underline">clique aqui</a>
                         </div>
                     </div>
                     <div className={`grid grid-cols-1 ${(productType === 'Apple' && currentItem.productDetails?.condition === 'Seminovo') ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-4`}>
@@ -863,10 +859,10 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     {productType === 'Apple' ? (
                         <div className="space-y-4">
                             <div className={`grid grid-cols-2 ${!isMemoryless ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
-                                <div><label className={labelClasses}>Categoria*</label><select value={currentItem.productDetails?.category || ''} onChange={(e) => handleAppleFilterChange('category', e.target.value)} className={`${inputClasses} h-10`}><option value="">Selecione</option>{Object.keys(appleProductHierarchy).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                                <div><label className={labelClasses}>Modelo*</label><select value={currentItem.productDetails?.model || ''} onChange={(e) => handleAppleFilterChange('model', e.target.value)} className={`${inputClasses} h-10`} disabled={!currentItem.productDetails?.category}><option value="">Selecione</option>{availableAppleModels.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                                {!isMemoryless && <div><label className={labelClasses}>Memória*</label><select value={currentItem.storage || ''} onChange={e => handleAppleFilterChange('storage', e.target.value)} className={`${inputClasses} h-10`} disabled={!currentItem.productDetails?.model}><option value="">Selecione</option>{availableAppleMemories.map(m => <option key={m} value={m}>{m}</option>)}</select></div>}
-                                <div><label className={labelClasses}>Cor*</label><select value={currentItem.productDetails?.color || ''} onChange={(e) => handleAppleFilterChange('color', e.target.value)} className={`${inputClasses} h-10`} disabled={!currentItem.productDetails?.model || (!isMemoryless && !currentItem.storage)}><option value="">Selecione</option>{availableAppleColors.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                                <div><label className={labelClasses}>Categoria*</label><select value={currentItem.productDetails?.category || ''} onChange={(e) => handleAppleFilterChange('category', e.target.value)} className={`${inputClasses} h-11`}><option value="">Selecione</option>{Object.keys(appleProductHierarchy).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                                <div><label className={labelClasses}>Modelo*</label><select value={currentItem.productDetails?.model || ''} onChange={(e) => handleAppleFilterChange('model', e.target.value)} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.category}><option value="">Selecione</option>{availableAppleModels.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                                {!isMemoryless && <div><label className={labelClasses}>Memória*</label><select value={currentItem.storage || ''} onChange={e => handleAppleFilterChange('storage', e.target.value)} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.model}><option value="">Selecione</option>{availableAppleMemories.map(m => <option key={m} value={m}>{m}</option>)}</select></div>}
+                                <div><label className={labelClasses}>Cor*</label><select value={currentItem.productDetails?.color || ''} onChange={(e) => handleAppleFilterChange('color', e.target.value)} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.model || (!isMemoryless && !currentItem.storage)}><option value="">Selecione</option>{availableAppleColors.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                             </div>
                             <div className="flex justify-start">
                                 <button type="button" onClick={() => setShowVariations(s => !s)} className="text-sm font-semibold text-accent hover:underline flex items-center gap-1"><PlusIcon className="h-4 w-4" /> Adicionar Variação (Ex: Vitrine, Caixa Amassada)</button>
@@ -875,9 +871,9 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     ) : (
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div><label className={labelClasses}>Marca*</label><select value={currentItem.productDetails?.brand || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, brand: val, category: '', model: '' } })); }} className={`${inputClasses} h-10`}><option value="">Selecione</option>{brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-                                <div><label className={labelClasses}>Categoria*</label><select value={currentItem.productDetails?.category || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, category: val, model: '' } })); }} className={`${inputClasses} h-10`} disabled={!currentItem.productDetails?.brand}><option value="">Selecione</option>{filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                                <div><label className={labelClasses}>Modelo*</label><select value={currentItem.productDetails?.model || ''} onChange={e => handleProductDetailChange('model', e.target.value)} className={`${inputClasses} h-10`} disabled={!currentItem.productDetails?.category}><option value="">Selecione</option>{filteredModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                                <div><label className={labelClasses}>Marca*</label><select value={currentItem.productDetails?.brand || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, brand: val, category: '', model: '' } })); }} className={`${inputClasses} h-11`}><option value="">Selecione</option>{brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                                <div><label className={labelClasses}>Categoria*</label><select value={currentItem.productDetails?.category || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, category: val, model: '' } })); }} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.brand}><option value="">Selecione</option>{filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                <div><label className={labelClasses}>Modelo*</label><select value={currentItem.productDetails?.model || ''} onChange={e => handleProductDetailChange('model', e.target.value)} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.category}><option value="">Selecione</option>{filteredModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
                             </div>
                             <div className="flex justify-start">
                                 <button type="button" onClick={() => setShowVariations(s => !s)} className="text-sm font-semibold text-accent hover:underline flex items-center gap-1"><PlusIcon className="h-4 w-4" /> Adicionar Variação (Cor, Armazenamento, etc)</button>
@@ -886,27 +882,27 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     )}
 
                     {showVariations && (
-                        <div className="col-span-full p-6 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-4">
+                        <div className="col-span-full p-6 bg-white border border-gray-100 rounded-lg shadow-sm space-y-4">
                             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block">Grades / Variações Adicionais</label>
                             <div className="flex flex-wrap gap-2 my-2">
                                 {currentItem.variations?.map((v, index) => (
-                                    <div key={index} className="flex items-center gap-1 bg-gray-200 rounded-full px-2 py-1 text-sm">
+                                    <div key={index} className="flex items-center gap-1 bg-gray-200 rounded-lg px-2 py-1 text-sm">
                                         <span className="font-semibold">{v.gradeName}:</span>
                                         <span>{v.valueName}</span>
                                         <button type="button" onClick={() => handleRemoveVariation(index)}><XCircleIcon className="h-4 w-4 text-muted hover:text-danger" /></button>
                                     </div>
                                 ))}
                             </div>
-                            <div className="flex items-end gap-3 p-4 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                            <div className="flex items-end gap-3 p-4 border border-dashed border-gray-200 rounded-lg bg-gray-50/50">
                                 <div className="flex-1">
-                                    <label className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1.5 block ml-1">Grade</label>
+                                    <label className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1.5 block">Grade</label>
                                     <select value={currentGradeId} onChange={e => { setCurrentGradeId(e.target.value); setCurrentValueId(''); }} className={`${inputClasses}`}>
                                         <option value="">Selecione...</option>
                                         {grades.filter(g => productType === 'Apple' ? g.name.toLowerCase() !== 'cor' : true).map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="flex-1">
-                                    <label className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1.5 block ml-1">Valor</label>
+                                    <label className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1.5 block">Valor</label>
                                     <select value={currentValueId} onChange={e => setCurrentValueId(e.target.value)} className={`${inputClasses}`} disabled={!currentGradeId}>
                                         <option value="">Selecione...</option>
                                         {availableGradeValues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
@@ -917,8 +913,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                        <div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="flex flex-col items-start gap-1.5 w-full">
                             <label className={labelClasses}>QUANTIDADE</label>
                             <input
                                 type="number"
@@ -926,68 +922,80 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                 value={currentItem.quantity}
                                 onChange={(e) => handleCurrentItemChange('quantity', parseInt(e.target.value) || 1)}
                                 onFocus={(e) => e.target.select()}
-                                className={`${inputClasses} text-center font-bold`}
+                                className={`${inputClasses} text-left font-bold transition-all`}
                             />
                         </div>
-                        <div><label className={labelClasses}>Custo Unit.</label><CurrencyInput value={currentItem.unitCost} onChange={v => handleCurrentItemChange('unitCost', v || 0)} className={inputClasses} /></div>
-                        <div><label className={labelClasses}>Adicional (Unit.)</label><CurrencyInput value={currentItem.additionalUnitCost} onChange={v => handleCurrentItemChange('additionalUnitCost', v || 0)} className={inputClasses} /></div>
-                        <div>
-                            <label className={labelClasses}>Final (Unit.)</label>
-                            <div className={`${inputClasses} bg-gray-100 flex items-center text-xs md:text-sm`}>{formatCurrency(currentItem.finalUnitCost)}</div>
+                        <div className="flex flex-col items-start gap-1.5 w-full">
+                            <label className={labelClasses}>CUSTO UNITÁRIO</label>
+                            <CurrencyInput
+                                value={currentItem.unitCost}
+                                onChange={v => handleCurrentItemChange('unitCost', v || 0)}
+                            />
+                        </div>
+                        <div className="flex flex-col items-start gap-1.5 w-full">
+                            <label className={labelClasses}>CUSTO ADICIONAL</label>
+                            <CurrencyInput
+                                value={currentItem.additionalUnitCost}
+                                onChange={v => handleCurrentItemChange('additionalUnitCost', v || 0)}
+                            />
+                        </div>
+                        <div className="flex flex-col items-start gap-1.5 w-full">
+                            <label className={labelClasses}>CUSTO FINAL UNIT.</label>
+                            <div className="flex items-center w-full h-11 bg-gray-50 border border-gray-200 rounded-lg px-3 font-bold text-gray-800">
+                                {formatCurrency(currentItem.finalUnitCost)}
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mt-2">
                         <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto flex-1">
                             <div className="flex flex-col gap-3 justify-center min-w-[240px]">
-                                <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={currentItem.hasImei}
-                                        onChange={e => {
-                                            const checked = e.target.checked;
-                                            handleCurrentItemChange('hasImei', checked);
-                                            if (!checked) setIsMinimumStockEnabled(true);
-                                            else setIsMinimumStockEnabled(false);
-                                        }}
-                                        className="form-checkbox h-4 w-4 text-accent rounded"
-                                    />
-                                    <span className="text-sm font-semibold text-gray-600">Controlar por IMEI/Serial</span>
-                                </label>
+                                <div
+                                    onClick={() => handleCurrentItemChange('hasImei', !currentItem.hasImei)}
+                                    className="flex items-center gap-3 cursor-pointer group"
+                                >
+                                    <div className={`w-10 h-5 rounded-full p-0.5 transition-all relative ${currentItem.hasImei ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-300'}`}>
+                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${currentItem.hasImei ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </div>
+                                    <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">Controlar por IMEI/Serial</span>
+                                </div>
 
-                                <div className={`flex items-center gap-3 transition-all duration-300 ${currentItem.hasImei ? 'opacity-40 pointer-events-none grayscale' : 'opacity-100'}`}>
-                                    <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={isMinimumStockEnabled}
-                                            onChange={(e) => handleToggleMinimumStock(e.target.checked)}
-                                            disabled={currentItem.hasImei}
-                                            className="form-checkbox h-4 w-4 text-accent rounded"
-                                        />
-                                        <span className="text-sm font-semibold text-gray-600">Estoque mínimo</span>
-                                    </label>
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        onClick={() => handleToggleMinimumStock(!isMinimumStockEnabled)}
+                                        className="flex items-center gap-3 cursor-pointer group"
+                                    >
+                                        <div className={`w-10 h-5 rounded-full p-0.5 transition-all relative ${isMinimumStockEnabled ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-300'}`}>
+                                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${isMinimumStockEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </div>
+                                        <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">Estoque mínimo</span>
+                                    </div>
 
                                     <div className="flex items-center gap-2 ml-auto bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Qtd:</span>
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-[9px]">Qtd:</span>
                                         <input
                                             type="number"
                                             min="1"
                                             value={currentItem.minimumStock ?? 1}
                                             onChange={(e) => handleCurrentItemChange('minimumStock', parseInt(e.target.value) || 1)}
-                                            disabled={currentItem.hasImei || !isMinimumStockEnabled}
-                                            className="w-12 bg-transparent text-center font-bold text-sm outline-none border-b-2 border-transparent focus:border-accent transition-colors"
+                                            className="w-10 bg-transparent text-center font-black text-sm outline-none border-b-2 border-transparent focus:border-blue-600 transition-colors"
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex-1 min-w-[200px] flex items-end">
-                                <div className="flex items-center gap-3 px-3 border rounded-xl bg-gray-100/50 border-gray-200 h-11 transition-all focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent w-full shadow-inner">
+                                <div className="flex items-center gap-3 px-3 border rounded-lg bg-gray-100/50 border-gray-200 h-11 transition-all focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent w-full shadow-inner">
                                     <BarcodeIcon className="h-4 w-4 text-muted shrink-0" />
                                     <input
                                         type="text"
                                         value={currentItem.barcode || ''}
                                         onChange={(e) => handleCurrentItemChange('barcode', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                            }
+                                        }}
                                         className="bg-transparent border-none text-sm outline-none w-full placeholder:text-gray-400 font-bold"
                                         placeholder="CÓDIGO DE BARRAS..."
                                     />
@@ -995,7 +1003,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                             </div>
                         </div>
 
-                        <button type="button" onClick={handleAddItem} className="w-full lg:w-auto px-8 py-3 bg-success text-white rounded-xl font-bold hover:bg-success/90 flex items-center justify-center gap-2 transition-all shadow-lg shadow-success/20 h-11">
+                        <button type="button" onClick={handleAddItem} className="w-full lg:w-72 px-8 py-3 bg-success text-white rounded-lg font-black hover:bg-success/90 flex items-center justify-center gap-3 transition-all shadow-xl shadow-success/20 h-12 active:scale-95">
                             <PlusIcon className="h-6 w-6" /> Adicionar Item
                         </button>
                     </div>
@@ -1030,7 +1038,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                     <td className="p-4 text-right">{formatCurrency(item.additionalUnitCost)}</td>
                                     <td className="p-4 text-right font-semibold">{formatCurrency((item.finalUnitCost || 0) * (item.quantity || 0))}</td>
                                     <td className="p-4 text-center">
-                                        <button onClick={() => removeItem(index)} className="text-danger hover:bg-red-50 p-2 rounded-xl transition-colors"><TrashIcon className="h-5 w-5" /></button>
+                                        <button onClick={() => removeItem(index)} className="text-danger hover:bg-red-50 p-2 rounded-lg transition-colors"><TrashIcon className="h-5 w-5" /></button>
                                     </td>
                                 </tr>
                             ))}
@@ -1063,13 +1071,13 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-center pt-3 pb-5 gap-4 px-8 md:px-6">
-                <button type="button" onClick={() => setStep(1)} className="w-full md:w-auto px-8 py-3 bg-white border-2 border-gray-100 text-gray-500 rounded-2xl hover:bg-gray-50 font-bold transition-all order-2 md:order-1 active:scale-95 flex items-center justify-center gap-2">
+                <button type="button" onClick={() => setStep(1)} className="w-full md:w-auto px-8 py-3 bg-white border-2 border-gray-100 text-gray-500 rounded-lg hover:bg-gray-50 font-bold transition-all order-2 md:order-1 active:scale-95 flex items-center justify-center gap-2">
                     <ChevronLeftIcon className="h-5 w-5" />
                     Voltar
                 </button>
                 <div className="flex gap-4 w-full md:w-auto order-1 md:order-2">
                     <button type="button" onClick={() => handleCloseInternal(false)} className="hidden md:block px-6 py-3 text-gray-400 font-bold hover:text-red-500 transition-colors">Cancelar</button>
-                    <button type="submit" onClick={handleSubmit} disabled={isSaving} className="w-full md:w-auto px-12 py-3 bg-success text-white rounded-2xl hover:bg-success/90 font-black flex items-center justify-center gap-3 disabled:bg-muted transition-all shadow-xl shadow-success/20 active:scale-95">
+                    <button type="submit" onClick={handleSubmit} disabled={isSaving} className="w-full md:w-72 px-12 py-3 bg-success text-white rounded-lg hover:bg-success/90 font-black flex items-center justify-center gap-3 disabled:bg-muted transition-all shadow-xl shadow-success/20 active:scale-95 h-12">
                         {isSaving ? <SpinnerIcon className="h-6 w-6 animate-spin" /> : (
                             <>
                                 Finalizar Compra

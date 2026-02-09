@@ -1036,10 +1036,49 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="space-y-2"><label className={labelClasses}>IMEI 1</label><input type="text" name="imei1" value={formData.imei1 || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
-                                <div className="space-y-2"><label className={labelClasses}>IMEI 2</label><input type="text" name="imei2" value={formData.imei2 || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
-                                <div className="space-y-2"><label className={labelClasses}>Nº de Série</label><input type="text" name="serialNumber" value={formData.serialNumber || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
-                                <div className="space-y-2"><label className={labelClasses}>Código de Barras</label><input type="text" value={formData.barcodes?.[0] || ''} onChange={(e) => setFormData(p => ({ ...p, barcodes: e.target.value ? [e.target.value] : [] }))} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm" /></div>
+                                <div className="space-y-2">
+                                    <label className={labelClasses}>IMEI 1</label>
+                                    <input
+                                        type="text"
+                                        name="imei1"
+                                        value={formData.imei1 || ''}
+                                        onChange={handleInputChange}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                        className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className={labelClasses}>IMEI 2</label>
+                                    <input
+                                        type="text"
+                                        name="imei2"
+                                        value={formData.imei2 || ''}
+                                        onChange={handleInputChange}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                        className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className={labelClasses}>Nº de Série</label>
+                                    <input
+                                        type="text"
+                                        name="serialNumber"
+                                        value={formData.serialNumber || ''}
+                                        onChange={handleInputChange}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                        className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className={labelClasses}>Código de Barras</label>
+                                    <input
+                                        type="text"
+                                        value={formData.barcodes?.[0] || ''}
+                                        onChange={(e) => setFormData(p => ({ ...p, barcodes: e.target.value ? [e.target.value] : [] }))}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                        className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm"
+                                    />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1108,11 +1147,19 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest px-1">Custo Entrada</label>
-                                        <CurrencyInput value={formData.costPrice} onChange={handlePriceChange('costPrice')} className={`w-full p-4 bg-white border ${showErrors && (!formData.costPrice || formData.costPrice <= 0) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-gray-200'} rounded-3xl font-black text-xl md:text-2xl text-gray-800 focus:ring-4 focus:ring-blue-100 outline-none shadow-sm`} />
+                                        <CurrencyInput
+                                            value={formData.costPrice}
+                                            onChange={handlePriceChange('costPrice')}
+                                            className={`${showErrors && (!formData.costPrice || formData.costPrice <= 0) ? '!border-red-500 !ring-4 !ring-red-500/10' : ''} font-black text-xl md:text-2xl text-gray-800`}
+                                        />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Custo Adicional</label>
-                                        <CurrencyInput value={formData.additionalCostPrice} onChange={handlePriceChange('additionalCostPrice')} className="w-full p-3 bg-white border border-gray-200 rounded-xl font-bold text-lg text-gray-600 outline-none shadow-sm" />
+                                        <CurrencyInput
+                                            value={formData.additionalCostPrice}
+                                            onChange={handlePriceChange('additionalCostPrice')}
+                                            className="font-bold text-lg text-gray-600"
+                                        />
                                     </div>
                                 </div>
 
@@ -1134,11 +1181,19 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-success uppercase tracking-widest px-1">Preço de Venda*</label>
-                                        <CurrencyInput value={formData.price} onChange={handlePriceChange('price')} className={`w-full p-4 bg-white border ${showErrors && (!formData.price || formData.price <= 0) ? 'border-red-500 ring-4 ring-red-500/10' : 'border-success/20'} rounded-3xl font-black text-xl md:text-2xl text-success focus:ring-4 focus:ring-success/5 outline-none shadow-lg`} />
+                                        <CurrencyInput
+                                            value={formData.price}
+                                            onChange={handlePriceChange('price')}
+                                            className={`${showErrors && (!formData.price || formData.price <= 0) ? '!border-red-500 !ring-4 !ring-red-500/10' : ''} font-black text-xl md:text-2xl text-success`}
+                                        />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest px-1">Preço de Atacado</label>
-                                        <CurrencyInput value={formData.wholesalePrice} onChange={(val) => setFormData(p => ({ ...p, wholesalePrice: val || 0 }))} className="w-full p-3 bg-white border border-orange-200 rounded-xl font-bold text-lg text-orange-600 outline-none shadow-sm" />
+                                        <CurrencyInput
+                                            value={formData.wholesalePrice}
+                                            onChange={(val) => setFormData(p => ({ ...p, wholesalePrice: val || 0 }))}
+                                            className="font-bold text-lg text-orange-600"
+                                        />
                                     </div>
                                 </div>
                             </div>

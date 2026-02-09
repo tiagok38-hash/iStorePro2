@@ -292,12 +292,12 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                             <div><label className={labelClasses}>Saúde Bateria</label><input name="batteryHealth" type="number" value={deviceData.batteryHealth} onChange={handleNumericDeviceChange} className={inputClasses} /></div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end pt-4 border-t">
-                            <div><label className={labelClasses}>Custo do Produto (un)*</label><CurrencyInput value={deviceData.costPrice} onChange={v => setDeviceData(p => ({ ...p, costPrice: v || 0 }))} className={`${inputClasses} border-red-500`} /></div>
-                            <div><label className={labelClasses}>Custos Adicionais (un)</label><CurrencyInput value={deviceData.additionalCostPrice} onChange={v => setDeviceData(p => ({ ...p, additionalCostPrice: v || 0 }))} className={inputClasses} /></div>
+                            <div><label className={labelClasses}>Custo do Produto (un)*</label><CurrencyInput value={deviceData.costPrice} onChange={v => setDeviceData(p => ({ ...p, costPrice: v || 0 }))} className="!border-red-500" /></div>
+                            <div><label className={labelClasses}>Custos Adicionais (un)</label><CurrencyInput value={deviceData.additionalCostPrice} onChange={v => setDeviceData(p => ({ ...p, additionalCostPrice: v || 0 }))} /></div>
                             <div><label className={labelClasses}>Custo Final (un)</label><div className={`${inputClasses} bg-gray-100 flex items-center`}>{formatCurrency(finalCost)}</div></div>
                             <div><label className={labelClasses}>Markup %</label><input name="markup" type="number" value={deviceData.markup} onChange={handleNumericDeviceChange} className={inputClasses} /></div>
                             <div><label className={labelClasses}>Preço Sugerido</label><div className={`${inputClasses} bg-gray-100 flex items-center`}>{formatCurrency(suggestedPrice)}</div></div>
-                            <div><label className={labelClasses}>Preço de Venda*</label><CurrencyInput value={deviceData.salePrice} onChange={v => setDeviceData(p => ({ ...p, salePrice: v || 0 }))} className={`${inputClasses} border-red-500`} /></div>
+                            <div><label className={labelClasses}>Preço de Venda*</label><CurrencyInput value={deviceData.salePrice} onChange={v => setDeviceData(p => ({ ...p, salePrice: v || 0 }))} className="!border-red-500" /></div>
                         </div>
                         <div><label className={labelClasses}>Observações:</label><textarea name="observations" value={deviceData.observations} onChange={handleDeviceChange} rows={3} className={inputClasses.replace('h-10', '')} /></div>
                     </div>
@@ -330,7 +330,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                                 </div>
                                 <div>
                                     <label className={labelClasses}>Custo de Reparo:</label>
-                                    <CurrencyInput value={checklistData.repairCost} onChange={v => setChecklistData(p => ({ ...p, repairCost: v || 0 }))} className={inputClasses} />
+                                    <CurrencyInput value={checklistData.repairCost} onChange={v => setChecklistData(p => ({ ...p, repairCost: v || 0 }))} />
                                 </div>
                                 <div className="text-xs text-muted bg-gray-100 p-2 rounded-xl">
                                     <strong>Obs:</strong> Insira o custo de reparo no campo "Custo Adicionais" para que o custo do produto seja somado com o custo de reparo.

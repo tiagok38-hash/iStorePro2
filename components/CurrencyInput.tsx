@@ -37,17 +37,47 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({ value, onChange, placehol
 
     const displayValue = format(value);
 
+    // Strip ALL styling classes that should be controlled by the CurrencyInput container only.
+    // This prevents "Inception" effect (boxes inside boxes).
+    const cleanClassName = className?.split(/\s+/).filter(cls =>
+        !cls.startsWith('p-') &&
+        !cls.startsWith('px-') &&
+        !cls.startsWith('py-') &&
+        !cls.startsWith('pl-') &&
+        !cls.startsWith('pr-') &&
+        !cls.startsWith('pt-') &&
+        !cls.startsWith('pb-') &&
+        !cls.startsWith('border') &&
+        !cls.startsWith('rounded') &&
+        !cls.startsWith('bg-') &&
+        !cls.startsWith('ring') &&
+        !cls.startsWith('h-') &&
+        !cls.startsWith('shadow')
+    ).join(' ') || '';
+
     return (
-        <div className={`relative w-full flex items-center overflow-hidden ${className}`}>
+        <div className={`
+            flex items-center w-full h-11 bg-white border border-gray-200 rounded-lg transition-all overflow-hidden
+            focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary
+            ${disabled ? 'bg-gray-50 opacity-60' : ''}
+            ${cleanClassName}
+        `}>
             {showPrefix && (
-                <span className={`pointer-events-none pl-3 text-sm font-bold whitespace-nowrap shrink-0 ${disabled ? 'text-gray-400' : 'text-muted'}`}>R$</span>
+                <span className="pl-3 pr-1 text-sm font-bold text-gray-500 select-none shrink-0 pointer-events-none">
+                    R$
+                </span>
             )}
             <input
                 type="text"
                 value={displayValue}
                 onChange={handleChange}
                 placeholder={placeholder}
-                className={`flex-1 w-full h-full bg-transparent border-none outline-none focus:ring-0 px-2 placeholder:text-gray-300 ${disabled ? 'cursor-not-allowed' : ''} text-inherit`}
+                className={`
+                    flex-1 !border-0 !outline-none !shadow-none !bg-transparent !p-0 h-full text-sm font-bold text-gray-800 appearance-none
+                    ${showPrefix ? 'ml-1' : 'ml-3'} mr-3
+                    ${disabled ? 'cursor-not-allowed' : ''}
+                `}
+                style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
                 disabled={disabled}
                 data-testid="unit-price-input"
             />

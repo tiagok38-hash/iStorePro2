@@ -50,6 +50,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     } = props;
 
     const [nextId, setNextId] = React.useState<string | null>(null);
+    const [matchingUnits, setMatchingUnits] = React.useState<Product[]>([]);
+    const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
 
     React.useEffect(() => {
         if (!props.saleToEdit) {
@@ -80,6 +82,13 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         handleRequestPayment, handleConfirmPayment, handleConfirmCardPayment,
         handleRemovePayment, handleSaveTradeInProduct, handleSave, setSelectedPriceType
     } = actions;
+
+    const handleSelectUnit = (product: Product) => {
+        handleAddToCart(product);
+        setIsSelectingUnit(false);
+        setMatchingUnits([]);
+        setProductSearch('');
+    };
 
 
     const { productSearchRef } = refs;
@@ -155,22 +164,44 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
             const term = productSearch.trim().toLowerCase();
             if (!term) return;
 
-            // Prioridade: Match Exato de Código de Barras > IMEI/SN > Resultado Único
-            const exactMatch = products.find(p =>
+            // Encontrar TODOS os matches (EAN, IMEI ou SN)
+            const matches = products.filter(p =>
                 (p.barcodes || []).some(b => b.toLowerCase() === term) ||
                 (p.imei1 || '').toLowerCase() === term ||
                 (p.serialNumber || '').toLowerCase() === term
-            );
+            ).filter(p => {
+                // Se for único, não pode estar no carrinho
+                const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
+                if (isUnique && cart.some(item => item.id === p.id)) return false;
+                return p.stock > 0;
+            });
 
-            if (exactMatch) {
-                if (exactMatch.stock > 0) {
-                    handleAddToCart(exactMatch);
-                    setProductSearch('');
-                }
+            if (matches.length === 1) {
+                handleAddToCart(matches[0]);
+                setProductSearch('');
                 return;
             }
 
-            // Se houver apenas 1 resultado filtrado, seleciona ele
+            if (matches.length > 1) {
+                // Se o termo for especificamente um IMEI ou SN único que deu match em mais de um (improvável mas possível se houver erro de dados)
+                // daremos prioridade ao match exato de IMEI/SN se houver.
+                const exactImeiSnMatch = matches.find(p =>
+                    (p.imei1 || '').toLowerCase() === term ||
+                    (p.serialNumber || '').toLowerCase() === term
+                );
+
+                if (exactImeiSnMatch) {
+                    handleAddToCart(exactImeiSnMatch);
+                    setProductSearch('');
+                    return;
+                }
+
+                setMatchingUnits(matches);
+                setIsSelectingUnit(true);
+                return;
+            }
+
+            // Se for apenas 1 resultado na lista filtrada lateral
             if (filteredProducts.length === 1) {
                 const p = filteredProducts[0];
                 if (p.stock > 0) {
@@ -408,7 +439,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                             <CurrencyInput
                                                                 value={item.salePrice}
                                                                 onChange={(val) => handleCartItemUpdate(item.id, 'salePrice', val || 0)}
-                                                                className="h-9 text-[14px] border rounded-xl bg-white border-gray-200 focus:ring-2 focus:ring-success/20 outline-none font-black text-left"
+                                                                className="text-left font-black"
                                                             />
                                                         </div>
                                                     </div>
@@ -473,7 +504,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 <CurrencyInput
                                                     value={item.salePrice}
                                                     onChange={(val) => handleCartItemUpdate(item.id, 'salePrice', val || 0)}
-                                                    className="h-9 text-[13px] border rounded-xl bg-gray-50 border-gray-100 font-bold text-center"
+                                                    className="font-bold text-center !bg-gray-50"
                                                 />
                                             </div>
                                             <div className="text-right">
@@ -584,7 +615,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                         <div className="p-2 bg-success-light border border-success/30 rounded-xl flex items-end gap-2 animate-slide-down">
                                             <div className="flex-grow">
                                                 <label className="text-[9px] font-bold text-success-dark mb-1 block">Valor ({paymentInput.method})</label>
-                                                <CurrencyInput value={paymentInput.amount} onChange={v => setPaymentInput(p => p ? { ...p, amount: v || 0 } : null)} className="h-9 text-sm border-success/50 bg-white" />
+                                                <CurrencyInput value={paymentInput.amount} onChange={v => setPaymentInput(p => p ? { ...p, amount: v || 0 } : null)} />
                                             </div>
                                             <button onClick={handleConfirmPayment} className="px-3 h-9 bg-success text-white rounded font-bold shadow-sm text-xs">OK</button>
                                             <button onClick={() => setPaymentInput(null)} className="px-3 h-9 bg-white text-gray-500 rounded font-bold border border-gray-200 text-xs">X</button>
@@ -767,6 +798,73 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 initialMethodId={cardMethodId}
             />
 
+
+            {/* Modal de Seleção de Unidade (EAN Duplicado) */}
+            {isSelectingUnit && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 animate-scale-up">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-900 leading-tight">Múltiplas Unidades</h3>
+                                <p className="text-xs text-muted font-bold uppercase tracking-wider mt-1 italic">Várias unidades encontradas para este código</p>
+                            </div>
+                            <button onClick={() => setIsSelectingUnit(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"><XCircleIcon className="h-6 w-6" /></button>
+                        </div>
+
+                        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar">
+                            {matchingUnits.map(unit => (
+                                <button
+                                    key={unit.id}
+                                    onClick={() => handleSelectUnit(unit)}
+                                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl hover:border-success hover:bg-success-light/30 transition-all flex flex-col gap-2 group text-left shadow-sm"
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-black text-gray-900 text-sm group-hover:text-success transition-colors">{unit.model}</span>
+                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm ${unit.condition === 'Novo' ? 'bg-success/10 text-success border border-success/20' : 'bg-orange-50 text-orange-600 border border-orange-100'
+                                            }`}>
+                                            {unit.condition}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                        {unit.imei1 && (
+                                            <div className="flex items-center gap-1.5 text-gray-500">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">IMEI:</span>
+                                                <span className="font-mono font-bold text-gray-700">{unit.imei1}</span>
+                                            </div>
+                                        )}
+                                        {unit.serialNumber && (
+                                            <div className="flex items-center gap-1.5 text-gray-500">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">S/N:</span>
+                                                <span className="font-mono font-bold text-gray-700">{unit.serialNumber}</span>
+                                            </div>
+                                        )}
+                                        {unit.storage && (
+                                            <div className="flex items-center gap-1.5 text-gray-500">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Capacidade:</span>
+                                                <span className="font-bold text-gray-700">{unit.storage}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1 pt-2 border-t border-gray-50">
+                                        <span className="text-[10px] font-bold text-muted uppercase">Local: <span className="text-gray-600">{unit.storageLocation || 'Loja Santa Cruz'}</span></span>
+                                        <span className="text-lg font-black text-gray-900">{formatCurrency(unit.price)}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
+                            <button
+                                onClick={() => setIsSelectingUnit(false)}
+                                className="px-6 py-2.5 bg-white border border-gray-200 text-gray-600 font-black rounded-xl hover:bg-gray-50 transition-all text-xs uppercase tracking-widest shadow-sm"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {productToConfirm && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 animate-fade-in">
                     <div className="bg-white rounded-3xl shadow-2xl w-[95%] max-w-md overflow-hidden animate-scale-in">
@@ -808,16 +906,16 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
                             {/* Info Adicional */}
                             <div className="grid grid-cols-2 gap-2">
-                                <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                <div className="p-2 bg-gray-50 rounded-xl border border-gray-100">
                                     <span className="block text-[9px] font-bold text-muted uppercase mb-0.5 tracking-wider">Condição</span>
                                     <span className={`text-[10px] font-black uppercase tracking-tight ${productToConfirm.condition === 'Novo' ? 'text-emerald-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
                                 </div>
-                                <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                <div className="p-2 bg-gray-50 rounded-xl border border-gray-100">
                                     <span className="block text-[9px] font-bold text-muted uppercase mb-0.5 tracking-wider">Garantia</span>
                                     <span className="text-[10px] font-black text-gray-700 uppercase tracking-tight">{productToConfirm.warranty || 'S/ GARANTIA'}</span>
                                 </div>
                                 {(productToConfirm.serialNumber || productToConfirm.imei1) && (
-                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100 col-span-2">
+                                    <div className="p-2 bg-gray-50 rounded-xl border border-gray-100 col-span-2">
                                         <span className="block text-[9px] font-bold text-muted uppercase mb-0.5 tracking-wider">Disponível</span>
                                         <span className="font-black text-xs text-gray-800">{productToConfirm.stock} unidades</span>
                                     </div>

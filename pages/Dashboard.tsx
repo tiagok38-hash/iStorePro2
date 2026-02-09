@@ -10,16 +10,16 @@ import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 
 // --- Components ---
 const InfoBanner: React.FC = React.memo(() => (
-    <div className="bg-accent-light text-accent text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 border border-accent/10 shadow-sm shadow-accent/5">
+    <div className="bg-accent-light text-accent text-sm font-medium px-4 py-2 rounded-2xl flex items-center gap-2 border border-accent/10 shadow-sm shadow-accent/5 flex-1 justify-center">
         <SmartphoneIcon className="h-4 w-4" />
         <span>Bem-vindo ao iStore! Fique de olho para novidades.</span>
     </div>
 ));
 
 const LowStockBanner: React.FC<{ count: number }> = React.memo(({ count }) => (
-    <Link to="/reports?tab=estoque&filter=low_stock" className="bg-danger-light text-danger text-sm font-medium px-4 py-2 rounded-3xl flex items-center gap-2 hover:bg-red-200 transition-all border border-danger/10 shadow-sm shadow-danger/5">
+    <Link to="/reports?tab=estoque&filter=low_stock" className="bg-danger-light text-danger text-sm font-medium px-4 py-2 rounded-2xl flex items-center gap-2 hover:bg-red-200 transition-all border border-danger/10 shadow-sm shadow-danger/5 flex-1 justify-center">
         <TagIcon className="h-4 w-4" />
-        <span className="font-semibold">Produtos com estoque baixo: {count}</span>
+        <span className="font-semibold text-center">Produtos com estoque baixo: {count}</span>
     </Link>
 ));
 
@@ -1369,7 +1369,7 @@ const Dashboard: React.FC = () => {
                     <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
                     <p className="text-muted">Meu Plano: <span className="font-semibold text-secondary">Plus (Trimestral)</span></p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-stretch gap-4 flex-1 sm:flex-initial">
                     {lowStockCount > 0 && <LowStockBanner count={lowStockCount} />}
                     <InfoBanner />
                 </div>

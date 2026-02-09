@@ -637,6 +637,7 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
 
 export const getProducts = async (filters: { model?: string, categoryId?: string, brandId?: string, onlyInStock?: boolean } = {}): Promise<Product[]> => {
     const cacheKey = `products_${JSON.stringify(filters)}`;
+    console.time(`getProducts:${cacheKey}`);
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('products').select('*');
@@ -669,6 +670,8 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
                 createdByName: p.created_by_name || p.createdByName,
             }));
         });
+    }).finally(() => {
+        console.timeEnd(`getProducts:${cacheKey}`);
     });
 };
 
@@ -676,6 +679,7 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
 export const searchProducts = async (term: string): Promise<Product[]> => {
     if (!term || term.length < 2) return [];
 
+    console.time(`searchProducts:${term}`);
     return fetchWithRetry(async () => {
         const { data, error } = await supabase
             .from('products')
@@ -701,6 +705,8 @@ export const searchProducts = async (term: string): Promise<Product[]> => {
             createdBy: p.created_by || p.createdBy,
             createdByName: p.created_by_name || p.createdByName,
         }));
+    }).finally(() => {
+        console.timeEnd(`searchProducts:${term}`);
     });
 };
 
@@ -1365,6 +1371,7 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
 
 export const getSales = async (currentUserId?: string, cashSessionId?: string, startDate?: string, endDate?: string): Promise<Sale[]> => {
     const cacheKey = `sales_${currentUserId || 'all'}_${cashSessionId || 'all'}_${startDate || 'none'}_${endDate || 'none'}`;
+    console.time(`getSales:${cacheKey}`);
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('sales').select('*');
@@ -1477,6 +1484,8 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
                 }
             });
         });
+    }).finally(() => {
+        console.timeEnd(`getSales:${cacheKey}`);
     });
 };
 
@@ -2495,6 +2504,10 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
     // Return with info about trade-in products that were already sold
     return {
         ...updatedSale,
+        customerId: updatedSale.customer_id,
+        salespersonId: updatedSale.salesperson_id,
+        cashSessionId: updatedSale.cash_session_id,
+        warrantyTerm: updatedSale.warranty_term,
         tradeInAlreadySold: tradeInAlreadySoldProducts.length > 0 ? tradeInAlreadySoldProducts : undefined
     };
 };

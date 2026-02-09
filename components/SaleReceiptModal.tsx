@@ -512,17 +512,17 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                                 size: A4 portrait; 
                                 margin: 8mm; /* Standard margin */
                             }
-                            .receipt-body { 
-                                font-size: 10pt !important; /* Back to desktop scale */
-                                color: black !important; 
-                                width: 210mm !important; /* Force desktop width */
-                                max-width: 210mm !important;
-                                margin: 0 auto !important;
-                                padding: 0 !important;
-                                box-sizing: border-box !important;
-                                overflow: visible !important;
-                                min-height: auto !important;
-                            }
+                             .receipt-body { 
+                                 font-size: 10pt !important; /* Back to desktop scale */
+                                 color: black !important; 
+                                 width: 100% !important; /* Use available printable width */
+                                 max-width: 100% !important;
+                                 margin: 0 auto !important;
+                                 padding: 0 !important;
+                                 box-sizing: border-box !important;
+                                 overflow: visible !important;
+                                 min-height: auto !important;
+                             }
                         `}
 
                         .whitespace-pre-wrap { white-space: pre-wrap; }

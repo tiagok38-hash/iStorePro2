@@ -11,6 +11,8 @@ export const GlobalLoadingOverlay: React.FC<{ show?: boolean }> = ({ show }) => 
     const { loading, isOnline } = useUser();
     const isVisible = show !== undefined ? show : loading;
 
+    // Auto-reload removed to prevent infinite loops on slow connections
+    /*
     useEffect(() => {
         let timer: NodeJS.Timeout;
         if (isVisible) {
@@ -20,6 +22,7 @@ export const GlobalLoadingOverlay: React.FC<{ show?: boolean }> = ({ show }) => 
         }
         return () => clearTimeout(timer);
     }, [isVisible]);
+    */
 
     if (!isVisible) return null;
 
@@ -108,6 +111,8 @@ export const PageLoadingWrapper: React.FC<PageLoadingWrapperProps> = ({
     children,
     loadingText = 'Carregando dados...'
 }) => {
+    // Auto-reload removed to prevent infinite loops on slow connections
+    /*
     useEffect(() => {
         let timer: NodeJS.Timeout;
         if (loading) {
@@ -117,6 +122,7 @@ export const PageLoadingWrapper: React.FC<PageLoadingWrapperProps> = ({
         }
         return () => clearTimeout(timer);
     }, [loading]);
+    */
 
     if (loading) {
         return (
@@ -146,12 +152,15 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className }) =>
 );
 
 export const SuspenseFallback: React.FC<{ fullScreen?: boolean }> = ({ fullScreen }) => {
+    // Auto-reload removed to prevent infinite loops on slow connections
+    /*
     useEffect(() => {
         const timer = setTimeout(() => {
             window.location.reload();
         }, 3000);
         return () => clearTimeout(timer);
     }, []);
+    */
 
     return (
         <div className={fullScreen ? "w-screen h-screen flex items-center justify-center bg-background" : "w-full h-full flex items-center justify-center"}>

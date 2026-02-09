@@ -45,8 +45,8 @@ const CashMovementModal: React.FC<CashMovementModalProps> = ({ isOpen, onClose, 
                         <CurrencyInput
                             value={amount}
                             onChange={setAmount}
-                            className={`w-full text-2xl font-black p-3 rounded-xl border focus:ring-2 outline-none ${isSangria ? 'focus:ring-red-200 border-red-200 text-red-600' : 'focus:ring-green-200 border-green-200 text-green-600'}`}
-                            placeholder="R$ 0,00"
+                            className={`text-2xl font-black ${isSangria ? 'text-red-600 !border-red-200 !focus-within:border-red-500 !focus-within:ring-red-100' : 'text-green-600 !border-green-200 !focus-within:border-green-500 !focus-within:ring-green-100'}`}
+                            placeholder="0,00"
                             autoFocus
                         />
                     </div>
