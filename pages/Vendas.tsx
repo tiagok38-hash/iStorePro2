@@ -332,8 +332,8 @@ const Vendas: React.FC = () => {
         const channel = new BroadcastChannel('app_cache_sync');
         channel.onmessage = (event) => {
             if (event.data && event.data.type === 'CLEAR_CACHE') {
-                const keys = event.data.keys;
-                if (keys.includes('sales')) {
+                const keys = event.data.keys || event.data.prefixes;
+                if (keys && Array.isArray(keys) && keys.some((k: string) => ['sales', 'products', 'customers'].some(type => k.includes(type)))) {
                     // Debounce to prevent rapid-fire reloads
                     if (debounceTimeoutRef.current) {
                         clearTimeout(debounceTimeoutRef.current);

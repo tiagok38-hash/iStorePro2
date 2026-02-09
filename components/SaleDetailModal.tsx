@@ -1,5 +1,5 @@
-
 import React, { useMemo, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter } from '../types.ts';
 import { formatCurrency } from '../services/mockApi.ts';
 import { CloseIcon, PrinterIcon, DocumentTextIcon, TicketIcon } from './icons.tsx';
@@ -49,10 +49,28 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
     }, [tradeInPayment, customer, sale.date, productMap]);
 
 
-    return (
+    const modalContent = (
         <>
-            <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-end sm:items-center z-[60] sm:p-4 pt-[calc(env(safe-area-inset-top)+40px)] pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pt-0 lg:pb-0">
-                <div className="bg-surface rounded-t-3xl sm:rounded-3xl shadow-xl w-full sm:max-w-3xl max-h-full sm:max-h-[90vh] flex flex-col overflow-hidden">
+            <style>
+                {`
+                    @keyframes modal-backdrop-fade {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes modal-content-slide {
+                        from { transform: translateY(20px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                    .animate-modal-backdrop {
+                        animation: modal-backdrop-fade 0.3s ease-out forwards;
+                    }
+                    .animate-modal-content {
+                        animation: modal-content-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    }
+                `}
+            </style>
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-end sm:items-center z-[200000] sm:p-4 pt-[calc(env(safe-area-inset-top)+40px)] pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pt-0 lg:pb-0 animate-modal-backdrop">
+                <div className="bg-surface rounded-t-3xl sm:rounded-3xl shadow-xl w-full sm:max-w-3xl max-h-full sm:max-h-[90vh] flex flex-col overflow-hidden animate-modal-content">
                     <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border shrink-0">
                         <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Detalhes da Venda #{sale.id}</h2>
                         <div className="flex items-center gap-2 shrink-0">
@@ -186,6 +204,11 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                     <span className="font-medium">{formatCurrency(payment.fees)}</span>
                                                                 </div>
                                                             )}
+                                                            {payment.internalNote && (
+                                                                <div className="mt-1 pt-1 border-t border-gray-100 text-blue-600 font-bold italic text-[10px]">
+                                                                    Nota: {payment.internalNote}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -196,6 +219,11 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                         <p className="font-medium text-primary">{payment.method}</p>
                                                         <span className="font-semibold">{formatCurrency(payment.value + (payment.fees || 0))}</span>
                                                     </div>
+                                                    {payment.internalNote && (
+                                                        <div className="mt-1 text-[10px] text-blue-600 font-bold italic">
+                                                            Nota: {payment.internalNote}
+                                                        </div>
+                                                    )}
                                                     {payment.tradeInDetails && (
                                                         <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-muted space-y-0.5">
                                                             <p className="font-semibold text-primary">{payment.tradeInDetails.model}</p>
@@ -302,7 +330,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
             </div>
 
             {isPrintChoiceOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[70]">
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[200010]">
                     <div className="bg-surface p-6 rounded-3xl shadow-xl w-full max-w-sm">
                         <h3 className="text-lg font-bold mb-4 text-primary">Escolha o Formato de Impressão</h3>
                         <p className="text-sm text-muted mb-6">Selecione o layout para o recibo da venda #{sale.id}.</p>
@@ -339,6 +367,8 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
             )}
         </>
     );
+
+    return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default SaleDetailModal;

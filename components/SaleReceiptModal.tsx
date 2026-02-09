@@ -428,7 +428,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
     const layoutProps = { sale, productMap, customer, salesperson, companyInfo, activeTerm, totalPaid, totalItems, totalFees, warranties };
 
     return createPortal(
-        <div id="print-modal-overlay" className="fixed inset-0 lg:inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[200] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-2 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto">
+        <div id="print-modal-overlay" className="fixed inset-0 lg:inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[300000] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-2 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto">
             <style>
                 {`
                     @media print {

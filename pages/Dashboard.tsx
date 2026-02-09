@@ -1079,6 +1079,8 @@ const Dashboard: React.FC = () => {
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
     const [billingPeriod, setBillingPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('year');
 
+
+
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
         if (!silent) setLoading(true);
         if (!silent) setError(null);
@@ -1139,8 +1141,8 @@ const Dashboard: React.FC = () => {
         const channel = new BroadcastChannel('app_cache_sync');
         channel.onmessage = (event) => {
             if (event.data && event.data.type === 'CLEAR_CACHE') {
-                const keys = event.data.keys;
-                if (keys.some((k: string) => ['sales', 'products', 'customers'].some(type => k.includes(type)))) {
+                const keys = event.data.keys || event.data.prefixes;
+                if (keys && Array.isArray(keys) && keys.some((k: string) => ['sales', 'products', 'customers'].some(type => k.includes(type)))) {
                     fetchData(true);
                 }
             }

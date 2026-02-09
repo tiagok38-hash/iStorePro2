@@ -32,7 +32,7 @@ const PurchaseHistoryModal: React.FC<{
     const [activeTab, setActiveTab] = useState('purchases');
 
     const modalContent = (
-        <div className="fixed inset-0 flex justify-center items-center p-0 sm:p-4" style={{ zIndex: 99999 }}>
+        <div className="fixed inset-0 flex justify-center items-center p-0 sm:p-4" style={{ zIndex: 50 }}>
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm" onClick={onClose} />
 
@@ -61,12 +61,14 @@ const PurchaseHistoryModal: React.FC<{
 
                             if (pendingAmount > 0) {
                                 const salesperson = users.find(u => u.id === sale.salespersonId)?.name || 'Desconhecido';
+                                const internalNote = sale.payments.find(p => p.type === 'pending')?.internalNote;
                                 acc.push({
                                     id: sale.cashSessionDisplayId ? `${sale.cashSessionDisplayId}` : sale.id.substring(0, 8),
                                     fullId: sale.id,
                                     date: sale.date,
                                     amount: pendingAmount,
-                                    salesperson
+                                    salesperson,
+                                    internalNote
                                 });
                             }
                             return acc;
@@ -93,6 +95,11 @@ const PurchaseHistoryModal: React.FC<{
                                                         {new Date(debt.date).toLocaleDateString('pt-BR')} às {new Date(debt.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                         <span className="ml-2">Vend: {debt.salesperson}</span>
                                                     </span>
+                                                    {debt.internalNote && (
+                                                        <div className="mt-1 text-[10px] text-blue-600 font-bold italic">
+                                                            Nota: {debt.internalNote}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <span className="font-bold text-red-700 text-sm">{formatCurrency(debt.amount)}</span>
                                             </div>
@@ -120,18 +127,57 @@ const PurchaseHistoryModal: React.FC<{
                                     <li key={sale.id} className="border border-border p-3 rounded-xl bg-surface-secondary">
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1">
-                                                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold mb-1">
-                                                    <span className="text-primary">{new Date(sale.date).toLocaleString('pt-BR')}</span>
-                                                    <span className='text-success'>{formatCurrency(sale.total)}</span>
+                                                <div className="flex flex-wrap items-center gap-3 text-xs font-semibold mb-1">
+                                                    <div className="flex items-center gap-1.5 text-primary">
+                                                        <ClockIcon className="h-3 w-3" />
+                                                        <span>{new Date(sale.date).toLocaleDateString('pt-BR')} às {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                                    </div>
+                                                    <span className='text-success bg-success/5 px-2 py-0.5 rounded-lg border border-success/10'>{formatCurrency(sale.total)}</span>
                                                 </div>
                                                 <ul className="text-xs text-muted">
                                                     {sale.items.map((item, index) => (
                                                         <li key={index}>- {productMap[item.productId]?.model || 'Produto desconhecido'} (x{item.quantity})</li>
                                                     ))}
                                                 </ul>
-                                                <div className="mt-2 pt-2 border-t border-border/50 text-[10px] text-muted">
-                                                    <span className="font-semibold">Pagamento: </span>
-                                                    {sale.payments.map(p => `${p.method} (${formatCurrency(p.value)})`).join(', ')}
+                                                <div className="mt-2 pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
+                                                    <div className="text-[10px] text-muted">
+                                                        <span className="font-semibold">Pagamento: </span>
+                                                        {sale.payments.map(p => {
+                                                            const isWithInterest = p.type === 'Com Juros';
+                                                            return (
+                                                                <div key={p.id} className="mb-1 last:mb-0">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <p className="font-medium text-primary">{p.method}</p>
+                                                                        <span className="font-semibold">{formatCurrency(p.value + (p.fees || 0))}</span>
+                                                                    </div>
+                                                                    {p.type !== 'Sem Juros' && (
+                                                                        <div className="flex justify-between">
+                                                                            <span>{isWithInterest ? 'Juros' : 'Taxa do Vendedor'} ({p.feePercentage?.toFixed(2)}%):</span>
+                                                                            <span className="font-medium">{formatCurrency(p.fees)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {p.internalNote && (
+                                                                        <div className="mt-1 text-[10px] text-blue-600 font-bold italic">
+                                                                            Nota: {p.internalNote}
+                                                                        </div>
+                                                                    )}
+                                                                    {p.tradeInDetails && (
+                                                                        <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-muted space-y-0.5">
+                                                                            <p className="font-semibold text-primary">{p.tradeInDetails.model}</p>
+                                                                            <p>
+                                                                                {p.tradeInDetails.imei1 ? `IMEI: ${p.tradeInDetails.imei1}` : `S/N: ${p.tradeInDetails.serialNumber}`}
+                                                                                {p.tradeInDetails.batteryHealth && (p.tradeInDetails as any).condition !== 'Novo' ? ` | Bateria: ${p.tradeInDetails.batteryHealth}%` : ''}
+                                                                            </p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="text-[10px] text-muted flex items-center gap-1">
+                                                        <UserCircleIcon className="h-3 w-3" />
+                                                        <span>{users.find(u => u.id === sale.salespersonId)?.name || 'Desconhecido'}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <button onClick={() => onViewSale(sale)} className="ml-2 px-2 py-1 bg-gray-200 text-secondary text-xs font-semibold rounded-xl hover:bg-gray-300">
@@ -151,11 +197,17 @@ const PurchaseHistoryModal: React.FC<{
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <span className="block font-bold text-primary text-sm">{tradeIn.model}</span>
-                                                <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-muted mt-1">
-                                                    <span className="font-medium bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">ID Venda: #{tradeIn.saleId}</span>
-                                                    <span>Data: {new Date(tradeIn.date).toLocaleString('pt-BR')}</span>
+                                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted mt-1">
+                                                    <span className="font-bold bg-gray-100 px-1.5 py-0.5 rounded-lg text-gray-700">ID Venda: #{tradeIn.saleId}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <ClockIcon className="h-3 w-3" />
+                                                        <span>{new Date(tradeIn.date).toLocaleDateString('pt-BR')} às {new Date(tradeIn.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="text-[10px] text-muted">Vendedor: {tradeIn.salespersonName}</div>
+                                                <div className="text-[10px] text-muted flex items-center gap-1 mt-1">
+                                                    <UserCircleIcon className="h-3 w-3" />
+                                                    <span>Vendedor: {tradeIn.salespersonName}</span>
+                                                </div>
                                             </div>
                                             <span className='text-success font-black text-base'>{formatCurrency(tradeIn.value)}</span>
                                         </div>

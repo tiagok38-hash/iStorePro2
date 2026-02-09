@@ -38,7 +38,7 @@ export const clearCache = (keys: string[]) => {
         });
     });
     // Sync with other tabs by sending prefixes
-    cacheChannel.postMessage({ type: 'CLEAR_CACHE', prefixes: keys });
+    cacheChannel.postMessage({ type: 'CLEAR_CACHE', keys, prefixes: keys });
 };
 
 cacheChannel.onmessage = (event) => {

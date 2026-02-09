@@ -67,7 +67,9 @@ import {
     Zap,
     Monitor,
     Server,
-    Sparkles
+    Sparkles,
+    MessageCircle,
+    MessageSquare
 } from 'lucide-react';
 
 /**
@@ -160,24 +162,7 @@ export const PixIcon = ({ className = '', ...props }: IconProps) => (
     </svg>
 );
 
-export const WhatsAppIcon = ({ className = '', ...props }: IconProps) => (
-    <svg
-        width={props.size || ICON_SIZE}
-        height={props.size || ICON_SIZE}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={props.strokeWidth || STROKE_WIDTH}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-        {...props}
-    >
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-12.7 8.38 8.38 0 0 1 3.8.9L21 2z" />
-        <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1zm6 0a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1z" />
-        <path d="M9 14.5s1.5 1 3 1 3-1 3-1" />
-    </svg>
-);
+export const WhatsAppIcon = wrapIcon(MessageCircle);
 
 export const SmartphoneIcon = wrapIcon(Smartphone);
 export const CreditCardIcon = wrapIcon(CreditCard);
@@ -214,6 +199,8 @@ export const ArrowRightCircleIcon = wrapIcon(ArrowRightCircle);
 export const AdjustmentsHorizontalIcon = wrapIcon(Sliders);
 export const BirthdayCakeIcon = wrapIcon(Cake);
 export const CalendarDaysIcon = wrapIcon(Calendar);
+export const MessageCircleIcon = wrapIcon(MessageCircle);
+export const MessageSquareIcon = wrapIcon(MessageSquare);
 
 export const CashIcon = wrapIcon(Banknote);
 export const DeviceExchangeIcon = wrapIcon(RefreshCw);
