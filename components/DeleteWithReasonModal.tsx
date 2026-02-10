@@ -6,9 +6,10 @@ interface DeleteWithReasonModalProps {
   onConfirm: (reason: string) => void;
   title: string;
   message: string;
+  reasonLabel?: string;
 }
 
-const DeleteWithReasonModal: React.FC<DeleteWithReasonModalProps> = ({ isOpen, onClose, onConfirm, title, message }) => {
+const DeleteWithReasonModal: React.FC<DeleteWithReasonModalProps> = ({ isOpen, onClose, onConfirm, title, message, reasonLabel = "Motivo da exclusão*" }) => {
   const [reason, setReason] = useState('');
   const [error, setError] = useState(false);
 
@@ -36,14 +37,14 @@ const DeleteWithReasonModal: React.FC<DeleteWithReasonModalProps> = ({ isOpen, o
         <p className="text-sm text-muted mb-6 leading-relaxed">{message}</p>
 
         <div className="space-y-2">
-          <label htmlFor="delete-reason" className="block text-[10px] font-bold text-muted uppercase tracking-wider">Motivo da exclusão*</label>
+          <label htmlFor="delete-reason" className="block text-[10px] font-bold text-muted uppercase tracking-wider">{reasonLabel}</label>
           <textarea
             id="delete-reason"
             rows={4}
             value={reason}
             onChange={handleChange}
             className={`w-full p-4 border rounded-xl bg-surface-secondary text-sm font-medium ${error ? 'border-danger ring-1 ring-danger' : 'border-border'} focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition-all placeholder:text-muted/50`}
-            placeholder="Descreva o motivo da exclusão..."
+            placeholder={`Descreva o ${reasonLabel.replace('*', '').toLowerCase()}...`}
           />
           {error && <p className="text-xs text-danger font-bold flex items-center gap-1">O motivo é obrigatório.</p>}
         </div>

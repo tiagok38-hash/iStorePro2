@@ -184,6 +184,15 @@ const Vendas: React.FC = () => {
     const [sellerFilter, setSellerFilter] = useState('todos');
     const [statusFilter, setStatusFilter] = useState('todos');
     const [customerSearch, setCustomerSearch] = useState('');
+    const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState('');
+
+    // Debounce customer search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedCustomerSearch(customerSearch);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [customerSearch]);
 
     const [productMap, setProductMap] = useState<Record<string, Product>>({});
     const [customerMap, setCustomerMap] = useState<Record<string, Customer>>({});
@@ -420,7 +429,7 @@ const Vendas: React.FC = () => {
             const customerName = customerMap[sale.customerId]?.name || '';
 
             // Normalize search term: remove # and spaces
-            const normalizedSearch = customerSearch.toLowerCase().trim().replace(/^#/, '');
+            const normalizedSearch = debouncedCustomerSearch.toLowerCase().trim().replace(/^#/, '');
             const saleIdLower = sale.id.toLowerCase();
 
             // Check if search matches sale ID (supports: "ID-8", "8", "#ID-8")
@@ -430,7 +439,7 @@ const Vendas: React.FC = () => {
                 sale.id === normalizedSearch
             );
 
-            const customerMatch = customerSearch === '' || customerName.toLowerCase().includes(normalizedSearch) || saleIdMatch;
+            const customerMatch = debouncedCustomerSearch === '' || customerName.toLowerCase().includes(normalizedSearch) || saleIdMatch;
 
             // Se o filtro for Promissoria, queremos ver todas, inclusive as canceladas que geraram promissoria? 
             // Geralmente cancelada anula a dívida, então talvez devêssemos ignorar canceladas se o filtro for Promissoria?
@@ -444,7 +453,7 @@ const Vendas: React.FC = () => {
 
             return dateMatch && sellerMatch && statusMatch && customerMatch;
         });
-    }, [sales, startDate, endDate, sellerFilter, statusFilter, customerSearch, customerMap]);
+    }, [sales, startDate, endDate, sellerFilter, statusFilter, debouncedCustomerSearch, customerMap]);
 
     // Reset page number when filters change
     useEffect(() => {

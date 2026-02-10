@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    CashRegisterIcon, CalculatorIcon, ShoppingCartPlusIcon, ArchiveBoxIcon, Cog6ToothIcon, LogoutIcon, UserCircleIcon
+    CashRegisterIcon, CalculatorIcon, ShoppingCartPlusIcon, ArchiveBoxIcon, Cog6ToothIcon, LogoutIcon, UserCircleIcon, ComputerDesktopIcon
 } from '../icons.tsx';
 import { useUser } from '../../contexts/UserContext.tsx';
 
@@ -23,9 +23,9 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({ activeView, onViewChange
     };
 
     const items: { label: string; view: PosView; icon: React.ReactElement }[] = [
-        { label: 'Meu Caixa', view: 'resumo', icon: <CalculatorIcon /> },
+        { label: 'Meu Caixa', view: 'resumo', icon: <ComputerDesktopIcon /> },
         { label: 'PDV', view: 'pdv', icon: <ShoppingCartPlusIcon /> },
-        { label: 'Caixas', view: 'caixas', icon: <ArchiveBoxIcon /> },
+        { label: 'Caixas', view: 'caixas', icon: <CashRegisterIcon /> },
         { label: 'Config', view: 'config', icon: <Cog6ToothIcon /> },
     ];
 
@@ -47,18 +47,21 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({ activeView, onViewChange
                             <button
                                 key={item.view}
                                 onClick={() => onViewChange(item.view)}
-                                className={`flex flex-col items-center justify-center transition-all duration-300 group
-                                    ${isActive
-                                        ? 'w-12 h-12 md:w-14 md:h-14 bg-[#50CA93] rounded-3xl shadow-lg shadow-[#50CA93]/30 scale-110 md:scale-100'
-                                        : 'w-12 h-12 text-gray-400 hover:text-white hover:bg-white/5 rounded-3xl'}
-                                `}
+                                className="flex flex-col items-center gap-1.5 group outline-none"
                             >
-                                {React.cloneElement(item.icon as React.ReactElement, {
-                                    className: `h-6 w-6 md:h-7 md:w-7 transition-transform duration-300 ${isActive ? 'text-white' : 'group-hover:scale-110'}`
-                                })}
-                                {/* Labels - Desktop Only */}
-                                <span className={`text-[10px] font-bold uppercase tracking-tight text-center leading-none mt-1 hidden md:block transition-colors ${isActive ? 'text-[#50CA93]' : 'text-gray-500 group-hover:text-white'}`}>
-                                    {item.label.split(' ')[0]}
+                                <div
+                                    className={`flex items-center justify-center transition-all duration-300 
+                                        ${isActive
+                                            ? 'w-12 h-12 md:w-14 md:h-14 bg-[#50CA93] rounded-3xl shadow-lg shadow-[#50CA93]/30 scale-105'
+                                            : 'w-12 h-12 md:w-14 md:h-14 bg-white/5 hover:bg-white/10 rounded-3xl text-gray-400 hover:text-white'}
+                                    `}
+                                >
+                                    {React.cloneElement(item.icon as React.ReactElement, {
+                                        className: `h-6 w-6 md:h-7 md:w-7 transition-transform duration-300 ${isActive ? 'text-white' : 'group-hover:scale-110'}`
+                                    })}
+                                </div>
+                                <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-center leading-none transition-colors ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'}`}>
+                                    {item.label}
                                 </span>
                             </button>
                         );
@@ -67,10 +70,14 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({ activeView, onViewChange
                     {/* Integrated Logout on Mobile, Bottom on Desktop */}
                     <button
                         onClick={handleLogout}
-                        className="flex flex-col items-center justify-center w-12 h-12 text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 group md:mt-auto md:mb-8"
+                        className="flex flex-col items-center gap-1.5 group outline-none md:mt-auto md:mb-8"
                     >
-                        <LogoutIcon className="h-6 w-6 md:h-7 md:w-7 transition-transform group-hover:scale-110" />
-                        <span className="text-[10px] font-bold uppercase tracking-tight text-center leading-none mt-1 hidden md:block">Sair</span>
+                        <div className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-3xl bg-white/5 group-hover:bg-red-500/10 text-gray-400 group-hover:text-red-400 transition-all duration-300">
+                            <LogoutIcon className="h-6 w-6 md:h-7 md:w-7 transition-transform group-hover:scale-110" />
+                        </div>
+                        <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-center leading-none text-gray-500 group-hover:text-red-400 transition-colors">
+                            Sair
+                        </span>
                     </button>
                 </nav>
 

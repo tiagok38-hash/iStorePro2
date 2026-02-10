@@ -1088,7 +1088,12 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         {formData.condition && !conditionOptions.some(c => c.name.toLowerCase() === formData.condition?.toLowerCase()) && (
                                             <option value={formData.condition}>{formData.condition}</option>
                                         )}
-                                        {conditionOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                        <option value="Novo">Novo</option>
+                                        <option value="Seminovo">Seminovo</option>
+                                        <option value="CPO">CPO</option>
+                                        <option value="Openbox">Openbox</option>
+                                        <option value="Reservado">Reservado</option>
+                                        {conditionOptions.filter(c => !['Novo', 'Seminovo', 'CPO', 'Openbox', 'Reservado'].includes(c.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 {productType === 'Apple' && formData.condition === 'Seminovo' && (

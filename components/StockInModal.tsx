@@ -69,7 +69,8 @@ const StockInModal: React.FC<{
             'cpo': 'CPO',
             'open box': 'Open Box',
             'vitrine': 'Vitrine',
-            'lacrado': 'Novo' // Alias commonly used
+            'lacrado': 'Novo', // Alias commonly used
+            'reservado': 'Reservado'
         };
 
         // Check if any condition keyword is present in the search term
@@ -556,8 +557,8 @@ const StockInModal: React.FC<{
                             <th className="p-1 w-[100px] font-bold text-center">P. Custo</th>
                             <th className="p-1 w-[100px] font-bold text-center">Garantia</th>
                             <th className="p-1 w-[65px] font-bold text-center">MKP%</th>
-                            <th className="p-1 w-[100px] font-bold text-center">Atacado</th>
-                            <th className="p-1 w-[100px] font-bold text-center">Venda</th>
+                            <th className="p-1 w-[70px] font-bold text-center">Atacado</th>
+                            <th className="p-1 w-[70px] font-bold text-center">Venda</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -618,7 +619,7 @@ const StockInModal: React.FC<{
                                         <span className="absolute right-2 top-1/2 -translate-y-1/2 !text-[#16a34a] font-bold text-sm pointer-events-none">%</span>
                                     </div>
                                 </td>
-                                <td className="p-1 w-[100px]">
+                                <td className="p-1 w-[70px]">
                                     <CurrencyInput
                                         value={detail.wholesalePrice}
                                         onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
@@ -628,7 +629,7 @@ const StockInModal: React.FC<{
                                         size="compact"
                                     />
                                 </td>
-                                <td className="p-1 w-[100px]">
+                                <td className="p-1 w-[70px]">
                                     <CurrencyInput
                                         value={detail.salePrice}
                                         onChange={val => handleDetailChange(index, 'salePrice', val)}
@@ -752,8 +753,8 @@ const StockInModal: React.FC<{
                                 <th className="p-1 w-[120px] font-bold text-center">Local</th>
                                 <th className="p-1 w-[80px] font-bold text-center">Custo</th>
                                 <th className="p-1 w-[65px] font-bold text-center">MKP%</th>
-                                <th className="p-1 w-[100px] font-bold text-center">Atacado</th>
-                                <th className="p-1 w-[100px] font-bold text-center">Venda</th>
+                                <th className="p-1 w-[70px] font-bold text-center">Atacado</th>
+                                <th className="p-1 w-[70px] font-bold text-center">Venda</th>
                             </tr>
                         </thead>
                         <tbody>

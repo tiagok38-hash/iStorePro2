@@ -858,22 +858,22 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
 
                     <div className="flex flex-col flex-1">
                         <div className="text-center mb-4">
-                            <p className="text-3xl font-black text-primary tracking-tight leading-none">{stats.others.count}</p>
+                            <p className="text-3xl font-black text-primary tracking-tight leading-none">{isPrivacyMode ? '***' : stats.others.count}</p>
                             <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Itens em Estoque</p>
                         </div>
 
                         <div className="space-y-2 text-xs mt-auto">
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-500 font-medium">Custo:</span>
-                                <span className="font-bold text-gray-800">{formatCurrency(stats.others.cost)}</span>
+                                <span className="font-bold text-gray-800">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.others.cost)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-500 font-medium">Venda:</span>
-                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{formatCurrency(stats.others.value)}</span>
+                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.others.value)}</span>
                             </div>
                             <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                                 <span className="text-[10px] font-black text-gray-500 uppercase">Markup</span>
-                                <span className="bg-gray-50 text-green-700 px-2 py-0.5 rounded-full border border-gray-100 text-[10px] font-black">{stats.others.markup.toFixed(1)}%</span>
+                                <span className="bg-gray-50 text-green-700 px-2 py-0.5 rounded-full border border-gray-100 text-[10px] font-black">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
                             </div>
                         </div>
                     </div>
@@ -888,15 +888,15 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                             <ChartBarIcon className="w-3 h-3" /> Total Geral Estimado
                         </p>
                         <div className="flex gap-3 text-xs text-gray-500">
-                            <span>Custo: <strong className="text-gray-700">{formatCurrency(stats.total.cost)}</strong></span>
+                            <span>Custo: <strong className="text-gray-700">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.cost)}</strong></span>
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="text-2xl font-bold text-primary leading-none">{formatCurrency(stats.total.value)}</div>
+                        <div className="text-2xl font-bold text-primary leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
                         <div className="flex justify-end mt-1">
                             <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                +{stats.total.markup.toFixed(2)}% Markup Médio
+                                {isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`} Markup Médio
                             </span>
                         </div>
                     </div>
@@ -1407,13 +1407,13 @@ const Dashboard: React.FC = () => {
             {inconsistentSalesWarning}
 
             <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+                <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} />
                 <StockStatsCard products={products} isPrivacyMode={isPrivacyMode} />
                 <CustomersStatsCard
                     customers={customers}
                     sales={sales}
                     isPrivacyMode={isPrivacyMode}
                 />
-                <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

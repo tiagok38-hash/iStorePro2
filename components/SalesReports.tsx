@@ -602,10 +602,11 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-1 rounded-xl text-xs font-bold ${m.condition === 'Novo' ? 'bg-green-100 text-green-700' :
-                                            m.condition === 'Seminovo' ? 'bg-blue-100 text-blue-700' :
-                                                m.condition === 'CPO' ? 'bg-orange-100 text-orange-700' :
-                                                    m.condition === 'Vitrine' ? 'bg-purple-100 text-purple-700' :
-                                                        'bg-gray-100 text-gray-700'
+                                            m.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
+                                                m.condition === 'Seminovo' ? 'bg-blue-100 text-blue-700' :
+                                                    m.condition === 'CPO' ? 'bg-orange-100 text-orange-700' :
+                                                        m.condition === 'Vitrine' ? 'bg-purple-100 text-purple-700' :
+                                                            'bg-gray-100 text-gray-700'
                                             }`}>
                                             {m.condition}
                                         </span>

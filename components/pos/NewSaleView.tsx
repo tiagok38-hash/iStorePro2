@@ -847,7 +847,9 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 >
                                     <div className="flex justify-between items-start">
                                         <span className="font-black text-gray-900 text-sm group-hover:text-success transition-colors">{unit.model}</span>
-                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm ${unit.condition === 'Novo' ? 'bg-success/10 text-success border border-success/20' : 'bg-orange-50 text-orange-600 border border-orange-100'
+                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm ${unit.condition === 'Novo' ? 'bg-success/10 text-success border border-success/20' :
+                                            unit.condition === 'Reservado' ? 'bg-yellow-50 text-yellow-600 border border-yellow-200' :
+                                                'bg-orange-50 text-orange-600 border border-orange-100'
                                             }`}>
                                             {unit.condition}
                                         </span>
@@ -935,7 +937,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="p-2 bg-gray-50 rounded-xl border border-gray-100">
                                     <span className="block text-[9px] font-bold text-muted uppercase mb-0.5 tracking-wider">Condição</span>
-                                    <span className={`text-[10px] font-black uppercase tracking-tight ${productToConfirm.condition === 'Novo' ? 'text-emerald-600' : 'text-blue-600'}`}>{productToConfirm.condition}</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-tight ${productToConfirm.condition === 'Novo' ? 'text-emerald-600' :
+                                        productToConfirm.condition === 'Reservado' ? 'text-yellow-600' :
+                                            'text-blue-600'
+                                        }`}>{productToConfirm.condition}</span>
                                 </div>
                                 <div className="p-2 bg-gray-50 rounded-xl border border-gray-100">
                                     <span className="block text-[9px] font-bold text-muted uppercase mb-0.5 tracking-wider">Garantia</span>

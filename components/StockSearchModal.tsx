@@ -168,7 +168,10 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
                                             <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
                                                 <span className="font-black text-gray-900 text-sm sm:text-lg leading-tight uppercase tracking-tighter">{p.model}</span>
                                                 <div className="flex gap-1">
-                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-black uppercase ${p.condition === 'Novo' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-black uppercase ${p.condition === 'Novo' ? 'bg-green-100 text-green-700' :
+                                                        p.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
+                                                            'bg-blue-100 text-blue-700'
+                                                        }`}>
                                                         {p.condition}
                                                     </span>
                                                     {p.origin === 'Troca' && (

@@ -8,15 +8,16 @@ import { sendSaleNotification, sendPurchaseNotification } from './telegramServic
 // --- CACHE SYSTEM ---
 const cache: Record<string, { data: any, timestamp: number }> = {};
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const METADATA_TTL = 30 * 60 * 1000; // 30 minutes
 
 // Cross-tab cache synchronization
 const cacheChannel = new BroadcastChannel('app_cache_sync');
 
-const fetchWithCache = async <T>(key: string, fetcher: () => Promise<T>): Promise<T> => {
+const fetchWithCache = async <T>(key: string, fetcher: () => Promise<T>, ttl: number = CACHE_TTL): Promise<T> => {
     const now = Date.now();
     // Use the cached data directly to avoid the overhead of JSON.parse(JSON.stringify())
     // which is extremely slow for large arrays like products and sales.
-    if (cache[key] && (now - cache[key].timestamp < CACHE_TTL)) {
+    if (cache[key] && (now - cache[key].timestamp < ttl)) {
         return cache[key].data;
     }
     const data = await fetcher();
@@ -171,7 +172,7 @@ export const login = async (email: string, password_param: string): Promise<User
 
     if (profileError || !profile) {
         console.warn('Profile not found for authenticated user, using fallback.');
-        return {
+        const fallbackUser = {
             id: authData.user.id,
             email: authData.user.email || '',
             name: authData.user.user_metadata?.name || 'Usuário',
@@ -179,8 +180,24 @@ export const login = async (email: string, password_param: string): Promise<User
             phone: '',
             createdAt: authData.user.created_at
         } as User;
+        return fallbackUser;
     }
 
+    // Nível Máximo: Política de sessão única por dispositivo
+    // Administradores são isentos desta regra (podem logar em múltiplos lugares)
+    if (profile.permissionProfileId !== 'profile-admin') {
+        const newSessionId = crypto.randomUUID();
+        const { error: updateSessionError } = await supabase
+            .from('users')
+            .update({ lastSessionId: newSessionId })
+            .eq('id', profile.id);
+
+        if (!updateSessionError) {
+            profile.lastSessionId = newSessionId;
+        } else {
+            console.error('Erro ao atualizar lastSessionId:', updateSessionError);
+        }
+    }
 
     // Log login event (fire-and-forget to not block login)
     addAuditLog(
@@ -637,7 +654,6 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
 
 export const getProducts = async (filters: { model?: string, categoryId?: string, brandId?: string, onlyInStock?: boolean } = {}): Promise<Product[]> => {
     const cacheKey = `products_${JSON.stringify(filters)}`;
-    console.time(`getProducts:${cacheKey}`);
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('products').select('*');
@@ -670,8 +686,6 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
                 createdByName: p.created_by_name || p.createdByName,
             }));
         });
-    }).finally(() => {
-        console.timeEnd(`getProducts:${cacheKey}`);
     });
 };
 
@@ -679,7 +693,6 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
 export const searchProducts = async (term: string): Promise<Product[]> => {
     if (!term || term.length < 2) return [];
 
-    console.time(`searchProducts:${term}`);
     return fetchWithRetry(async () => {
         const { data, error } = await supabase
             .from('products')
@@ -705,8 +718,6 @@ export const searchProducts = async (term: string): Promise<Product[]> => {
             createdBy: p.created_by || p.createdBy,
             createdByName: p.created_by_name || p.createdByName,
         }));
-    }).finally(() => {
-        console.timeEnd(`searchProducts:${term}`);
     });
 };
 
@@ -1371,7 +1382,6 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
 
 export const getSales = async (currentUserId?: string, cashSessionId?: string, startDate?: string, endDate?: string): Promise<Sale[]> => {
     const cacheKey = `sales_${currentUserId || 'all'}_${cashSessionId || 'all'}_${startDate || 'none'}_${endDate || 'none'}`;
-    console.time(`getSales:${cacheKey}`);
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('sales').select('*');
@@ -1485,8 +1495,6 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
                 }
             });
         });
-    }).finally(() => {
-        console.timeEnd(`getSales:${cacheKey}`);
     });
 };
 
@@ -3239,7 +3247,7 @@ const getTable = async (table: string, cacheKey: string) => {
             if (res.error) throw res.error;
             return res.data || [];
         });
-    });
+    }, METADATA_TTL);
 };
 
 const addItem = async (table: string, data: any, cacheKey: string, userId: string = 'system', userName: string = 'Sistema') => {
@@ -3974,43 +3982,83 @@ export const updatePurchaseOrder = async (data: any) => {
 export const deletePurchaseOrder = async (id: string, userId: string = 'system', userName: string = 'Sistema') => {
     // Pegar infos da compra antes de deletar
     const { data: po } = await supabase.from('purchase_orders').select('*').eq('id', id).single();
+    if (!po) throw new Error("Compra não encontrada.");
 
-    // 1. Check if products associated with this PO have been sold
-    const { data: productsInPo } = await supabase.from('products').select('id').eq('purchaseOrderId', id);
-
-    if (productsInPo && productsInPo.length > 0) {
-        const productIds = productsInPo.map(p => p.id);
-
-        // Fetch sales to see if any contain these products
-        const { data: sales } = await supabase.from('sales').select('items');
-
-        const isSold = sales?.some((sale: any) =>
-            sale.items && Array.isArray(sale.items) && sale.items.some((item: any) => productIds.includes(item.productId))
-        );
-
-        if (isSold) {
-            throw new Error("Alguns itens desta compra já foram vendidos. Não é possível excluir a compra.");
-        }
-
-        // 2. If not sold, delete the products (revert stock)
-        const { error: deleteProdError } = await supabase.from('products').delete().eq('purchaseOrderId', id);
-        if (deleteProdError) throw deleteProdError;
+    // Guard: Launched purchases cannot be deleted, only canceled.
+    if (po.stockStatus === 'Lançado' || po.stockStatus === 'Parcialmente Lançado') {
+        throw new Error("Esta compra já foi lançada no estoque e não pode ser excluída, apenas cancelada.");
     }
 
-    // 3. Delete the Purchase Order
+    // 1. Delete associated products if any (redundant if unlaunched, but safe)
+    const { error: deleteProdError } = await supabase.from('products').delete().eq('purchaseOrderId', id);
+    if (deleteProdError) {
+        // If it fails (likely due to FK/Sold items, which shouldn't happen for unlaunched, but just in case)
+        throw new Error("Não é possível excluir a compra pois existem vínculos ativos no banco de dados.");
+    }
+
+    // 2. Delete the Purchase Order
     const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
     if (error) throw error;
 
-    if (po) {
-        await addAuditLog(
-            AuditActionType.DELETE,
-            AuditEntityType.PURCHASE_ORDER,
-            id,
-            `Compra excluída: #${po.displayId} - Fornecedor: ${po.supplierName} | Total: ${formatCurrency(po.total)}`,
-            userId,
-            userName
-        );
+    await addAuditLog(
+        AuditActionType.DELETE,
+        AuditEntityType.PURCHASE_ORDER,
+        id,
+        `Compra não lançada excluída: #${po.displayId} - Fornecedor: ${po.supplierName} | Total: ${formatCurrency(po.total)}`,
+        userId,
+        userName
+    );
+
+    clearCache(['purchase_orders', 'products']);
+};
+
+export const cancelPurchaseOrder = async (id: string, reason: string, userId: string = 'system', userName: string = 'Sistema') => {
+    const { data: po } = await supabase.from('purchase_orders').select('*').eq('id', id).single();
+    if (!po) throw new Error("Compra não encontrada.");
+
+    const isLaunched = po.stockStatus === 'Lançado' || po.stockStatus === 'Parcialmente Lançado';
+
+    // 1. If launched, remove products from stock
+    if (isLaunched) {
+        try {
+            // Attempt to delete all products associated with this PO
+            // This will fail for products that were already sold due to FK constraints
+            await supabase.from('products').delete().eq('purchaseOrderId', id);
+        } catch (e: any) {
+            // Catch error if some products are sold
+            // In that case, we should at least zero out the stock of the NOT sold ones
+            const { data: products } = await supabase.from('products').select('id').eq('purchaseOrderId', id);
+            if (products && products.length > 0) {
+                for (const prod of products) {
+                    try {
+                        // Try deleting each individually
+                        await supabase.from('products').delete().eq('id', prod.id);
+                    } catch (err) {
+                        // If delete fails, it's sold. Zero out the stock record.
+                        await supabase.from('products').update({ stock: 0 }).eq('id', prod.id);
+                    }
+                }
+            }
+        }
     }
+
+    // 2. Update PO status to 'Cancelada'
+    const { error } = await supabase.from('purchase_orders').update({
+        status: 'Cancelada',
+        stockStatus: 'Cancelada',
+        cancellationReason: reason
+    }).eq('id', id);
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.UPDATE,
+        AuditEntityType.PURCHASE_ORDER,
+        id,
+        `Compra cancelada: #${po.displayId} | Motivo: ${reason}`,
+        userId,
+        userName
+    );
 
     clearCache(['purchase_orders', 'products']);
 };

@@ -76,6 +76,7 @@ export interface User {
     createdAt: string;
     avatarUrl?: string;
     address?: Address;
+    lastSessionId?: string;
 }
 
 export interface Address {
@@ -120,7 +121,7 @@ export interface Customer {
     active?: boolean;
 }
 
-export type ProductCondition = 'Novo' | 'Seminovo' | 'CPO' | 'Openbox';
+export type ProductCondition = 'Novo' | 'Seminovo' | 'CPO' | 'Openbox' | 'Reservado';
 
 export interface PriceHistoryEntry {
     id: string;
@@ -302,7 +303,7 @@ export interface PurchaseItem {
     controlByBarcode?: boolean;
 }
 
-export type StockStatus = 'Lançado' | 'Pendente' | 'Parcialmente Lançado';
+export type StockStatus = 'Lançado' | 'Pendente' | 'Parcialmente Lançado' | 'Cancelada';
 export type FinancialStatus = 'Pendente' | 'Pago';
 
 export interface PurchaseOrder {
@@ -320,6 +321,7 @@ export interface PurchaseOrder {
     stockStatus: StockStatus;
     financialStatus: FinancialStatus;
     status?: 'Pendente' | 'Cancelada' | 'Finalizada';
+    cancellationReason?: string;
     createdAt: string;
     createdBy: string;
     isCustomerPurchase?: boolean;

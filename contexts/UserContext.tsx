@@ -10,11 +10,12 @@ import {
   clearCache
 } from '../services/mockApi.ts';
 import { supabase } from '../supabaseClient.ts';
+import { useToast } from './ToastContext.tsx';
 
 // =====================================================
 // CONFIGURAÇÕES DE SESSÃO E TIMEOUTS
 // =====================================================
-const KEEP_ALIVE_INTERVAL = 2 * 60 * 1000; // 2 minutos - Verifica token proativamente
+const KEEP_ALIVE_INTERVAL = 30 * 1000; // 30 segundos - Checagem mais agressiva para política de sessão única
 const BACKGROUND_REFRESH_THRESHOLD = 60 * 1000; // 1 minuto em background força reload de dados críticos
 
 interface UserContextData {
@@ -46,6 +47,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [permissions, setPermissions] = useState<PermissionSet | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('user'));
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [session, setSession] = useState<any | null>(null);
   const [openCashSession, setOpenCashSession] = useState<CashSession | null>(null);
@@ -90,6 +92,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Persistência local segura
       localStorage.setItem('user', JSON.stringify(userData));
+      if (userData.lastSessionId) {
+        localStorage.setItem('local_session_id', userData.lastSessionId);
+      }
 
       // Permissões padrão (Segurança: Deny by Default para novos recursos)
       const defaultPermissions: PermissionSet = {
@@ -106,6 +111,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         canManageCompanyData: true, canManageUsers: true,
         canManagePermissions: true, canViewAudit: true,
         canEditOwnProfile: true, canManageMarcasECategorias: true,
+        canCreateCustomer: true, canEditCustomer: true, canViewCustomerHistory: true,
+        canInactivateCustomer: true, canDeleteCustomer: true,
+        canCreateSupplier: true, canEditSupplier: true, canViewSupplierHistory: true,
+        canDeleteSupplier: true,
+        canManagePaymentMethods: true, canManageBackups: true, canManageParameters: true,
       };
 
       try {
@@ -140,6 +150,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(null);
       setOpenCashSession(null);
       localStorage.removeItem('user');
+      localStorage.removeItem('local_session_id');
     }
   }, [openCashSession]);
 
@@ -196,6 +207,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             createdAt: currentSession.user.created_at
           } as User;
 
+          // Segurança: Política de Sessão Única
+          if (profile && profile.permissionProfileId !== 'profile-admin') {
+            const localSessionId = localStorage.getItem('local_session_id');
+            if (profile.lastSessionId && profile.lastSessionId !== localSessionId) {
+              console.warn('UserContext: Sessão invalidada por acesso simultâneo em outro dispositivo.');
+              showToast('Sua conta foi conectada em outro dispositivo. Desconectando...', 'warning');
+              await updateUserAndPermissions(null);
+              return;
+            }
+          }
+
           await updateUserAndPermissions(userData, currentSession);
 
           // SE for um 'hard refresh' ou retorno de background, recarrega dados
@@ -206,6 +228,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Apenas atualiza token se mudou
           if (session?.access_token !== currentSession.access_token) {
             setSession(currentSession);
+          }
+
+          // Checagem periódica da sessão (mesmo que o user não tenha mudado)
+          if (user && user.permissionProfileId !== 'profile-admin') {
+            const latestProfile = await getProfile(user.id);
+            const localSessionId = localStorage.getItem('local_session_id');
+            if (latestProfile?.lastSessionId && latestProfile.lastSessionId !== localSessionId) {
+              showToast('Login detectado em outro navegador/dispositivo.', 'warning');
+              await updateUserAndPermissions(null);
+            }
           }
         }
       } else {
@@ -286,13 +318,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // 5. Keep Alive Interval (Refresca token preventivamente)
+    // 5. Keep Alive Interval (Refresca token preventivamente e valida sessão única)
     keepAliveRef.current = setInterval(async () => {
       if (user && isOnline) {
         // Apenas chama getUser para validar/refresh token silenciosamente
         const { error } = await supabase.auth.getUser();
         if (error) {
           console.warn('UserContext: KeepAlive falhou, tentando recuperar sessão...');
+          checkSession(false);
+        } else {
+          // PROATIVO: Mesmo com token OK, verifica se o lastSessionId no Banco mudou
+          // (Significa que logou em outro lugar)
           checkSession(false);
         }
       }

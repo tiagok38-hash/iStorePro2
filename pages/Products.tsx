@@ -7,6 +7,7 @@ import {
     getProducts, addProduct, updateProduct, deleteProduct, getProductSalesHistory,
     getCustomers, getUsers, updateProductStock, updateMultipleProducts,
     getPurchaseOrders, getSuppliers, deletePurchaseOrder, updatePurchaseFinancialStatus, addSupplier,
+    cancelPurchaseOrder,
     getBrands, getCategories, getProductModels, getGrades, getGradeValues, revertPurchaseLaunch,
     formatCurrency, findOrCreateSupplierFromCustomer,
     getSales, getStorageLocations
@@ -27,7 +28,7 @@ import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
     TicketIcon, DocumentArrowUpIcon, PlayCircleIcon, AppleIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
     BanknotesIcon, DocumentTextIcon, CalendarDaysIcon, ArrowsUpDownIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon,
-    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon
+    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon
 } from '../components/icons.tsx';
 
 // Lazy load heavy modal components for better performance
@@ -191,6 +192,15 @@ const Products: React.FC = () => {
     const [inventorySortOrder, setInventorySortOrder] = useState<'newest' | 'oldest'>('newest');
     const [itemsPerPage, setItemsPerPage] = useState<15 | 20 | 30>(15);
     const [currentPage, setCurrentPage] = useState(1);
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
 
     const [isNewPurchaseModalOpen, setIsNewPurchaseModalOpen] = useState(false);
@@ -206,6 +216,9 @@ const Products: React.FC = () => {
     const [purchaseSortOrder, setPurchaseSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [statusFilter, setStatusFilter] = useState('Todos');
     const [activePeriod, setActivePeriod] = useState<'hoje' | 'semana' | 'mes'>('mes');
+    const [purchasesPerPage, setPurchasesPerPage] = useState<15 | 30 | 50>(15);
+    const [currentPurchasePage, setCurrentPurchasePage] = useState(1);
+    const [revertBlockedInfo, setRevertBlockedInfo] = useState<{ purchase: PurchaseOrder, soldProducts: any[] } | null>(null);
 
 
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
@@ -309,7 +322,7 @@ const Products: React.FC = () => {
     }, [sales]);
 
     const filteredProducts = useMemo(() => {
-        const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+        const terms = debouncedSearchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
 
         // Optimizar lookup de localizador da compra
         const purchaseLocatorMap = new Map<string, string>();
@@ -373,45 +386,31 @@ const Products: React.FC = () => {
         });
 
         // Grouping Logic for Non-Unique Products
-        const groupedMap: Record<string, Product> = {};
+        const groupedMap = new Map<string, Product>();
         const finalResults: Product[] = [];
 
-        filtered.forEach(p => {
+        for (let i = 0; i < filtered.length; i++) {
+            const p = filtered[i];
             // Check if product is unique (has identifiers)
             const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
             const hasVariations = p.variations && p.variations.length > 0;
 
             if (isUnique || hasVariations) {
-                // Unique products always stay separate
                 finalResults.push(p);
             } else {
-                // Non-unique products (accessories, etc.) are candidates for grouping
-                // Create a key based on all relevant attributes that define "sameness"
-                const modelKey = (p.model || '').trim(); // Case sensitive for model? Maybe
-                const brandKey = (p.brand || '').trim();
-                const colorKey = (p.color || '').trim();
-                const storageKey = (p.storage || '').trim();
-                const conditionKey = (p.condition || '').trim();
-                const warrantyKey = (p.warranty || '').trim();
-                const priceKey = `${p.price}-${p.costPrice || 0}-${p.wholesalePrice || 0}`;
-                const supplierKey = (p.supplierId || '').trim();
-                const locationKey = (p.storageLocation || '').trim();
+                // Cache trims if they really hurt, but let's at least one-line the key
+                const key = `${p.model}|${p.brand}|${p.color}|${p.storage}|${p.condition}|${p.warranty}|${p.price}-${p.costPrice || 0}-${p.wholesalePrice || 0}|${p.supplierId}|${p.storageLocation}`;
 
-                const key = `${modelKey}|${brandKey}|${colorKey}|${storageKey}|${conditionKey}|${warrantyKey}|${priceKey}|${supplierKey}|${locationKey}`;
-
-                if (!groupedMap[key]) {
-                    // First item of this group
-                    // Clone it so we don't mutate the original if we modify stock
-                    groupedMap[key] = { ...p };
+                const existing = groupedMap.get(key);
+                if (!existing) {
+                    groupedMap.set(key, { ...p });
                 } else {
-                    // Add stock to existing group item
-                    groupedMap[key].stock += p.stock;
-                    // You might want to accumulate other things if needed, but for display, stock is main
+                    existing.stock += p.stock;
                 }
             }
-        });
+        }
 
-        const combinedList = [...finalResults, ...Object.values(groupedMap)];
+        const combinedList = [...finalResults, ...Array.from(groupedMap.values())];
 
         return combinedList.sort((a, b) => {
             if (inventorySortOrder === 'newest') {
@@ -420,7 +419,7 @@ const Products: React.FC = () => {
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
 
-    }, [products, searchTerm, filters, inventorySortOrder, purchases]);
+    }, [products, debouncedSearchTerm, filters, inventorySortOrder, purchases]);
 
     // Pagination logic
     const totalPages = useMemo(() => Math.ceil(filteredProducts.length / itemsPerPage), [filteredProducts.length, itemsPerPage]);
@@ -530,6 +529,7 @@ const Products: React.FC = () => {
             case 'Seminovo': return 'bg-amber-100 text-amber-800 border border-amber-200';
             case 'CPO': return 'bg-purple-100 text-purple-800 border border-purple-200';
             case 'Openbox': return 'bg-teal-100 text-teal-800 border border-teal-200';
+            case 'Reservado': return 'bg-yellow-100 text-yellow-700 border border-yellow-200';
             default: return 'bg-gray-100 text-gray-800 border border-gray-200';
         }
     };
@@ -584,9 +584,15 @@ const Products: React.FC = () => {
                 (p.locatorId || '').toLowerCase().includes(lowerSearch);
 
             const statusMatch = statusFilter === 'Todos' ||
-                p.status === statusFilter ||
-                p.stockStatus === statusFilter ||
-                p.financialStatus === statusFilter;
+                (statusFilter === 'Não lançada' ? p.stockStatus === 'Pendente' : (
+                    statusFilter === 'Lançada e Paga' ? (p.stockStatus === 'Lançado' && p.financialStatus === 'Pago') : (
+                        statusFilter === 'Cancelada' ? (p.status === 'Cancelada') : (
+                            p.status === statusFilter ||
+                            p.stockStatus === statusFilter ||
+                            p.financialStatus === statusFilter
+                        )
+                    )
+                ));
 
             const purchaseDate = p.purchaseDate.split('T')[0];
             const dateMatch = purchaseDate >= startDate && purchaseDate <= endDate;
@@ -601,6 +607,18 @@ const Products: React.FC = () => {
             return new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime();
         });
     }, [purchases, purchaseSearchTerm, statusFilter, purchaseSortOrder, startDate, endDate]);
+
+    // Pagination logic for purchases
+    const totalPurchasePages = useMemo(() => Math.ceil(filteredPurchases.length / purchasesPerPage), [filteredPurchases.length, purchasesPerPage]);
+    const paginatedPurchases = useMemo(() => {
+        const startIndex = (currentPurchasePage - 1) * purchasesPerPage;
+        return filteredPurchases.slice(startIndex, startIndex + purchasesPerPage);
+    }, [filteredPurchases, currentPurchasePage, purchasesPerPage]);
+
+    // Reset current purchase page when filters change
+    useEffect(() => {
+        setCurrentPurchasePage(1);
+    }, [purchaseSearchTerm, statusFilter, purchaseSortOrder, startDate, endDate]);
 
     const handleOpenEditPurchaseModal = (purchase: PurchaseOrder) => { setPurchaseToEdit(purchase); setIsNewPurchaseModalOpen(true); };
 
@@ -624,18 +642,40 @@ const Products: React.FC = () => {
     const handleDeletePurchase = async (reason: string) => {
         if (!purchaseToDelete) return;
 
-        // Validação: não permitir exclusão de compras lançadas
-        if (purchaseToDelete.stockStatus === 'Lançado' || purchaseToDelete.stockStatus === 'Parcialmente Lançado') {
-            showToast('Não é possível excluir uma compra lançada. Reverta o lançamento primeiro.', 'warning');
+        const isLaunched = purchaseToDelete.stockStatus === 'Lançado' || purchaseToDelete.stockStatus === 'Parcialmente Lançado';
+        const soldItemsFromPurchase = products.filter(prod => prod.purchaseOrderId === purchaseToDelete.id && soldProductIds.has(prod.id));
+        const hasSoldProducts = soldItemsFromPurchase.length > 0;
+
+        if (hasSoldProducts) {
+            const soldWithSales = soldItemsFromPurchase.map(prod => {
+                const sale = sales.find(s => s.items.some(item => item.productId === prod.id));
+                const customer = customers.find(c => c.id === sale?.customerId);
+                return {
+                    ...prod,
+                    saleId: sale?.id || 'N/A',
+                    customerName: customer?.name || 'Cliente não encontrado'
+                };
+            });
+            setRevertBlockedInfo({ purchase: purchaseToDelete, soldProducts: soldWithSales });
             setPurchaseToDelete(null);
             return;
         }
 
         try {
-            await deletePurchaseOrder(purchaseToDelete.id);
-            showToast('Compra excluída com sucesso!', 'success');
-            setPurchaseToDelete(null); fetchData();
-        } catch (error: any) { showToast(error.message || 'Erro ao excluir compra.', 'error'); }
+            if (isLaunched) {
+                // Operation is CANCEL
+                await cancelPurchaseOrder(purchaseToDelete.id, reason, user?.id || 'system', user?.name || 'Sistema');
+                showToast('Compra cancelada com sucesso!', 'success');
+            } else {
+                // Operation is DELETE
+                await deletePurchaseOrder(purchaseToDelete.id, user?.id || 'system', user?.name || 'Sistema');
+                showToast('Compra excluída com sucesso!', 'success');
+            }
+            setPurchaseToDelete(null);
+            fetchData();
+        } catch (error: any) {
+            showToast(error.message || 'Erro ao processar operação.', 'error');
+        }
     };
     const handleFinanceToggle = async () => {
         if (!purchaseToUpdateFinance) return;
@@ -645,6 +685,25 @@ const Products: React.FC = () => {
             setPurchaseToUpdateFinance(null); fetchData();
         } catch (error) { showToast('Erro ao atualizar status financeiro.', 'error'); }
     };
+    const handleAttemptRevert = (p: PurchaseOrder) => {
+        const soldItems = products.filter(prod => prod.purchaseOrderId === p.id && soldProductIds.has(prod.id));
+
+        if (soldItems.length > 0) {
+            const soldWithSales = soldItems.map(prod => {
+                const sale = sales.find(s => s.items.some(item => item.productId === prod.id));
+                const customer = customers.find(c => c.id === sale?.customerId);
+                return {
+                    ...prod,
+                    saleId: sale?.id || 'N/A',
+                    customerName: customer?.name || 'Cliente não encontrado'
+                };
+            });
+            setRevertBlockedInfo({ purchase: p, soldProducts: soldWithSales });
+        } else {
+            setPurchaseToRevert(p);
+        }
+    };
+
     const handleRevertPurchase = async () => {
         if (!purchaseToRevert) return;
 
@@ -698,9 +757,10 @@ const Products: React.FC = () => {
     };
     const associatedProducts = useMemo(() => { if (!purchaseToView) return []; return products.filter(p => p.purchaseOrderId === purchaseToView.id); }, [products, purchaseToView]);
 
-    const getStockStatusType = (status: StockStatus): 'success' | 'warning' => {
+    const getStockStatusType = (status: StockStatus): 'success' | 'warning' | 'danger' | 'default' => {
         switch (status) {
             case 'Lançado': return 'success';
+            case 'Cancelada': return 'danger';
             case 'Pendente': return 'warning';
             case 'Parcialmente Lançado': return 'warning';
             default: return 'warning';
@@ -735,27 +795,29 @@ const Products: React.FC = () => {
                             <PlusIcon className="h-5 w-5" /> Nova compra
                         </button>
                     )}
-                    <Link
-                        to="/company?tab=parametros"
-                        className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
-                    >
-                        <Cog6ToothIcon className="h-5 w-5 text-gray-500" /> Parâmetros
-                    </Link>
                     {permissions?.canEditProduct && (
                         <button
                             onClick={() => setIsBulkUpdateModalOpen(true)}
-                            className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
+                            className="h-10 px-4 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-blue-100 uppercase tracking-wider group"
                         >
-                            <TagIcon className="h-5 w-5 text-gray-500" /> Atualização de preço
+                            <TagIcon className="h-5 w-5 text-blue-500 group-hover:text-blue-600 transition-colors" /> Atualização de preço
                         </button>
                     )}
                     {permissions?.canEditProduct && (
                         <button
                             onClick={() => setIsBulkLocationUpdateModalOpen(true)}
-                            className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
+                            className="h-10 px-4 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-emerald-100 uppercase tracking-wider group"
                         >
-                            <MapPinIcon className="h-5 w-5 text-gray-500" /> Atualização de local
+                            <MapPinIcon className="h-5 w-5 text-emerald-600 group-hover:text-emerald-700 transition-colors" /> Atualização de local
                         </button>
+                    )}
+                    {permissions?.canManageParameters && (
+                        <Link
+                            to="/company?tab=parametros"
+                            className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider group"
+                        >
+                            <Cog6ToothIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" /> Parâmetros
+                        </Link>
                     )}
                     <button className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider">
                         <TicketIcon className="h-5 w-5 text-gray-500" /> Etiquetas
@@ -780,7 +842,12 @@ const Products: React.FC = () => {
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Condição</label>
                             <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
-                                <option value="Todos">Todos</option><option>Novo</option><option>Seminovo</option><option>CPO</option><option>Openbox</option>
+                                <option value="Todos">Todos</option>
+                                <option>Novo</option>
+                                <option>Seminovo</option>
+                                <option>CPO</option>
+                                <option>Openbox</option>
+                                <option>Reservado</option>
                             </select>
                         </div>
                         <div>
@@ -860,7 +927,8 @@ const Products: React.FC = () => {
                                         const supplierLabelColor = getSupplierColorClass(supplier);
 
                                         let stockColorClass = 'bg-gray-100 text-gray-700 border-gray-200';
-                                        if (product.stock === 0) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
+                                        if (product.condition === 'Reservado') stockColorClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                                        else if (product.stock === 0) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
                                         else if (product.stock >= 1) stockColorClass = 'bg-green-100 text-green-700 border-green-200';
 
                                         return (<tr key={product.id} className="bg-surface border-b border-border last:border-0 hover:bg-surface-secondary">
@@ -1072,37 +1140,62 @@ const Products: React.FC = () => {
                         )}
 
                         {/* Filtros - Direita */}
-                        <div className="flex flex-col lg:flex-row items-center gap-3 w-full xl:w-auto xl:flex-1 justify-end">
-                            <select
-                                value={statusFilter}
-                                onChange={e => setStatusFilter(e.target.value)}
-                                className="w-full lg:w-48 px-3 border rounded-xl bg-white border-gray-200 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
-                            >
-                                <option value="Todos">Filtrar por Status</option>
-                                <option value="Pendente">Pendente</option>
-                                <option value="Lançado">Lançado</option>
-                                <option value="Cancelada">Cancelada</option>
-                                <option value="Pago">Pago</option>
-                            </select>
-
-                            <div className="relative w-full xl:max-w-3xl flex-1">
-                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                                <input
-                                    type="text"
-                                    placeholder="digite para buscar por ID da compra, Fornecedor e Codigo localizador..."
-                                    value={purchaseSearchTerm}
-                                    onChange={e => setPurchaseSearchTerm(e.target.value)}
-                                    className="w-full p-2.5 pl-9 border rounded-xl bg-white border-gray-200 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all h-10"
-                                />
+                        <div className="flex flex-col lg:flex-row items-end gap-3 w-full xl:w-auto xl:flex-1 justify-end">
+                            <div>
+                                <label className="block text-xs font-medium text-muted mb-1 text-center sm:text-left">Status</label>
+                                <select
+                                    value={statusFilter}
+                                    onChange={e => setStatusFilter(e.target.value)}
+                                    className="w-full lg:w-48 px-3 border rounded-xl bg-white border-gray-300 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
+                                >
+                                    <option value="Todos">Todos</option>
+                                    <option value="Não lançada">Não lançada</option>
+                                    <option value="Lançado">Lançado</option>
+                                    <option value="Lançada e Paga">Lançada e Paga</option>
+                                    <option value="Cancelada">Cancelada</option>
+                                </select>
                             </div>
 
-                            <button
-                                onClick={() => setPurchaseSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                                className="w-full lg:w-auto px-4 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-gray-200 h-10 flex-shrink-0 min-w-[110px]"
-                            >
-                                <ArrowsUpDownIcon className="h-4 w-4" />
-                                <span>{purchaseSortOrder === 'newest' ? 'Recente' : 'Antigo'}</span>
-                            </button>
+                            <div className="relative w-full xl:max-w-2xl flex-1">
+                                <label className="block text-xs font-medium text-muted mb-1">Buscar compra</label>
+                                <div className="relative">
+                                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    <input
+                                        type="text"
+                                        placeholder="ID, Fornecedor ou Localizador..."
+                                        value={purchaseSearchTerm}
+                                        onChange={e => setPurchaseSearchTerm(e.target.value)}
+                                        className="w-full p-2.5 pl-9 border rounded-xl bg-white border-gray-300 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all h-10"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-muted mb-1">Ordenar</label>
+                                <button
+                                    onClick={() => setPurchaseSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
+                                    className="w-full lg:w-auto px-4 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-gray-200 h-10 flex-shrink-0 min-w-[110px]"
+                                >
+                                    <ArrowsUpDownIcon className="h-4 w-4" />
+                                    <span>{purchaseSortOrder === 'newest' ? 'Recente' : 'Antigo'}</span>
+                                </button>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-muted mb-1">Por página</label>
+                                <div className="relative">
+                                    <select
+                                        value={purchasesPerPage}
+                                        onChange={e => { setPurchasesPerPage(Number(e.target.value) as 15 | 30 | 50); setCurrentPurchasePage(1); }}
+                                        className="h-10 px-4 pr-10 border border-gray-300 rounded-xl text-sm bg-white appearance-none font-bold text-gray-700 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none cursor-pointer"
+                                    >
+                                        <option value={15}>15</option>
+                                        <option value={30}>30</option>
+                                        <option value={50}>50</option>
+                                    </select>
+                                    <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1136,13 +1229,17 @@ const Products: React.FC = () => {
                                         }
                                     });
 
-                                    return filteredPurchases.map(p => {
+                                    return paginatedPurchases.map(p => {
+                                        const isLaunched = p.stockStatus === 'Lançado' || p.stockStatus === 'Parcialmente Lançado';
                                         const productIdsFromPurchase = productIdsByPurchase[p.id] || [];
                                         const hasSoldProducts = productIdsFromPurchase.some(pid => soldProductIds.has(pid));
                                         const disabledReason = 'Não é possível alterar pois contém produtos já vendidos.';
                                         return (
-                                            <tr key={p.id} className="border-t border-border hover:bg-surface-secondary">
-                                                <td className="px-4 py-3 font-semibold">#{p.displayId}</td>
+                                            <tr key={p.id} className={`border-t border-border hover:bg-surface-secondary ${p.status === 'Cancelada' ? 'opacity-60 bg-gray-50' : ''}`}>
+                                                <td className="px-4 py-3 font-semibold flex items-center gap-2">
+                                                    #{p.displayId}
+                                                    {p.status === 'Cancelada' && <StatusTag text="Cancelada" type="danger" />}
+                                                </td>
                                                 <td className="px-4 py-3">
                                                     <div className="font-medium text-primary">{new Date(p.purchaseDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
                                                     <div className="text-xs text-muted">por {p.createdBy}</div>
@@ -1164,9 +1261,14 @@ const Products: React.FC = () => {
                                                     <div className="flex items-center gap-2.5">
                                                         <button onClick={() => setPurchaseToView(p)} title="Visualizar"><EyeIcon className="h-5 w-5 text-blue-500 hover:text-blue-700" /></button>
                                                         {(permissions?.canLaunchPurchase && p.stockStatus === 'Lançado') ? (
-                                                            <button onClick={() => setPurchaseToRevert(p)} title={hasSoldProducts ? disabledReason : "Reverter Compra"} disabled={hasSoldProducts}><ArrowUturnLeftIcon className={`h-5 w-5 ${hasSoldProducts ? 'text-gray-300' : 'text-yellow-500 hover:text-yellow-700'}`} /></button>
-                                                        ) : (permissions?.canEditPurchase &&
-                                                            <button onClick={() => handleOpenEditPurchaseModal(p)} title={hasSoldProducts ? disabledReason : "Editar"} disabled={hasSoldProducts}><EditIcon className={`h-5 w-5 ${hasSoldProducts ? 'text-gray-300' : 'text-orange-400 hover:text-orange-600'}`} /></button>
+                                                            <button
+                                                                onClick={() => handleAttemptRevert(p)}
+                                                                title="Reverter Compra"
+                                                            >
+                                                                <ArrowUturnLeftIcon className="h-5 w-5 text-yellow-500 hover:text-yellow-700" />
+                                                            </button>
+                                                        ) : (permissions?.canEditPurchase && p.stockStatus !== 'Lançado' &&
+                                                            <button onClick={() => handleOpenEditPurchaseModal(p)} title="Editar"><EditIcon className="h-5 w-5 text-orange-400 hover:text-orange-600" /></button>
                                                         )}
                                                         {permissions?.canEditPurchase && <button onClick={() => setPurchaseToUpdateFinance(p)} title="Alterar Status Financeiro"><BanknotesIcon className={`h-5 w-5 ${p.financialStatus === 'Pago' ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`} /></button>}
                                                         {permissions?.canLaunchPurchase && (
@@ -1180,22 +1282,14 @@ const Products: React.FC = () => {
                                                                 )}
                                                             </button>
                                                         )}
-                                                        {permissions?.canDeletePurchase && (() => {
-                                                            const isLaunched = p.stockStatus === 'Lançado' || p.stockStatus === 'Parcialmente Lançado';
-                                                            const deleteDisabled = hasSoldProducts || isLaunched;
-                                                            const deleteReason = isLaunched
-                                                                ? 'Reverta o lançamento da compra antes de excluí-la.'
-                                                                : (hasSoldProducts ? disabledReason : 'Excluir');
-                                                            return (
-                                                                <button
-                                                                    onClick={() => setPurchaseToDelete(p)}
-                                                                    title={deleteReason}
-                                                                    disabled={deleteDisabled}
-                                                                >
-                                                                    <TrashIcon className={`h-5 w-5 ${deleteDisabled ? 'text-gray-300' : 'text-red-500 hover:text-red-700'}`} />
-                                                                </button>
-                                                            );
-                                                        })()}
+                                                        {permissions?.canDeletePurchase && p.status !== 'Cancelada' && (
+                                                            <button
+                                                                onClick={() => setPurchaseToDelete(p)}
+                                                                title={isLaunched || hasSoldProducts ? "Cancelar Compra" : "Excluir Compra"}
+                                                            >
+                                                                <XCircleIcon className={`h-5 w-5 ${isLaunched ? 'text-gray-400' : 'text-red-500'} hover:text-red-700`} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1206,12 +1300,26 @@ const Products: React.FC = () => {
                         </table>
                     </div>
 
-                    <div className="p-4 flex justify-between items-center text-sm">
-                        <p className="font-semibold text-secondary">Total de Registros: {filteredPurchases.length}</p>
+                    <div className="p-4 flex justify-between items-center text-sm border-t border-gray-100">
+                        <p className="font-semibold text-secondary">Exibindo {paginatedPurchases.length} de {filteredPurchases.length} compras</p>
                         <div className="flex items-center gap-2 text-secondary">
-                            <button className="p-1 rounded-md hover:bg-gray-200 disabled:opacity-50" disabled><ChevronLeftIcon className="h-5 w-5" /></button>
-                            <span>1 de 1</span>
-                            <button className="p-1 rounded-md hover:bg-gray-200 disabled:opacity-50" disabled><ChevronRightIcon className="h-5 w-5" /></button>
+                            <button
+                                onClick={() => setCurrentPurchasePage(p => Math.max(1, p - 1))}
+                                disabled={currentPurchasePage === 1}
+                                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeftIcon className="h-5 w-5" />
+                            </button>
+                            <span className="font-bold text-gray-700 min-w-[60px] text-center">
+                                {currentPurchasePage} de {totalPurchasePages || 1}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPurchasePage(p => Math.min(totalPurchasePages, p + 1))}
+                                disabled={currentPurchasePage === totalPurchasePages || totalPurchasePages <= 1}
+                                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRightIcon className="h-5 w-5" />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1272,9 +1380,97 @@ const Products: React.FC = () => {
                 {isNewPurchaseModalOpen && <PurchaseOrderModal suppliers={suppliers} customers={customers} onClose={handleCloseNewPurchaseModal} purchaseOrderToEdit={purchaseToEdit} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onAddNewSupplier={handleAddNewSupplier} />}
                 {stockInPurchase && <StockInModal purchaseOrder={stockInPurchase} onClose={handleCloseStockInModal} allProducts={products} grades={grades} gradeValues={gradeValues} />}
             </Suspense>
-            {purchaseToDelete && <DeleteWithReasonModal isOpen={!!purchaseToDelete} onClose={() => setPurchaseToDelete(null)} onConfirm={handleDeletePurchase} title={`Excluir Compra #${purchaseToDelete.displayId}`} message="Esta ação irá remover permanentemente a compra. Esta ação não pode ser desfeita." />}
+            {purchaseToDelete && (() => {
+                const isLaunched = purchaseToDelete.stockStatus === 'Lançado' || purchaseToDelete.stockStatus === 'Parcialmente Lançado';
+                const productIdsFromPurchase = products.filter(prod => prod.purchaseOrderId === purchaseToDelete.id).map(prod => prod.id);
+                const isCancelOnly = isLaunched || productIdsFromPurchase.some(pid => soldProductIds.has(pid));
+
+                return (
+                    <DeleteWithReasonModal
+                        isOpen={!!purchaseToDelete}
+                        onClose={() => setPurchaseToDelete(null)}
+                        onConfirm={handleDeletePurchase}
+                        title={isCancelOnly ? `Cancelar Compra #${purchaseToDelete.displayId}` : `Excluir Compra #${purchaseToDelete.displayId}`}
+                        reasonLabel={isCancelOnly ? "Motivo do cancelamento*" : "Motivo da exclusão*"}
+                        message={isCancelOnly
+                            ? "Esta compra não pode ser excluída pois já foi lançada ou possui itens vendidos. Ela será marcada como 'Cancelada'."
+                            : "Esta ação irá remover permanentemente a compra. Esta ação não pode ser desfeita."}
+                    />
+                );
+            })()}
             {purchaseToUpdateFinance && <ConfirmationModal isOpen={!!purchaseToUpdateFinance} onClose={() => setPurchaseToUpdateFinance(null)} onConfirm={handleFinanceToggle} title="Alterar Status Financeiro" message={`Deseja marcar a compra #${purchaseToUpdateFinance.displayId} como "${purchaseToUpdateFinance.financialStatus === 'Pendente' ? 'Paga' : 'Pendente'}"?`} variant="success" />}
             {purchaseToRevert && <ConfirmationModal isOpen={!!purchaseToRevert} onClose={() => setPurchaseToRevert(null)} onConfirm={handleRevertPurchase} title={`Reverter Lançamento da Compra #${purchaseToRevert.displayId}`} message="Esta ação irá remover do estoque todos os produtos associados a esta compra e retornará o status para 'Pendente'. Deseja continuar?" variant="danger" />}
+
+            {/* Modal de Bloqueio de Reversão / Cancelamento */}
+            {revertBlockedInfo && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[70] p-4 animate-fade-in">
+                    <div className="bg-surface rounded-3xl shadow-2xl p-8 w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col animate-scale-in">
+                        <div className="flex items-center gap-3 mb-6 text-danger">
+                            <XCircleIcon className="h-8 w-8" />
+                            <h2 className="text-2xl font-black uppercase tracking-tight">Operação Bloqueada</h2>
+                        </div>
+
+                        <p className="text-muted mb-6 leading-relaxed font-medium">
+                            Não é possível concluir a operação na compra <strong className="text-primary">#{revertBlockedInfo.purchase.displayId}</strong> porque alguns produtos já foram vendidos.
+                            Para prosseguir, você deve primeiro cancelar ou excluir as vendas correspondentes.
+                        </p>
+
+                        <div className="flex-1 overflow-y-auto mb-6 border border-border rounded-2xl">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-[10px] text-muted uppercase bg-gray-50 font-black tracking-widest sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3">Produto</th>
+                                        <th className="px-4 py-3">Identificação</th>
+                                        <th className="px-4 py-3">Condição</th>
+                                        <th className="px-4 py-3">Venda Relacionada</th>
+                                        <th className="px-4 py-3">Cliente</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {revertBlockedInfo.soldProducts.map((prod: any) => (
+                                        <tr key={prod.id} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-4 py-4">
+                                                <div className="font-bold text-primary">{prod.model}</div>
+                                                <div className="text-[10px] text-muted italic">{prod.brand}</div>
+                                            </td>
+                                            <td className="px-4 py-4 text-xs font-medium">
+                                                {prod.imei1 && <div><span className="text-[9px] text-muted uppercase font-bold mr-1">IMEI:</span>{prod.imei1}</div>}
+                                                {prod.serialNumber && <div><span className="text-[9px] text-muted uppercase font-bold mr-1">S/N:</span>{prod.serialNumber}</div>}
+                                                {prod.barcodes?.[0] && <div><span className="text-[9px] text-muted uppercase font-bold mr-1">EAN:</span>{prod.barcodes[0]}</div>}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${prod.condition === 'Novo' ? 'bg-green-100 text-green-700' :
+                                                    prod.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
+                                                        'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {prod.condition}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg font-black text-xs">
+                                                    #{prod.saleId}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 font-bold text-gray-700 text-xs">
+                                                {prod.customerName}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                            <button
+                                onClick={() => setRevertBlockedInfo(null)}
+                                className="px-8 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all uppercase tracking-widest text-xs"
+                            >
+                                Entendi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
