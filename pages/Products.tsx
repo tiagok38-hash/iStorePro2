@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Product, Sale, Customer, User, ProductCondition, PurchaseOrder, Supplier, StockStatus, Brand, Category, ProductModel, Grade, GradeValue, FinancialStatus, PermissionSet, StorageLocationParameter } from '../types.ts';
 import {
     getProducts, addProduct, updateProduct, deleteProduct, getProductSalesHistory,
@@ -161,6 +161,31 @@ const Products: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
     const { permissions, user, loading: authLoading } = useUser();
+    const location = useLocation();
+
+    // Deep linking from Dashboard
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tab = params.get('tab');
+        const type = params.get('type');
+        const filterStatus = params.get('status');
+
+        if (tab === 'compras') {
+            setActiveTab('compras');
+        } else if (tab === 'estoque') {
+            setActiveTab('estoque');
+        }
+
+        if (type === 'troca') {
+            setFilters(prev => ({ ...prev, type: 'Produtos de troca' }));
+        }
+
+        if (filterStatus === 'baixo_estoque') {
+            setFilters(prev => ({ ...prev, stock: 'Em estoque' }));
+            // Additional logic for low stock if needed
+        }
+    }, [location]);
+
 
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -1071,7 +1096,7 @@ const Products: React.FC = () => {
     );
 
     const renderComprasTab = () => {
-        const periodButtonClasses = (period: string) => `px-3 py-1 rounded-xl text-sm font-medium transition-colors ${activePeriod === period ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`;
+        const periodButtonClasses = (period: string) => `px-3 py-1 rounded-xl text-sm font-medium transition-colors ${activePeriod === period ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`;
 
         return (
             <div className="space-y-6">
@@ -1337,7 +1362,7 @@ const Products: React.FC = () => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                     >
                         {tab.label}
                     </button>

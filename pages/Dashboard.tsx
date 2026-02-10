@@ -1,12 +1,48 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
-import { getProducts, getCustomers, getSales, getTodaysSales, formatCurrency, getPaymentMethods } from '../services/mockApi.ts';
-import { Product, Customer, Sale, TodaySale, PaymentMethodParameter } from '../types.ts';
-import { SpinnerIcon, SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon } from '../components/icons.tsx';
+import { Link, useNavigate } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods } from '../services/mockApi.ts';
+import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet } from '../types.ts';
+import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
+
+// --- Permission Guard ---
+const getPermissionForRoute = (to: string, permissions: PermissionSet | null): boolean => {
+    if (!permissions) return false;
+    const path = to.split('?')[0];
+    switch (path) {
+        case '/vendas': return permissions.canAccessVendas;
+        case '/products': return permissions.canAccessEstoque;
+        case '/customers': return permissions.canAccessClientes;
+        case '/reports': return permissions.canAccessRelatorios;
+        default: return true;
+    }
+};
+
+const ProtectedLink: React.FC<{
+    to: string;
+    className?: string;
+    children: React.ReactNode;
+    permissions: PermissionSet | null;
+    onDenied: () => void;
+}> = ({ to, className, children, permissions, onDenied }) => {
+    const navigate = useNavigate();
+    const handleClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (getPermissionForRoute(to, permissions)) {
+            navigate(to);
+        } else {
+            onDenied();
+        }
+    };
+    return (
+        <a href={to} onClick={handleClick} className={className}>
+            {children}
+        </a>
+    );
+};
 
 // --- Components ---
 const InfoBanner: React.FC = React.memo(() => (
@@ -24,21 +60,28 @@ const LowStockBanner: React.FC<{ count: number; isPrivacyMode?: boolean }> = Rea
 ));
 
 
-const StatCard: React.FC<{ title: string; value: string | number; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode; isPrivacyMode?: boolean }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon, isPrivacyMode }) => (
-    <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm ${className || ''}`}>
-        <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-                {icon && <div className="text-secondary">{icon}</div>}
-                <h3 className="text-sm font-black text-secondary uppercase tracking-wider">{title}</h3>
+const StatCard: React.FC<{ title: string; value: string | number; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode; isPrivacyMode?: boolean; to?: string }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon, isPrivacyMode, to }) => {
+    const content = (
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-lg hover:scale-[1.01] cursor-pointer' : ''} ${className || ''}`}>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    {icon && <div className="text-secondary">{icon}</div>}
+                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">{title}</h3>
+                </div>
+                {!to && <button className="text-[10px] font-black tracking-widest text-muted bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-all">ATUALIZAR</button>}
             </div>
-            <button className="text-[10px] font-black tracking-widest text-muted bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-all">ATUALIZAR</button>
+            <p className="text-3xl font-bold text-primary mt-2">{isPrivacyMode ? '****' : value}</p>
+            {subValue1 && <p className="text-sm text-blue-600 font-semibold mt-1">{isPrivacyMode ? '****' : subValue1}</p>}
+            {subValue2 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue2}</p>}
+            {subValue3 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue3}</p>}
         </div>
-        <p className="text-3xl font-bold text-primary mt-2">{isPrivacyMode ? '****' : value}</p>
-        {subValue1 && <p className="text-sm text-blue-600 font-semibold mt-1">{isPrivacyMode ? '****' : subValue1}</p>}
-        {subValue2 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue2}</p>}
-        {subValue3 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue3}</p>}
-    </div>
-));
+    );
+
+    if (to) {
+        return <Link to={to} className="block h-full">{content}</Link>;
+    }
+    return content;
+});
 
 const ProfitTooltip: React.FC<any> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -149,7 +192,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 h-full ${className || ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
@@ -352,7 +395,7 @@ const BillingChart: React.FC<{
     isPrivacyMode?: boolean;
 }> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode }) => {
     return (
-        <div className={`p-6 glass-card h-full flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 glass-card h-full flex flex-col group hover:shadow-lg hover:scale-[1.01] cursor-pointer transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
@@ -530,7 +573,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
 
     return (
 
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm">
@@ -597,7 +640,7 @@ interface SoldItemInfo {
 const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ soldItems, className, isPrivacyMode }) => {
     return (
 
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
                     <TagIcon className="h-6 w-6" />
@@ -647,7 +690,7 @@ const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: 
 const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     return (
 
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                     <PlusIcon className="h-6 w-6" />
@@ -709,7 +752,7 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: strin
 const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     return (
 
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
@@ -794,7 +837,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     }, [products]);
 
     return (
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm group hover:scale-[1.01] transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
@@ -1004,7 +1047,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
 
     return (
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl shadow-sm">
@@ -1082,10 +1125,22 @@ const Dashboard: React.FC = () => {
     const [isPrivacyMode, setIsPrivacyMode] = useState(() => {
         return localStorage.getItem('iStorePro_privacyMode') === 'true';
     });
+    const [permissionToast, setPermissionToast] = useState<string | null>(null);
 
     useEffect(() => {
         localStorage.setItem('iStorePro_privacyMode', isPrivacyMode.toString());
     }, [isPrivacyMode]);
+
+    useEffect(() => {
+        if (permissionToast) {
+            const timer = setTimeout(() => setPermissionToast(null), 3500);
+            return () => clearTimeout(timer);
+        }
+    }, [permissionToast]);
+
+    const handlePermissionDenied = useCallback(() => {
+        setPermissionToast('Você não tem permissão para acessar esta seção.');
+    }, []);
 
 
 
@@ -1406,33 +1461,46 @@ const Dashboard: React.FC = () => {
             {/* Diagnostic for Inconsistent Sales */}
             {inconsistentSalesWarning}
 
-            <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
-                <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} />
-                <StockStatsCard products={products} isPrivacyMode={isPrivacyMode} />
-                <CustomersStatsCard
-                    customers={customers}
-                    sales={sales}
-                    isPrivacyMode={isPrivacyMode}
-                />
+            <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
+                <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
+                <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><StockStatsCard products={products} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
+                <ProtectedLink to="/customers" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}>
+                    <CustomersStatsCard
+                        customers={customers}
+                        sales={sales}
+                        isPrivacyMode={isPrivacyMode}
+                    />
+                </ProtectedLink>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
-                    <SalesByDayCard sales={sales} customers={customers} isPrivacyMode={isPrivacyMode} />
+                    <ProtectedLink to="/vendas?period=hoje" className="block h-full cursor-pointer" permissions={permissions} onDenied={handlePermissionDenied}><SalesByDayCard sales={sales} customers={customers} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 </div>
-                <div className="lg:col-span-2 min-h-[400px]">
+                <ProtectedLink to="/reports?tab=vendas" className="lg:col-span-2 min-h-[400px] block" permissions={permissions} onDenied={handlePermissionDenied}>
                     <BillingChart data={dashboardMetrics.billingChartData} period={billingPeriod} onPeriodChange={setBillingPeriod} isPrivacyMode={isPrivacyMode} />
-                </div>
+                </ProtectedLink>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <RecentAddedProductsCard products={recentAddedProducts} isPrivacyMode={isPrivacyMode} />
-                <RecentTradeInProductsCard products={recentTradeInProducts} isPrivacyMode={isPrivacyMode} />
-                <div className="h-full">
+                <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentAddedProductsCard products={recentAddedProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
+                <ProtectedLink to="/products?type=troca" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentTradeInProductsCard products={recentTradeInProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
+                <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}>
                     <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} isPrivacyMode={isPrivacyMode} />
-                </div>
-                <RecentSoldProductsCard soldItems={recentSoldItems} isPrivacyMode={isPrivacyMode} />
+                </ProtectedLink>
+                <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentSoldProductsCard soldItems={recentSoldItems} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
             </div>
+            {/* Permission Denied Toast */}
+            {permissionToast && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] animate-slide-up">
+                    <div className="flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-2xl shadow-2xl shadow-red-500/30 border border-red-500">
+                        <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        <span className="text-sm font-bold">{permissionToast}</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

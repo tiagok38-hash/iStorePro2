@@ -269,7 +269,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                                     </button>
                                     <button
                                         onClick={() => setFeeType('withInterest')}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'withInterest' ? 'bg-primary border-primary text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'withInterest' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
                                     >
                                         Com Juros (Repasse)
                                     </button>
@@ -316,7 +316,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                                                 <button
                                                     key={i}
                                                     onClick={() => setSelectedInstallment(i)}
-                                                    className={`group relative p-2 rounded-xl border text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${selectedInstallment === i ? 'bg-primary border-primary text-white shadow-primary/20' : 'bg-white border-gray-100 text-gray-700 hover:border-primary/30 shadow-sm'}`}
+                                                    className={`group relative p-2 rounded-xl border text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${selectedInstallment === i ? 'bg-gray-800 border-gray-800 text-white shadow-gray-900/20' : 'bg-white border-gray-100 text-gray-700 hover:border-primary/30 shadow-sm'}`}
                                                 >
                                                     <div className={`text-[9px] font-black uppercase mb-0.5 ${selectedInstallment === i ? 'text-white/80' : 'text-gray-400'}`}>{i}x de</div>
                                                     <div className="text-sm font-black tracking-tight">{formatCurrency(val)}</div>
@@ -372,7 +372,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                         <button
                             onClick={isSimulator ? onClose : handleConfirm}
                             disabled={!calculations || !selectedMethod}
-                            className={`flex-1 md:flex-none px-8 py-3 ${isSimulator ? 'bg-primary' : 'bg-gray-900'} text-white rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100`}
+                            className={`flex-1 md:flex-none px-8 py-3 bg-gray-800 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100`}
                         >
                             {isSimulator ? 'Fechar Simulação' : 'Confirmar Pagamento'}
                         </button>

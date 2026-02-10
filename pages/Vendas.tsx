@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Sale, Product, Customer, User, SaleItem, PermissionProfile, Brand, Category, ProductModel, Grade, GradeValue, Supplier, ReceiptTermParameter, PermissionSet } from '../types.ts';
 import { getSales, getProducts, getCustomers, getUsers, addCustomer, addProduct, formatCurrency, cancelSale, getPermissionProfiles, getBrands, getCategories, getProductModels, getGrades, getGradeValues, getSuppliers, getReceiptTerms, getPaymentMethods } from '../services/mockApi.ts';
@@ -200,6 +201,19 @@ const Vendas: React.FC = () => {
 
     const { showToast } = useToast();
     const { permissions, user } = useUser();
+    const location = useLocation();
+
+    // Handle deep linking from Dashboard
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const period = params.get('period');
+        if (period === 'hoje' || period === '7dias' || period === '15dias' || period === 'Mes') {
+            setActivePeriod(period as any);
+            setStartDate(getStartDateForPeriod(period as any));
+            setEndDate(toDateValue());
+        }
+    }, [location]);
+
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -586,7 +600,7 @@ const Vendas: React.FC = () => {
         }
     };
 
-    const periodButtonClasses = (period: string) => `rounded-xl font-black uppercase tracking-widest transition-all duration-300 ${activePeriod === period ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`;
+    const periodButtonClasses = (period: string) => `rounded-xl font-black uppercase tracking-widest transition-all duration-300 ${activePeriod === period ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`;
 
     return (
         <div className="space-y-4 sm:space-y-6">
@@ -635,7 +649,7 @@ const Vendas: React.FC = () => {
                         {permissions?.canCreateSale && (
                             <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none px-3 py-2 bg-success text-on-primary rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center">+ NOVA VENDA</button>
                         )}
-                        <button onClick={() => setIsSimulatorOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-secondary text-white rounded-xl hover:bg-primary font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
+                        <button onClick={() => setIsSimulatorOpen(true)} className="flex-1 sm:flex-none px-4 py-2 bg-gray-800 text-white rounded-xl hover:bg-gray-700 font-bold text-xs sm:text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
                             <CreditCardIcon className="h-4 w-4" />
                             Simulador de cartão
                         </button>
