@@ -22,6 +22,7 @@ import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import StockSearchModal from '../components/StockSearchModal.tsx';
+import CardPaymentModal from '../components/CardPaymentModal.tsx';
 import { PosSettingsView } from '../components/PosSettingsView.tsx';
 import CashMovementModal from '../components/CashMovementModal.tsx';
 import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
@@ -62,6 +63,7 @@ const POS: React.FC = () => {
     // UI state
     const [activeView, setActiveView] = useState<PosView>('caixas');
     const [isStockSearchModalOpen, setIsStockSearchModalOpen] = useState(false);
+    const [isCardSimulatorOpen, setIsCardSimulatorOpen] = useState(false);
     const [isOpeningSessionModalOpen, setIsOpeningSessionModalOpen] = useState(false);
     const [openingBalance, setOpeningBalance] = useState<string>('0');
     const [isCashMovementModalOpen, setIsCashMovementModalOpen] = useState(false);
@@ -442,7 +444,7 @@ const POS: React.FC = () => {
         <div className="flex h-screen bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] overflow-hidden">
             <PosSidebar activeView={activeView} onViewChange={handleViewChange} />
             <div className="flex-1 flex flex-col min-w-0">
-                <PosHeader cashId={currentUserOpenSession?.displayId} onOpenStockSearch={() => setIsStockSearchModalOpen(true)} />
+                <PosHeader cashId={currentUserOpenSession?.displayId} onOpenStockSearch={() => setIsStockSearchModalOpen(true)} onOpenCardSimulator={() => setIsCardSimulatorOpen(true)} />
                 <main className="flex-1 overflow-auto px-4 pb-24 md:p-6 md:pb-6">
                     {activeView === 'caixas' && (
                         <CaixasView
@@ -535,6 +537,15 @@ const POS: React.FC = () => {
                 </main>
 
                 {isStockSearchModalOpen && <StockSearchModal products={products} onClose={() => setIsStockSearchModalOpen(false)} />}
+                {isCardSimulatorOpen && (
+                    <CardPaymentModal
+                        isOpen={isCardSimulatorOpen}
+                        onClose={() => setIsCardSimulatorOpen(false)}
+                        onConfirm={() => setIsCardSimulatorOpen(false)}
+                        amountDue={0}
+                        isSimulator={true}
+                    />
+                )}
                 <CashMovementModal isOpen={isCashMovementModalOpen} onClose={() => setIsCashMovementModalOpen(false)} onConfirm={handleConfirmCashMovement} type={cashMovementType} />
 
                 {showFormatSelector && (
