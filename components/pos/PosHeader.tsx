@@ -47,7 +47,7 @@ export const PosHeader: React.FC<PosHeaderProps> = ({ cashId, onOpenStockSearch,
                         title="Simulador de Cartão"
                     >
                         <CreditCardIcon className="h-4 w-4 md:h-5 md:w-5" />
-                        <span className="hidden sm:inline">Simulador de Cartão</span>
+                        <span className="hidden sm:inline">Simulador Cartão</span>
                     </button>
                     <div className="text-right hidden md:block">
                         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Status do Sistema</p>
