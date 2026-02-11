@@ -795,7 +795,7 @@ const Vendas: React.FC = () => {
                                                             onEdit={() => {
                                                                 // Allow editing if it's PDV but has no session ID (legacy/bugged sales or manual entry marked as PDV)
                                                                 if (sale.origin === 'PDV' && sale.cashSessionId) {
-                                                                    showToast('Vendas feitas pelo PDV devem ser editadas no próprio PDV.', 'info');
+                                                                    showToast(`Vendas feitas pelo PDV (Caixa #${sale.cashSessionDisplayId || '?'}) devem ser editadas no próprio PDV.`, 'info');
                                                                     return;
                                                                 }
                                                                 setSaleToEdit(sale); setIsModalOpen(true);

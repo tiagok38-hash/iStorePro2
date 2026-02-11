@@ -31,16 +31,24 @@ const PurchaseHistoryModal: React.FC<{
 }> = ({ customer, sales, users, onClose, productMap, onViewSale }) => {
     const [activeTab, setActiveTab] = useState('purchases');
 
+    // Lock body scroll
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
+
     const modalContent = (
         <div className="fixed inset-0 flex justify-center items-center p-0 sm:p-4" style={{ zIndex: 50 }}>
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm" onClick={onClose} />
 
-            {/* Modal Container */}
-            <div className="relative bg-surface w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-3xl shadow-xl sm:max-w-3xl flex flex-col overflow-hidden border border-border">
+            {/* Modal Container - Maximize Width */}
+            <div className="relative bg-surface w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-3xl shadow-xl sm:max-w-7xl flex flex-col overflow-hidden border border-border">
                 {/* Fixed Header */}
                 <div className="flex justify-between items-center p-4 border-b bg-white flex-shrink-0">
-                    <h2 className="text-lg font-bold text-primary">Histórico de {customer.name}</h2>
+                    <h2 className="text-xl font-bold text-primary">Histórico de {customer.name}</h2>
                     <button
                         onClick={onClose}
                         className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors"
@@ -50,7 +58,7 @@ const PurchaseHistoryModal: React.FC<{
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50/50">
                     {/* Debt Section */}
                     {(() => {
                         const debtDetails = sales.reduce((acc, sale) => {
@@ -78,30 +86,25 @@ const PurchaseHistoryModal: React.FC<{
 
                         if (totalDebt > 0) {
                             return (
-                                <div className="mb-4 bg-red-50 border border-red-200 rounded-xl overflow-hidden shadow-sm">
-                                    <div className="p-3 flex items-center justify-between border-b border-red-200 bg-red-100/30">
-                                        <span className="text-red-800 font-bold flex items-center gap-2 text-sm">
-                                            <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                                            Valor em Aberto (Dívida)
+                                <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl overflow-hidden shadow-sm">
+                                    <div className="p-4 flex items-center justify-between border-b border-red-200 bg-red-100/30">
+                                        <span className="text-red-800 font-bold flex items-center gap-2 text-base">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+                                            Valor em Aberto (Dívida Total)
                                         </span>
-                                        <span className="text-lg font-black text-red-700">{formatCurrency(totalDebt)}</span>
+                                        <span className="text-2xl font-black text-red-700">{formatCurrency(totalDebt)}</span>
                                     </div>
-                                    <div className="max-h-32 overflow-y-auto bg-white/50">
+                                    <div className="max-h-48 overflow-y-auto bg-white/50">
                                         {debtDetails.map((debt, index) => (
-                                            <div key={index} className="flex justify-between items-start p-2 border-b border-red-100 last:border-0">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="font-bold text-red-900 text-xs">Venda #{debt.id}</span>
-                                                    <span className="text-red-700 text-[10px]">
-                                                        {new Date(debt.date).toLocaleDateString('pt-BR')} às {new Date(debt.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                                        <span className="ml-2">Vend: {debt.salesperson}</span>
+                                            <div key={index} className="flex justify-between items-start p-3 border-b border-red-100 last:border-0 hover:bg-red-50/50 transition-colors">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="font-bold text-red-900 text-sm">Venda #{debt.id}</span>
+                                                    <span className="text-red-700 text-xs flex items-center gap-2">
+                                                        <ClockIcon className="h-3 w-3" />
+                                                        {new Date(debt.date).toLocaleDateString('pt-BR')} • {new Date(debt.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
-                                                    {debt.internalNote && (
-                                                        <div className="mt-1 text-[10px] text-blue-600 font-bold italic">
-                                                            Nota: {debt.internalNote}
-                                                        </div>
-                                                    )}
                                                 </div>
-                                                <span className="font-bold text-red-700 text-sm">{formatCurrency(debt.amount)}</span>
+                                                <span className="font-bold text-red-700 text-base">{formatCurrency(debt.amount)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -112,127 +115,158 @@ const PurchaseHistoryModal: React.FC<{
                     })()}
 
                     {/* Tabs */}
-                    <div className="border-b border-border mb-4">
-                        <nav className="-mb-px flex space-x-4">
-                            <button onClick={() => setActiveTab('purchases')} className={`py-2 px-1 border-b-2 text-sm font-bold ${activeTab === 'purchases' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-primary'}`}>Compras</button>
-                            <button onClick={() => setActiveTab('tradeins')} className={`py-2 px-1 border-b-2 text-sm font-bold ${activeTab === 'tradeins' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-primary'}`}>Trocas / Vendas para Loja</button>
+                    <div className="border-b border-border mb-6">
+                        <nav className="-mb-px flex space-x-6">
+                            <button onClick={() => setActiveTab('purchases')} className={`py-3 px-2 border-b-2 text-base font-bold transition-all ${activeTab === 'purchases' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-primary hover:border-gray-300'}`}>Compras</button>
+                            <button onClick={() => setActiveTab('tradeins')} className={`py-3 px-2 border-b-2 text-base font-bold transition-all ${activeTab === 'tradeins' ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-primary hover:border-gray-300'}`}>Trocas / Vendas para Loja</button>
                         </nav>
                     </div>
 
                     {/* Tab Content */}
                     {activeTab === 'purchases' && (
-                        sales.length === 0 ? <p className="text-muted text-center py-4">Nenhuma compra encontrada.</p> : (
-                            <ul className="space-y-3">
-                                {[...sales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(sale => (
-                                    <li key={sale.id} className="border border-border p-3 rounded-xl bg-surface-secondary">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex-1">
-                                                <div className="flex flex-wrap items-center gap-3 text-xs font-semibold mb-1">
-                                                    <div className="flex items-center gap-1.5 text-primary">
-                                                        <ClockIcon className="h-3 w-3" />
-                                                        <span>{new Date(sale.date).toLocaleDateString('pt-BR')} às {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        sales.length === 0 ? <p className="text-muted text-center py-8 text-lg font-medium">Nenhuma compra encontrada.</p> : (
+                            <ul className="space-y-4">
+                                {[...sales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(sale => {
+                                    const isCancelled = sale.status === 'Cancelada';
+                                    return (
+                                        <li key={sale.id} className={`border rounded-2xl overflow-hidden shadow-sm transition-all hover:shadow-md ${isCancelled ? 'border-red-200 bg-red-50/30' : 'border-green-100 bg-green-50/40'}`}>
+                                            <div className="grid grid-cols-1 lg:grid-cols-12">
+                                                {/* Left Column: Info & Products */}
+                                                <div className="lg:col-span-7 p-4 sm:p-5 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-green-100">
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                                            <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                                                                <span className="bg-white/60 px-2 py-1 rounded-md border border-green-100">ID: #{sale.cashSessionDisplayId || sale.id.substring(0, 8)}</span>
+                                                                <span className="flex items-center gap-1"><ClockIcon className="h-3.5 w-3.5" /> {new Date(sale.date).toLocaleDateString('pt-BR')} {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            </div>
+                                                            {isCancelled && <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-lg text-[10px] font-bold border border-red-200 uppercase tracking-wide">Cancelada</span>}
+                                                        </div>
+
+                                                        <ul className="space-y-3">
+                                                            {sale.items.map((item, index) => {
+                                                                const product = productMap[item.productId];
+                                                                return (
+                                                                    <li key={index} className="flex flex-col">
+                                                                        <span className={`text-base font-bold ${isCancelled ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                                                                            {product?.model || 'Produto desconhecido'}
+                                                                            {item.quantity > 1 && <span className="text-xs font-medium text-gray-500 ml-2">x{item.quantity}</span>}
+                                                                        </span>
+                                                                        <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-1">
+                                                                            {product?.imei1 && <span>IMEI: <span className="font-mono">{product.imei1}</span></span>}
+                                                                            {product?.batteryHealth !== undefined && <span>Bateria: <span className={product.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'}>{product.batteryHealth}%</span></span>}
+                                                                        </div>
+                                                                    </li>
+                                                                );
+                                                            })}
+                                                        </ul>
                                                     </div>
-                                                    <span className='text-success bg-success/5 px-2 py-0.5 rounded-lg border border-success/10'>{formatCurrency(sale.total)}</span>
+
+                                                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-end">
+                                                        <button onClick={() => onViewSale(sale)} className="text-xs font-semibold text-primary hover:text-primary-dark hover:underline flex items-center gap-1">
+                                                            Ver detalhes completas &rarr;
+                                                        </button>
+                                                        <div className="text-right">
+                                                            <span className="block text-[10px] uppercase font-bold text-gray-400 tracking-wider">Total da Venda</span>
+                                                            <span className={`text-xl font-black ${isCancelled ? 'text-gray-400 line-through' : 'text-green-600'}`}>{formatCurrency(sale.total)}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <ul className="text-xs text-muted">
-                                                    {sale.items.map((item, index) => (
-                                                        <li key={index}>- {productMap[item.productId]?.model || 'Produto desconhecido'} (x{item.quantity})</li>
-                                                    ))}
-                                                </ul>
-                                                <div className="mt-2 pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
-                                                    <div className="text-[10px] text-muted">
-                                                        <span className="font-semibold">Pagamento: </span>
-                                                        {sale.payments.map(p => {
-                                                            const isWithInterest = p.type === 'Com Juros';
-                                                            return (
-                                                                <div key={p.id} className="mb-1 last:mb-0">
-                                                                    <div className="flex justify-between items-center">
-                                                                        <p className="font-medium text-primary">{p.method}</p>
-                                                                        <span className="font-semibold">{formatCurrency(p.value + (p.fees || 0))}</span>
+
+                                                {/* Right Column: Payments */}
+                                                <div className={`lg:col-span-5 p-4 sm:p-5 ${isCancelled ? 'bg-red-50/50' : 'bg-green-50/20'}`}>
+                                                    <div className="flex flex-col h-full justify-between">
+                                                        <div>
+                                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Pagamentos</h4>
+                                                            <div className="space-y-2">
+                                                                {sale.payments.map((p, idx) => (
+                                                                    <div key={idx} className="flex justify-between items-baseline text-sm">
+                                                                        <span className="font-medium text-gray-700">{p.method}</span>
+                                                                        <div className="flex flex-col items-end">
+                                                                            <span className={`font-bold ${isCancelled ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{formatCurrency(p.value + (p.fees || 0))}</span>
+                                                                            {p.type !== 'Sem Juros' && (p.fees || 0) > 0 && (
+                                                                                <span className="text-[10px] text-red-500">Taxas: {formatCurrency(p.fees)}</span>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                    {p.type !== 'Sem Juros' && (
-                                                                        <div className="flex justify-between">
-                                                                            <span>{isWithInterest ? 'Juros' : 'Taxa do Vendedor'} ({p.feePercentage?.toFixed(2)}%):</span>
-                                                                            <span className="font-medium">{formatCurrency(p.fees)}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {p.internalNote && (
-                                                                        <div className="mt-1 text-[10px] text-blue-600 font-bold italic">
-                                                                            Nota: {p.internalNote}
-                                                                        </div>
-                                                                    )}
-                                                                    {p.tradeInDetails && (
-                                                                        <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-muted space-y-0.5">
-                                                                            <p className="font-semibold text-primary">{p.tradeInDetails.model}</p>
-                                                                            <p>
-                                                                                {p.tradeInDetails.imei1 ? `IMEI: ${p.tradeInDetails.imei1}` : `S/N: ${p.tradeInDetails.serialNumber}`}
-                                                                                {p.tradeInDetails.batteryHealth && (p.tradeInDetails as any).condition !== 'Novo' ? ` | Bateria: ${p.tradeInDetails.batteryHealth}%` : ''}
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
+                                                                ))}
+                                                            </div>
+                                                            {sale.payments.some(p => p.internalNote) && (
+                                                                <div className="mt-3 pt-3 border-t border-gray-200/50">
+                                                                    {sale.payments.filter(p => p.internalNote).map((p, idx) => (
+                                                                        <p key={idx} className="text-[10px] text-blue-600 font-medium italic bg-blue-50 p-1.5 rounded-lg border border-blue-100">
+                                                                            Obs: {p.internalNote}
+                                                                        </p>
+                                                                    ))}
                                                                 </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                    <div className="text-[10px] text-muted flex items-center gap-1">
-                                                        <UserCircleIcon className="h-3 w-3" />
-                                                        <span>{users.find(u => u.id === sale.salespersonId)?.name || 'Desconhecido'}</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-4 pt-4 border-t border-gray-200/50 flex items-center gap-1.5 justify-end text-xs text-gray-500">
+                                                            <UserCircleIcon className="h-4 w-4" />
+                                                            <span>Vendedor: <span className="font-semibold text-gray-700">{users.find(u => u.id === sale.salespersonId)?.name || 'Desconhecido'}</span></span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button onClick={() => onViewSale(sale)} className="ml-2 px-2 py-1 bg-gray-200 text-secondary text-xs font-semibold rounded-xl hover:bg-gray-300">
-                                                Ver
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         )
                     )}
                     {activeTab === 'tradeins' && (
-                        (!customer.tradeInHistory || customer.tradeInHistory.length === 0) ? <p className="text-muted text-center py-4">Nenhuma troca/venda encontrada.</p> : (
-                            <ul className="space-y-3">
-                                {[...customer.tradeInHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tradeIn => (
-                                    <li key={tradeIn.id} className="border border-border p-3 rounded-xl bg-surface-secondary">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <span className="block font-bold text-primary text-sm">{tradeIn.model}</span>
-                                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted mt-1">
-                                                    <span className="font-bold bg-gray-100 px-1.5 py-0.5 rounded-lg text-gray-700">ID Venda: #{tradeIn.saleId}</span>
-                                                    <div className="flex items-center gap-1">
-                                                        <ClockIcon className="h-3 w-3" />
-                                                        <span>{new Date(tradeIn.date).toLocaleDateString('pt-BR')} às {new Date(tradeIn.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        (() => {
+                            const validTradeIns = (customer.tradeInHistory || []).filter(tradeIn => {
+                                const sale = sales.find(s => s.id === tradeIn.saleId);
+                                return !sale || sale.status !== 'Cancelada';
+                            });
+
+                            if (validTradeIns.length === 0) return <p className="text-muted text-center py-8 text-lg font-medium">Nenhuma troca encontrada.</p>;
+
+                            return (
+                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {[...validTradeIns].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tradeIn => (
+                                        <li key={tradeIn.id} className="border border-gray-200 p-4 rounded-2xl bg-white hover:shadow-md transition-shadow">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <span className="block font-bold text-gray-900 text-base">{tradeIn.model}</span>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold text-gray-600 border border-gray-200">Ref: #{tradeIn.saleId}</span>
                                                     </div>
                                                 </div>
-                                                <div className="text-[10px] text-muted flex items-center gap-1 mt-1">
-                                                    <UserCircleIcon className="h-3 w-3" />
-                                                    <span>Vendedor: {tradeIn.salespersonName}</span>
+                                                <span className='text-success font-black text-lg'>{formatCurrency(tradeIn.value)}</span>
+                                            </div>
+
+                                            <div className="bg-gray-50 rounded-xl p-3 text-xs space-y-1.5 border border-gray-100">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500 font-medium">Data</span>
+                                                    <span className="font-mono text-gray-700">{new Date(tradeIn.date).toLocaleDateString()}</span>
                                                 </div>
-                                            </div>
-                                            <span className='text-success font-black text-base'>{formatCurrency(tradeIn.value)}</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/50 text-[10px]">
-                                            <div className="space-y-0.5">
-                                                {tradeIn.imei1 && <p><span className="font-bold text-gray-500">IMEI 1:</span> <span className="font-mono">{tradeIn.imei1}</span></p>}
-                                                {tradeIn.imei2 && <p><span className="font-bold text-gray-500">IMEI 2:</span> <span className="font-mono">{tradeIn.imei2}</span></p>}
-                                            </div>
-                                            <div className="space-y-0.5 text-right">
-                                                {tradeIn.serialNumber && <p><span className="font-bold text-gray-500">S/N:</span> <span className="font-mono">{tradeIn.serialNumber}</span></p>}
+                                                {tradeIn.imei1 && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500 font-medium">IMEI</span>
+                                                        <span className="font-mono text-gray-700">{tradeIn.imei1}</span>
+                                                    </div>
+                                                )}
                                                 {tradeIn.batteryHealth !== undefined && tradeIn.batteryHealth !== null && (
-                                                    <p><span className="font-bold text-gray-500">Bateria:</span> <span className={`font-bold ${tradeIn.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{tradeIn.batteryHealth}%</span></p>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500 font-medium">Bateria</span>
+                                                        <span className={`font-bold ${tradeIn.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{tradeIn.batteryHealth}%</span>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )
-                    )}
-                </div>
 
-                {/* Fixed Footer */}
-                <div className="flex justify-end p-4 border-t bg-gray-50 flex-shrink-0">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 font-semibold text-sm">Fechar</button>
+                                            <div className="mt-3 flex justify-end">
+                                                <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                    <UserCircleIcon className="h-3.5 w-3.5" />
+                                                    <span>{tradeIn.salespersonName}</span>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            );
+                        })()
+                    )}
                 </div>
             </div>
         </div>

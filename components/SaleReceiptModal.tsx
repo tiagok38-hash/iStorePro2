@@ -180,8 +180,6 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                                 if (p.installments && p.installments > 1) {
                                     const installmentValue = p.installmentsValue || totalValueWithFees / p.installments;
                                     detailsLine = `${p.installments}x de ${formatCurrency(installmentValue)}`;
-                                } else if (p.feePercentage && p.feePercentage > 0) {
-                                    detailsLine = `(Taxa ${p.feePercentage.toFixed(2)}%)`;
                                 }
 
                                 return (
@@ -206,13 +204,19 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                     <div className="bg-white p-1.5 rounded-xl border border-black text-[9px]" style={{ width: '40%' }}>
                         <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
-                        {totalFees > 0 && <div className="flex justify-between"><span className="font-semibold">TAXAS</span><span>{formatCurrency(totalFees)}</span></div>}
+                        {/* Taxes line hidden as per request */}
                         <div className="flex justify-between border-t border-black pt-0.5 mt-0.5 font-bold text-[10px] font-black uppercase tracking-tight"><span>TOTAL</span><span>{formatCurrency(sale.total + totalFees)}</span></div>
                         {/* Highlighted PAGO section */}
                         <div className="flex justify-between bg-black text-white px-1.5 py-0.5 rounded-lg mt-0.5 border-black">
                             <span className="font-black text-[10px]">PAGO</span>
                             <span className="font-black text-[10px]">{formatCurrency(totalPaid)}</span>
                         </div>
+                        {totalPaid > (sale.total + totalFees) && (
+                            <div className="flex justify-between border-t border-black pt-0.5 mt-0.5">
+                                <span className="font-bold text-[9px]">TROCO</span>
+                                <span className="font-bold text-[9px]">{formatCurrency(totalPaid - (sale.total + totalFees))}</span>
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -308,7 +312,7 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
             <div className="space-y-0.5 text-right">
                 <div className="flex justify-between"><span className="text-left">Subtotal:</span><span>{formatCurrency(sale.subtotal)}</span></div>
                 <div className="flex justify-between"><span className="text-left">Desconto:</span><span>{formatCurrency(sale.discount)}</span></div>
-                {totalFees > 0 && <div className="flex justify-between"><span className="text-left">Acréscimos:</span><span>{formatCurrency(totalFees)}</span></div>}
+                {/* Taxes line hidden as per request */}
                 <div className="flex justify-between font-bold text-sm"><span className="text-left">TOTAL:</span><span>{formatCurrency(sale.total)}</span></div>
             </div>
             <div className="border-t border-dashed border-black my-2"></div>
@@ -329,7 +333,7 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
                     </div>
                 ))}
                 <div className="flex justify-between font-bold mt-1"><span className="text-left">TOTAL PAGO:</span><span>{formatCurrency(totalPaid)}</span></div>
-                <div className="flex justify-between"><span className="text-left">TROCO:</span><span>{formatCurrency(totalPaid - sale.total > 0 ? totalPaid - sale.total : 0)}</span></div>
+                <div className="flex justify-between"><span className="text-left">TROCO:</span><span>{formatCurrency(totalPaid - (sale.total + totalFees) > 0 ? totalPaid - (sale.total + totalFees) : 0)}</span></div>
             </div>
 
             {sale.observations && (

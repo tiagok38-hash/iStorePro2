@@ -59,6 +59,13 @@ const LowStockBanner: React.FC<{ count: number; isPrivacyMode?: boolean }> = Rea
     </Link>
 ));
 
+const FinancialDiscrepancyBanner: React.FC<{ count: number; isPrivacyMode?: boolean }> = React.memo(({ count, isPrivacyMode }) => (
+    <Link to="/vendas?filter=discrepancy" className="bg-orange-100 text-orange-700 text-sm font-medium px-4 py-2 rounded-2xl flex items-center gap-2 hover:bg-orange-200 transition-all border border-orange-200/50 shadow-sm shadow-orange-500/5 flex-1 justify-center animate-pulse">
+        <CurrencyDollarIcon className="h-4 w-4" />
+        <span className="font-semibold text-center">Atenção: {isPrivacyMode ? '***' : count} vendas com divergência financeira</span>
+    </Link>
+));
+
 
 const StatCard: React.FC<{ title: string; value: string | number; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode; isPrivacyMode?: boolean; to?: string }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon, isPrivacyMode, to }) => {
     const content = (
@@ -1407,55 +1414,13 @@ const Dashboard: React.FC = () => {
         products.filter(p => p.stock > 0 && p.minimumStock && p.stock <= p.minimumStock).length
         , [products]);
 
-    const inconsistentSalesWarning = React.useMemo(() => {
-        const inconsistentSales = sales.filter(s => s.status !== 'Cancelada' && s.status !== 'Orçamento').filter(s => {
+    const financialDiscrepancyCount = React.useMemo(() => {
+        return sales.filter(s => s.status === 'Finalizada').filter(s => {
             const totalPaid = s.payments.reduce((acc, p) => acc + p.value, 0);
-            return Math.abs(s.total - totalPaid) > 0.1;
-        });
-
-        if (inconsistentSales.length === 0) return null;
-
-        return (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 animate-fade-in">
-                <h3 className="text-yellow-800 font-bold flex items-center gap-2 mb-2">
-                    <span className="text-xl">⚠️</span> Discrepância Financeira Detectada
-                </h3>
-                <p className="text-yellow-700 text-sm mb-3">
-                    Encontramos {inconsistentSales.length} venda(s) onde o valor total diverge da soma dos pagamentos. Isso causa a diferença entre o Faturamento e o Total recebido.
-                </p>
-                <div className="bg-white rounded border border-yellow-100 overflow-hidden max-h-40 overflow-y-auto">
-                    <table className="w-full text-xs text-left">
-                        <thead className="bg-yellow-100/50 text-yellow-800">
-                            <tr>
-                                <th className="p-2">ID Venda</th>
-                                <th className="p-2">Data</th>
-                                <th className="p-2 text-right">Total Venda</th>
-                                <th className="p-2 text-right">Total Pagamentos</th>
-                                <th className="p-2 text-right">Diferença</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {inconsistentSales.map(s => {
-                                const paid = s.payments.reduce((acc, p) => acc + p.value, 0);
-                                const diff = paid - s.total;
-                                return (
-                                    <tr key={s.id} className="border-t border-yellow-50 hover:bg-yellow-50/50 text-gray-700">
-                                        <td className="p-2 font-bold">#{s.id}</td>
-                                        <td className="p-2">{new Date(s.date).toLocaleDateString()}</td>
-                                        <td className="p-2 text-right">{formatCurrency(s.total)}</td>
-                                        <td className="p-2 text-right">{formatCurrency(paid)}</td>
-                                        <td className="p-2 text-right font-bold text-red-600">
-                                            {diff > 0 ? '+' : ''}{formatCurrency(diff)}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        );
+            return s.total > totalPaid + 0.01;
+        }).length;
     }, [sales]);
+
 
     if (loading) return <SuspenseFallback fullScreen />;
     if (error) return (
@@ -1495,16 +1460,14 @@ const Dashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <p className="text-muted">Meu Plano: <span className="font-semibold text-secondary">Plus (Trimestral)</span></p>
                 </div>
-                <div className="flex items-stretch gap-4 flex-1 sm:flex-initial">
+
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {lowStockCount > 0 && <LowStockBanner count={lowStockCount} isPrivacyMode={isPrivacyMode} />}
+                    {financialDiscrepancyCount > 0 && <FinancialDiscrepancyBanner count={financialDiscrepancyCount} isPrivacyMode={isPrivacyMode} />}
                     <InfoBanner />
                 </div>
             </div>
-
-            {/* Diagnostic for Inconsistent Sales */}
-            {inconsistentSalesWarning}
 
             <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
                 <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />

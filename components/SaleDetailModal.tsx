@@ -190,7 +190,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                 return (
                                                     <div key={payment.id} className="p-3 bg-surface-secondary rounded-xl text-sm">
                                                         <div className="flex justify-between items-center mb-2">
-                                                            <p className="font-medium text-primary">{payment.method}</p>
+                                                            <p className="font-medium text-primary">{payment.card || payment.method}</p>
                                                             <span className="font-semibold">{formatCurrency(totalCharged)}</span>
                                                         </div>
                                                         <div className="pl-4 border-l-2 border-gray-200 ml-1 space-y-1 text-xs text-muted">
@@ -216,7 +216,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                             return (
                                                 <div key={payment.id} className="p-3 bg-surface-secondary rounded-xl">
                                                     <div className="flex justify-between items-center">
-                                                        <p className="font-medium text-primary">{payment.method}</p>
+                                                        <p className="font-medium text-primary">{payment.card || payment.method}</p>
                                                         <span className="font-semibold">{formatCurrency(payment.value + (payment.fees || 0))}</span>
                                                     </div>
                                                     {payment.internalNote && (
@@ -299,6 +299,12 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                     <span className="text-muted">Total Pago:</span>
                                     <span className="font-medium text-success">{formatCurrency(totalPaid)}</span>
                                 </div>
+                                {totalPaid - (sale.total + (sale.payments.reduce((sum, p) => sum + (p.fees || 0), 0))) > 0.01 && (
+                                    <div className="flex justify-between p-2 bg-blue-50 rounded-xl mt-1">
+                                        <span className="text-muted">Troco:</span>
+                                        <span className="font-medium text-blue-600">{formatCurrency(totalPaid - (sale.total + (sale.payments.reduce((sum, p) => sum + (p.fees || 0), 0))))}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         {sale.status === 'Cancelada' && (

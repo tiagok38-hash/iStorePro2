@@ -2035,6 +2035,40 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         }
     }
 
+    // CASH SESSION UPDATE: specific for "Trade-In Change" or "Cash Payments"
+    // Calculate if there was any change given (Troco)
+    if (saleData.status === 'Finalizada') {
+        try {
+            const totalPaid = (data.payments || []).reduce((sum: number, p: any) => sum + p.value, 0);
+            const change = Math.max(0, totalPaid - newSale.total);
+
+            // Calculate cash payments
+            const cashIncome = (data.payments || []).filter((p: any) => p.method === 'Dinheiro').reduce((sum: number, p: any) => sum + p.value, 0);
+
+            // Net impact
+            const netCashImpact = cashIncome - change;
+
+            if ((netCashImpact !== 0 || cashIncome > 0 || change > 0) && newSale.cash_session_id) {
+                const { data: session } = await supabase.from('cash_sessions').select('*').eq('id', newSale.cash_session_id).single();
+                if (session) {
+                    const currentCash = session.cash_in_register || session.cashInRegister || 0;
+                    const currentDeposits = session.deposits || 0;
+                    const currentWithdrawals = session.withdrawals || 0;
+
+                    const updates: any = {
+                        cash_in_register: currentCash + netCashImpact
+                    };
+                    if (cashIncome > 0) updates.deposits = currentDeposits + cashIncome;
+                    if (change > 0) updates.withdrawals = currentWithdrawals + change;
+
+                    await supabase.from('cash_sessions').update(updates).eq('id', newSale.cash_session_id);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to update cash session balance:', err);
+        }
+    }
+
     clearCache(['sales', 'products', 'cash_sessions']);
     return mappedSale;
 };
@@ -2469,7 +2503,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
     }
 
-    clearCache(['sales', 'products']);
+    clearCache(['sales', 'products', 'cash_sessions']);
 
     return {
         ...updated,

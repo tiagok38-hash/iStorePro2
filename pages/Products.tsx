@@ -961,8 +961,8 @@ const Products: React.FC = () => {
                                         const supplierLabelColor = getSupplierColorClass(supplier);
 
                                         let stockColorClass = 'bg-gray-100 text-gray-700 border-gray-200';
-                                        if (product.condition === 'Reservado') stockColorClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
-                                        else if (product.stock === 0) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
+                                        if (product.stock === 0) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
+                                        else if (product.condition === 'Reservado') stockColorClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
                                         else if (product.stock >= 1) stockColorClass = 'bg-green-100 text-green-700 border-green-200';
 
                                         return (<tr key={product.id} className="bg-surface border-b border-border last:border-0 hover:bg-surface-secondary">
