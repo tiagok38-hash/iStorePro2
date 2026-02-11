@@ -236,6 +236,7 @@ export interface Payment {
         imei2?: string;
         batteryHealth?: number;
         condition?: string;
+        newProductPayload?: any;
     };
     internalNote?: string;
 }

@@ -370,28 +370,29 @@ export const useSaleForm = ({
         const tradeInValue = newProductPayload.costPrice || 0;
 
         try {
-            const createdProduct = await onAddProduct(newProductPayload);
-            if (createdProduct) {
-                setPendingTradeInProduct(createdProduct);
-                const newPayment: Payment = {
-                    id: `pay-trade-${Date.now()}`,
-                    method: 'Aparelho na Troca',
-                    value: tradeInValue,
-                    tradeInDetails: {
-                        productId: createdProduct.id,
-                        model: createdProduct.model,
-                        serialNumber: createdProduct.serialNumber,
-                        imei1: createdProduct.imei1,
-                        imei2: createdProduct.imei2,
-                        batteryHealth: createdProduct.batteryHealth,
-                        condition: createdProduct.condition
-                    }
-                };
-                setPayments(prev => [...prev, newPayment]);
-                showToast('Produto de troca adicionado!', 'success');
-            } else {
-                showToast('Erro ao criar produto de troca.', 'error');
-            }
+            // DEFER CREATION: Do not call onAddProduct here. 
+            // Store payload to be created upon Sale Finalization.
+            const tempId = `temp-trade-${Date.now()}`;
+
+            setPendingTradeInProduct({ ...newProductPayload, id: tempId } as Product); // Keep it for UI feedback if needed, but mainly rely on payments
+
+            const newPayment: Payment = {
+                id: `pay-trade-${Date.now()}`,
+                method: 'Aparelho na Troca',
+                value: tradeInValue,
+                tradeInDetails: {
+                    productId: tempId, // Temporary ID
+                    model: newProductPayload.model,
+                    serialNumber: newProductPayload.serialNumber,
+                    imei1: newProductPayload.imei1,
+                    imei2: newProductPayload.imei2,
+                    batteryHealth: newProductPayload.batteryHealth,
+                    condition: newProductPayload.condition,
+                    newProductPayload: newProductPayload // Store for later creation
+                }
+            };
+            setPayments(prev => [...prev, newPayment]);
+            showToast('Produto de troca agendado! Será criado ao finalizar a venda.', 'success');
         } catch (error: any) {
             showToast(error?.message || 'Erro ao criar produto de troca.', 'error');
         } finally {
@@ -420,28 +421,29 @@ export const useSaleForm = ({
         };
 
         try {
-            const createdProduct = await onAddProduct(fullProductPayload);
-            if (createdProduct) {
-                setPendingTradeInProduct(createdProduct);
-                const newPayment: Payment = {
-                    id: `pay-trade-${Date.now()}`,
-                    method: 'Aparelho na Troca',
-                    value: tradeInValue,
-                    tradeInDetails: {
-                        productId: createdProduct.id,
-                        model: createdProduct.model,
-                        serialNumber: createdProduct.serialNumber,
-                        imei1: createdProduct.imei1,
-                        imei2: createdProduct.imei2,
-                        batteryHealth: createdProduct.batteryHealth,
-                        condition: createdProduct.condition
-                    }
-                };
-                setPayments(prev => [...prev, newPayment]);
-                showToast('Produto de troca adicionado!', 'success');
-            } else {
-                showToast('Erro ao criar produto de troca.', 'error');
-            }
+            // DEFER CREATION: Do not call onAddProduct here. 
+            // Store payload to be created upon Sale Finalization.
+            const tempId = `temp-trade-${Date.now()}`;
+
+            setPendingTradeInProduct({ ...fullProductPayload, id: tempId } as Product);
+
+            const newPayment: Payment = {
+                id: `pay-trade-${Date.now()}`,
+                method: 'Aparelho na Troca',
+                value: tradeInValue,
+                tradeInDetails: {
+                    productId: tempId, // Temporary ID
+                    model: fullProductPayload.model,
+                    serialNumber: fullProductPayload.serialNumber,
+                    imei1: fullProductPayload.imei1,
+                    imei2: fullProductPayload.imei2,
+                    batteryHealth: fullProductPayload.batteryHealth,
+                    condition: fullProductPayload.condition,
+                    newProductPayload: fullProductPayload // Store for later creation
+                }
+            };
+            setPayments(prev => [...prev, newPayment]);
+            showToast('Produto de troca agendado! Será criado ao finalizar a venda.', 'success');
         } catch (error: any) {
             showToast(error?.message || 'Erro ao criar produto de troca.', 'error');
         } finally {
@@ -492,6 +494,35 @@ export const useSaleForm = ({
 
         setIsSaving(true);
         try {
+            // PROCESS DEFERRED TRADE-INS
+            // Filter payments that have newProductPayload
+            const processedPayments = await Promise.all(payments.map(async (p) => {
+                if (p.method === 'Aparelho na Troca' && p.tradeInDetails?.newProductPayload) {
+                    try {
+                        console.log('Creating deferred Trade-in Product:', p.tradeInDetails.model);
+                        const created = await onAddProduct(p.tradeInDetails.newProductPayload);
+                        if (created) {
+                            // Update payment with real ID and remove payload to avoid cluttering DB
+                            const { newProductPayload, ...restDetails } = p.tradeInDetails;
+                            return {
+                                ...p,
+                                tradeInDetails: {
+                                    ...restDetails,
+                                    productId: created.id
+                                }
+                            };
+                        }
+                    } catch (err) {
+                        console.error('Error creating deferred trade-in product:', err);
+                        throw new Error(`Erro ao criar produto de troca: ${p.tradeInDetails.model}`);
+                    }
+                }
+                return p;
+            }));
+
+            // Update baseSaleData with processed payments
+            baseSaleData.payments = processedPayments;
+
             let savedSale: Sale;
             if (saleToEdit) {
                 savedSale = await updateSale(
@@ -503,16 +534,27 @@ export const useSaleForm = ({
                 savedSale = await addSale(baseSaleData as any, user?.id, user?.name);
             }
 
-            if (pendingTradeInProduct && savedSale) {
+            if (savedSale) {
                 const salesperson = users.find(u => u.id === selectedSalespersonId);
-                await addAuditLog(
-                    AuditActionType.STOCK_LAUNCH,
-                    AuditEntityType.PRODUCT,
-                    pendingTradeInProduct.id,
-                    `Produto vinculado à venda de origem #${savedSale.id}. Usuário resp.: ${user?.name || salesperson?.name || 'Sistema'}`,
-                    user?.id || salesperson?.id || 'system',
-                    user?.name || salesperson?.name || 'Sistema'
-                );
+                // Log all trade-in products linked to this sale
+                for (const p of savedSale.payments) {
+                    if (p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId) {
+                        // Skip if it was already a real ID (not created just now)?
+                        // Actually, logging it again as "Linked" is fine, or we can assume if it's in this sale it's relevant.
+                        // Ideally we only log for NEWly created ones, but 'Produto vinculado' implies connection.
+
+                        // If we want only the ones we just created, we'd need to track them.
+                        // But since we are finalizing the sale, logging the link is appropriate for all trade-ins in this sale.
+                        await addAuditLog(
+                            AuditActionType.STOCK_LAUNCH,
+                            AuditEntityType.PRODUCT,
+                            p.tradeInDetails.productId,
+                            `Produto vinculado à venda de origem #${savedSale.id}. Usuário resp.: ${user?.name || salesperson?.name || 'Sistema'}`,
+                            user?.id || salesperson?.id || 'system',
+                            user?.name || salesperson?.name || 'Sistema'
+                        );
+                    }
+                }
             }
 
             // Show success notification with appropriate color based on status
