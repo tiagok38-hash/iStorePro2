@@ -467,7 +467,7 @@ export const getCashSessions = async (currentUserId?: string): Promise<CashSessi
             if (error) throw error;
 
             // Map snake_case to camelCase
-            return (data || []).map((s: any) => ({
+            const mappedSessions = (data || []).map((s: any) => ({
                 ...s,
                 userId: s.user_id,
                 displayId: s.display_id,
@@ -476,6 +476,59 @@ export const getCashSessions = async (currentUserId?: string): Promise<CashSessi
                 openTime: s.open_time,
                 closeTime: s.close_time
             }));
+
+            // AUTO-CLOSE STALE SESSIONS
+            // Check if any open session belongs to a previous day
+            const today = getTodayDateString(); // Assume YYYY-MM-DD local
+            const staleSessions = mappedSessions.filter((s: any) => {
+                if (s.status === 'aberto' || s.status === 'Aberto') {
+                    // split('T')[0] gets the UTC date usually, but for this mock we assume usage consistency.
+                    // If openTime is "2023-10-26T...", and today is "2023-10-27", then 26 < 27.
+                    const sessionDate = s.openTime.split('T')[0];
+                    return sessionDate < today;
+                }
+                return false;
+            });
+
+            if (staleSessions.length > 0) {
+                // Fire-and-forget update to close them in DB
+                (async () => {
+                    const staleIds = staleSessions.map((s: any) => s.id);
+                    // Update status to 'fechado' locally and in DB
+                    for (const session of staleSessions) {
+                        const sessionDay = session.openTime.split('T')[0];
+                        const autoCloseTime = `${sessionDay}T23:59:59.999Z`;
+
+                        await supabase.from('cash_sessions').update({
+                            status: 'fechado',
+                            close_time: autoCloseTime
+                        }).eq('id', session.id);
+
+                        await addAuditLog(
+                            AuditActionType.UPDATE,
+                            'CASH_SESSION' as any,
+                            session.id,
+                            `Fechamento Automático (Virada de Dia): ${sessionDay}`,
+                            'system',
+                            'Sistema'
+                        );
+                    }
+                    // Clear cache to ensure next fetch gets clean DB state
+                    clearCache(['cash_sessions']);
+                })().catch(err => console.error('[getCashSessions] Auto-close failed:', err));
+
+                // Return modified data to UI immediately (Optimistic update)
+                return mappedSessions.map((s: any) => {
+                    const isStale = staleSessions.find((st: any) => st.id === s.id);
+                    if (isStale) {
+                        const sessionDay = s.openTime.split('T')[0];
+                        return { ...s, status: 'fechado', closeTime: `${sessionDay}T23:59:59.999Z` };
+                    }
+                    return s;
+                });
+            }
+
+            return mappedSessions;
         });
     });
 };
@@ -484,6 +537,32 @@ export const addCashSession = async (data: any, odId: string = 'system', userNam
     // Generate sequential displayId
     const { count } = await supabase.from('cash_sessions').select('*', { count: 'exact', head: true });
     const nextDisplayId = (count || 0) + 1;
+
+    // RULE: ONE SESSION PER USER PER DAY
+    // Check if there is already a session for this user today (open or closed)
+    const today = getTodayDateString(); // e.g. "2023-10-27"
+
+    // We need to check against the open_time which is ISO. 
+    // We can filter by open_time >= todayT00:00:00 and open_time <= todayT23:59:59
+    // But since getTodayDateString returns local date string, we need to be careful with UTC.
+    // However, for this mock implementation running locally, we can rely on string comparison of the date part 
+    // if we assume getNowISO() follows the same locale or we use a more robust check.
+
+    // Robust check: fetch all sessions for user and check if any falls in "today"
+    const { data: existingSessions, error: checkError } = await supabase
+        .from('cash_sessions')
+        .select('*')
+        .eq('user_id', data.userId)
+        .gte('open_time', `${today}T00:00:00`)
+        .lte('open_time', `${today}T23:59:59.999`);
+
+    if (checkError) throw checkError;
+
+    if (existingSessions && existingSessions.length > 0) {
+        const existing = existingSessions[0];
+        const status = existing.status === 'aberto' ? 'ABERTO' : 'FECHADO';
+        throw new Error(`O usuário já possui um caixa ${status} para a data de hoje (${formatDateTimeBR(existing.open_time)}). Não é permitido abrir múltiplos caixas no mesmo dia.`);
+    }
 
     // Use snake_case column names (Supabase default)
     const session = {
@@ -2069,6 +2148,15 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
         const { data: existing } = await supabase.from('sales').select('salesperson_id, cash_session_id').eq('id', data.id).single();
         if (existing) {
+            // RULE: IMMUTABLE SALES - Block updates if session is closed
+            if (existing.cash_session_id) {
+                const { data: session } = await supabase.from('cash_sessions').select('status').eq('id', existing.cash_session_id).single();
+                if (session && (session.status === 'fechado' || session.status === 'closed')) {
+                    // STRICT BLOCK: No editing of past sales.
+                    throw new Error('Acesso NEGADO: Vendas de caixas fechados não podem ser editadas. Realize o cancelamento e lance uma nova venda.');
+                }
+            }
+
             if (!isCallingAdmin && existing.salesperson_id !== userId) {
                 throw new Error('Acesso NEGADO: Esta venda pertence a outro vendedor.');
             }
@@ -2409,6 +2497,16 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
         const { data: session } = await supabase.from('cash_sessions').select('user_id').eq('id', sale.cash_session_id).single();
         if (session && session.user_id === userId) {
             isOwnerBySession = true;
+        }
+    }
+
+    // RULE: IMMUTABLE SALES - Restrict cancellation if session is closed
+    if (sale.cash_session_id) {
+        const { data: session } = await supabase.from('cash_sessions').select('status').eq('id', sale.cash_session_id).single();
+        if (session && (session.status === 'fechado' || session.status === 'closed')) {
+            if (!isCallingAdmin) {
+                throw new Error('Acesso NEGADO: Apenas administradores podem cancelar vendas de caixas fechados.');
+            }
         }
     }
 
@@ -4155,6 +4253,8 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                 .select('*')
                 .eq('model', p.model)
                 .eq('condition', p.condition)
+                .eq('costPrice', p.costPrice) // Match by cost price
+                .eq('price', p.price)         // Match by sale price
                 .is('imei1', null)
                 .is('imei2', null)
                 .is('serialNumber', null)

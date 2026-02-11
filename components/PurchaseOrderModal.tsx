@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PurchaseOrder, PurchaseItem, Supplier, ProductCondition, Product, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation, Customer, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter } from '../types.ts';
 import { addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, formatCurrency, findOrCreateSupplierFromCustomer, getProductConditions, getStorageLocations, getWarranties, getReceiptTerms } from '../services/mockApi.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
-import { XCircleIcon, TrashIcon, PlusIcon, SpinnerIcon, BarcodeIcon, PrinterIcon, ArrowRightCircleIcon, CheckIcon, ChevronLeftIcon } from './icons.tsx';
+import { XCircleIcon, TrashIcon, PlusIcon, SpinnerIcon, BarcodeIcon, PrinterIcon, ArrowRightCircleIcon, CheckIcon, ChevronLeftIcon, ArchiveBoxIcon } from './icons.tsx';
+import StockSearchModal from './StockSearchModal.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
 import SearchableDropdown from './SearchableDropdown.tsx';
 import CustomerModal from './CustomerModal.tsx';
@@ -13,6 +14,7 @@ import CustomerModal from './CustomerModal.tsx';
 interface PurchaseOrderModalProps {
     suppliers: Supplier[];
     customers: Customer[];
+    products: Product[];
     brands: Brand[];
     categories: Category[];
     productModels: ProductModel[];
@@ -41,11 +43,12 @@ const emptyItem: CurrentItemType = {
 
 import { appleProductHierarchy } from '../services/constants.ts';
 
-export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ suppliers, customers, brands, categories, productModels, grades, gradeValues, onClose, purchaseOrderToEdit, onAddNewSupplier }) => {
+export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ suppliers, customers, products, brands, categories, productModels, grades, gradeValues, onClose, purchaseOrderToEdit, onAddNewSupplier }) => {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<Partial<PurchaseOrder>>({});
     const [items, setItems] = useState<Partial<PurchaseItem>[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [isStockSearchOpen, setIsStockSearchOpen] = useState(false);
 
     // Step 2 state
     const [currentItem, setCurrentItem] = useState<Partial<CurrentItemType>>(JSON.parse(JSON.stringify(emptyItem)));
@@ -832,8 +835,19 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                 <span className="font-bold text-gray-700">Produto</span>
                             </label>
                         </div>
-                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs md:text-sm text-blue-600">
-                            Para cadastrar Marcas, Categorias, Modelos e Grades, <a href="/#/company?tab=marcas" target="_blank" rel="noopener noreferrer" className="font-bold underline">clique aqui</a>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <button
+                                type="button"
+                                onClick={() => setIsStockSearchOpen(true)}
+                                className="flex items-center gap-2 bg-gray-100/80 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl font-bold text-[10px] md:text-xs uppercase transition-all active:scale-95 border border-gray-200"
+                                title="Busca Rápida Estoque"
+                            >
+                                <ArchiveBoxIcon className="h-4 w-4 md:h-5 md:w-5 text-gray-500" />
+                                <span>Estoque</span>
+                            </button>
+                            <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs md:text-sm text-blue-600">
+                                Para cadastrar Marcas, Categorias, Modelos e Grades, <a href="/#/company?tab=marcas" target="_blank" rel="noopener noreferrer" className="font-bold underline">clique aqui</a>
+                            </div>
                         </div>
                     </div>
                     <div className={`grid grid-cols-1 ${(productType === 'Apple' && currentItem.productDetails?.condition === 'Seminovo') ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-4`}>
@@ -1094,6 +1108,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 {step === 1 ? renderStep1() : renderStep2()}
             </form>
             {isSupplierModalOpen && <CustomerModal entity={null} initialType="Fornecedor" onClose={() => setIsSupplierModalOpen(false)} onSave={handleSaveNewSupplier as any} />}
+            {isStockSearchOpen && <StockSearchModal products={products} onClose={() => setIsStockSearchOpen(false)} />}
         </div>,
         document.body
     );

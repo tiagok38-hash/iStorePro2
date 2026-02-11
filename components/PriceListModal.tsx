@@ -275,7 +275,9 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
 
                 // For Non-Apple, model is the main identifier usually.
                 // Key needs to be specific enough to group "identical" items
-                const key = `${brand}-${m}-${c}-${s}-${col}`;
+                const key = calculateAverages
+                    ? `${brand}-${m}-${c}-${s}-${col}`
+                    : `${brand}-${m}-${c}-${s}-${col}-${p.costPrice || 0}-${p.price || 0}`;
 
                 if (!groupedMap[key]) {
                     groupedMap[key] = {

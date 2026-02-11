@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
+import { useUser } from '../../contexts/UserContext.tsx';
 import { CashSession, Sale, Product, Customer, User } from '../../types.ts';
 import { formatCurrency } from '../../services/mockApi.ts';
 import {
     CashRegisterIcon, CheckIcon, ShoppingCartPlusIcon, MinusIcon, PlusIcon,
     XCircleIcon, ArrowPathRoundedSquareIcon, ShoppingCartIcon, EditIcon,
-    EyeIcon, PrinterIcon, TrashIcon, CashIcon
+    EyeIcon, PrinterIcon, CashIcon
 } from '../icons.tsx';
 
 interface ResumoCaixaViewProps {
@@ -33,6 +34,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
     handleCloseSession, handleReopenSession, handleEditSale,
     handleViewClick, handlePrintClick, cancelSale, showToast, fetchData, users
 }) => {
+    const { user } = useUser();
     const [viewMovementsType, setViewMovementsType] = useState<'sangria' | 'suprimento' | null>(null);
     const [cancelConfirmSale, setCancelConfirmSale] = useState<string | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
@@ -293,11 +295,27 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-1">
-                                                <button onClick={() => sale.status === 'Cancelada' ? showToast('Venda cancelada não pode ser editada.', 'error') : handleEditSale(sale)} className={`p-1.5 rounded ${sale.status === 'Cancelada' ? 'text-gray-300 cursor-not-allowed' : 'text-blue-500 hover:bg-blue-50'}`}><EditIcon className="h-4 w-4" /></button>
+                                                {viewSession?.status === 'aberto' && (
+                                                    <button onClick={() => sale.status === 'Cancelada' ? showToast('Venda cancelada não pode ser editada.', 'error') : handleEditSale(sale)} className={`p-1.5 rounded ${sale.status === 'Cancelada' ? 'text-gray-300 cursor-not-allowed' : 'text-blue-500 hover:bg-blue-50'}`}><EditIcon className="h-4 w-4" /></button>
+                                                )}
                                                 <button onClick={() => handleViewClick(sale)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"><EyeIcon className="h-4 w-4" /></button>
                                                 <button onClick={() => handlePrintClick(sale)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><PrinterIcon className="h-4 w-4" /></button>
                                                 {sale.status !== 'Cancelada' && (
-                                                    <button onClick={() => setCancelConfirmSale(sale.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><TrashIcon className="h-4 w-4" /></button>
+                                                    (() => {
+                                                        const isAdmin = user?.permissionProfileId === 'profile-admin';
+                                                        const isOwner = sale.salespersonId === user?.id;
+                                                        const canCancel = isAdmin || (viewSession?.status === 'aberto' && isOwner);
+
+                                                        return (
+                                                            <button
+                                                                onClick={() => canCancel ? setCancelConfirmSale(sale.id) : showToast('Você não tem permissão para cancelar esta venda.', 'error')}
+                                                                className={`p-1.5 rounded-lg ${canCancel ? 'text-red-500 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}`}
+                                                                disabled={!canCancel}
+                                                            >
+                                                                <XCircleIcon className="h-4 w-4" />
+                                                            </button>
+                                                        );
+                                                    })()
                                                 )}
                                             </div>
                                         </td>
@@ -348,7 +366,29 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                     <div className="flex items-center gap-1 shrink-0">
                                         <button onClick={() => handleViewClick(sale)} className="p-1.5 bg-gray-50 text-gray-500 rounded-lg border border-gray-100"><EyeIcon className="h-3.5 w-3.5" /></button>
                                         <button onClick={() => handlePrintClick(sale)} className="p-1.5 bg-blue-50 text-blue-500 rounded-lg border border-blue-100"><PrinterIcon className="h-3.5 w-3.5" /></button>
-                                        <button onClick={() => sale.status === 'Cancelada' ? showToast('Venda cancelada não pode ser editada.', 'error') : handleEditSale(sale)} className={`p-1.5 rounded-lg border ${sale.status === 'Cancelada' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-gray-50 text-blue-500 border-gray-100'}`}><EditIcon className="h-3.5 w-3.5" /></button>
+
+                                        {/* Cancel Button */}
+                                        {sale.status !== 'Cancelada' && (
+                                            (() => {
+                                                const isAdmin = user?.permissionProfileId === 'profile-admin';
+                                                const isOwner = sale.salespersonId === user?.id;
+                                                const canCancel = isAdmin || (viewSession?.status === 'aberto' && isOwner);
+
+                                                return (
+                                                    <button
+                                                        onClick={() => canCancel ? setCancelConfirmSale(sale.id) : showToast('Você não tem permissão para cancelar esta venda.', 'error')}
+                                                        className={`p-1.5 rounded-lg border ${canCancel ? 'bg-gray-50 text-red-500 border-gray-100 hover:bg-red-50' : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'}`}
+                                                        disabled={!canCancel}
+                                                    >
+                                                        <XCircleIcon className="h-3.5 w-3.5" />
+                                                    </button>
+                                                );
+                                            })()
+                                        )}
+
+                                        {viewSession?.status === 'aberto' && (
+                                            <button onClick={() => sale.status === 'Cancelada' ? showToast('Venda cancelada não pode ser editada.', 'error') : handleEditSale(sale)} className={`p-1.5 rounded-lg border ${sale.status === 'Cancelada' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-gray-50 text-blue-500 border-gray-100'}`}><EditIcon className="h-3.5 w-3.5" /></button>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -408,7 +448,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                         <div className="p-6">
                             <div className="text-center mb-6">
                                 <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
-                                    <TrashIcon className="h-7 w-7 text-red-500" />
+                                    <XCircleIcon className="h-7 w-7 text-red-500" />
                                 </div>
                                 <h3 className="text-lg font-black text-gray-800 mb-2">Cancelar Venda?</h3>
                                 <p className="text-sm text-gray-500 mb-4">

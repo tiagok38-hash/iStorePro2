@@ -116,7 +116,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                                         <div className="flex items-center justify-center gap-1">
                                             <button onClick={() => onViewDetails(session)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"><EyeIcon className="h-4 w-4" /></button>
                                             {session.status === 'aberto' && <button onClick={() => onCloseSession(session)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><XCircleIcon className="h-4 w-4" /></button>}
-                                            {session.status === 'fechado' && <button onClick={() => onReopen(session)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><ArrowPathRoundedSquareIcon className="h-4 w-4" /></button>}
+                                            {session.status === 'fechado' && toDateValue(session.openTime) === toDateValue() && <button onClick={() => onReopen(session)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><ArrowPathRoundedSquareIcon className="h-4 w-4" /></button>}
                                         </div>
                                     </td>
                                 </tr>
@@ -164,7 +164,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                                 <div className="flex items-center gap-1">
                                     <button onClick={() => onViewDetails(session)} className="p-1 px-2 bg-gray-50 text-gray-500 rounded-xl border border-gray-100 transition-colors"><EyeIcon className="h-3.5 w-3.5" /></button>
                                     {session.status === 'aberto' && <button onClick={() => onCloseSession(session)} className="p-1 px-2 bg-red-50 text-red-600 rounded-xl border border-red-100 transition-colors"><XCircleIcon className="h-3.5 w-3.5" /></button>}
-                                    {session.status === 'fechado' && <button onClick={() => onReopen(session)} className="p-1 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 transition-colors"><ArrowPathRoundedSquareIcon className="h-3.5 w-3.5" /></button>}
+                                    {session.status === 'fechado' && toDateValue(session.openTime) === toDateValue() && <button onClick={() => onReopen(session)} className="p-1 px-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 transition-colors"><ArrowPathRoundedSquareIcon className="h-3.5 w-3.5" /></button>}
                                 </div>
                             </div>
                         </div>

@@ -37,6 +37,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyData, setHistoryData] = useState<LocationChangeHistoryItem[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -55,6 +56,13 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
             return () => clearTimeout(timer);
         }
     }, [lastAddedProduct]);
+
+    // Auto-scroll to bottom when products are added
+    useEffect(() => {
+        if (listRef.current) {
+            listRef.current.scrollTop = listRef.current.scrollHeight;
+        }
+    }, [selectedProducts.length]);
 
     // Load location change history
     const loadHistory = async () => {
@@ -167,7 +175,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
         setSearchTerm(value);
 
         const trimmedValue = value.trim();
-        if (trimmedValue.length >= 3) {
+        if (trimmedValue.length >= 1) {
             handleSearch(trimmedValue);
         } else {
             setSearchResults([]);
@@ -377,9 +385,10 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                                         <div className="flex flex-wrap items-center gap-2 mt-1">
                                                             <span className="text-[10px] text-gray-500 font-bold px-1.5 py-0.5 bg-gray-100 rounded tracking-tight">QTD: {product.stock}</span>
                                                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${product.condition === 'Novo' ? 'bg-green-100 text-green-700' :
-                                                                    product.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
-                                                                        'bg-blue-100 text-blue-700'
+                                                                product.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
+                                                                    'bg-blue-100 text-blue-700'
                                                                 }`}>{product.condition}</span>
+                                                            {product.storageLocation && <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">📍 {product.storageLocation}</span>}
                                                             {product.imei1 && <span className="text-[10px] font-mono text-gray-400">IMEI: {product.imei1}</span>}
                                                             {product.serialNumber && <span className="text-[10px] font-mono text-gray-400">S/N: {product.serialNumber}</span>}
                                                         </div>
@@ -399,7 +408,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                         </div>
 
                         {/* Product List */}
-                        <div className="flex-1 overflow-y-auto min-h-0">
+                        <div ref={listRef} className="flex-1 overflow-y-auto min-h-0">
                             {selectedProducts.length > 0 ? (
                                 <div className="divide-y divide-gray-100">
                                     {selectedProducts.map(product => {
@@ -413,8 +422,8 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                                         <span>Estoque: <strong>{product.stock}</strong></span>
                                                         <span>•</span>
                                                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${product.condition === 'Novo' ? 'bg-green-100 text-green-700' :
-                                                                product.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
-                                                                    'bg-blue-100 text-blue-700'
+                                                            product.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
+                                                                'bg-blue-100 text-blue-700'
                                                             }`}>{product.condition}</span>
                                                         <span>•</span>
                                                         <span>Local: <strong className="text-emerald-600">{product.storageLocation || 'N/A'}</strong></span>

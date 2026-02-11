@@ -493,7 +493,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                 const isNonUnique = !p.imei1 && !p.serialNumber;
 
                 if (isNonUnique) {
-                    const key = `${(p.model || '').trim().toLowerCase()}-${(p.condition || '').trim().toLowerCase()}-${(p.color || '').trim().toLowerCase()}-${(p.storage || '').toString().trim().toLowerCase()}`;
+                    const key = `${(p.model || '').trim().toLowerCase()}-${(p.condition || '').trim().toLowerCase()}-${(p.color || '').trim().toLowerCase()}-${(p.storage || '').toString().trim().toLowerCase()}-${p.costPrice || 0}-${p.price || 0}`;
                     if (!groupedMap[key]) {
                         groupedMap[key] = { ...p };
                     } else {

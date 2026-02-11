@@ -91,7 +91,6 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     const { productSearchRef } = refs;
 
     const filteredProducts = useMemo(() => {
-        if (!productSearch) return [];
         const terms = productSearch.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
         if (terms.length === 0) return [];
 

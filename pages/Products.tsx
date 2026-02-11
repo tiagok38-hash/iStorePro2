@@ -36,6 +36,7 @@ const ProductModal = lazy(() => import('../components/ProductModal.tsx'));
 const PurchaseOrderModal = lazy(() => import('../components/PurchaseOrderModal.tsx').then(m => ({ default: m.PurchaseOrderModal })));
 const StockInModal = lazy(() => import('../components/StockInModal.tsx'));
 const PriceListModal = lazy(() => import('../components/PriceListModal.tsx'));
+const StockComparisonModal = lazy(() => import('../components/StockComparisonModal.tsx'));
 
 
 const ProductActionsDropdown: React.FC<{ onHistory: () => void, onUpdateStock: () => void, onEdit: () => void, onDelete: () => void, permissions: PermissionSet | null }> = ({ onHistory, onUpdateStock, onEdit, onDelete, permissions }) => {
@@ -202,6 +203,7 @@ const Products: React.FC = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isPriceListModalOpen, setIsPriceListModalOpen] = useState(false);
+    const [isStockComparisonModalOpen, setIsStockComparisonModalOpen] = useState(false);
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -836,6 +838,13 @@ const Products: React.FC = () => {
                             <MapPinIcon className="h-5 w-5 text-emerald-600 group-hover:text-emerald-700 transition-colors" /> Atualização de local
                         </button>
                     )}
+                    <button
+                        onClick={() => setIsStockComparisonModalOpen(true)}
+                        className="h-10 px-4 bg-yellow-50 text-yellow-700 rounded-xl hover:bg-yellow-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-yellow-200 uppercase tracking-wider group"
+                    >
+                        <ArrowsUpDownIcon className="h-5 w-5 text-yellow-500 group-hover:text-yellow-600 transition-colors" />
+                        Comparar Estoques
+                    </button>
                     {permissions?.canManageParameters && (
                         <Link
                             to="/company?tab=parametros"
@@ -1402,7 +1411,8 @@ const Products: React.FC = () => {
             <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><SpinnerIcon /></div>}>
                 <ProductModal isOpen={isProductModalOpen} product={editingProduct} suppliers={suppliers} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onClose={handleCloseProductModal} onSave={handleSaveProduct} customers={customers} onAddNewSupplier={handleAddNewSupplier} />
                 {isPriceListModalOpen && <PriceListModal isOpen={isPriceListModalOpen} onClose={() => setIsPriceListModalOpen(false)} products={products} hideSummary={true} />}
-                {isNewPurchaseModalOpen && <PurchaseOrderModal suppliers={suppliers} customers={customers} onClose={handleCloseNewPurchaseModal} purchaseOrderToEdit={purchaseToEdit} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onAddNewSupplier={handleAddNewSupplier} />}
+                {isStockComparisonModalOpen && <StockComparisonModal products={products} locations={storageLocations} onClose={() => setIsStockComparisonModalOpen(false)} />}
+                {isNewPurchaseModalOpen && <PurchaseOrderModal suppliers={suppliers} customers={customers} products={products} onClose={handleCloseNewPurchaseModal} purchaseOrderToEdit={purchaseToEdit} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onAddNewSupplier={handleAddNewSupplier} />}
                 {stockInPurchase && <StockInModal purchaseOrder={stockInPurchase} onClose={handleCloseStockInModal} allProducts={products} grades={grades} gradeValues={gradeValues} />}
             </Suspense>
             {purchaseToDelete && (() => {

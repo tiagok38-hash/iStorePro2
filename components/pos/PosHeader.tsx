@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { CashRegisterIcon, ArchiveBoxIcon } from '../icons.tsx';
+import { CashRegisterIcon, ArchiveBoxIcon, CreditCardIcon } from '../icons.tsx';
 
 interface PosHeaderProps {
     cashId?: number;
     onOpenStockSearch: () => void;
+    onOpenCardSimulator: () => void;
 }
 
-export const PosHeader: React.FC<PosHeaderProps> = ({ cashId, onOpenStockSearch }) => {
+export const PosHeader: React.FC<PosHeaderProps> = ({ cashId, onOpenStockSearch, onOpenCardSimulator }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
@@ -20,9 +21,6 @@ export const PosHeader: React.FC<PosHeaderProps> = ({ cashId, onOpenStockSearch 
             <div className="flex items-center justify-between h-16">
                 <div className="flex items-center gap-3">
                     <h1 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <div className="p-1.5 bg-success/10 rounded-xl">
-                            <CashRegisterIcon className="h-5 w-5 md:h-6 md:w-6 text-success" />
-                        </div>
                         <span className="hidden xs:inline">PDV iStore</span>
                     </h1>
                     {cashId && (
@@ -34,14 +32,22 @@ export const PosHeader: React.FC<PosHeaderProps> = ({ cashId, onOpenStockSearch 
                         </div>
                     )}
                 </div>
-                <div className="flex items-center gap-3 md:gap-6">
+                <div className="flex items-center gap-2 md:gap-4">
                     <button
                         onClick={onOpenStockSearch}
                         className="flex items-center gap-2 bg-gray-100/80 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl font-bold text-[10px] md:text-xs uppercase transition-all active:scale-95 border border-gray-200"
                         title="Busca Rápida Estoque"
                     >
                         <ArchiveBoxIcon className="h-4 w-4 md:h-5 md:w-5 text-gray-500" />
-                        <span className="hidden sm:inline">Estoque</span>
+                        <span className="hidden sm:inline">Busca Rápida Estoque</span>
+                    </button>
+                    <button
+                        onClick={onOpenCardSimulator}
+                        className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-xl font-bold text-[10px] md:text-xs uppercase transition-all active:scale-95 shadow-sm hover:scale-105"
+                        title="Simulador de Cartão"
+                    >
+                        <CreditCardIcon className="h-4 w-4 md:h-5 md:w-5" />
+                        <span className="hidden sm:inline">Simulador de Cartão</span>
                     </button>
                     <div className="text-right hidden md:block">
                         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Status do Sistema</p>

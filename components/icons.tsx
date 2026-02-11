@@ -69,7 +69,8 @@ import {
     Server,
     Sparkles,
     MessageCircle,
-    MessageSquare
+    MessageSquare,
+    Files
 } from 'lucide-react';
 
 /**
@@ -212,6 +213,7 @@ export const BirthdayCakeIcon = wrapIcon(Cake);
 export const CalendarDaysIcon = wrapIcon(Calendar);
 export const MessageCircleIcon = wrapIcon(MessageCircle);
 export const MessageSquareIcon = wrapIcon(MessageSquare);
+export const DocumentDuplicateIcon = wrapIcon(Files);
 
 export const CashIcon = wrapIcon(Banknote);
 export const DeviceExchangeIcon = wrapIcon(RefreshCw);

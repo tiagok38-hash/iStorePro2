@@ -102,9 +102,15 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
             // We do NOT want "12" to match "512" or "128".
 
             const isNumeric = /^\d+$/.test(term);
+            if (isNumeric && term.length >= 5) {
+                // For numeric search terms of 5+ digits (like IMEI, SN, or Barcodes partials), 
+                // allow simple inclusion to find matches as the user types.
+                return searchableText.includes(term);
+            }
+
             if (isNumeric) {
-                // Regex for word boundary around the number
-                // match whole word '12' in text
+                // For short numbers (like model versions 11, 12, 13), use word boundaries
+                // to avoid matching embedded numbers in capacities (128, 512).
                 const regex = new RegExp(`\\b${term}\\b`, 'i');
                 return regex.test(searchableText);
             }

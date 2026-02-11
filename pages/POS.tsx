@@ -22,6 +22,7 @@ import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import StockSearchModal from '../components/StockSearchModal.tsx';
+import CardPaymentModal from '../components/CardPaymentModal.tsx';
 import { PosSettingsView } from '../components/PosSettingsView.tsx';
 import CashMovementModal from '../components/CashMovementModal.tsx';
 import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
@@ -62,6 +63,7 @@ const POS: React.FC = () => {
     // UI state
     const [activeView, setActiveView] = useState<PosView>('caixas');
     const [isStockSearchModalOpen, setIsStockSearchModalOpen] = useState(false);
+    const [isCardSimulatorOpen, setIsCardSimulatorOpen] = useState(false);
     const [isOpeningSessionModalOpen, setIsOpeningSessionModalOpen] = useState(false);
     const [openingBalance, setOpeningBalance] = useState<string>('0');
     const [isCashMovementModalOpen, setIsCashMovementModalOpen] = useState(false);
@@ -83,6 +85,8 @@ const POS: React.FC = () => {
     const [endDate, setEndDate] = useState(toDateValue());
     const [userFilter, setUserFilter] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
+    const [sessionToReopen, setSessionToReopen] = useState<CashSession | null>(null);
 
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
         if (!user?.id) {
@@ -224,10 +228,23 @@ const POS: React.FC = () => {
     };
 
     const handleNewSession = () => {
-        if (currentUserOpenSession) {
-            showToast('Você já possui um caixa aberto.', 'warning');
+        // RULE: ONE SESSION PER USER PER DAY
+        const today = new Date().toISOString().split('T')[0];
+        const myTodaySession = sessions.find(s =>
+            s.userId === user?.id &&
+            s.openTime.startsWith(today)
+        );
+
+        if (myTodaySession) {
+            if (myTodaySession.status === 'aberto') {
+                showToast('Você já possui um caixa aberto.', 'warning');
+            } else {
+                setSessionToReopen(myTodaySession);
+                setIsReopenModalOpen(true);
+            }
             return;
         }
+
         setOpeningBalance('0');
         setIsOpeningSessionModalOpen(true);
     };
@@ -352,6 +369,7 @@ const POS: React.FC = () => {
             showToast('Acesso NEGADO: Esta venda pertence a outro vendedor.', 'error');
             return;
         }
+        setDetailSale(null); // Ensure mutual exclusivity
         setReceiptSale(sale);
         const defaultFormat = localStorage.getItem('pos_default_receipt_format') as 'A4' | 'thermal' | null;
         if (defaultFormat) { setReceiptFormat(defaultFormat); setShowFormatSelector(false); }
@@ -442,7 +460,7 @@ const POS: React.FC = () => {
         <div className="flex h-screen bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] overflow-hidden">
             <PosSidebar activeView={activeView} onViewChange={handleViewChange} />
             <div className="flex-1 flex flex-col min-w-0">
-                <PosHeader cashId={currentUserOpenSession?.displayId} onOpenStockSearch={() => setIsStockSearchModalOpen(true)} />
+                <PosHeader cashId={currentUserOpenSession?.displayId} onOpenStockSearch={() => setIsStockSearchModalOpen(true)} onOpenCardSimulator={() => setIsCardSimulatorOpen(true)} />
                 <main className="flex-1 overflow-auto px-4 pb-24 md:p-6 md:pb-6">
                     {activeView === 'caixas' && (
                         <CaixasView
@@ -497,6 +515,12 @@ const POS: React.FC = () => {
                             handleOpenCashMovement={(t) => { setCashMovementType(t); setIsCashMovementModalOpen(true); }}
                             handleCloseSession={handleCloseSession} handleReopenSession={handleReopenSession}
                             handleEditSale={(s) => {
+                                // RULE: IMMUTABLE SALES - No editing of past sales (Allocated to closed sessions)
+                                if (viewSession?.status === 'fechado' || viewSession?.status === 'closed') {
+                                    showToast('Vendas de caixas fechados não podem ser editadas.', 'error');
+                                    return;
+                                }
+
                                 // RULE 5: Only edit own (OR own session)
                                 const isOwnSession = viewSession?.userId === user?.id; // viewSession is safe to use here as we are in Resumo view of it
                                 if (s.salespersonId !== user?.id && !isOwnSession && !isAdmin) {
@@ -513,6 +537,7 @@ const POS: React.FC = () => {
                                     showToast('Acesso NEGADO: Esta venda pertence a outro vendedor.', 'error');
                                     return;
                                 }
+                                setReceiptSale(null); // Ensure mutual exclusivity
                                 setDetailSale(s);
                             }}
                             handlePrintClick={handlePrintClick}
@@ -535,6 +560,15 @@ const POS: React.FC = () => {
                 </main>
 
                 {isStockSearchModalOpen && <StockSearchModal products={products} onClose={() => setIsStockSearchModalOpen(false)} />}
+                {isCardSimulatorOpen && (
+                    <CardPaymentModal
+                        isOpen={isCardSimulatorOpen}
+                        onClose={() => setIsCardSimulatorOpen(false)}
+                        onConfirm={() => setIsCardSimulatorOpen(false)}
+                        amountDue={0}
+                        isSimulator={true}
+                    />
+                )}
                 <CashMovementModal isOpen={isCashMovementModalOpen} onClose={() => setIsCashMovementModalOpen(false)} onConfirm={handleConfirmCashMovement} type={cashMovementType} />
 
                 {showFormatSelector && (
@@ -571,6 +605,49 @@ const POS: React.FC = () => {
                             <div className="flex gap-3">
                                 <button onClick={() => setIsOpeningSessionModalOpen(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold">Cancelar</button>
                                 <button onClick={handleConfirmOpenSession} className="flex-1 py-3 bg-success text-white rounded-xl font-bold shadow-lg shadow-success/20">ABRIR CAIXA</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isReopenModalOpen && sessionToReopen && (
+                    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                        <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md animate-scale-in text-center border border-gray-100">
+                            <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                <ArchiveBoxIcon className="h-10 w-10 text-amber-500" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-800 mb-4">Caixa Já Existente</h3>
+                            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-6">
+                                <p className="text-amber-800 text-sm font-medium mb-1">
+                                    Existe um caixa fechado hoje às {new Date(sessionToReopen.closeTime || '').toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                                <p className="text-xs text-amber-600 font-mono">ID #{sessionToReopen.displayId}</p>
+                            </div>
+                            <p className="text-gray-600 mb-8 leading-relaxed">
+                                O sistema não permite a abertura de múltiplos caixas no mesmo dia para o mesmo usuário.
+                                <br />
+                                <span className="font-semibold text-gray-800">Deseja reabrir este caixa para continuar?</span>
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        handleReopenSession(sessionToReopen);
+                                        setIsReopenModalOpen(false);
+                                        setSessionToReopen(null);
+                                    }}
+                                    className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                    Reabrir Caixa Existente
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setIsReopenModalOpen(false);
+                                        setSessionToReopen(null);
+                                    }}
+                                    className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                                >
+                                    Cancelar
+                                </button>
                             </div>
                         </div>
                     </div>

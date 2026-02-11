@@ -110,8 +110,15 @@ const ProfitTooltip: React.FC<any> = ({ active, payload, label }) => {
     return null;
 };
 
-const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ sales, products, className, isPrivacyMode }) => {
+const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: string; isPrivacyMode?: boolean; to?: string; permissions?: PermissionSet | null; onDenied?: () => void }> = React.memo(({ sales, products, className, isPrivacyMode, to, permissions, onDenied }) => {
+    const navigate = useNavigate();
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
+
+    const handleNavigate = () => {
+        if (!to) return;
+        if (permissions && !getPermissionForRoute(to, permissions)) { onDenied?.(); return; }
+        navigate(to);
+    };
 
     const { totalProfit, totalRevenue, chartData } = useMemo(() => {
         const now = new Date();
@@ -192,7 +199,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:scale-[1.01] transition-all duration-300 h-full ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
@@ -203,17 +210,24 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                         <p className="text-3xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
-                <select
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value as any)}
-                    className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer outline-none transition-all"
-                >
-                    <option value="day">Hoje</option>
-                    <option value="yesterday">Ontem</option>
-                    <option value="week">Semana</option>
-                    <option value="month">Mês</option>
-                    <option value="year">Ano</option>
-                </select>
+                <div className="flex items-center gap-2">
+                    <select
+                        value={period}
+                        onChange={(e) => setPeriod(e.target.value as any)}
+                        className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer outline-none transition-all"
+                    >
+                        <option value="day">Hoje</option>
+                        <option value="yesterday">Ontem</option>
+                        <option value="week">Semana</option>
+                        <option value="month">Mês</option>
+                        <option value="year">Ano</option>
+                    </select>
+                    {to && (
+                        <button onClick={handleNavigate} className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all active:scale-95" title="Ver vendas">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="flex-1 mt-4" style={{ minHeight: '100px' }}>
@@ -393,9 +407,10 @@ const BillingChart: React.FC<{
     onPeriodChange: (period: 'day' | 'week' | 'month' | 'year' | 'all_years') => void;
     className?: string;
     isPrivacyMode?: boolean;
-}> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode }) => {
+    onNavigate?: () => void;
+}> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode, onNavigate }) => {
     return (
-        <div className={`p-6 glass-card h-full flex flex-col group hover:shadow-lg hover:scale-[1.01] cursor-pointer transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 glass-card h-full flex flex-col transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
@@ -415,17 +430,24 @@ const BillingChart: React.FC<{
                         </div>
                     </div>
                 </div>
-                <select
-                    value={period}
-                    onChange={(e) => onPeriodChange(e.target.value as any)}
-                    className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500/20 cursor-pointer outline-none transition-all"
-                >
-                    <option value="day">Hoje</option>
-                    <option value="week">Semana</option>
-                    <option value="month">Mês</option>
-                    <option value="year">Ano atual</option>
-                    <option value="all_years">Anos</option>
-                </select>
+                <div className="flex items-center gap-2">
+                    <select
+                        value={period}
+                        onChange={(e) => onPeriodChange(e.target.value as any)}
+                        className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-blue-500/20 cursor-pointer outline-none transition-all"
+                    >
+                        <option value="day">Hoje</option>
+                        <option value="week">Semana</option>
+                        <option value="month">Mês</option>
+                        <option value="year">Ano atual</option>
+                        <option value="all_years">Anos</option>
+                    </select>
+                    {onNavigate && (
+                        <button onClick={onNavigate} className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all active:scale-95" title="Ver relatórios">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                        </button>
+                    )}
+                </div>
             </div>
             <div className="flex-1">
                 <ResponsiveContainer width="100%" height={240}>
@@ -446,7 +468,7 @@ const BillingChart: React.FC<{
     );
 });
 
-const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ sales, activeMethods, className, isPrivacyMode }) => {
+const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ sales, activeMethods, className, isPrivacyMode, onNavigate }) => {
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
     // Helper for colors
@@ -573,7 +595,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
 
     return (
 
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm">
@@ -584,17 +606,24 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                         <p className="text-xs text-muted mt-0.5">Total processado</p>
                     </div>
                 </div>
-                <select
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value as any)}
-                    className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer outline-none transition-all"
-                >
-                    <option value="day">Hoje</option>
-                    <option value="yesterday">Ontem</option>
-                    <option value="week">Semana</option>
-                    <option value="month">Mês</option>
-                    <option value="year">Ano</option>
-                </select>
+                <div className="flex items-center gap-2">
+                    <select
+                        value={period}
+                        onChange={(e) => setPeriod(e.target.value as any)}
+                        className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer outline-none transition-all"
+                    >
+                        <option value="day">Hoje</option>
+                        <option value="yesterday">Ontem</option>
+                        <option value="week">Semana</option>
+                        <option value="month">Mês</option>
+                        <option value="year">Ano</option>
+                    </select>
+                    {onNavigate && (
+                        <button onClick={onNavigate} className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-all active:scale-95" title="Ver vendas">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
@@ -949,7 +978,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     );
 });
 
-const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ customers, sales, className, isPrivacyMode }) => {
+const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ customers, sales, className, isPrivacyMode, onNavigate }) => {
     const navigate = useNavigate();
     const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('month');
 
@@ -1047,7 +1076,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
 
     return (
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl shadow-sm">
@@ -1065,16 +1094,23 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
                         </div>
                     </div>
                 </div>
-                <select
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value as any)}
-                    className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-purple-500/20 cursor-pointer outline-none transition-all"
-                >
-                    <option value="day">Hoje</option>
-                    <option value="week">Semana</option>
-                    <option value="month">Mês</option>
-                    <option value="year">Ano</option>
-                </select>
+                <div className="flex items-center gap-2">
+                    <select
+                        value={period}
+                        onChange={(e) => setPeriod(e.target.value as any)}
+                        className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-purple-500/20 cursor-pointer outline-none transition-all"
+                    >
+                        <option value="day">Hoje</option>
+                        <option value="week">Semana</option>
+                        <option value="month">Mês</option>
+                        <option value="year">Ano</option>
+                    </select>
+                    {onNavigate && (
+                        <button onClick={onNavigate} className="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all active:scale-95" title="Ver clientes">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="flex-1 flex flex-col justify-end">
@@ -1114,6 +1150,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
 const Dashboard: React.FC = () => {
     const { user, permissions } = useUser();
+    const navigate = useNavigate();
     const canViewDashboard = permissions?.canAccessDashboard;
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -1141,6 +1178,14 @@ const Dashboard: React.FC = () => {
     const handlePermissionDenied = useCallback(() => {
         setPermissionToast('Você não tem permissão para acessar esta seção.');
     }, []);
+
+    const handleNavigateVendas = useCallback(() => {
+        if (getPermissionForRoute('/vendas', permissions)) { navigate('/vendas'); } else { handlePermissionDenied(); }
+    }, [permissions, navigate, handlePermissionDenied]);
+
+    const handleNavigateReports = useCallback(() => {
+        if (getPermissionForRoute('/reports', permissions)) { navigate('/reports?tab=vendas'); } else { handlePermissionDenied(); }
+    }, [permissions, navigate, handlePermissionDenied]);
 
 
 
@@ -1462,32 +1507,31 @@ const Dashboard: React.FC = () => {
             {inconsistentSalesWarning}
 
             <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
-                <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
+                <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
                 <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><StockStatsCard products={products} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
-                <ProtectedLink to="/customers" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}>
-                    <CustomersStatsCard
-                        customers={customers}
-                        sales={sales}
-                        isPrivacyMode={isPrivacyMode}
-                    />
-                </ProtectedLink>
+                <CustomersStatsCard
+                    customers={customers}
+                    sales={sales}
+                    isPrivacyMode={isPrivacyMode}
+                    onNavigate={() => {
+                        if (getPermissionForRoute('/customers', permissions)) { navigate('/customers'); } else { handlePermissionDenied(); }
+                    }}
+                />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
                     <ProtectedLink to="/vendas?period=hoje" className="block h-full cursor-pointer" permissions={permissions} onDenied={handlePermissionDenied}><SalesByDayCard sales={sales} customers={customers} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 </div>
-                <ProtectedLink to="/reports?tab=vendas" className="lg:col-span-2 min-h-[400px] block" permissions={permissions} onDenied={handlePermissionDenied}>
-                    <BillingChart data={dashboardMetrics.billingChartData} period={billingPeriod} onPeriodChange={setBillingPeriod} isPrivacyMode={isPrivacyMode} />
-                </ProtectedLink>
+                <div className="lg:col-span-2 min-h-[400px]">
+                    <BillingChart data={dashboardMetrics.billingChartData} period={billingPeriod} onPeriodChange={setBillingPeriod} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateReports} />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentAddedProductsCard products={recentAddedProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <ProtectedLink to="/products?type=troca" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentTradeInProductsCard products={recentTradeInProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
-                <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}>
-                    <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} isPrivacyMode={isPrivacyMode} />
-                </ProtectedLink>
+                <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateVendas} />
                 <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentSoldProductsCard soldItems={recentSoldItems} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
             </div>
             {/* Permission Denied Toast */}

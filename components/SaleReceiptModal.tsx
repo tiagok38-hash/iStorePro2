@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useId, useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter, WarrantyParameter } from '../types.ts';
 import { formatCurrency, getCompanyInfo, getReceiptTerms, getWarranties } from '../services/mockApi.ts';
@@ -77,8 +77,8 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
     };
 
     return (
-        <div className="font-sans text-black receipt-body bg-white" id="receipt-content">
-            <div className="flex-1">
+        <div className="font-sans text-black receipt-body bg-white">
+            <div>
                 {/* Company Header - More compact */}
                 <header className="flex justify-between items-start pb-1 border-b border-black">
                     <div className="flex items-center gap-2">
@@ -249,7 +249,7 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
             </div>
 
             {/* System Promo Footer */}
-            <div className="pt-4 text-center" style={{ fontSize: '7px', color: '#9ca3af' }}>
+            <div className="pt-2 text-center" style={{ fontSize: '7px', color: '#9ca3af' }}>
                 <p>iStore Pro - O melhor sistema para sua loja de eletronicos. Saiba mais em istorepro.com.br</p>
             </div>
         </div>
@@ -379,6 +379,7 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
 };
 
 const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Product>; customers: Customer[]; users: User[]; onClose: () => void; format: 'A4' | 'thermal'; }> = ({ sale, productMap, customers, users, onClose, format }) => {
+    const uniqueId = useId().replace(/:/g, '');
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     const [receiptTerms, setReceiptTerms] = useState<ReceiptTermParameter[]>([]);
     const [warranties, setWarranties] = useState<WarrantyParameter[]>([]);
@@ -428,179 +429,158 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
     const layoutProps = { sale, productMap, customer, salesperson, companyInfo, activeTerm, totalPaid, totalItems, totalFees, warranties };
 
     return createPortal(
-        <div id="print-modal-overlay" className="fixed inset-0 lg:inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[300000] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-2 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto">
+        <div id={`print-modal-overlay-${uniqueId}`} className="fixed inset-0 lg:inset-0 bg-black bg-opacity-70 flex justify-center items-start z-[300000] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-2 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto">
             <style>
                 {`
                     @media print {
-                        /* Reset everything */
+                        /* Page setup */
+                        ${format === 'thermal' ? `
+                            @page { size: 80mm auto; margin: 0; }
+                        ` : `
+                            @page { size: A4 portrait; margin: 10mm 12mm; }
+                        `}
+
+                        /* Reset html/body */
                         html, body {
                             margin: 0 !important;
                             padding: 0 !important;
-                            height: auto !important;
-                            min-height: 100% !important;
                             width: 100% !important;
-                            min-width: auto !important;
+                            height: auto !important;
+                            min-height: 0 !important;
+                            max-height: none !important;
                             overflow: visible !important;
                             background: white !important;
-                            font-size: 9pt !important;
-                        }
-                        
-                        /* Hide everything by default */
-                        body * {
-                            visibility: hidden;
-                        }
-                        
-                        /* Exception for print container and its children */
-                        #print-container, 
-                        #print-container * {
-                            visibility: visible !important;
                         }
 
-                        /* Fix for print container on mobile */
-                        #print-container {
-                            position: absolute !important;
-                            left: 0 !important;
-                            top: 0 !important;
+                        /* Hide everything */
+                        body > * {
+                            display: none !important;
+                        }
+
+                        /* Show only the portal root that contains our receipt */
+                        body > div:last-child {
+                            display: block !important;
+                        }
+
+                        /* Hide all non-receipt elements */
+                        .no-print {
+                            display: none !important;
+                        }
+
+                        /* Overlay — collapse it completely */
+                        #print-modal-overlay-${uniqueId} {
+                            position: static !important;
+                            display: block !important;
                             width: 100% !important;
+                            height: auto !important;
+                            min-height: 0 !important;
+                            max-height: none !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            background: white !important;
+                            overflow: visible !important;
+                            inset: auto !important;
+                        }
+
+                        /* Print container — flat block, no flex, no constraints */
+                        #print-container-${uniqueId} {
+                            display: block !important;
+                            position: static !important;
+                            width: 100% !important;
+                            max-width: none !important;
+                            height: auto !important;
+                            min-height: 0 !important;
+                            max-height: none !important;
                             margin: 0 !important;
                             padding: 0 !important;
                             background: white !important;
                             box-shadow: none !important;
                             border: none !important;
                             border-radius: 0 !important;
-                            display: block !important;
-                            max-width: none !important;
+                            overflow: visible !important;
                         }
 
-                        /* Override specific elements inside if needed */
+                        /* Content wrapper — remove flex-1 stretch */
                         .print-content-wrapper {
-                            padding: 4mm !important;
+                            display: block !important;
+                            flex: none !important;
+                            width: 100% !important;
+                            height: auto !important;
+                            min-height: 0 !important;
+                            max-height: none !important;
+                            padding: 0 !important;
                             margin: 0 !important;
+                            overflow: visible !important;
                             background: white !important;
-                            box-shadow: none !important;
-                        }
-                        
-                        /* Ensure text colors are printed */
-                        * {
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-                        
-                        .no-print { 
-                            display: none !important; 
                         }
 
-                        ${format === 'thermal' ? `
-                            @page { size: 80mm auto; margin: 2mm; }
-                            .receipt-body { font-size: 9pt !important; color: black !important; width: 100%; }
-                        ` : `
-                            @page { 
-                                size: A4 portrait; 
-                                margin: 6mm 8mm;
-                            }
-                            
-                            .receipt-body { 
-                                font-size: 8pt !important;
-                                color: black !important; 
-                                width: 100% !important;
-                                max-width: 100% !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                box-sizing: border-box !important;
-                                overflow: visible !important;
-                                min-height: auto !important;
-                                page-break-inside: avoid !important;
-                            }
-                            
-                            /* Reduce spacing for compact print */
+                        /* Receipt body */
+                        .receipt-body {
+                            display: block !important;
+                            width: 100% !important;
+                            height: auto !important;
+                            min-height: 0 !important;
+                            max-height: none !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            overflow: visible !important;
+                            color: black !important;
+                            background: white !important;
+                            font-size: ${format === 'thermal' ? '9pt' : '8pt'} !important;
+                        }
+
+                        ${format === 'A4' ? `
+                            /* Compact spacing for A4 */
                             .receipt-body section {
-                                margin-top: 2mm !important;
-                                margin-bottom: 2mm !important;
+                                margin-top: 1mm !important;
+                                margin-bottom: 1mm !important;
                             }
-                            
-                            .receipt-body table {
-                                font-size: 7pt !important;
-                            }
-                            
-                            .receipt-body h1 {
-                                font-size: 12pt !important;
-                            }
-                            
-                            .receipt-body h2 {
-                                font-size: 10pt !important;
-                                margin: 2mm 0 !important;
-                            }
-                            
-                            .receipt-body h3 {
-                                font-size: 8pt !important;
-                            }
-                            
-                            /* Compact header */
-                            .receipt-body header img {
-                                height: 12mm !important;
-                                width: 12mm !important;
-                            }
-                            
-                            /* Prevent page break inside important sections */
-                            .receipt-body > div {
-                                page-break-inside: avoid !important;
-                            }
-                        `}
+                            .receipt-body table { font-size: 7.5pt !important; }
+                            .receipt-body h1 { font-size: 11pt !important; }
+                            .receipt-body h2 { font-size: 9pt !important; margin: 1mm 0 !important; }
+                            .receipt-body h3 { font-size: 8pt !important; }
+                            .receipt-body header img { height: 10mm !important; width: 10mm !important; }
+                        ` : ''}
 
+                        /* Utility classes for print */
                         .whitespace-pre-wrap { white-space: pre-wrap; }
                         .columns-2 { columns: 2; column-gap: 6px; }
-                        
-                        /* Force print color adjust */
+
+                        /* Print colors */
                         * {
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                             color-adjust: exact !important;
                         }
-                        
-                        /* UNIVERSAL: Remove ALL backgrounds except .bg-black */
+
+                        /* Remove backgrounds except .bg-black */
                         *:not(.bg-black) {
                             background: transparent !important;
                             background-color: transparent !important;
                         }
-                        
-                        /* White background only on main containers */
-                        html, body, #print-modal-overlay, #print-container {
+
+                        /* White bg on containers */
+                        html, body,
+                        #print-modal-overlay-${uniqueId},
+                        #print-container-${uniqueId},
+                        .print-content-wrapper,
+                        .receipt-body {
                             background: white !important;
                             background-color: white !important;
                         }
-                        
-                        /* Remove flex-1 behavior that causes extra space */
-                        #print-container {
-                            display: block !important;
-                            height: auto !important;
-                        }
-                        
-                        /* Content wrapper - remove all extra space */
-                        .print-content-wrapper {
-                            flex: none !important;
-                            height: auto !important;
-                            overflow: visible !important;
-                        }
 
-                        /* Ensure PAGO section prints with dark background - HIGHEST SPECIFICITY */
+                        /* PAGO section dark background */
                         .bg-black,
                         div.bg-black,
-                        #print-container .bg-black,
                         .receipt-body .bg-black {
                             background-color: #000 !important;
                             background: #000 !important;
                             color: #fff !important;
                         }
-                        
-                        /* Fix footer to not push content */
-                        .receipt-body .mt-auto {
-                            margin-top: 4mm !important;
-                            padding-top: 2mm !important;
-                        }
                     }
                 `}
             </style>
-            <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full print:max-h-none print:h-auto rounded-3xl print:rounded-none overflow-hidden print:overflow-visible`} id="print-container">
+            <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full print:max-h-none print:h-auto rounded-3xl print:rounded-none overflow-hidden print:overflow-visible`} id={`print-container-${uniqueId}`}>
                 <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white">
                     <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Recibo da Venda #{sale.id}</h2>
                     <div className="flex items-center gap-2 sm:gap-4 shrink-0">

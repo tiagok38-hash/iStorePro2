@@ -791,7 +791,7 @@ const Vendas: React.FC = () => {
                                                     <div className="flex justify-center">
                                                         <SaleActionsDropdown
                                                             permissions={permissions}
-                                                            onView={() => setSaleToView(sale)}
+                                                            onView={() => { setSaleToReprint(null); setSaleToView(sale); }}
                                                             onEdit={() => {
                                                                 // Allow editing if it's PDV but has no session ID (legacy/bugged sales or manual entry marked as PDV)
                                                                 if (sale.origin === 'PDV' && sale.cashSessionId) {
@@ -800,7 +800,7 @@ const Vendas: React.FC = () => {
                                                                 }
                                                                 setSaleToEdit(sale); setIsModalOpen(true);
                                                             }}
-                                                            onReprint={() => { setSaleToReprint(sale); setIsPrintChoiceOpen(true); }}
+                                                            onReprint={() => { setSaleToView(null); setSaleToReprint(sale); setIsPrintChoiceOpen(true); }}
                                                             onCancel={() => setSaleToCancel(sale)}
                                                         />
                                                     </div>

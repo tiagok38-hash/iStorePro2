@@ -58,7 +58,7 @@ const StockInModal: React.FC<{
     const [showStockResults, setShowStockResults] = useState(false);
 
     const stockSearchResults = useMemo(() => {
-        if (!stockSearchTerm || stockSearchTerm.length < 2) return [];
+        if (!stockSearchTerm || stockSearchTerm.length < 1) return [];
 
         const lowerTerm = stockSearchTerm.toLowerCase();
 
