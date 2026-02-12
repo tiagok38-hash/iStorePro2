@@ -1321,14 +1321,31 @@ const ParametrosTab: React.FC = () => {
     const { permissions, user } = useUser();
 
     const fetchData = useCallback(async () => {
-        const [c, l, w, t] = await Promise.all([
-            getProductConditions(),
-            getStorageLocations(),
-            getWarranties(),
-            getReceiptTerms()
-        ]);
-        setConditions(c); setLocations(l); setWarranties(w); setReceiptTerms(t);
-    }, []);
+        try {
+            const [cResult, lResult, wResult, tResult] = await Promise.allSettled([
+                getProductConditions(),
+                getStorageLocations(),
+                getWarranties(),
+                getReceiptTerms()
+            ]);
+
+            setConditions(cResult.status === 'fulfilled' ? cResult.value : []);
+            setLocations(lResult.status === 'fulfilled' ? lResult.value : []);
+            setWarranties(wResult.status === 'fulfilled' ? wResult.value : []);
+            setReceiptTerms(tResult.status === 'fulfilled' ? tResult.value : []);
+
+            // Log de erros para debug no console se houver falhas
+            [cResult, lResult, wResult, tResult].forEach((res, i) => {
+                if (res.status === 'rejected') {
+                    const names = ['Condições', 'Locais', 'Garantias', 'Termos'];
+                    console.error(`Erro ao carregar ${names[i]}:`, res.reason);
+                }
+            });
+        } catch (error) {
+            console.error('Erro crítico no fetchData:', error);
+            showToast('Erro ao carregar alguns parâmetros.', 'error');
+        }
+    }, [showToast]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 

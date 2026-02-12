@@ -1104,7 +1104,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
     return createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4 animate-fade-in font-sans" style={{ zIndex: 99999 }}>
-            <form className="bg-surface w-full max-w-5xl h-auto max-h-[92vh] rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col overflow-visible animate-scale-in">
+            <form className="bg-white w-full max-w-5xl h-auto max-h-[92vh] rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col overflow-visible animate-scale-in">
                 {step === 1 ? renderStep1() : renderStep2()}
             </form>
             {isSupplierModalOpen && <CustomerModal entity={null} initialType="Fornecedor" onClose={() => setIsSupplierModalOpen(false)} onSave={handleSaveNewSupplier as any} />}
@@ -1113,3 +1113,5 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         document.body
     );
 };
+
+export default PurchaseOrderModal;

@@ -70,7 +70,15 @@ import {
     Sparkles,
     MessageCircle,
     MessageSquare,
-    Files
+    Files,
+    Wrench,
+    ClipboardList,
+    ShieldCheck,
+    Truck,
+    Filter,
+    Phone,
+    Mail,
+    ArchiveRestore
 } from 'lucide-react';
 
 /**
@@ -234,6 +242,22 @@ export const MapPinIcon = wrapIcon(MapPin);
 export const BoltIcon = wrapIcon(Zap);
 export const ComputerDesktopIcon = wrapIcon(Monitor);
 export const ServerStackIcon = wrapIcon(Server);
+export const WrenchIcon = wrapIcon(Wrench);
+export const ClipboardListIcon = wrapIcon(ClipboardList);
+
+// Missing icons aliases/exports
+export const BuildingOfficeIcon = BuildingOffice2Icon;
+export const ShieldCheckIcon = wrapIcon(ShieldCheck);
+export const ExclamationTriangleIcon = wrapIcon(AlertTriangle);
+export const TruckIcon = wrapIcon(Truck);
+export const ArrowPathIcon = wrapIcon(RefreshCw);
+export const PackageIcon = wrapIcon(Package);
+export const FilterIcon = wrapIcon(Filter);
+export const PhoneIcon = wrapIcon(Phone);
+export const EnvelopeIcon = wrapIcon(Mail);
+export const ArchiveBoxArrowDownIcon = wrapIcon(ArchiveRestore);
+export const MoreVerticalIcon = wrapIcon(MoreVertical);
+export const ArrowUpDownIcon = wrapIcon(ArrowUpDown);
 
 const Icon = (props: any) => <div {...props} />;
 export default Icon;

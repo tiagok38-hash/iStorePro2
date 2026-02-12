@@ -232,9 +232,9 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
             />
 
             {/* Modal Container */}
-            <div className="relative glass-card w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-3xl shadow-2xl sm:max-w-3xl flex flex-col animate-fade-in-up overflow-hidden">
+            <div className="relative bg-white w-full h-full sm:h-auto sm:max-h-[95vh] sm:rounded-3xl shadow-2xl sm:max-w-3xl flex flex-col animate-fade-in-up overflow-hidden">
                 {/* Header - Always visible */}
-                <div className="flex justify-between items-center p-3 border-b border-white/20 bg-white/40 backdrop-blur-md shadow-sm flex-shrink-0">
+                <div className="flex justify-between items-center p-3 border-b border-gray-100 bg-white flex-shrink-0">
                     <div className="flex items-center gap-2">
                         <div className="bg-green-100 p-1.5 rounded-xl"><UserCircleIcon className="h-5 w-5 text-green-600" /></div>
                         <h2 className="text-base sm:text-lg font-bold text-gray-800">Cadastro de Cliente/Fornecedor</h2>
@@ -242,7 +242,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                        className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                         aria-label="Fechar modal"
                     >
                         <CloseIcon className="h-6 w-6" />
@@ -251,14 +251,14 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
 
                 {/* Form Content */}
                 <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-                    <div className="px-3 py-2 border-b border-white/20 bg-white/30 flex-shrink-0">
+                    <div className="px-3 py-2 border-b border-gray-100 bg-gray-50 flex-shrink-0">
                         <div className="flex items-center gap-2">
                             <TabButton name="dados" icon={<CheckIcon className="h-4 w-4" />} label="Dados" />
                             <TabButton name="endereco" icon={<CheckIcon className="h-4 w-4" />} label="Endereço" />
                         </div>
                     </div>
 
-                    <div className="p-3 sm:p-5 space-y-4 bg-transparent flex-1 overflow-y-auto">
+                    <div className="p-3 sm:p-5 space-y-4 bg-white flex-1 overflow-y-auto">
                         {activeTab === 'dados' && (
                             <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                                 <div className="w-full md:w-auto flex flex-col items-center space-y-2 pt-2">
@@ -270,7 +270,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                         accept="image/*"
                                     />
                                     <div className="relative group">
-                                        <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
+                                        <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
                                             {photoPreview ? (
                                                 <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                                             ) : (
@@ -399,8 +399,8 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                         )}
                     </div>
 
-                    <div className="flex justify-end p-3 bg-white/30 border-t border-white/20 gap-2 flex-shrink-0">
-                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs uppercase tracking-wide hover:bg-gray-100 transition-colors">
+                    <div className="flex justify-end p-3 bg-white border-t border-gray-100 gap-2 flex-shrink-0">
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs uppercase tracking-wide hover:bg-gray-50 transition-colors">
                             Cancelar
                         </button>
                         <Button type="submit" variant="success" loading={isSaving} icon={<CheckIcon className="h-4 w-4" />} className="text-xs font-bold uppercase tracking-wide">

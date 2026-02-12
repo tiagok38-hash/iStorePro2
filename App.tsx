@@ -19,6 +19,15 @@ const Reports = lazy(() => import('./pages/Reports.tsx'));
 const Company = lazy(() => import('./pages/Company.tsx'));
 const Vendas = lazy(() => import('./pages/Vendas.tsx'));
 const Login = lazy(() => import('./pages/Login.tsx'));
+const ServiceOrderLayout = lazy(() => import('./pages/ServiceOrders/ServiceOrderLayout.tsx'));
+const ServiceOrderDashboard = lazy(() => import('./pages/ServiceOrders/ServiceOrderDashboard.tsx'));
+const ServiceOrderList = lazy(() => import('./pages/ServiceOrders/ServiceOrderList.tsx'));
+const ServiceOrderForm = lazy(() => import('./pages/ServiceOrders/ServiceOrderForm.tsx'));
+const ServiceOrderProducts = lazy(() => import('./pages/ServiceOrders/ServiceOrderProducts.tsx'));
+const ServiceOrderCustomers = lazy(() => import('./pages/ServiceOrders/ServiceOrderCustomers.tsx'));
+const ServiceOrderSettings = lazy(() => import('./pages/ServiceOrders/ServiceOrderSettings.tsx'));
+const ServiceOrderFinancial = lazy(() => import('./pages/ServiceOrders/ServiceOrderFinancial.tsx'));
+const ServiceOrderReports = lazy(() => import('./pages/ServiceOrders/ServiceOrderReports.tsx'));
 
 
 const MainLayout: React.FC = () => {
@@ -95,6 +104,21 @@ const App: React.FC = () => {
                                 </Route>
                                 <Route element={<ProtectedRoute permissionKey="canAccessPOS" />}>
                                     <Route path="/pos" element={<POS />} />
+                                </Route>
+
+                                {/* Service Order Module (Immersive) */}
+                                <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
+                                    <Route path="/service-orders" element={<ServiceOrderLayout />}>
+                                        <Route index element={<ServiceOrderDashboard />} />
+                                        <Route path="list" element={<ServiceOrderList />} />
+                                        <Route path="new" element={<ServiceOrderForm />} />
+                                        <Route path="edit/:id" element={<ServiceOrderForm />} />
+                                        <Route path="products" element={<ServiceOrderProducts />} />
+                                        <Route path="customers" element={<ServiceOrderCustomers />} />
+                                        <Route path="financial" element={<ServiceOrderFinancial />} />
+                                        <Route path="reports" element={<ServiceOrderReports />} />
+                                        <Route path="settings" element={<ServiceOrderSettings />} />
+                                    </Route>
                                 </Route>
                             </Route>
                         </Routes>

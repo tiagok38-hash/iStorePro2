@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry } from '../types.ts';
+import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
 
@@ -4497,4 +4497,301 @@ export const restoreFullBackup = async (backupData: Record<string, any[]>, userI
     clearCache(Object.keys(cache)); // Use current cache keys
     // Since cache is local to the module, we can just clear it if we export a way
 };
+
+// --- SERVICES ---
+
+export const getServices = async (): Promise<Service[]> => {
+    return fetchWithCache('services', async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase.from('services').select('*').order('name');
+            if (error) throw error;
+            return (data || []).map((s: any) => ({
+                ...s,
+                createdAt: s.created_at || s.createdAt,
+                updatedAt: s.updated_at || s.updatedAt,
+            }));
+        });
+    });
+};
+
+export const addService = async (data: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newService = {
+        ...data,
+        id: crypto.randomUUID(),
+        created_at: getNowISO(),
+        updated_at: getNowISO()
+    };
+
+    const { data: service, error } = await supabase.from('services').insert([newService]).select().single();
+
+    if (error) {
+        console.error('Error adding service:', error);
+        throw error;
+    }
+
+    await addAuditLog(
+        AuditActionType.CREATE,
+        AuditEntityType.SERVICE,
+        service.id,
+        `Serviço criado: ${service.name}`
+    );
+
+    clearCache(['services']);
+    return {
+        ...service,
+        createdAt: service.created_at,
+        updatedAt: service.updated_at
+    };
+};
+
+export const updateService = async (id: string, data: Partial<Service>) => {
+    const updatePayload: any = { ...data, updated_at: getNowISO() };
+    delete updatePayload.id;
+    delete updatePayload.createdAt;
+    delete updatePayload.updatedAt;
+
+    const { data: updated, error } = await supabase
+        .from('services')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating service:', error);
+        throw error;
+    }
+
+    await addAuditLog(
+        AuditActionType.UPDATE,
+        AuditEntityType.SERVICE,
+        id,
+        `Serviço atualizado: ${updated.name}`
+    );
+
+    clearCache(['services']);
+    return {
+        ...updated,
+        createdAt: updated.created_at,
+        updatedAt: updated.updated_at
+    };
+};
+
+export const deleteService = async (id: string) => {
+    const { data: service } = await supabase.from('services').select('*').eq('id', id).single();
+
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (error) {
+        console.error('Error deleting service:', error);
+        throw error;
+    }
+
+    if (service) {
+        await addAuditLog(
+            AuditActionType.DELETE,
+            AuditEntityType.SERVICE,
+            id,
+            `Serviço excluído: ${service.name}`
+        );
+    }
+
+    clearCache(['services']);
+};
+
+
+// --- SERVICE ORDERS ---
+
+export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
+    return fetchWithCache('service_orders', async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase
+                .from('service_orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return (data || []).map((so: any) => ({
+                ...so,
+                customerId: so.customer_id,
+                customerName: so.customer_name,
+                deviceModel: so.device_model,
+                serialNumber: so.serial_number,
+                patternLock: so.pattern_lock,
+                defectDescription: so.defect_description,
+                technicalReport: so.technical_report,
+                createdAt: so.created_at,
+                updatedAt: so.updated_at,
+                responsibleId: so.responsible_id,
+                responsibleName: so.responsible_name,
+                entryDate: so.entry_date,
+                exitDate: so.exit_date,
+            }));
+        });
+    });
+};
+
+export const getServiceOrder = async (id: string): Promise<ServiceOrder | null> => {
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase
+            .from('service_orders')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) return null;
+
+        return {
+            ...data,
+            customerId: data.customer_id,
+            customerName: data.customer_name,
+            deviceModel: data.device_model,
+            serialNumber: data.serial_number,
+            patternLock: data.pattern_lock,
+            defectDescription: data.defect_description,
+            technicalReport: data.technical_report,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+            responsibleId: data.responsible_id,
+            responsibleName: data.responsible_name,
+            entryDate: data.entry_date,
+            exitDate: data.exit_date,
+        };
+    });
+};
+
+export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'updatedAt' | 'displayId'>) => {
+    // Generate Display ID
+    const { count } = await supabase.from('service_orders').select('*', { count: 'exact', head: true });
+    const nextDisplayId = (count || 0) + 1;
+
+    const newOrder: any = {
+        ...data,
+        display_id: nextDisplayId,
+        customer_id: data.customerId,
+        customer_name: data.customerName,
+        device_model: data.deviceModel,
+        serial_number: data.serialNumber,
+        pattern_lock: data.patternLock,
+        defect_description: data.defectDescription,
+        technical_report: data.technicalReport,
+        responsible_id: data.responsibleId,
+        responsible_name: data.responsibleName,
+        entry_date: data.entryDate,
+        exit_date: data.exitDate,
+    };
+
+    // Remove camelCase keys that were added by ...data
+    const camelCaseKeys = [
+        'customerId', 'customerName', 'deviceModel', 'serialNumber',
+        'patternLock', 'defectDescription', 'technicalReport',
+        'responsibleId', 'responsibleName', 'entryDate', 'exitDate'
+    ];
+    camelCaseKeys.forEach(key => delete newOrder[key]);
+
+    // Clean undefined keys
+    const payload = Object.fromEntries(
+        Object.entries(newOrder).filter(([_, v]) => v !== undefined)
+    );
+
+    const { data: created, error } = await supabase.from('service_orders').insert([payload]).select().single();
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.CREATE,
+        AuditEntityType.SERVICE_ORDER,
+        created.id,
+        `OS #${created.display_id} criada para ${created.customer_name}`
+    );
+
+    clearCache(['service_orders']);
+    return {
+        ...created,
+        customerId: created.customer_id,
+        customerName: created.customer_name,
+        deviceModel: created.device_model,
+        serialNumber: created.serial_number,
+        patternLock: created.pattern_lock,
+        defectDescription: created.defect_description,
+        technicalReport: created.technical_report,
+        createdAt: created.created_at,
+        updatedAt: created.updated_at,
+        responsibleId: created.responsible_id,
+        responsibleName: created.responsible_name,
+        entryDate: created.entry_date,
+        exitDate: created.exit_date,
+    };
+};
+
+export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>) => {
+    const updatePayload: any = { ...data, updated_at: getNowISO() };
+
+    // Map to snake_case
+    if (data.customerId) updatePayload.customer_id = data.customerId;
+    if (data.customerName) updatePayload.customer_name = data.customerName;
+    if (data.deviceModel) updatePayload.device_model = data.deviceModel;
+    if (data.serialNumber) updatePayload.serial_number = data.serialNumber;
+    if (data.patternLock) updatePayload.pattern_lock = data.patternLock;
+    if (data.defectDescription) updatePayload.defect_description = data.defectDescription;
+    if (data.technicalReport) updatePayload.technical_report = data.technicalReport;
+    if (data.responsibleId) updatePayload.responsible_id = data.responsibleId;
+    if (data.responsibleName) updatePayload.responsible_name = data.responsibleName;
+    if (data.entryDate) updatePayload.entry_date = data.entryDate;
+    if (data.exitDate) updatePayload.exit_date = data.exitDate;
+
+    // Remove camelCase keys
+    delete updatePayload.customerId;
+    delete updatePayload.customerName;
+    delete updatePayload.deviceModel;
+    delete updatePayload.serialNumber;
+    delete updatePayload.patternLock;
+    delete updatePayload.defectDescription;
+    delete updatePayload.technicalReport;
+    delete updatePayload.responsibleId;
+    delete updatePayload.responsibleName;
+    delete updatePayload.entryDate;
+    delete updatePayload.exitDate;
+    delete updatePayload.id;
+    delete updatePayload.createdAt;
+    delete updatePayload.updatedAt;
+    delete updatePayload.displayId;
+
+    const { data: updated, error } = await supabase
+        .from('service_orders')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.UPDATE,
+        AuditEntityType.SERVICE_ORDER,
+        id,
+        `OS #${updated.display_id} atualizada`
+    );
+
+    clearCache(['service_orders']);
+    return {
+        ...updated,
+        customerId: updated.customer_id,
+        customerName: updated.customer_name,
+        deviceModel: updated.device_model,
+        serialNumber: updated.serial_number,
+        patternLock: updated.pattern_lock,
+        defectDescription: updated.defect_description,
+        technicalReport: updated.technical_report,
+        createdAt: updated.created_at,
+        updatedAt: updated.updated_at,
+        responsibleId: updated.responsible_id,
+        responsibleName: updated.responsible_name,
+        entryDate: updated.entry_date,
+        exitDate: updated.exit_date,
+    };
+};
+
+
+
 

@@ -200,6 +200,68 @@ export interface Product {
     accessories?: string[];
 }
 
+export interface Service {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    cost: number;
+    warranty?: string; // e.g. "90 dias", "3 meses"
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ServiceOrderChecklist {
+    scratch?: boolean;
+    cracked_screen?: boolean;
+    dented?: boolean;
+    no_power?: boolean;
+    no_wifi?: boolean;
+    bad_battery?: boolean;
+    front_camera_fail?: boolean;
+    rear_camera_fail?: boolean;
+    no_sound?: boolean;
+    mic_fail?: boolean;
+    others?: boolean;
+    othersDescription?: string;
+}
+
+export interface ServiceOrderItem {
+    id: string;
+    description: string;
+    type: 'service' | 'part';
+    price: number;
+    quantity: number;
+}
+
+export interface ServiceOrder {
+    id: string;
+    displayId: number;
+    customerId: string;
+    customerName: string;
+    deviceModel: string;
+    imei: string;
+    serialNumber?: string;
+    passcode?: string;
+    patternLock?: number[];
+    checklist: ServiceOrderChecklist;
+    defectDescription: string;
+    technicalReport?: string;
+    observations?: string;
+    status: 'Aberto' | 'Em Análise' | 'Aguardando Aprovação' | 'Aprovado' | 'Em Andamento' | 'Concluído' | 'Entregue' | 'Cancelado';
+    items: ServiceOrderItem[];
+    subtotal: number;
+    discount: number;
+    total: number;
+    createdAt: string;
+    updatedAt: string;
+    responsibleId: string;
+    responsibleName: string;
+    photos?: string[];
+    entryDate: string;
+    exitDate?: string;
+}
+
 // FIX: Added CartItem interface to be used across components like NewSaleModal.
 export interface CartItem extends Product {
     quantity: number;
@@ -430,6 +492,8 @@ export enum AuditEntityType {
     RECEIPT_TERM = 'RECEIPT_TERM',
     PERMISSION_PROFILE = 'PERMISSION_PROFILE',
     CASH_SESSION = 'CASH_SESSION',
+    SERVICE = 'SERVICE',
+    SERVICE_ORDER = 'SERVICE_ORDER',
 }
 
 export interface AuditLog {
