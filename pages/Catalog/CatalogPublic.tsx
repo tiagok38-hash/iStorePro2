@@ -568,11 +568,11 @@ const CatalogPublic: React.FC = () => {
         }
 
         const lines = cart.map(e =>
-            `▫️ ${e.quantity}x ${e.item.productName} — R$ ${(e.item.salePrice * e.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+            `- ${e.quantity}x ${e.item.productName} - R$ ${(e.item.salePrice * e.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
         );
 
         const msg = encodeURIComponent(
-            `🛒 *Pedido de Orçamento*\n\n${lines.join('\n')}\n\n💰 *Total: R$ ${totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*\n\nGostaria de receber mais informações sobre esses produtos!`
+            `Olá, vim através do catálogo virtual. Pedido de orçamento:\n\n${lines.join('\n')}\n\nTotal: R$ ${totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nGostaria de receber mais informacoes!`
         );
 
         window.open(`https://wa.me/55${whatsapp.replace(/\D/g, '')}?text=${msg}`, '_blank');
@@ -807,7 +807,10 @@ const CatalogPublic: React.FC = () => {
                     onRemove={removeFromCart}
                     onClose={() => setShowCart(false)}
                     onCheckout={handleCheckout}
-                    onClear={clearCart}
+                    onClear={() => {
+                        clearCart();
+                        setShowCart(false);
+                    }}
                 />
             )}
 
