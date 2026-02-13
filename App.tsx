@@ -28,6 +28,10 @@ const ServiceOrderCustomers = lazy(() => import('./pages/ServiceOrders/ServiceOr
 const ServiceOrderSettings = lazy(() => import('./pages/ServiceOrders/ServiceOrderSettings.tsx'));
 const ServiceOrderFinancial = lazy(() => import('./pages/ServiceOrders/ServiceOrderFinancial.tsx'));
 const ServiceOrderReports = lazy(() => import('./pages/ServiceOrders/ServiceOrderReports.tsx'));
+const CatalogLayout = lazy(() => import('./pages/Catalog/CatalogLayout.tsx'));
+const CatalogAdmin = lazy(() => import('./pages/Catalog/CatalogAdmin.tsx'));
+const CatalogSettings = lazy(() => import('./pages/Catalog/CatalogSettings.tsx'));
+const CatalogPublic = lazy(() => import('./pages/Catalog/CatalogPublic.tsx'));
 
 
 const MainLayout: React.FC = () => {
@@ -120,7 +124,18 @@ const App: React.FC = () => {
                                         <Route path="settings" element={<ServiceOrderSettings />} />
                                     </Route>
                                 </Route>
+
+                                {/* Catalog Module (Immersive) */}
+                                <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
+                                    <Route path="/catalog" element={<CatalogLayout />}>
+                                        <Route index element={<CatalogAdmin />} />
+                                        <Route path="settings" element={<CatalogSettings />} />
+                                    </Route>
+                                </Route>
                             </Route>
+
+                            {/* Public Catalog (No Auth Required) */}
+                            <Route path="/catalogo/:slug" element={<CatalogPublic />} />
                         </Routes>
                     </Suspense>
                     {/* Global Online/Offline Status Indicator */}

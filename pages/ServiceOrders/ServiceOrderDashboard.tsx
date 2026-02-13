@@ -15,6 +15,8 @@ import {
     ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getServiceOrders } from '../../services/mockApi';
+import { ServiceOrder } from '../../types';
 import {
     BarChart,
     Bar,
@@ -30,12 +32,12 @@ import {
     Area
 } from 'recharts';
 
-// --- MOCK DATA ---
-const KPI_DATA = [
-    { label: 'OS em Aberto', value: 12, change: '+2', status: 'neutral', icon: AlertCircle, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Em Análise', value: 5, change: '-1', status: 'good', icon: SmartphoneIcon, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { label: 'Aprovadas', value: 8, change: '+4', status: 'good', icon: WrenchIcon, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { label: 'Concluídas Hoje', value: 15, change: '+12%', status: 'amazing', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+// --- Constants ---
+const KPI_CONFIG = [
+    { key: 'Aberto', label: 'OS em Aberto', icon: AlertCircle, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { key: 'Análise', label: 'Em Análise', icon: SmartphoneIcon, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { key: 'Aprovado', label: 'Aprovadas', icon: WrenchIcon, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { key: 'Pronto', label: 'Prontas p/ Entrega', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
 ];
 
 const WEEKLY_FLOW_DATA = [
@@ -63,11 +65,25 @@ const AGENDA_ITEMS = [
 const ServiceOrderDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [orders, setOrders] = useState<ServiceOrder[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+        loadData();
         return () => clearInterval(timer);
     }, []);
+
+    const loadData = async () => {
+        try {
+            const data = await getServiceOrders();
+            setOrders(data || []);
+        } catch (error) {
+            console.error("Error loading dashboard data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -116,22 +132,22 @@ const ServiceOrderDashboard: React.FC = () => {
 
             {/* 2. Quick Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {KPI_DATA.map((kpi, idx) => (
-                    <div key={idx} className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className={`p-3 rounded-2xl ${kpi.bg} ${kpi.color} group-hover:scale-110 transition-transform`}>
-                                <kpi.icon size={24} strokeWidth={1.5} />
+                {KPI_CONFIG.map((config, idx) => {
+                    const count = orders.filter(os => os.status === config.key).length;
+                    return (
+                        <div key={idx} className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className={`p-3 rounded-2xl ${config.bg} ${config.color} group-hover:scale-110 transition-transform`}>
+                                    <config.icon size={24} strokeWidth={1.5} />
+                                </div>
                             </div>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-lg ${kpi.change.startsWith('+') ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                {kpi.change}
-                            </span>
+                            <div>
+                                <p className="text-secondary text-sm font-medium">{config.label}</p>
+                                <h3 className="text-3xl font-black text-primary mt-1">{isLoading ? '...' : count}</h3>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-secondary text-sm font-medium">{kpi.label}</p>
-                            <h3 className="text-3xl font-black text-primary mt-1">{kpi.value}</h3>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* 3. Main Dashboard Grid */}

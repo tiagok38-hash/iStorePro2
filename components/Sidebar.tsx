@@ -96,6 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         { name: 'Clientes e Fornecedores', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
         { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
         { name: 'Ordens de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessDashboard' },
+        { name: 'Meu Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessDashboard' },
         { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
     ];
 

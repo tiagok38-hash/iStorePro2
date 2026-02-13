@@ -17,37 +17,17 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getServiceOrders } from '../../services/mockApi';
+import { ServiceOrder } from '../../types';
+import { useToast } from '../../contexts/ToastContext';
 
-// --- Types ---
-type OSStatus = 'Entrada' | 'Análise' | 'Orçamento' | 'Aprovado' | 'Em Reparo' | 'Pronto' | 'Entregue';
+// --- Constants ---
+type OSStatus = 'Aberto' | 'Análise' | 'Orçamento' | 'Aprovado' | 'Em Reparo' | 'Pronto' | 'Entregue';
 
-interface ServiceOrder {
-    id: string;
-    displayId: string;
-    customer: string;
-    device: string;
-    status: OSStatus;
-    technician: string;
-    date: string;
-    value: number;
-    priority: 'Normal' | 'Urgent' | 'Low';
-}
-
-// --- Mock Data ---
-const MOCK_OS: ServiceOrder[] = [
-    { id: '1', displayId: 'OS-1024', customer: 'João Silva', device: 'iPhone 13 Pro', status: 'Entrada', technician: 'Pedro Tech', date: '10/10/2023', value: 0, priority: 'Normal' },
-    { id: '2', displayId: 'OS-1023', customer: 'Maria Oliveira', device: 'Samsung S22', status: 'Análise', technician: 'Ana Clara', date: '09/10/2023', value: 0, priority: 'Urgent' },
-    { id: '3', displayId: 'OS-1022', customer: 'Carlos Edu', device: 'MacBook Air M1', status: 'Orçamento', technician: 'Pedro Tech', date: '08/10/2023', value: 1250, priority: 'Normal' },
-    { id: '4', displayId: 'OS-1021', customer: 'Fernanda Lima', device: 'iPad Pro 11', status: 'Aprovado', technician: 'Ana Clara', date: '07/10/2023', value: 890, priority: 'Normal' },
-    { id: '5', displayId: 'OS-1020', customer: 'Roberto Costa', device: 'Xiaomi Mi 11', status: 'Em Reparo', technician: 'Pedro Tech', date: '06/10/2023', value: 450, priority: 'Low' },
-    { id: '6', displayId: 'OS-1019', customer: 'Luana Martins', device: 'iPhone 11', status: 'Pronto', technician: 'Ana Clara', date: '05/10/2023', value: 380, priority: 'Normal' },
-    { id: '7', displayId: 'OS-1018', customer: 'Ricardo Souza', device: 'Motorola Edge', status: 'Entregue', technician: 'Pedro Tech', date: '04/10/2023', value: 600, priority: 'Normal' },
-];
-
-const STATUS_COLUMNS: OSStatus[] = ['Entrada', 'Análise', 'Orçamento', 'Aprovado', 'Em Reparo', 'Pronto', 'Entregue'];
+const STATUS_COLUMNS: OSStatus[] = ['Aberto', 'Análise', 'Orçamento', 'Aprovado', 'Em Reparo', 'Pronto', 'Entregue'];
 
 const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: string, dot: string, gradient: string }> = {
-    'Entrada': { color: 'text-gray-700', bg: 'bg-gray-100/80', border: 'border-gray-200', dot: 'bg-gray-400', gradient: 'from-gray-100 to-gray-50' },
+    'Aberto': { color: 'text-gray-700', bg: 'bg-gray-100/80', border: 'border-gray-200', dot: 'bg-gray-400', gradient: 'from-gray-100 to-gray-50' },
     'Análise': { color: 'text-blue-700', bg: 'bg-blue-100/80', border: 'border-blue-200', dot: 'bg-blue-500', gradient: 'from-blue-100 to-blue-50' },
     'Orçamento': { color: 'text-orange-700', bg: 'bg-orange-100/80', border: 'border-orange-200', dot: 'bg-orange-500', gradient: 'from-orange-100 to-orange-50' },
     'Aprovado': { color: 'text-emerald-700', bg: 'bg-emerald-100/80', border: 'border-emerald-200', dot: 'bg-emerald-500', gradient: 'from-emerald-100 to-emerald-50' },
@@ -57,45 +37,65 @@ const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: strin
 };
 
 // --- Components ---
-const StatusBadge = ({ status }: { status: OSStatus }) => (
-    <span className={`px-2 py-1 rounded-md text-xs font-bold border ${STATUS_CONFIG[status].bg} ${STATUS_CONFIG[status].color} ${STATUS_CONFIG[status].border}`}>
+const StatusBadge = ({ status }: { status: string }) => (
+    <span className={`px-2 py-1 rounded-md text-xs font-bold border ${STATUS_CONFIG[status as OSStatus]?.bg || 'bg-gray-100'} ${STATUS_CONFIG[status as OSStatus]?.color || 'text-gray-700'} ${STATUS_CONFIG[status as OSStatus]?.border || 'border-gray-200'}`}>
         {status}
     </span>
 );
 
-const KanbanCard = ({ os, onClick }: { os: ServiceOrder; onClick: () => void; key?: string }) => (
+const KanbanCard = ({ os, onClick }: { os: any; onClick: () => void; key?: string }) => (
     <div
         onClick={onClick}
         className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-accent/40 transition-all cursor-pointer group relative"
     >
         <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] font-bold text-secondary bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">{os.displayId}</span>
+            <span className="text-[10px] font-bold text-secondary bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">OS-{os.displayId}</span>
             {os.priority === 'Urgent' && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Urgente" />}
         </div>
 
-        <h4 className="font-bold text-sm text-primary mb-1 truncate">{os.device}</h4>
+        <h4 className="font-bold text-sm text-primary mb-1 truncate">{os.deviceModel}</h4>
         <p className="text-xs text-secondary mb-3 flex items-center gap-1">
-            <User size={10} /> {os.customer}
+            <User size={10} /> {os.customerName}
         </p>
 
         <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                <Clock size={10} /> {os.date}
+                <Clock size={10} /> {os.entryDate ? new Date(os.entryDate).toLocaleDateString() : '-'}
             </div>
-            {os.value > 0 && <span className="text-xs font-bold text-emerald-600">R$ {os.value}</span>}
+            {os.total > 0 && <span className="text-xs font-bold text-emerald-600">R$ {os.total.toLocaleString()}</span>}
         </div>
     </div>
 );
 
 const ServiceOrderList: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
     const [searchTerm, setSearchTerm] = useState('');
+    const [orders, setOrders] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const filteredOrders = MOCK_OS.filter(os =>
-        os.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        os.device.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        os.displayId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const loadOrders = async () => {
+        setIsLoading(true);
+        try {
+            const data = await getServiceOrders();
+            setOrders(data || []);
+        } catch (error) {
+            console.error("Error loading service orders:", error);
+            showToast("Erro ao carregar ordens de serviço", "error");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        loadOrders();
+    }, []);
+
+    const filteredOrders = orders.filter(os =>
+        (os.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (os.deviceModel || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (os.displayId?.toString() || '').includes(searchTerm) ||
         os.id.includes(searchTerm)
     );
 
@@ -163,22 +163,32 @@ const ServiceOrderList: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredOrders.map(os => (
-                                    <tr key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className="hover:bg-gray-50/50 transition-colors cursor-pointer group">
-                                        <td className="px-6 py-4 font-medium text-primary">{os.displayId}</td>
-                                        <td className="px-6 py-4 text-secondary">{os.customer}</td>
-                                        <td className="px-6 py-4 font-medium text-primary">{os.device}</td>
-                                        <td className="px-6 py-4"><StatusBadge status={os.status} /></td>
-                                        <td className="px-6 py-4 text-secondary">{os.technician}</td>
-                                        <td className="px-6 py-4 text-secondary">{os.date}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-emerald-600">{os.value > 0 ? `R$ ${os.value.toFixed(2)}` : '-'}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-gray-400 hover:text-accent opacity-0 group-hover:opacity-100 transition-all">
-                                                <MoreVertical size={16} />
-                                            </button>
-                                        </td>
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-12 text-center text-secondary">Carregando...</td>
                                     </tr>
-                                ))}
+                                ) : filteredOrders.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-12 text-center text-secondary">Nenhuma ordem de serviço encontrada.</td>
+                                    </tr>
+                                ) : (
+                                    filteredOrders.map(os => (
+                                        <tr key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className="hover:bg-gray-50/50 transition-colors cursor-pointer group">
+                                            <td className="px-6 py-4 font-medium text-primary">OS-{os.displayId}</td>
+                                            <td className="px-6 py-4 text-secondary">{os.customerName}</td>
+                                            <td className="px-6 py-4 font-medium text-primary">{os.deviceModel}</td>
+                                            <td className="px-6 py-4"><StatusBadge status={os.status} /></td>
+                                            <td className="px-6 py-4 text-secondary">{os.responsibleName || '-'}</td>
+                                            <td className="px-6 py-4 text-secondary">{os.entryDate ? new Date(os.entryDate).toLocaleDateString() : '-'}</td>
+                                            <td className="px-6 py-4 text-right font-bold text-emerald-600">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button className="text-gray-400 hover:text-accent opacity-0 group-hover:opacity-100 transition-all">
+                                                    <MoreVertical size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

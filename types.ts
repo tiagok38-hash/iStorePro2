@@ -578,3 +578,28 @@ export interface ReceiptTermParameter {
     warrantyExclusions?: ReceiptTermSection;
     imageRights?: ReceiptTermSection;
 }
+
+// Catalog Module
+export interface CatalogItem {
+    id: string;
+    productId: string;
+    displayOrder: number;
+    costPrice: number;
+    salePrice: number;
+    cardPrice: number;
+    installments: number;
+    section: string;
+    isActive: boolean;
+    imageUrl?: string;
+    imageUrls?: string[];
+    condition: string;
+    batteryHealth?: number;
+    productName: string;
+    productBrand: string;
+    productCategory: string;
+    description?: string;
+    createdAt: string;
+    updatedAt: string;
+    // Joined from products table
+    product?: Product;
+}
