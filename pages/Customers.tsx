@@ -18,6 +18,7 @@ import SupplierHistoryModal from '../components/SupplierHistoryModal.tsx';
 import { SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, UserCircleIcon, ClockIcon, ArrowsUpDownIcon, BirthdayCakeIcon, ChevronDownIcon, ChartBarIcon, WhatsAppIcon, InstagramIcon, EyeSlashIcon, CurrencyDollarIcon, CheckIcon, CloseIcon } from '../components/icons.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
+import CrmKanbanBoard from '../components/CrmKanbanBoard.tsx';
 
 // --- Customer Components ---
 
@@ -337,7 +338,7 @@ const isBirthdayInPeriod = (birthDateStr: string | undefined, period: 'dia' | 's
 
 const CustomersAndSuppliers: React.FC = () => {
     const [searchParams] = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'clientes' | 'fornecedores'>('clientes');
+    const [activeTab, setActiveTab] = useState<'clientes' | 'crm' | 'fornecedores'>('clientes');
     const { showToast } = useToast();
     const { permissions, user } = useUser();
 
@@ -446,6 +447,7 @@ const CustomersAndSuppliers: React.FC = () => {
         if (permissions?.canAccessClientes) {
             tabs.push({ id: 'clientes', label: 'Clientes' });
         }
+        tabs.push({ id: 'crm', label: 'CRM' });
         if (permissions?.canAccessFornecedores) {
             tabs.push({ id: 'fornecedores', label: 'Fornecedores' });
         }
@@ -454,7 +456,7 @@ const CustomersAndSuppliers: React.FC = () => {
 
     useEffect(() => {
         if (availableTabs.length > 0 && !availableTabs.find(t => t.id === activeTab)) {
-            setActiveTab(availableTabs[0].id as 'clientes' | 'fornecedores');
+            setActiveTab(availableTabs[0].id as 'clientes' | 'crm' | 'fornecedores');
         }
     }, [availableTabs, activeTab]);
 
@@ -1189,6 +1191,7 @@ const CustomersAndSuppliers: React.FC = () => {
             {loading ? <div className="flex justify-center items-center h-full"><SpinnerIcon /></div> : (
                 <>
                     {activeTab === 'clientes' && renderCustomersTab()}
+                    {activeTab === 'crm' && <CrmKanbanBoard customers={customers} />}
                     {activeTab === 'fornecedores' && renderSuppliersTab()}
                     {availableTabs.length === 0 && <p className="text-center text-muted p-6">Você não tem permissão para acessar esta seção.</p>}
                 </>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     ShoppingCart, Search, Filter, MessageCircle, X, ChevronRight, ChevronLeft,
     ShoppingBag, Package, MapPin, Phone, Mail, Clock, Instagram, Send, Plus, Minus,
-    Zap, Smartphone, Headphones, Star, Gift, Trash2
+    Zap, Smartphone, Headphones, Star, Gift, Trash2, ChevronDown
 } from 'lucide-react';
 import { getActiveCatalogItems, getCatalogSections, getCompanyInfo, getCategories } from '../../services/mockApi.ts';
 import { supabase } from '../../supabaseClient.ts';
@@ -10,6 +10,8 @@ import { CatalogItem, CompanyInfo } from '../../types.ts';
 
 // ===== CART CONTEXT (Local) =====
 interface CartEntry { item: CatalogItem; quantity: number; }
+
+// ===== CART CONTEXT (Local) =====
 
 const useCart = () => {
     const [cart, setCart] = useState<CartEntry[]>([]);
@@ -98,11 +100,6 @@ const ProductCard: React.FC<{ item: CatalogItem; onClick: () => void; onAdd: (e:
                     <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full backdrop-blur-sm shadow-sm ${item.condition === 'Novo' ? 'bg-emerald-500/90 text-white' : item.condition === 'Seminovo' ? 'bg-amber-500/90 text-white' : 'bg-blue-500/90 text-white'}`}>
                         {item.condition}
                     </span>
-                    {item.condition === 'Seminovo' && item.batteryHealth && (
-                        <span className="px-2 py-0.5 text-[9px] font-bold rounded-full bg-white/90 text-amber-700 backdrop-blur-sm shadow-sm">
-                            🔋 {item.batteryHealth}%
-                        </span>
-                    )}
                 </div>
             </div>
 
@@ -147,7 +144,7 @@ const ProductCard: React.FC<{ item: CatalogItem; onClick: () => void; onAdd: (e:
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -160,6 +157,7 @@ const ProductDetailsModal: React.FC<{
     categoriesMap: Record<string, string>;
 }> = ({ item, onClose, onAdd, whatsapp, categoriesMap }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [showAllInstallments, setShowAllInstallments] = useState(false);
     const images = item.imageUrls?.length ? item.imageUrls : (item.imageUrl ? [item.imageUrl] : []);
 
     const whatsappMsg = encodeURIComponent(
@@ -236,6 +234,7 @@ const ProductDetailsModal: React.FC<{
                         <span className={`inline-block px-2.5 py-1 text-[10px] font-bold rounded-full mr-2 ${item.condition === 'Novo' ? 'bg-emerald-100 text-emerald-700' : item.condition === 'Seminovo' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                             {item.condition}
                         </span>
+                        {/* Battery Health - Only in Modal */}
                         {item.condition === 'Seminovo' && item.batteryHealth && (
                             <span className="inline-block px-2.5 py-1 text-[10px] font-bold rounded-full bg-gray-100 text-gray-700">
                                 Bateria {item.batteryHealth}%
@@ -252,16 +251,67 @@ const ProductDetailsModal: React.FC<{
                             </span>
                             <span className="text-sm text-gray-500 font-medium">à vista</span>
                         </div>
+
+                        {/* Installments Section - Expandable */}
                         {item.installments > 1 && item.cardPrice > 0 && (
-                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                <p className="text-sm text-gray-700 flex items-center gap-2">
-                                    <CreditCardIcon />
-                                    <span className="font-semibold">{item.installments}x</span> de <span className="font-bold text-gray-900">R$ {(item.cardPrice / item.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1 pl-6">Total a prazo: R$ {item.cardPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-all hover:border-gray-200">
+                                <div
+                                    className="flex items-start justify-between cursor-pointer group"
+                                    onClick={() => setShowAllInstallments(!showAllInstallments)}
+                                >
+                                    <div className="flex gap-3">
+                                        <div className={`mt-0.5 transition-colors ${showAllInstallments ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                            <CreditCardIcon />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-700 flex items-center gap-1.5">
+                                                <span className="font-semibold">{item.installments}x</span>
+                                                <span>de</span>
+                                                <span className="font-bold text-gray-900 text-base">R$ {(item.cardPrice / item.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-0.5">Total a prazo: R$ {item.cardPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                        </div>
+                                    </div>
+                                    <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${showAllInstallments ? 'rotate-180 text-emerald-500' : 'group-hover:text-gray-600'}`} />
+                                </div>
+
+                                {/* Expanded Installments List */}
+                                {showAllInstallments && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200 animate-fade-in">
+                                        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+                                            {Array.from({ length: item.installments }).map((_, idx) => {
+                                                const installmentNum = idx + 1;
+                                                return (
+                                                    <div key={installmentNum} className="text-xs flex justify-between items-center py-1 border-b border-dashed border-gray-100 last:border-0 odd:last:border-0">
+                                                        <span className="text-gray-500 font-medium">{installmentNum}x</span>
+                                                        <span className="font-bold text-gray-800">R$ {(item.cardPrice / installmentNum).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
+
+                    {/* Trade-in Message for Apple Products (iPhone, iPad, Mac) + Smartphones */}
+                    {(item.productName.toLowerCase().includes('iphone') ||
+                        item.productName.toLowerCase().includes('ipad') ||
+                        item.productName.toLowerCase().includes('macbook') ||
+                        item.productName.toLowerCase().includes('mac') ||
+                        item.productCategory === 'Smartphone'
+                    ) && (
+                            <div className="mb-6 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
+                                <div className="p-1.5 bg-blue-100 rounded-full text-blue-600 mt-0.5">
+                                    <Smartphone size={14} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-blue-800">Pegamos o seu usado como entrada</p>
+                                    <p className="text-xs text-blue-600 mt-0.5">Traga seu aparelho antigo para avaliação e use como parte do pagamento.</p>
+                                </div>
+                            </div>
+                        )}
 
                     {item.description && (
                         <div className="mb-8">
@@ -353,7 +403,7 @@ const CartDrawer: React.FC<{
                         <div className="text-center py-16">
                             <ShoppingBag size={48} className="mx-auto text-gray-200 mb-4" />
                             <p className="text-secondary font-medium">Seu orçamento está vazio</p>
-                            <p className="text-muted text-sm mt-1">Adicione produtos da vitrine</p>
+                            <p className="text-muted text-sm mt-1">Adicione produtos do catálogo</p>
                         </div>
                     ) : (
                         cart.map(entry => {
@@ -528,14 +578,71 @@ const CatalogPublic: React.FC = () => {
         return sectionMap;
     }, [items]);
 
-    // Extract categories
+    // Filter Constants
+    const APPLE_TYPES = ['iPhone', 'iPad', 'Mac', 'Watch', 'AirPods'];
+    const FEATURED_BRANDS = ['Xiaomi', 'Realme', 'Amazon', 'Samsung', 'Motorola'];
+
+    // Extract categories, brands, and types
     const categories = useMemo(() => {
-        const cats = new Set(items.map(i => {
-            // Se for UUID, tenta pegar do mapa, senão usa o próprio valor
-            const cat = i.productCategory;
-            return categoriesMap[cat] || cat;
-        }));
-        return ['Todos', ...Array.from(cats).filter(Boolean).sort()];
+        const cats = new Set<string>();
+        const brands = new Set<string>();
+        const types = new Set<string>();
+
+        items.forEach(i => {
+            const productNameLower = i.productName.toLowerCase();
+            let isAppleType = false;
+
+            // Check if it's an Apple Type
+            APPLE_TYPES.forEach(type => {
+                if (productNameLower.includes(type.toLowerCase())) {
+                    types.add(type);
+                    isAppleType = true;
+                }
+            });
+
+            // Brands - Only add if NOT an Apple product (conceptually) or if specifically requested
+            // But user wants "Smartphone" removed for Apple products.
+            // Let's Handle Brands
+            const brand = i.productBrand;
+            if (FEATURED_BRANDS.includes(brand)) {
+                brands.add(brand);
+            }
+
+            // Categories
+            const catName = categoriesMap[i.productCategory] || i.productCategory;
+
+            // LOGIC: If it's an Apple type (iPhone, etc), DO NOT add "Smartphone" or generic categories
+            // Also avoid adding the type itself as a category if it exists as a category (e.g. category "iPhone")
+            if (isAppleType) {
+                // If the category is exact match to the type, we don't need to add it to 'cats' 
+                // because it's already in 'types'.
+                // If it's "Smartphone", we skip it for Apple products as requested.
+                if (catName !== 'Smartphone' && !APPLE_TYPES.includes(catName)) {
+                    cats.add(catName);
+                }
+            } else {
+                // Non-Apple products get their categories normally
+                // Also check if brand is one of the featured ones, maybe we only want brand pill?
+                // User said: "Smartphone e categoria de produto nao apple e so quero as marcas de produtos nao apple aparecendo ali"
+                // Interpretation: For non-Apple products, show Brands (Xiaomi, etc) AND maybe remove "Smartphone"?
+                // Let's stick to: Remove "Smartphone" category for Apple products.
+                // And ensure "iPhone" doesn't appear twice (once as type, once as category).
+
+                if (!APPLE_TYPES.includes(catName)) {
+                    cats.add(catName);
+                }
+            }
+        });
+
+        // Filter out any cats that are already in types or brands to be safe
+        const uniqueCats = Array.from(cats).filter(c => !types.has(c) && !brands.has(c));
+
+        // Order: Todos -> Apple Types -> Brands -> Categories
+        const sortedTypes = APPLE_TYPES.filter(t => types.has(t));
+        const sortedBrands = FEATURED_BRANDS.filter(b => brands.has(b));
+        const sortedCats = uniqueCats.filter(Boolean).sort();
+
+        return ['Todos', ...sortedTypes, ...sortedBrands, ...sortedCats];
     }, [items, categoriesMap]);
 
     // Filter items
@@ -544,8 +651,22 @@ const CatalogPublic: React.FC = () => {
             const matchesSearch = item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.productBrand.toLowerCase().includes(searchTerm.toLowerCase());
 
-            const categoryName = categoriesMap[item.productCategory] || item.productCategory;
-            const matchesCategory = activeCategory === 'Todos' || categoryName === activeCategory;
+            // Filter logic
+            let matchesCategory = false;
+
+            if (activeCategory === 'Todos') {
+                matchesCategory = true;
+            } else if (APPLE_TYPES.includes(activeCategory)) {
+                // Filter by Apple Type (Name)
+                matchesCategory = item.productName.toLowerCase().includes(activeCategory.toLowerCase());
+            } else if (FEATURED_BRANDS.includes(activeCategory)) {
+                // Filter by Brand
+                matchesCategory = item.productBrand === activeCategory;
+            } else {
+                // Filter by Category
+                const categoryName = categoriesMap[item.productCategory] || item.productCategory;
+                matchesCategory = categoryName === activeCategory;
+            }
 
             return matchesSearch && matchesCategory;
         });
@@ -570,7 +691,7 @@ const CatalogPublic: React.FC = () => {
         );
 
         const msg = encodeURIComponent(
-            `Olá, vim através do catálogo virtual. Pedido de orçamento:\n\n${lines.join('\n')}\n\nTotal: R$ ${totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nGostaria de receber mais informacoes!`
+            `Olá, vim através do catálogo virtual. Pedido de orçamento:\n\n${lines.join('\n')}\n\nTotal: R$ ${totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nGostaria de receber mais informações!`
         );
 
         window.open(`https://wa.me/55${whatsapp.replace(/\D/g, '')}?text=${msg}`, '_blank');
@@ -750,8 +871,8 @@ const CatalogPublic: React.FC = () => {
                                     </div>
                                 ) : (
                                     // Horizontal Scroll for Sections
-                                    <div className="overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory custom-scrollbar">
-                                        <div className="flex gap-4 w-max">
+                                    <div className="overflow-x-auto pb-4 -mx-4 snap-x snap-mandatory custom-scrollbar">
+                                        <div className="flex gap-4 px-4 w-max">
                                             {sortedItems.map(item => (
                                                 <div key={item.id} className="w-[160px] sm:w-[180px] md:w-[200px] flex-shrink-0 snap-start h-auto flex flex-col">
                                                     <ProductCard

@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem } from '../types.ts';
+import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
 
@@ -85,7 +85,7 @@ const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 3, delay =
             error?.message?.includes('NetworkError');
 
         if (isNetworkError) {
-            console.warn(`mockApi: Network error detected. Retrying in ${delay}ms... (${retries} attempts left)`);
+
             await new Promise(resolve => setTimeout(resolve, delay));
             return fetchWithRetry(fetcher, retries - 1, delay * 2);
         }
@@ -5024,4 +5024,328 @@ export const deleteCatalogSection = async (id: string) => {
         if (error) throw error;
         clearCache(['catalog_sections']);
     });
+};
+
+// ============================================================
+// --- FINANCIAL MODULE ---
+// ============================================================
+
+export const getTransactionCategories = async (): Promise<TransactionCategory[]> => {
+    return fetchWithCache('transaction_categories', async () => {
+        const { data, error } = await supabase
+            .from('transaction_categories')
+            .select('*')
+            .order('group_name')
+            .order('name');
+        if (error) throw error;
+        return (data || []).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+            group_name: c.group_name,
+            icon: c.icon,
+            color: c.color,
+            is_default: c.is_default,
+            company_id: c.company_id,
+        }));
+    }, METADATA_TTL);
+};
+
+export const getFinancialTransactions = async (filters: {
+    type?: 'income' | 'expense';
+    status?: 'pending' | 'paid' | 'overdue';
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    categoryId?: string;
+} = {}): Promise<FinancialTransaction[]> => {
+    return fetchWithRetry(async () => {
+        let query = supabase
+            .from('financial_transactions')
+            .select('*, category:transaction_categories(*)')
+            .order('due_date', { ascending: false });
+
+        if (filters.type) query = query.eq('type', filters.type);
+        if (filters.status) query = query.eq('status', filters.status);
+        if (filters.categoryId) query = query.eq('category_id', filters.categoryId);
+        if (filters.startDate) query = query.gte('due_date', filters.startDate);
+        if (filters.endDate) query = query.lte('due_date', filters.endDate);
+        if (filters.search) query = query.or(`description.ilike.%${filters.search}%,entity_name.ilike.%${filters.search}%`);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        return (data || []).map((t: any) => ({
+            id: t.id,
+            type: t.type,
+            description: t.description,
+            amount: Number(t.amount),
+            category_id: t.category_id,
+            category: t.category ? {
+                id: t.category.id,
+                name: t.category.name,
+                type: t.category.type,
+                group_name: t.category.group_name,
+                icon: t.category.icon,
+                color: t.category.color,
+            } : undefined,
+            due_date: t.due_date,
+            payment_date: t.payment_date,
+            status: t.status,
+            payment_method: t.payment_method,
+            entity_name: t.entity_name,
+            entity_type: t.entity_type,
+            is_recurring: t.is_recurring || false,
+            recurrence_interval: t.recurrence_interval,
+            attachment_url: t.attachment_url,
+            notes: t.notes,
+            company_id: t.company_id,
+            created_by: t.created_by,
+            created_at: t.created_at,
+            updated_at: t.updated_at,
+        }));
+    });
+};
+
+export const addFinancialTransaction = async (data: Partial<FinancialTransaction>, userId?: string, userName?: string): Promise<FinancialTransaction> => {
+    const now = getNowISO();
+    const record = {
+        type: data.type,
+        description: data.description,
+        amount: data.amount,
+        category_id: data.category_id,
+        due_date: data.due_date,
+        payment_date: data.payment_date || null,
+        status: data.status || 'pending',
+        payment_method: data.payment_method || null,
+        entity_name: data.entity_name || null,
+        entity_type: data.entity_type || null,
+        is_recurring: data.is_recurring || false,
+        recurrence_interval: data.recurrence_interval || null,
+        notes: data.notes || null,
+        created_by: userId || null,
+        created_at: now,
+        updated_at: now,
+    };
+
+    const { data: inserted, error } = await supabase
+        .from('financial_transactions')
+        .insert(record)
+        .select('*, category:transaction_categories(*)')
+        .single();
+
+    if (error) throw error;
+
+    await addAuditLog(
+        'create' as AuditActionType,
+        'financial_transaction' as AuditEntityType,
+        inserted.id,
+        `Transação "${data.description}" (${data.type === 'income' ? 'Receita' : 'Despesa'}) de R$ ${Number(data.amount).toFixed(2)} criada`,
+        userId || 'system',
+        userName || 'Sistema'
+    );
+
+    return {
+        ...inserted,
+        amount: Number(inserted.amount),
+        is_recurring: inserted.is_recurring || false,
+    };
+};
+
+export const updateFinancialTransaction = async (data: Partial<FinancialTransaction> & { id: string }, userId?: string, userName?: string): Promise<FinancialTransaction> => {
+    const now = getNowISO();
+    const { id, category, ...rest } = data;
+
+    const record: any = { ...rest, updated_at: now };
+    delete record.created_at;
+    delete record.created_by;
+
+    const { data: updated, error } = await supabase
+        .from('financial_transactions')
+        .update(record)
+        .eq('id', id)
+        .select('*, category:transaction_categories(*)')
+        .single();
+
+    if (error) throw error;
+
+    await addAuditLog(
+        'update' as AuditActionType,
+        'financial_transaction' as AuditEntityType,
+        id,
+        `Transação "${updated.description}" atualizada`,
+        userId || 'system',
+        userName || 'Sistema'
+    );
+
+    return {
+        ...updated,
+        amount: Number(updated.amount),
+        is_recurring: updated.is_recurring || false,
+    };
+};
+
+export const deleteFinancialTransaction = async (id: string, userId?: string, userName?: string): Promise<void> => {
+    // Get data before deleting for audit
+    const { data: existing } = await supabase
+        .from('financial_transactions')
+        .select('description, type, amount')
+        .eq('id', id)
+        .single();
+
+    const { error } = await supabase
+        .from('financial_transactions')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+
+    if (existing) {
+        await addAuditLog(
+            'delete' as AuditActionType,
+            'financial_transaction' as AuditEntityType,
+            id,
+            `Transação "${existing.description}" (${existing.type === 'income' ? 'Receita' : 'Despesa'}) de R$ ${Number(existing.amount).toFixed(2)} excluída`,
+            userId || 'system',
+            userName || 'Sistema'
+        );
+    }
+};
+
+// ============================================================
+// CRM MODULE — Pipeline de Vendas Kanban
+// ============================================================
+
+export const getCrmDeals = async (filters?: {
+    status_column?: CrmColumn;
+    priority?: string;
+    assigned_to?: string;
+    search?: string;
+}): Promise<CrmDeal[]> => {
+    let query = supabase
+        .from('crm_deals')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+
+    if (filters?.status_column) query = query.eq('status_column', filters.status_column);
+    if (filters?.priority) query = query.eq('priority', filters.priority);
+    if (filters?.assigned_to) query = query.eq('assigned_to', filters.assigned_to);
+    if (filters?.search) {
+        query = query.or(`client_name.ilike.%${filters.search}%,product_interest.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data || []).map(d => ({
+        id: d.id,
+        client_id: d.client_id,
+        client_name: d.client_name,
+        client_phone: d.client_phone,
+        status_column: d.status_column as CrmColumn,
+        value: Number(d.value || 0),
+        product_interest: d.product_interest,
+        priority: d.priority,
+        origin: d.origin,
+        assigned_to: d.assigned_to,
+        assigned_to_name: d.assigned_to_name,
+        follow_up_date: d.follow_up_date,
+        notes: d.notes,
+        sort_order: d.sort_order || 0,
+        company_id: d.company_id,
+        created_by: d.created_by,
+        created_at: d.created_at,
+        updated_at: d.updated_at,
+    }));
+};
+
+export const addCrmDeal = async (data: Partial<CrmDeal>, userId?: string, userName?: string): Promise<CrmDeal> => {
+    const insert: any = {
+        client_id: data.client_id || null,
+        client_name: data.client_name || '',
+        client_phone: data.client_phone || null,
+        status_column: data.status_column || 'new_leads',
+        value: data.value || 0,
+        product_interest: data.product_interest || null,
+        priority: data.priority || 'warm',
+        origin: data.origin || null,
+        assigned_to: data.assigned_to || userId || null,
+        assigned_to_name: data.assigned_to_name || userName || null,
+        follow_up_date: data.follow_up_date || null,
+        notes: data.notes || null,
+        sort_order: data.sort_order || 0,
+        created_by: userId || null,
+    };
+
+    const { data: result, error } = await supabase
+        .from('crm_deals')
+        .insert(insert)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return result as CrmDeal;
+};
+
+export const updateCrmDeal = async (id: string, updates: Partial<CrmDeal>, userId?: string, userName?: string): Promise<void> => {
+    const dbUpdates: any = { updated_at: new Date().toISOString() };
+
+    if (updates.client_id !== undefined) dbUpdates.client_id = updates.client_id;
+    if (updates.client_name !== undefined) dbUpdates.client_name = updates.client_name;
+    if (updates.client_phone !== undefined) dbUpdates.client_phone = updates.client_phone;
+    if (updates.status_column !== undefined) dbUpdates.status_column = updates.status_column;
+    if (updates.value !== undefined) dbUpdates.value = updates.value;
+    if (updates.product_interest !== undefined) dbUpdates.product_interest = updates.product_interest;
+    if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+    if (updates.origin !== undefined) dbUpdates.origin = updates.origin;
+    if (updates.assigned_to !== undefined) dbUpdates.assigned_to = updates.assigned_to;
+    if (updates.assigned_to_name !== undefined) dbUpdates.assigned_to_name = updates.assigned_to_name;
+    if (updates.follow_up_date !== undefined) dbUpdates.follow_up_date = updates.follow_up_date;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.sort_order !== undefined) dbUpdates.sort_order = updates.sort_order;
+
+    const { error } = await supabase
+        .from('crm_deals')
+        .update(dbUpdates)
+        .eq('id', id);
+
+    if (error) throw error;
+};
+
+export const deleteCrmDeal = async (id: string): Promise<void> => {
+    const { error } = await supabase
+        .from('crm_deals')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+};
+
+export const getCrmActivities = async (dealId: string): Promise<CrmActivity[]> => {
+    const { data, error } = await supabase
+        .from('crm_activities')
+        .select('*')
+        .eq('deal_id', dealId)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as CrmActivity[];
+};
+
+export const addCrmActivity = async (data: Partial<CrmActivity>): Promise<CrmActivity> => {
+    const { data: result, error } = await supabase
+        .from('crm_activities')
+        .insert({
+            deal_id: data.deal_id,
+            type: data.type || 'note',
+            content: data.content,
+            created_by: data.created_by || null,
+            created_by_name: data.created_by_name || null,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return result as CrmActivity;
 };

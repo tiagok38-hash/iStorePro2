@@ -116,6 +116,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         canCreateSupplier: true, canEditSupplier: true, canViewSupplierHistory: true,
         canDeleteSupplier: true,
         canManagePaymentMethods: true, canManageBackups: true, canManageParameters: true,
+        canAccessFinanceiro: true, canCreateTransaction: true, canEditTransaction: true,
+        canDeleteTransaction: true, canViewFinancialKPIs: true,
+
+        canAccessServiceOrders: true, canCreateServiceOrder: true, canEditServiceOrder: true,
+        canDeleteServiceOrder: true, canManageServiceOrderStatus: true,
+
+        canAccessCrm: true, canCreateCrmDeal: true, canEditCrmDeal: true,
+        canDeleteCrmDeal: true, canMoveCrmDeal: true, canViewAllCrmDeals: true,
+
+        canAccessCatalog: true, canManageCatalog: true,
       };
 
       try {
@@ -126,7 +136,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Garante que todas as chaves existam fundindo com o padrão
           setPermissions({ ...defaultPermissions, ...profile.permissions });
         } else {
-          console.warn(`UserContext: Perfil '${userData.permissionProfileId}' não encontrado, usando padrão.`);
+          // console.warn(`UserContext: Perfil...`);
           setPermissions(defaultPermissions);
         }
       } catch (e) {
@@ -182,7 +192,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.warn('UserContext: Erro na sessão:', error.message);
+        // console.warn('UserContext: Erro na sessão:', error.message);
         // Se erro crítico (ex: refresh token revogado), logout
         if (error.message.includes('invalid_grant') || error.message.includes('refresh_token_not_found')) {
           await updateUserAndPermissions(null);
@@ -211,7 +221,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (profile && profile.permissionProfileId !== 'profile-admin') {
             const localSessionId = localStorage.getItem('local_session_id');
             if (profile.lastSessionId && profile.lastSessionId !== localSessionId) {
-              console.warn('UserContext: Sessão invalidada por acesso simultâneo em outro dispositivo.');
               showToast('Sua conta foi conectada em outro dispositivo. Desconectando...', 'warning');
               await updateUserAndPermissions(null);
               return;
@@ -324,7 +333,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Apenas chama getUser para validar/refresh token silenciosamente
         const { error } = await supabase.auth.getUser();
         if (error) {
-          console.warn('UserContext: KeepAlive falhou, tentando recuperar sessão...');
           checkSession(false);
         } else {
           // PROATIVO: Mesmo com token OK, verifica se o lastSessionId no Banco mudou

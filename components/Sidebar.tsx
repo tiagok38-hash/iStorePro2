@@ -5,7 +5,7 @@ import {
     LogoIcon, ChevronLeftIcon,
     UserCircleIcon, LogoutIcon,
     Squares2x2Icon, ArchiveBoxIcon, ShoppingCartIcon, CashRegisterIcon, ChartBarIcon,
-    UsersIcon, BuildingOffice2Icon, BanknotesIcon, WrenchIcon
+    UsersIcon, BuildingOffice2Icon, BanknotesIcon, WrenchIcon, WalletIcon
 } from './icons.tsx';
 // ...
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
     { name: 'PDV (Frente de Caixa)', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS' },
     { name: 'Clientes e Fornecedores', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
     { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
+    { name: 'Financeiro', to: '/financeiro', icon: <WalletIcon />, permissionKey: 'canAccessFinanceiro' },
     { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: 'canAccessEmpresa' },
 ];
 import { User, PermissionSet } from '../types.ts';
@@ -97,6 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         { name: 'Clientes e Fornecedores', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
         { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessDashboard' },
         { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
+        { name: 'Financeiro', to: '/financeiro', icon: <WalletIcon />, permissionKey: 'canAccessFinanceiro' },
         { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
     ];
 

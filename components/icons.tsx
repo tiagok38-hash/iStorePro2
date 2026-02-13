@@ -78,7 +78,8 @@ import {
     Filter,
     Phone,
     Mail,
-    ArchiveRestore
+    ArchiveRestore,
+    Wallet
 } from 'lucide-react';
 
 /**
@@ -258,6 +259,7 @@ export const EnvelopeIcon = wrapIcon(Mail);
 export const ArchiveBoxArrowDownIcon = wrapIcon(ArchiveRestore);
 export const MoreVerticalIcon = wrapIcon(MoreVertical);
 export const ArrowUpDownIcon = wrapIcon(ArrowUpDown);
+export const WalletIcon = wrapIcon(Wallet);
 
 const Icon = (props: any) => <div {...props} />;
 export default Icon;

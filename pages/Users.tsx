@@ -22,6 +22,43 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
             { key: 'canAccessFornecedores', label: 'Acessar Fornecedores' },
             { key: 'canAccessRelatorios', label: 'Acessar Relatórios' },
             { key: 'canAccessEmpresa', label: 'Acessar Configurações da Empresa' },
+            { key: 'canAccessServiceOrders', label: 'Acessar Ordens de Serviço' },
+            { key: 'canAccessCrm', label: 'Acessar CRM' },
+            { key: 'canAccessCatalog', label: 'Acessar Catálogo' },
+        ],
+    },
+    {
+        title: 'Módulo Financeiro',
+        permissions: [
+            { key: 'canCreateTransaction', label: 'Criar Receitas/Despesas' },
+            { key: 'canEditTransaction', label: 'Editar Transações' },
+            { key: 'canDeleteTransaction', label: 'Excluir Transações' },
+            { key: 'canViewFinancialKPIs', label: 'Visualizar Indicadores Financeiros' },
+        ],
+    },
+    {
+        title: 'Ordem de Serviço (OS)',
+        permissions: [
+            { key: 'canCreateServiceOrder', label: 'Criar Nova OS' },
+            { key: 'canEditServiceOrder', label: 'Editar OS' },
+            { key: 'canDeleteServiceOrder', label: 'Excluir OS' },
+            { key: 'canManageServiceOrderStatus', label: 'Alterar Status da OS' },
+        ],
+    },
+    {
+        title: 'CRM (Gestão de Leads)',
+        permissions: [
+            { key: 'canCreateCrmDeal', label: 'Criar Leads' },
+            { key: 'canEditCrmDeal', label: 'Editar Leads' },
+            { key: 'canDeleteCrmDeal', label: 'Excluir Leads' },
+            { key: 'canMoveCrmDeal', label: 'Mover Cards (Drag & Drop)' },
+            { key: 'canViewAllCrmDeals', label: 'Visualizar Todos os Leads (Inativo = Só Meus)' },
+        ],
+    },
+    {
+        title: 'Catálogo Digital',
+        permissions: [
+            { key: 'canManageCatalog', label: 'Gerenciar Itens do Catálogo (Adicionar/Editar/Excluir)' },
         ],
     },
     {

@@ -32,6 +32,7 @@ const CatalogLayout = lazy(() => import('./pages/Catalog/CatalogLayout.tsx'));
 const CatalogAdmin = lazy(() => import('./pages/Catalog/CatalogAdmin.tsx'));
 const CatalogSettings = lazy(() => import('./pages/Catalog/CatalogSettings.tsx'));
 const CatalogPublic = lazy(() => import('./pages/Catalog/CatalogPublic.tsx'));
+const Financeiro = lazy(() => import('./pages/Financeiro.tsx'));
 
 
 const MainLayout: React.FC = () => {
@@ -104,6 +105,9 @@ const App: React.FC = () => {
                                     </Route>
                                     <Route element={<ProtectedRoute permissionKey={["canAccessEmpresa", "canEditOwnProfile", "canManageMarcasECategorias"]} />}>
                                         <Route path="/company" element={<Company />} />
+                                    </Route>
+                                    <Route element={<ProtectedRoute permissionKey="canAccessFinanceiro" />}>
+                                        <Route path="/financeiro" element={<Financeiro />} />
                                     </Route>
                                 </Route>
                                 <Route element={<ProtectedRoute permissionKey="canAccessPOS" />}>

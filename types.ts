@@ -57,6 +57,30 @@ export interface PermissionSet {
     canManagePaymentMethods: boolean;
     canManageBackups: boolean;
     canManageParameters: boolean;
+    canAccessFinanceiro: boolean;
+    canCreateTransaction: boolean;
+    canEditTransaction: boolean;
+    canDeleteTransaction: boolean;
+    canViewFinancialKPIs: boolean;
+
+    // Service Order permissions
+    canAccessServiceOrders: boolean;
+    canCreateServiceOrder: boolean;
+    canEditServiceOrder: boolean;
+    canDeleteServiceOrder: boolean;
+    canManageServiceOrderStatus: boolean;
+
+    // CRM permissions
+    canAccessCrm: boolean;
+    canCreateCrmDeal: boolean;
+    canEditCrmDeal: boolean;
+    canDeleteCrmDeal: boolean;
+    canMoveCrmDeal: boolean;
+    canViewAllCrmDeals: boolean;
+
+    // Catalog permissions
+    canAccessCatalog: boolean;
+    canManageCatalog: boolean;
 }
 
 export interface PermissionProfile {
@@ -602,4 +626,75 @@ export interface CatalogItem {
     updatedAt: string;
     // Joined from products table
     product?: Product;
+}
+
+// Financial Module
+export interface TransactionCategory {
+    id: string;
+    name: string;
+    type: 'income' | 'expense';
+    group_name: string;
+    icon?: string;
+    color?: string;
+    is_default?: boolean;
+    company_id?: string;
+}
+
+export interface FinancialTransaction {
+    id: string;
+    type: 'income' | 'expense';
+    description: string;
+    amount: number;
+    category_id: string;
+    category?: TransactionCategory;
+    due_date: string;
+    payment_date?: string;
+    status: 'pending' | 'paid' | 'overdue';
+    payment_method?: string;
+    entity_name?: string;
+    entity_type?: 'customer' | 'supplier';
+    is_recurring: boolean;
+    recurrence_interval?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+    attachment_url?: string;
+    notes?: string;
+    company_id?: string;
+    created_by?: string;
+    created_at: string;
+    updated_at?: string;
+}
+
+// CRM Module
+export type CrmColumn = 'new_leads' | 'negotiating' | 'awaiting_stock' | 'awaiting_payment' | 'won' | 'lost';
+export type CrmPriority = 'hot' | 'warm' | 'cold';
+export type CrmOrigin = 'instagram' | 'whatsapp' | 'indicacao' | 'passante' | 'olx' | 'site' | 'outro';
+
+export interface CrmDeal {
+    id: string;
+    client_id?: string;
+    client_name?: string;
+    client_phone?: string;
+    status_column: CrmColumn;
+    value: number;
+    product_interest?: string;
+    priority: CrmPriority;
+    origin?: CrmOrigin;
+    assigned_to?: string;
+    assigned_to_name?: string;
+    follow_up_date?: string;
+    notes?: string;
+    sort_order: number;
+    company_id?: string;
+    created_by?: string;
+    created_at: string;
+    updated_at?: string;
+}
+
+export interface CrmActivity {
+    id: string;
+    deal_id: string;
+    type: 'note' | 'status_change' | 'follow_up' | 'whatsapp' | 'call';
+    content: string;
+    created_by?: string;
+    created_by_name?: string;
+    created_at: string;
 }

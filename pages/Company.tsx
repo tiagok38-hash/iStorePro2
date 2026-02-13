@@ -624,6 +624,8 @@ const AuditoriaTab: React.FC = () => {
             [AuditEntityType.RECEIPT_TERM]: 'Termo de Recibo',
             [AuditEntityType.PERMISSION_PROFILE]: 'Perfil de Permissão',
             [AuditEntityType.CASH_SESSION]: 'Caixa',
+            [AuditEntityType.SERVICE]: 'Serviço',
+            [AuditEntityType.SERVICE_ORDER]: 'Ordem de Serviço',
         };
         return translations[entity] || entity;
     };
