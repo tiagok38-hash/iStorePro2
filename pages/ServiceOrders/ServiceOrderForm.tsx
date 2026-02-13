@@ -632,7 +632,7 @@ const ServiceOrderForm: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="border border-gray-200 rounded-xl overflow-hidden mb-6">
+                            <div className="border border-gray-200 rounded-xl overflow-x-auto mb-6">
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-50 border-b border-gray-200 text-left text-xs font-bold text-secondary uppercase">
                                         <tr>

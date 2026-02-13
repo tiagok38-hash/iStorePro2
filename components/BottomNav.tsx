@@ -20,10 +20,10 @@ const BottomNav: React.FC = () => {
         { name: 'Dashboard', to: '/', icon: <Squares2x2Icon />, permissionKey: 'canAccessDashboard' },
         { name: 'Estoque', to: '/products', icon: <ArchiveBoxIcon />, permissionKey: 'canAccessEstoque' },
         { name: 'Vendas', to: '/vendas', icon: <BanknotesIcon />, permissionKey: 'canAccessVendas' },
+        { name: 'Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessDashboard' },
         { name: 'PDV', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS' },
-        { name: 'Ordens de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessDashboard' },
-        { name: 'Meu Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessDashboard' },
         { name: 'Clientes', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
+        { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessDashboard' },
         { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
         { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
     ];

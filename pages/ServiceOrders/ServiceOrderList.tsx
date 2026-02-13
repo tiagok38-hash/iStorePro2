@@ -148,7 +148,8 @@ const ServiceOrderList: React.FC = () => {
             {viewMode === 'list' ? (
                 // LIST VIEW
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex-1">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50/50 text-secondary uppercase text-[10px] font-bold tracking-wider">
                                 <tr>
@@ -191,6 +192,38 @@ const ServiceOrderList: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile List View */}
+                    <div className="md:hidden divide-y divide-gray-100">
+                        {isLoading ? (
+                            <div className="p-8 text-center text-secondary">Carregando...</div>
+                        ) : filteredOrders.length === 0 ? (
+                            <div className="p-8 text-center text-secondary">Nenhuma ordem de serviço encontrada.</div>
+                        ) : (
+                            filteredOrders.map(os => (
+                                <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className="p-4 active:bg-gray-50 transition-colors cursor-pointer">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-primary">OS-{os.displayId}</span>
+                                            <span className="text-[10px] text-gray-400">{os.entryDate ? new Date(os.entryDate).toLocaleDateString() : '-'}</span>
+                                        </div>
+                                        <StatusBadge status={os.status} />
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <h4 className="font-bold text-sm text-primary mb-0.5">{os.deviceModel}</h4>
+                                            <p className="text-xs text-secondary flex items-center gap-1">
+                                                <User size={12} /> {os.customerName}
+                                            </p>
+                                        </div>
+                                        {os.total > 0 && (
+                                            <span className="font-bold text-emerald-600 text-sm">R$ {os.total.toLocaleString()}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             ) : (

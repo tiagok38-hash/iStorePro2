@@ -501,7 +501,6 @@ const CatalogPublic: React.FC = () => {
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'catalog_items' },
                 () => {
-                    console.log('Catalog updated, reloading...');
                     loadData();
                 }
             )
@@ -509,7 +508,6 @@ const CatalogPublic: React.FC = () => {
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'catalog_sections' },
                 () => {
-                    console.log('Sections updated, reloading...');
                     loadData();
                 }
             )
@@ -736,11 +734,11 @@ const CatalogPublic: React.FC = () => {
                                     <div className="h-[2px] bg-gray-200 w-full rounded-full"></div>
                                 </div>
 
-                                {/* Horizontal Scroll Container */}
-                                <div className="overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory custom-scrollbar">
-                                    <div className="flex gap-4 w-max">
+                                {sectionName === 'Resultados' ? (
+                                    // Vertical Grid for Results
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-4 sm:px-0">
                                         {sortedItems.map(item => (
-                                            <div key={item.id} className="w-[160px] sm:w-[180px] md:w-[200px] flex-shrink-0 snap-start h-auto flex flex-col">
+                                            <div key={item.id} className="flex flex-col">
                                                 <ProductCard
                                                     item={item}
                                                     onClick={() => setSelectedItem(item)}
@@ -750,7 +748,23 @@ const CatalogPublic: React.FC = () => {
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                ) : (
+                                    // Horizontal Scroll for Sections
+                                    <div className="overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory custom-scrollbar">
+                                        <div className="flex gap-4 w-max">
+                                            {sortedItems.map(item => (
+                                                <div key={item.id} className="w-[160px] sm:w-[180px] md:w-[200px] flex-shrink-0 snap-start h-auto flex flex-col">
+                                                    <ProductCard
+                                                        item={item}
+                                                        onClick={() => setSelectedItem(item)}
+                                                        onAdd={(e) => addToCart(item)}
+                                                        whatsapp={companyInfo?.whatsapp || ''}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </section>
                         );
                     });
