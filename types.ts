@@ -143,7 +143,11 @@ export interface Customer {
     tradeInHistory?: TradeInEntry[];
     instagram?: string;
     active?: boolean;
+    credit_limit?: number;
+    credit_used?: number;
+    allow_credit?: boolean;
 }
+
 
 export type ProductCondition = 'Novo' | 'Seminovo' | 'CPO' | 'Openbox' | 'Reservado';
 
@@ -324,7 +328,18 @@ export interface Payment {
         condition?: string;
         newProductPayload?: any;
     };
+    creditDetails?: {
+        entryAmount: number;
+        installments: number;
+        frequency: 'mensal' | 'quinzenal';
+        firstDueDate: string;
+        interestRate: number;
+        totalAmount: number;
+        installmentValue: number;
+        totalInstallments: number;
+    };
     internalNote?: string;
+    pixVariation?: string; // Selected variation for Pix payments
 }
 
 
@@ -440,6 +455,29 @@ export interface CashSession {
     cashInRegister: number;
     userId: string;
     movements?: CashMovement[];
+}
+
+export interface CreditSettings {
+    id: string;
+    defaultInterestRate: number;
+    lateFeePercentage: number;
+}
+
+export interface CreditInstallment {
+    id: string;
+    saleId: string;
+    customerId: string;
+    installmentNumber: number;
+    totalInstallments: number;
+    dueDate: string;
+    amount: number;
+    status: 'pending' | 'paid' | 'partial' | 'overdue';
+    amountPaid: number;
+    interestApplied: number;
+    penaltyApplied: number;
+    paidAt?: string;
+    paymentMethod?: string;
+    observation?: string;
 }
 
 export interface TodaySale {
@@ -568,6 +606,7 @@ export interface PaymentMethodParameter {
     active: boolean;
     allowInternalNotes?: boolean;
     config?: CardConfigData;
+    variations?: string[];
 }
 
 export interface CompanyInfo {

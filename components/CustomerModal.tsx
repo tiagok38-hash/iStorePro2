@@ -53,6 +53,7 @@ interface CustomerModalProps {
 }
 
 import Button from './Button.tsx';
+import CustomerFinanceTab from './CustomerFinanceTab.tsx';
 
 const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onClose, onSave, isSaving }) => {
     const [activeTab, setActiveTab] = useState('dados');
@@ -101,6 +102,9 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
             id: entity?.id,
             avatarUrl: entity?.avatarUrl,
             instagram: entity?.instagram || '',
+            credit_limit: entity?.credit_limit || 0,
+            credit_used: entity?.credit_used || 0,
+            allow_credit: entity?.allow_credit || false,
         };
 
         setFormData(initialFormData);
@@ -255,6 +259,9 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                         <div className="flex items-center gap-2">
                             <TabButton name="dados" icon={<CheckIcon className="h-4 w-4" />} label="Dados" />
                             <TabButton name="endereco" icon={<CheckIcon className="h-4 w-4" />} label="Endereço" />
+                            {entityType === 'Cliente' && (
+                                <TabButton name="financeiro" icon={<div className="h-4 w-4 flex items-center justify-center font-bold">$</div>} label="Financeiro" />
+                            )}
                         </div>
                     </div>
 
@@ -396,6 +403,12 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                     <div><label className={labelClasses}>UF</label><select name="address.state" value={formData.address?.state || ''} onChange={handleChange} className={inputClasses}><option value="">-</option>{ufs.map(uf => <option key={uf} value={uf}>{uf}</option>)}</select></div>
                                 </div>
                             </div>
+                        )}
+                        {activeTab === 'financeiro' && entityType === 'Cliente' && (
+                            <CustomerFinanceTab
+                                customer={{ ...entity as Customer, ...formData } as any}
+                                onUpdate={(updated) => setFormData(prev => ({ ...prev, ...updated }))}
+                            />
                         )}
                     </div>
 

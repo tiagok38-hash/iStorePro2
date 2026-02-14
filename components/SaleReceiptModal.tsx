@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter, WarrantyParameter } from '../types.ts';
 import { formatCurrency, getCompanyInfo, getReceiptTerms, getWarranties } from '../services/mockApi.ts';
 import { CloseIcon, PrinterIcon, SpinnerIcon } from './icons.tsx';
+import { CarnetPrintButton } from './print/CarnetPrintButton.tsx';
+import { CreditInstallment } from '../types.ts';
 
 const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -382,6 +384,45 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
     );
 };
 
+// Helper to generate installments for printing if they don't exist in the sale object
+const getInstallmentsForPrinting = (sale: Sale): CreditInstallment[] => {
+    const installments: CreditInstallment[] = [];
+
+    sale.payments.forEach(p => {
+        if ((p.method === 'Crediário' || p.method === 'Promissória') && p.creditDetails) {
+            const count = p.creditDetails.installments || (p.installments || 1);
+            const value = p.creditDetails.installmentValue || (p.value / count);
+            const firstDate = p.creditDetails.firstDueDate ? new Date(p.creditDetails.firstDueDate) : new Date();
+
+            for (let i = 0; i < count; i++) {
+                const dueDate = new Date(firstDate);
+                if (p.creditDetails.frequency === 'quinzenal') {
+                    dueDate.setDate(dueDate.getDate() + (i * 15));
+                } else {
+                    dueDate.setMonth(dueDate.getMonth() + i);
+                }
+
+                installments.push({
+                    id: `temp-${sale.id}-${i}`,
+                    saleId: sale.id,
+                    customerId: sale.customerId,
+                    installmentNumber: i + 1,
+                    totalInstallments: count,
+                    dueDate: dueDate.toISOString(),
+                    amount: value,
+                    status: 'pending',
+                    amountPaid: 0,
+                    interestApplied: 0,
+                    penaltyApplied: 0,
+                    paymentMethod: p.method
+                });
+            }
+        }
+    });
+
+    return installments;
+};
+
 const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Product>; customers: Customer[]; users: User[]; onClose: () => void; format: 'A4' | 'thermal'; }> = ({ sale, productMap, customers, users, onClose, format }) => {
     const uniqueId = useId().replace(/:/g, '');
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
@@ -421,6 +462,10 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
         const defaultTerm = receiptTerms.find(t => t.name === 'IPHONE SEMINOVO');
         return receiptTerms.find(t => t.name === sale.warrantyTerm) || defaultTerm;
     }, [receiptTerms, sale.warrantyTerm]);
+
+    // Calculate installments for Carnet button
+    const carnetInstallments = useMemo(() => getInstallmentsForPrinting(sale), [sale]);
+    const showCarnetButton = carnetInstallments.length > 0;
 
     const handlePrint = () => {
         // Use a small timeout to ensure UI state is stable before printing, 
@@ -588,6 +633,14 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                 <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white">
                     <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Recibo da Venda #{sale.id}</h2>
                     <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                        {showCarnetButton && (
+                            <CarnetPrintButton
+                                saleId={sale.id}
+                                installments={carnetInstallments}
+                                buttonLabel="Imprimir Carnê"
+                                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-800 text-white rounded-xl text-xs sm:text-sm hover:bg-gray-900 transition-colors shadow-sm"
+                            />
+                        )}
                         <button onClick={handlePrint} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm hover:bg-opacity-90">
                             <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Imprimir
                         </button>

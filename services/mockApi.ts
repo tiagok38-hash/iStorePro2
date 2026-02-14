@@ -1,9 +1,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn } from '../types.ts';
+import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
+import { calculateInstallmentDates } from '../utils/creditUtils.ts';
 
 // --- CACHE SYSTEM ---
 const cache: Record<string, { data: any, timestamp: number }> = {};
@@ -2069,6 +2070,36 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         }
     }
 
+    // Generate Credit Installments if (Crediário)
+    if (saleData.status === 'Finalizada') {
+        const creditPayment = data.payments?.find((p: any) => p.method === 'Crediário' && p.creditDetails);
+        if (creditPayment && creditPayment.creditDetails) {
+            try {
+                const { creditDetails } = creditPayment;
+                const dates = calculateInstallmentDates(creditDetails.firstDueDate, creditDetails.totalInstallments, creditDetails.frequency);
+
+                const installmentsPayload: CreditInstallment[] = dates.map((date, index) => ({
+                    id: crypto.randomUUID(),
+                    saleId: newSale.id,
+                    customerId: newSale.customer_id,
+                    installmentNumber: index + 1,
+                    totalInstallments: creditDetails.totalInstallments,
+                    dueDate: date,
+                    amount: creditDetails.installmentValue,
+                    status: 'pending',
+                    amountPaid: 0,
+                    interestApplied: 0,
+                    penaltyApplied: 0
+                }));
+
+                await addCreditInstallments(installmentsPayload);
+            } catch (err) {
+                console.error('Failed to create credit installments:', err);
+                // Should we rollback or notify? For now just log.
+            }
+        }
+    }
+
     clearCache(['sales', 'products', 'cash_sessions']);
     return mappedSale;
 };
@@ -2843,6 +2874,10 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
     if (data.customTag) payload.custom_tag = data.customTag;
     if (data.instagram) payload.instagram = data.instagram;
     if (data.active !== undefined) payload.active = data.active;
+    if (data.credit_limit !== undefined) payload.credit_limit = data.credit_limit;
+    if (data.allow_credit !== undefined) payload.allow_credit = data.allow_credit;
+    if (data.credit_used !== undefined) payload.credit_used = data.credit_used;
+
 
     // Address fields
     if (data.address) {
@@ -2973,6 +3008,10 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     if (data.customTag !== undefined) payload.custom_tag = data.customTag || null;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
     if (data.active !== undefined) payload.active = data.active;
+    if (data.credit_limit !== undefined) payload.credit_limit = data.credit_limit;
+    if (data.allow_credit !== undefined) payload.allow_credit = data.allow_credit;
+    if (data.credit_used !== undefined) payload.credit_used = data.credit_used;
+
 
     // Address fields
     if (data.address) {
@@ -3757,7 +3796,7 @@ export const updateReceiptTerm = async (data: any, userId: string = 'system', us
 export const deleteReceiptTerm = (id: string, userId: string = 'system', userName: string = 'Sistema') => deleteItem('receipt_terms', id, 'receipt_terms', userId, userName);
 
 const serializePaymentMethod = (data: any) => {
-    const { type, active, allowInternalNotes, config, ...rest } = data;
+    const { type, active, allowInternalNotes, config, variations, ...rest } = data;
     const safeConfig = config || {};
     return {
         ...rest,
@@ -3765,7 +3804,8 @@ const serializePaymentMethod = (data: any) => {
             ...safeConfig,
             _meta_type: type || 'cash',
             _meta_active: active !== undefined ? active : true,
-            _meta_allow_internal_notes: allowInternalNotes !== undefined ? allowInternalNotes : false
+            _meta_allow_internal_notes: allowInternalNotes !== undefined ? allowInternalNotes : false,
+            _meta_variations: variations || []
         }
     };
 };
@@ -3776,7 +3816,8 @@ const deserializePaymentMethod = (data: any) => {
         ...data,
         type: data.config?._meta_type || 'cash',
         active: data.config?._meta_active !== undefined ? data.config._meta_active : true,
-        allowInternalNotes: data.config?._meta_allow_internal_notes !== undefined ? data.config._meta_allow_internal_notes : false
+        allowInternalNotes: data.config?._meta_allow_internal_notes !== undefined ? data.config._meta_allow_internal_notes : false,
+        variations: data.config?._meta_variations || []
     };
 };
 
@@ -5107,6 +5148,20 @@ export const getFinancialTransactions = async (filters: {
     });
 };
 
+export const getCustomer = async (id: string): Promise<Customer | null> => {
+    const { data, error } = await supabase.from('customers').select('*').eq('id', id).single();
+    if (error) return null;
+    return data;
+};
+
+export const getSale = async (id: string): Promise<Sale | null> => {
+    const { data, error } = await supabase.from('sales').select('*').eq('id', id).single();
+    if (error) return null;
+    return data;
+};
+
+
+
 export const addFinancialTransaction = async (data: Partial<FinancialTransaction>, userId?: string, userName?: string): Promise<FinancialTransaction> => {
     const now = getNowISO();
     const record = {
@@ -5348,4 +5403,215 @@ export const addCrmActivity = async (data: Partial<CrmActivity>): Promise<CrmAct
 
     if (error) throw error;
     return result as CrmActivity;
+};
+// ============================================================
+// CREDIT MANAGEMENT
+// ============================================================
+
+export const getCreditSettings = async (): Promise<CreditSettings> => {
+    try {
+        const { data, error } = await supabase
+            .from('credit_settings')
+            .select('*')
+            .single();
+
+        if (error || !data) {
+            // Return default if not found
+            return { id: 'default', defaultInterestRate: 0, lateFeePercentage: 0 };
+        }
+        return {
+            id: data.id,
+            defaultInterestRate: Number(data.default_interest_rate),
+            lateFeePercentage: Number(data.late_fee_percentage)
+        };
+    } catch (error) {
+        console.error('Error getting credit settings:', error);
+        return { id: 'default', defaultInterestRate: 0, lateFeePercentage: 0 };
+    }
+};
+
+export const updateCreditSettings = async (settings: Partial<CreditSettings>): Promise<CreditSettings> => {
+    // Check if exists
+    const current = await getCreditSettings();
+
+    const payload = {
+        default_interest_rate: settings.defaultInterestRate,
+        late_fee_percentage: settings.lateFeePercentage
+    };
+
+    if (current.id === 'default' || !current.id) {
+        const { data, error } = await supabase
+            .from('credit_settings')
+            .insert([payload])
+            .select()
+            .single();
+        if (error) throw error;
+        return {
+            id: data.id,
+            defaultInterestRate: Number(data.default_interest_rate),
+            lateFeePercentage: Number(data.late_fee_percentage)
+        };
+    } else {
+        const { data, error } = await supabase
+            .from('credit_settings')
+            .update(payload)
+            .eq('id', current.id)
+            .select()
+            .single();
+        if (error) throw error;
+        return {
+            id: data.id,
+            defaultInterestRate: Number(data.default_interest_rate),
+            lateFeePercentage: Number(data.late_fee_percentage)
+        };
+    }
+};
+
+export const addCreditInstallments = async (installments: Omit<CreditInstallment, 'id'>[]): Promise<CreditInstallment[]> => {
+    const payload = installments.map(i => ({
+        sale_id: i.saleId,
+        customer_id: i.customerId,
+        installment_number: i.installmentNumber,
+        total_installments: i.totalInstallments,
+        due_date: i.dueDate,
+        amount: i.amount,
+        status: i.status,
+        amount_paid: i.amountPaid,
+        interest_applied: i.interestApplied,
+        penalty_applied: i.penaltyApplied
+    }));
+
+    const { data, error } = await supabase
+        .from('credit_installments')
+        .insert(payload)
+        .select();
+
+    if (error) {
+        console.error('Error adding credit installments:', error);
+        throw error;
+    }
+
+    return (data || []).map((d: any) => ({
+        id: d.id,
+        saleId: d.sale_id,
+        customerId: d.customer_id,
+        installmentNumber: d.installment_number,
+        totalInstallments: d.total_installments,
+        dueDate: d.due_date,
+        amount: Number(d.amount),
+        status: d.status,
+        amountPaid: Number(d.amount_paid),
+        interestApplied: Number(d.interest_applied),
+        penaltyApplied: Number(d.penalty_applied),
+        paidAt: d.paid_at,
+        paymentMethod: d.payment_method,
+        observation: d.observation
+    }));
+};
+
+export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
+    const { data, error } = await supabase
+        .from('credit_installments')
+        .select(`
+            *,
+            customer:customers(name, phone),
+            sale:sales(id, display_id)
+        `)
+        .order('due_date', { ascending: true });
+
+    if (error) {
+        console.error('Error getting credit installments:', error);
+        return [];
+    }
+
+    return (data || []).map((d: any) => ({
+        id: d.id,
+        saleId: d.sale_id,
+        saleDisplayId: d.sale?.display_id,
+        customerId: d.customer_id,
+        customerName: d.customer?.name,
+        customerPhone: d.customer?.phone,
+        installmentNumber: d.installment_number,
+        totalInstallments: d.total_installments,
+        dueDate: d.due_date,
+        amount: Number(d.amount),
+        status: d.status,
+        amountPaid: Number(d.amount_paid),
+        interestApplied: Number(d.interest_applied),
+        penaltyApplied: Number(d.penalty_applied),
+        paidAt: d.paid_at,
+        paymentMethod: d.payment_method,
+        observation: d.observation
+    }));
+};
+
+export const payInstallment = async (
+    id: string,
+    amountPaid: number,
+    method: string,
+    penalty: number,
+    observation?: string
+): Promise<CreditInstallment> => {
+    const now = new Date().toISOString();
+
+    // First get current installment to check total
+    const { data: current, error: fetchError } = await supabase
+        .from('credit_installments')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (fetchError) throw fetchError;
+
+    const totalDue = Number(current.amount) + penalty;
+    const newAmountPaid = Number(current.amount_paid) + amountPaid;
+
+    // Determine status
+    // Floating point comparison safety margin
+    let newStatus = 'pending';
+    if (newAmountPaid >= totalDue - 0.01) {
+        newStatus = 'paid';
+    } else if (newAmountPaid > 0) {
+        newStatus = 'partial';
+    }
+
+    const { data, error } = await supabase
+        .from('credit_installments')
+        .update({
+            amount_paid: newAmountPaid,
+            penalty_applied: penalty, // This overwrites, assumes penalty is passed as total accumulate or just for this payment?
+            // Implementation detail: for simplicity let's assume penalty is set once or accumulated. 
+            // If partial payment, logic might be complex. 
+            // ideally we simply update penalty_applied to what the user confirmed.
+            status: newStatus,
+            paid_at: now,
+            payment_method: method,
+            observation: observation
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // TODO: Create a FinancialTransaction for this payment ("Receita")
+    // This is important for the cash register flow.
+    // For now, we just return the updated installment.
+
+    return {
+        id: data.id,
+        saleId: data.sale_id,
+        customerId: data.customer_id,
+        installmentNumber: data.installment_number,
+        totalInstallments: data.total_installments,
+        dueDate: data.due_date,
+        amount: Number(data.amount),
+        status: data.status,
+        amountPaid: Number(data.amount_paid),
+        interestApplied: Number(data.interest_applied),
+        penaltyApplied: Number(data.penalty_applied),
+        paidAt: data.paid_at,
+        paymentMethod: data.payment_method,
+        observation: data.observation
+    };
 };

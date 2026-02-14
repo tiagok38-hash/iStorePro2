@@ -216,7 +216,14 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                             return (
                                                 <div key={payment.id} className="p-3 bg-surface-secondary rounded-xl">
                                                     <div className="flex justify-between items-center">
-                                                        <p className="font-medium text-primary">{payment.card || payment.method}</p>
+                                                        <p className="font-medium text-primary">
+                                                            {payment.card || payment.method}
+                                                            {payment.pixVariation && (
+                                                                <span className="ml-2 text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 font-bold uppercase tracking-wider transform translate-y-[-1px] inline-block">
+                                                                    {payment.pixVariation}
+                                                                </span>
+                                                            )}
+                                                        </p>
                                                         <span className="font-semibold">{formatCurrency(payment.value + (payment.fees || 0))}</span>
                                                     </div>
                                                     {payment.internalNote && (

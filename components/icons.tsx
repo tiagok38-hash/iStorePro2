@@ -50,6 +50,7 @@ import {
     Calculator,
     Undo,
     Upload,
+    Download,
     XCircle,
     CheckCircle2,
     AlertTriangle,
@@ -155,21 +156,13 @@ export const AppleIcon = ({ className = '', ...props }: IconProps) => (
 );
 
 export const PixIcon = ({ className = '', ...props }: IconProps) => (
-    <svg
-        width={props.size || ICON_SIZE}
-        height={props.size || ICON_SIZE}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={props.strokeWidth || STROKE_WIDTH}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-        {...props}
-    >
-        <path d="M12 3L4 11L12 19L20 11L12 3Z" />
-        <path d="M8 11L12 15L16 11L12 7L8 11Z" />
-    </svg>
+    <div className={`${className} flex items-center justify-center p-0.5`} {...props as any}>
+        <img
+            src="/pix-outline.jpg"
+            alt="Pix"
+            className="w-full h-full object-contain mix-blend-multiply"
+        />
+    </div>
 );
 
 export const WhatsAppIcon = ({ className = '', ...props }: IconProps) => (
@@ -212,6 +205,7 @@ export const ShoppingCartPlusIcon = wrapIcon(ShoppingCart); // Lucide doesn't ha
 export const CalculatorIcon = wrapIcon(Calculator);
 export const ArrowUturnLeftIcon = wrapIcon(Undo);
 export const DocumentArrowUpIcon = wrapIcon(Upload);
+export const DownloadIcon = wrapIcon(Download);
 export const XCircleIcon = wrapIcon(XCircle);
 export const SuccessIcon = wrapIcon(CheckCircle2);
 export const ErrorIcon = wrapIcon(AlertTriangle);

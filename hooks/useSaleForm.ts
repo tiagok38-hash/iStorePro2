@@ -71,6 +71,7 @@ export const useSaleForm = ({
         amount: number,
         cardType?: 'Crédito' | 'Débito',
         internalNote?: string,
+        pixVariation?: string,
     } | null>(null);
 
     const resetState = useCallback(() => {
@@ -289,7 +290,7 @@ export const useSaleForm = ({
 
 
 
-    const handleRequestPayment = useCallback((label: string) => {
+    const handleRequestPayment = useCallback((label: string, variation?: string) => {
         const methodParam = paymentMethods.find(p => p.name === label);
         const lowerLabel = label.toLowerCase();
         const isTradeIn = lowerLabel.includes('troca') || lowerLabel.includes('entrada') || methodParam?.name === 'Aparelho na Troca';
@@ -310,7 +311,7 @@ export const useSaleForm = ({
             setCardTransactionType(lowerLabel.includes('débito') || lowerLabel.includes('debito') ? 'debit' : 'credit');
             setIsCardPaymentModalOpen(true);
         }
-        else setPaymentInput({ method: label as any, amount: parseFloat(balance.toFixed(2)) });
+        else setPaymentInput({ method: label as any, amount: parseFloat(balance.toFixed(2)), pixVariation: variation });
     }, [balance, paymentMethods, handleOpenTradeInModal, showToast]);
 
 
@@ -326,7 +327,9 @@ export const useSaleForm = ({
             method: method as PaymentMethodType,
             value: paymentInput.amount,
             type: methodDef?.type,
-            internalNote: paymentInput.internalNote
+            type: methodDef?.type,
+            internalNote: paymentInput.internalNote,
+            pixVariation: paymentInput.pixVariation
         };
         setPayments(prev => [...prev, newPayment]);
         setPaymentInput(null);
@@ -599,7 +602,7 @@ export const useSaleForm = ({
             handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
             handleOpenTradeInModal, handleRequestPayment, handleConfirmPayment,
             handleConfirmCardPayment, handleRemovePayment, handleSaveTradeInProduct, handleSaveTradeInFromModal, handleSave,
-            setSelectedPriceType, handleCancelReservation,
+            setSelectedPriceType, handleCancelReservation, addPayment: (p: Payment) => setPayments(prev => [...prev, p]),
 
             resetState
         },

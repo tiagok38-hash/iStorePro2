@@ -22,8 +22,10 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, o
         name: '',
         type: 'cash',
         active: true,
-        config: defaultCardConfig
+        config: defaultCardConfig,
+        variations: []
     });
+    const [newVariation, setNewVariation] = useState('');
 
     useEffect(() => {
         if (item) {
@@ -32,6 +34,7 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, o
                 name: item.name || '',
                 type: item.type || 'cash',
                 active: item.active !== undefined ? item.active : true, // Default to true if undefined
+                variations: item.variations || [],
                 config: item.config ? {
                     debitRate: item.config.debitRate,
                     creditNoInterestRates: ensureInstallments(item.config.creditNoInterestRates),
@@ -144,6 +147,76 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, o
                                 </select>
                             </div>
                         </div>
+
+                        {/* Variations Section for Pix/Cash */}
+                        {(formData.type === 'cash' || formData.name?.toLowerCase().includes('pix')) && (
+                            <div className="p-4 bg-gray-50 rounded-2xl border border-border">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div>
+                                        <p className="font-bold text-sm text-primary">Variações (Opcional)</p>
+                                        <p className="text-xs text-muted">Ex: Nome do Banco, Chave Pix, Titular.</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newVariation}
+                                            onChange={(e) => setNewVariation(e.target.value)}
+                                            placeholder="Nome da variação"
+                                            className={`${inputClasses} flex-1`}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    if (newVariation.trim()) {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            variations: [...(prev.variations || []), newVariation.trim()]
+                                                        }));
+                                                        setNewVariation('');
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (newVariation.trim()) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        variations: [...(prev.variations || []), newVariation.trim()]
+                                                    }));
+                                                    setNewVariation('');
+                                                }
+                                            }}
+                                            className="text-xs bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary-hover font-bold"
+                                        >
+                                            Adicionar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {formData.variations && formData.variations.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {formData.variations.map((v, idx) => (
+                                            <div key={idx} className="flex items-center gap-1 bg-white border border-border px-2 py-1 rounded-md shadow-sm">
+                                                <span className="text-sm font-medium">{v}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        variations: prev.variations?.filter((_, i) => i !== idx)
+                                                    }))}
+                                                    className="text-muted hover:text-danger ml-1"
+                                                >
+                                                    <CloseIcon className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-muted italic mt-1">Nenhuma variação cadastrada.</p>
+                                )}
+                            </div>
+                        )}
 
                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-border">
                             <div>

@@ -20,6 +20,8 @@ import {
     TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle,
     AlertTriangle, CreditCard, Receipt, Repeat, FileText, ChevronDown, ChevronUp, Pencil
 } from 'lucide-react';
+import CreditDashboard from '../components/CreditDashboard.tsx';
+import TransactionsFilterModal from '../components/TransactionsFilterModal.tsx';
 
 // ============================================================
 // Helper
@@ -609,29 +611,29 @@ const Financeiro: React.FC = () => {
                         <p className="text-xs text-muted font-medium">Gestão de receitas e despesas</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => { setEditItem(null); setModalOpen(true); }}
-                    className="flex items-center justify-center gap-2 h-11 px-5 bg-accent text-white rounded-2xl font-bold text-sm shadow-lg shadow-accent/25 hover:shadow-xl hover:shadow-accent/30 active:scale-[0.98] transition-all"
-                >
-                    <PlusIcon className="h-4 w-4" />
-                    Nova Transação
-                </button>
+                {activeTab === 'transactions' && (
+                    <button
+                        onClick={() => { setEditItem(null); setModalOpen(true); }}
+                        className="flex items-center justify-center gap-2 h-11 px-5 bg-accent text-white rounded-2xl font-bold text-sm shadow-lg shadow-accent/25 hover:shadow-xl hover:shadow-accent/30 active:scale-[0.98] transition-all"
+                    >
+                        <PlusIcon className="h-4 w-4" />
+                        Nova Transação
+                    </button>
+                )}
             </div>
 
             {/* Tabs */}
-            <div className="flex bg-gray-100 rounded-2xl p-1 gap-1 mb-6">
+            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm mb-6">
                 <button
                     onClick={() => setActiveTab('transactions')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'transactions' ? 'bg-white text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+                    className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === 'transactions' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                 >
-                    <Receipt size={16} />
                     Receitas e Despesas
                 </button>
                 <button
                     onClick={() => setActiveTab('installments')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'installments' ? 'bg-white text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+                    className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === 'installments' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                 >
-                    <CreditCard size={16} />
                     Crediários
                 </button>
             </div>
@@ -885,15 +887,8 @@ const Financeiro: React.FC = () => {
                     </div>
                 </>
             ) : (
-                /* Crediários Tab - Placeholder */
-                <div className="bg-surface rounded-3xl border border-border shadow-sm p-12 text-center">
-                    <div className="p-5 bg-violet-50 rounded-2xl inline-block mb-4">
-                        <CreditCard size={40} className="text-violet-400" />
-                    </div>
-                    <h3 className="text-xl font-black text-primary mb-2">Crediários</h3>
-                    <p className="text-sm text-muted max-w-md mx-auto">
-                        Módulo de gestão de crediários em desenvolvimento. Em breve você poderá acompanhar parcelas, cobranças e recebimentos de crediário.
-                    </p>
+                <div className="animate-fade-in">
+                    <CreditDashboard />
                 </div>
             )}
 
@@ -914,7 +909,7 @@ const Financeiro: React.FC = () => {
                 description={deleteItem?.description || ''}
                 deleting={deleting}
             />
-        </div>
+        </div >
     );
 };
 

@@ -37,6 +37,7 @@ const PurchaseOrderModal = lazy(() => import('../components/PurchaseOrderModal.t
 const StockInModal = lazy(() => import('../components/StockInModal.tsx'));
 const PriceListModal = lazy(() => import('../components/PriceListModal.tsx'));
 const StockComparisonModal = lazy(() => import('../components/StockComparisonModal.tsx'));
+const LabelGeneratorModal = lazy(() => import('../components/LabelGenerator/LabelGeneratorModal.tsx'));
 
 
 const ProductActionsDropdown: React.FC<{ onHistory: () => void, onUpdateStock: () => void, onEdit: () => void, onDelete: () => void, permissions: PermissionSet | null }> = ({ onHistory, onUpdateStock, onEdit, onDelete, permissions }) => {
@@ -210,6 +211,7 @@ const Products: React.FC = () => {
     const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState(false);
     const [isBulkLocationUpdateModalOpen, setIsBulkLocationUpdateModalOpen] = useState(false);
     const [isUpdateStockModalOpen, setIsUpdateStockModalOpen] = useState(false);
+    const [isLabelGeneratorModalOpen, setIsLabelGeneratorModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [productForHistory, setProductForHistory] = useState<Product | null>(null);
@@ -853,7 +855,10 @@ const Products: React.FC = () => {
                             <Cog6ToothIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" /> Parâmetros
                         </Link>
                     )}
-                    <button className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider">
+                    <button
+                        onClick={() => setIsLabelGeneratorModalOpen(true)}
+                        className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
+                    >
                         <TicketIcon className="h-5 w-5 text-gray-500" /> Etiquetas
                     </button>
                     <button
@@ -1412,6 +1417,7 @@ const Products: React.FC = () => {
                 <ProductModal isOpen={isProductModalOpen} product={editingProduct} suppliers={suppliers} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onClose={handleCloseProductModal} onSave={handleSaveProduct} customers={customers} onAddNewSupplier={handleAddNewSupplier} />
                 {isPriceListModalOpen && <PriceListModal isOpen={isPriceListModalOpen} onClose={() => setIsPriceListModalOpen(false)} products={products} hideSummary={true} />}
                 {isStockComparisonModalOpen && <StockComparisonModal products={products} locations={storageLocations} onClose={() => setIsStockComparisonModalOpen(false)} />}
+                {isLabelGeneratorModalOpen && <LabelGeneratorModal isOpen={isLabelGeneratorModalOpen} onClose={() => setIsLabelGeneratorModalOpen(false)} availableProducts={products} purchases={purchases} />}
                 {isNewPurchaseModalOpen && <PurchaseOrderModal suppliers={suppliers} customers={customers} products={products} onClose={handleCloseNewPurchaseModal} purchaseOrderToEdit={purchaseToEdit} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onAddNewSupplier={handleAddNewSupplier} />}
                 {stockInPurchase && <StockInModal purchaseOrder={stockInPurchase} onClose={handleCloseStockInModal} allProducts={products} grades={grades} gradeValues={gradeValues} />}
             </Suspense>

@@ -8,7 +8,7 @@ import {
 import { formatCurrency, getNextSaleId } from '../../services/mockApi.ts';
 import {
     PlusIcon, MinusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon,
-    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon
+    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon
 } from '../icons.tsx';
 import SearchableDropdown from '../SearchableDropdown.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
@@ -17,6 +17,10 @@ import CustomDatePicker from '../CustomDatePicker.tsx';
 import { toDateValue } from '../../utils/dateUtils.ts';
 import ProductModal from '../ProductModal.tsx';
 import CardPaymentModal from '../CardPaymentModal.tsx';
+import NewCreditModal from '../modals/NewCreditModal.tsx';
+import CreditLimitWarning from '../modals/CreditLimitWarning.tsx';
+import { checkCreditLimit } from '../../utils/creditUtils.ts';
+
 
 import { useSaleForm } from '../../hooks/useSaleForm.ts';
 import { getPaymentIcon } from './utils';
@@ -51,6 +55,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
     const [matchingUnits, setMatchingUnits] = React.useState<Product[]>([]);
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
+    const [isCreditModalOpen, setIsCreditModalOpen] = React.useState(false);
+    const [creditWarning, setCreditWarning] = React.useState<{ isOpen: boolean, customerName: string, creditLimit: number, creditUsed: number, purchaseAmount: number } | null>(null);
+    const [variationModalConfig, setVariationModalConfig] = React.useState<{ isOpen: boolean, method: string, variations: string[] } | null>(null);
+
 
     const { state, actions, refs } = useSaleForm(props);
 
@@ -72,7 +80,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
         handleRequestPayment, handleConfirmPayment, handleConfirmCardPayment,
         handleRemovePayment, handleSaveTradeInProduct, handleSave, setSelectedPriceType,
-        handleCancelReservation
+        handleCancelReservation, addPayment
     } = actions;
 
     const handleCancelVenda = () => {
@@ -226,6 +234,12 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         if (!dynamic.find(d => d.label === 'Aparelho na Troca')) {
             dynamic.push({ label: 'Aparelho na Troca', icon: <DeviceExchangeIcon /> });
         }
+
+        // Ensure Crediário/Promissória is visible or added if not in paymentMethods (though it should be)
+        if (!dynamic.find(d => d.label === 'Crediário' || d.label === 'Promissória')) {
+            dynamic.push({ label: 'Crediário', icon: <div className="text-[10px] font-black border-2 border-current px-1 rounded">CRE</div> });
+        }
+
         return dynamic;
     }, [paymentMethods]);
 
@@ -604,7 +618,40 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             <button
                                                 key={label}
                                                 type="button"
-                                                onClick={() => handleRequestPayment(label)}
+                                                onClick={() => {
+                                                    if (label === 'Crediário' || label === 'Promissória') {
+                                                        if (balance <= 0.01) {
+                                                            alert('Não há saldo pendente para parcelar.');
+                                                            return;
+                                                        }
+
+                                                        // Validação de Limite de Crédito
+                                                        const customerForCredit = customers.find(c => c.id === selectedCustomerId);
+                                                        if (customerForCredit) {
+                                                            const limitCheck = checkCreditLimit(customerForCredit, balance);
+                                                            if (!limitCheck.allowed) {
+                                                                setCreditWarning({
+                                                                    isOpen: true,
+                                                                    customerName: customerForCredit.name,
+                                                                    creditLimit: customerForCredit.credit_limit || 0,
+                                                                    creditUsed: customerForCredit.credit_used || 0,
+                                                                    purchaseAmount: balance
+                                                                });
+                                                                return;
+                                                            }
+                                                        }
+
+                                                        setIsCreditModalOpen(true);
+
+                                                    } else {
+                                                        const methodParam = paymentMethods.find(p => p.name === label);
+                                                        if (methodParam?.variations && methodParam.variations.length > 0) {
+                                                            setVariationModalConfig({ isOpen: true, method: label, variations: methodParam.variations });
+                                                        } else {
+                                                            handleRequestPayment(label);
+                                                        }
+                                                    }
+                                                }}
                                                 disabled={cart.length === 0}
                                                 className="w-full p-1.5 py-2 rounded-xl border border-gray-200 hover:border-success hover:bg-success-light transition-all flex flex-col items-center justify-center gap-1 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-gray-200 min-h-[58px] sm:min-h-[64px]"
                                             >
@@ -617,7 +664,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     {paymentInput && (
                                         <div className="p-2 bg-success-light border border-success/30 rounded-xl flex items-end gap-2 animate-slide-down">
                                             <div className="flex-grow">
-                                                <label className="text-[9px] font-bold text-success-dark mb-1 block">Valor ({paymentInput.method})</label>
+                                                <label className="text-[9px] font-bold text-success-dark mb-1 block">
+                                                    Valor ({paymentInput.method}
+                                                    {paymentInput.pixVariation && <span className="text-[8px] font-normal ml-1 opacity-80">- {paymentInput.pixVariation}</span>}
+                                                    )
+                                                </label>
                                                 <CurrencyInput value={paymentInput.amount} onChange={v => setPaymentInput(p => p ? { ...p, amount: v || 0 } : null)} />
                                             </div>
                                             {paymentMethods.find(m => m.name === paymentInput.method)?.allowInternalNotes && (
@@ -759,6 +810,35 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 </div>
             </div>
 
+            {/* Modal de Variações de Pagamento (ex: Pix) */}
+            {variationModalConfig?.isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+                        <div className="bg-gray-50 border-b border-gray-100 p-4 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-gray-800">Selecione a Opção de Pix</h3>
+                            <button onClick={() => setVariationModalConfig(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+                                <XCircleIcon className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            {variationModalConfig.variations.map((variation, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        handleRequestPayment(variationModalConfig.method, variation);
+                                        setVariationModalConfig(null);
+                                    }}
+                                    className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-primary hover:bg-primary/5 transition-all font-bold text-gray-700 flex justify-between items-center group"
+                                >
+                                    <span>{variation}</span>
+                                    <ChevronRightIcon className="h-5 w-5 text-gray-300 group-hover:text-success transition-colors" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isSaving && (
                 <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-auto">
                     <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 max-w-xs w-full text-center animate-scale-in">
@@ -798,21 +878,69 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
             <ProductModal
                 product={productForTradeIn}
                 isOpen={isTradeInProductModalOpen}
-                isTradeInMode={true}
-                suppliers={localSuppliers}
-                brands={brands}
-                categories={categories}
-                productModels={productModels}
-                grades={grades}
-                gradeValues={gradeValues}
-                customers={customers}
-                onClose={() => {
-                    setIsTradeInProductModalOpen(false);
-                    setProductForTradeIn(null);
-                }}
+                onClose={() => setIsTradeInProductModalOpen(false)}
                 onSave={handleSaveTradeInProduct}
-                onAddNewSupplier={async () => null}
             />
+
+            <NewCreditModal
+                isOpen={isCreditModalOpen}
+                onClose={() => setIsCreditModalOpen(false)}
+                totalAmount={balance} // Pass balance as the amount to finance
+                onConfirm={(details) => {
+                    // 1. Add Entry if any (Assuming Money for now, or we could ask)
+                    if (details.entryAmount > 0) {
+                        addPayment({
+                            id: `pay-entry-${Date.now()}`,
+                            method: 'Dinheiro',
+                            value: details.entryAmount,
+                            type: 'Dinheiro',
+                            internalNote: 'Entrada Crediário'
+                        });
+                    }
+
+                    // 2. Add Credit Payment
+                    const financed = details.totalInstallments * (details.interestRate ? 1 : 1); // logic handled in modal
+                    // The value of the payment should act as "covering" the balance.
+                    // The modal returns logic. 
+                    // Wait, the payment value in the system should be the PRINCIPAL financed (so balance becomes 0).
+                    // The INTEREST is added to the installments but not necessarily to the sale total revenue right now?
+                    // Standard accounting: Sale Value = X.  Payment = Credit (X). 
+                    // Interest is financial income recognized later or accrued.
+                    // IMPORTANT: PROMISSORY NOTE VALUE = Principal + Interest.
+                    // But for the SALE balance to reach 0, we pay the Principal.
+
+                    // However, if we want the sale total to reflect the interest, we would need to add an item "Juros" or adjust total?
+                    // Usually simpler: Payment Value = Principal. The "Debt" is Principal + Interest.
+                    // Let's use Principal amount for the Payment record to clear the sale balance.
+                    // The `creditDetails` will hold the real debt info.
+
+                    const principal = Math.max(0, balance - details.entryAmount);
+
+                    addPayment({
+                        id: `pay-credit-${Date.now()}`,
+                        method: 'Crediário',
+                        value: principal,
+                        type: 'Outros',
+                        creditDetails: details
+                    });
+                }}
+            />
+
+            {creditWarning && (
+                <CreditLimitWarning
+                    isOpen={creditWarning.isOpen}
+                    onClose={() => setCreditWarning(null)}
+                    customerName={creditWarning.customerName}
+                    creditLimit={creditWarning.creditLimit}
+                    creditUsed={creditWarning.creditUsed}
+                    purchaseAmount={creditWarning.purchaseAmount}
+                    onOpenProfile={() => {
+                        setCreditWarning(null);
+                        setIsCustomerModalOpen(true);
+                    }}
+                />
+            )}
+
 
 
             <CardPaymentModal
