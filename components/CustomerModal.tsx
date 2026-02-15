@@ -211,6 +211,13 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!formData.name || formData.name.trim() === '') {
+            showToast('O nome é obrigatório.', 'error');
+            setActiveTab('dados');
+            return;
+        }
+
         onSave(formData, entityType, personType);
     };
 

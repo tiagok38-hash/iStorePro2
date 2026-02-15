@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Customer } from '../types.ts';
-import { formatCurrency, getSales } from '../services/mockApi.ts';
-import { TrendingUp, TrendingDown, AlertTriangle, ShieldCheck, ShieldAlert, History } from 'lucide-react';
+import { formatCurrency, getSales, syncCustomerCreditLimit } from '../services/mockApi.ts';
+import { TrendingUp, TrendingDown, AlertTriangle, ShieldCheck, ShieldAlert, History, RefreshCcw } from 'lucide-react';
 
 interface CustomerFinanceTabProps {
     customer: Customer;
@@ -11,24 +11,37 @@ interface CustomerFinanceTabProps {
 const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpdate }) => {
     const [allowCredit, setAllowCredit] = useState(customer.allow_credit || false);
     const [creditLimit, setCreditLimit] = useState(customer.credit_limit || 0);
-    const [creditUsed, setCreditUsed] = useState(customer.credit_used || 0); // In a real app, this should be calculated from open invoices
+    const [creditUsed, setCreditUsed] = useState(customer.credit_used || 0);
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
     const [adjustmentType, setAdjustmentType] = useState<'increase' | 'decrease'>('increase');
     const [adjustmentValue, setAdjustmentValue] = useState('');
     const [pendingSales, setPendingSales] = useState<any[]>([]);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleSync = async () => {
+        setIsSyncing(true);
+        try {
+            const newUsed = await syncCustomerCreditLimit(customer.id);
+            setCreditUsed(newUsed);
+            onUpdate({ credit_used: newUsed });
+        } catch (err) {
+            console.error('Failed to sync credit:', err);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     useEffect(() => {
-        // Mock fetching pending sales for history
-        // in real scenario: fetch sales where customerId = customer.id and status = pending/partial
+        // Sync on mount
+        handleSync();
+
         getSales().then(sales => {
             const customerSales = sales.filter(s =>
                 s.customerId === customer.id &&
-                s.payments.some(p => (p.method === 'Crediário' || p.method === 'Promissória'))
+                s.payments.some(p => (p.method === 'Crediário' || p.method === 'Promissória')) &&
+                s.status !== 'Cancelada'
             );
             setPendingSales(customerSales);
-
-            // Recalculate credit used based on open installments
-            // This is a simplification. Real logic should sum open installments.
         });
     }, [customer.id]);
 
@@ -45,7 +58,8 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
     };
 
     const handleConfirmAdjustment = () => {
-        const val = parseFloat(adjustmentValue.replace(/[^\d.,]/g, '').replace(',', '.'));
+        // Remove thousands separators (dots) and replace decimal separator (comma) with dot
+        const val = parseFloat(adjustmentValue.replace(/\./g, '').replace(',', '.'));
         if (isNaN(val) || val <= 0) return;
 
         let newLimit = creditLimit;
@@ -130,6 +144,15 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                             <div className="flex gap-2">
                                 <button
                                     type="button"
+                                    onClick={handleSync}
+                                    disabled={isSyncing}
+                                    className={`p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors ${isSyncing ? 'animate-spin' : ''}`}
+                                    title="Sincronizar Limite"
+                                >
+                                    <RefreshCcw size={18} />
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => handleOpenAdjustment('decrease')}
                                     className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                                     title="Diminuir Limite"
@@ -193,15 +216,24 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {pendingSales.map(sale => (
-                                        <tr key={sale.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-gray-600">{new Date(sale.date).toLocaleDateString()}</td>
-                                            <td className="px-4 py-3 font-medium text-gray-800">#{sale.id.slice(0, 8)}</td>
-                                            <td className="px-4 py-3 text-right font-bold text-gray-800">
-                                                {formatCurrency(sale.total)} {/* Simplified, should show remaining balance */}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {pendingSales.map(sale => {
+                                        const creditPayment = sale.payments?.find((p: any) => p.method === 'Crediário' || p.method === 'Promissória');
+                                        const creditValue = creditPayment ? creditPayment.value : 0;
+                                        const installmentCount = creditPayment?.creditDetails?.installments || creditPayment?.creditDetails?.totalInstallments;
+
+                                        return (
+                                            <tr key={sale.id} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 text-gray-600">{new Date(sale.date).toLocaleDateString()}</td>
+                                                <td className="px-4 py-3 font-medium text-gray-800">
+                                                    #{sale.id.slice(0, 8)}
+                                                    {installmentCount && <span className="text-xs text-gray-500 ml-1">({installmentCount}x)</span>}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-bold text-gray-800">
+                                                    {formatCurrency(sale.currentDebtBalance && sale.currentDebtBalance > 0 ? sale.currentDebtBalance : creditValue)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         )}

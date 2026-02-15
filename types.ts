@@ -342,6 +342,15 @@ export interface Payment {
     pixVariation?: string; // Selected variation for Pix payments
 }
 
+export interface AmortizationEntry {
+    number: number;
+    installmentAmount: number;
+    amortization: number;
+    interest: number;
+    remainingBalance: number;
+}
+
+
 
 export interface Sale {
     id: string;
@@ -363,6 +372,12 @@ export interface Sale {
     cancellationReason?: string;
     cashSessionId?: string;
     cashSessionDisplayId?: number;
+    // Credit Amortization Rules
+    interestRate?: number;
+    totalFinanced?: number;
+    installmentAmount?: number;
+    currentDebtBalance?: number;
+    amortizationTable?: AmortizationEntry[];
 }
 
 export interface Supplier {
@@ -478,6 +493,14 @@ export interface CreditInstallment {
     paidAt?: string;
     paymentMethod?: string;
     observation?: string;
+    amortizationValue?: number;
+    interestValue?: number;
+    remainingBalance?: number;
+
+    // UI Helper fields (calculated or joined)
+    saleDisplayId?: string | number;
+    customerName?: string;
+    customerPhone?: string;
 }
 
 export interface TodaySale {

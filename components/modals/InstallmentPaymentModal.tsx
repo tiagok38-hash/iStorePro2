@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, BanknoteIcon, CalendarIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
+import { CloseIcon as XIcon, BanknotesIcon as BanknoteIcon, CalendarDaysIcon as CalendarIcon, ErrorIcon as AlertTriangleIcon, CheckIcon as CheckCircleIcon } from '../icons.tsx';
 import { formatCurrency, getCreditSettings, payInstallment } from '../../services/mockApi.ts';
 import CustomDatePicker from '../CustomDatePicker.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
@@ -11,9 +11,11 @@ interface InstallmentPaymentModalProps {
     onClose: () => void;
     installment: CreditInstallment | null;
     onPaymentSuccess: (updatedInstallment: CreditInstallment) => void;
+    userId?: string;
+    userName?: string;
 }
 
-const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpen, onClose, installment, onPaymentSuccess }) => {
+const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpen, onClose, installment, onPaymentSuccess, userId, userName }) => {
     const [amountToPay, setAmountToPay] = useState(0);
     const [penalty, setPenalty] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
@@ -79,7 +81,9 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                 amountToPay,
                 paymentMethod,
                 penalty,
-                observation
+                observation,
+                userId,
+                userName
             );
             onPaymentSuccess(updated);
             onClose();
@@ -141,17 +145,17 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                     )}
 
                     <div className="space-y-3">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Valor a Pagar</label>
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-end mb-1">
+                                <label className="block text-xs font-bold text-gray-700 uppercase">Valor a Pagar</label>
+                                <span className="text-[10px] font-bold text-gray-400">Total Devido: {formatCurrency(totalDue)}</span>
+                            </div>
                             <div className="relative">
                                 <CurrencyInput
                                     value={amountToPay}
                                     onChange={setAmountToPay}
-                                    className="h-12 text-lg bg-gray-50 font-black text-gray-900 border-gray-200 focus:border-indigo-500 transition-colors"
+                                    className="h-12 text-lg bg-gray-50 font-black text-gray-900 border-gray-200 focus:border-indigo-500 transition-colors pr-4"
                                 />
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 pointer-events-none">
-                                    de {formatCurrency(totalDue)}
-                                </div>
                             </div>
                             {!isPayingFull && (
                                 <p className="text-[10px] font-bold text-orange-500 mt-1 flex items-center gap-1">

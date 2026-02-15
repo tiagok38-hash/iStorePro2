@@ -488,6 +488,9 @@ const CustomersAndSuppliers: React.FC = () => {
                     address: entityData.address,
                     avatarUrl: entityData.avatarUrl,
                     instagram: entityData.instagram,
+                    credit_limit: entityData.credit_limit,
+                    credit_used: entityData.credit_used,
+                    allow_credit: entityData.allow_credit,
                 };
                 if (personType === 'Pessoa Física') {
                     customerPayload.cpf = entityData.cpf;
@@ -584,7 +587,9 @@ const CustomersAndSuppliers: React.FC = () => {
                 const current = totals.get(sale.customerId) || 0;
                 totals.set(sale.customerId, current + sale.total);
 
-                const debt = sale.payments.filter(p => p.type === 'pending').reduce((sum, p) => sum + p.value, 0);
+                const debt = sale.payments
+                    .filter(p => p.type === 'pending' && p.method !== 'Crediário' && p.method !== 'Crediario')
+                    .reduce((sum, p) => sum + p.value, 0);
                 if (debt > 0) {
                     const currentDebt = debts.get(sale.customerId) || 0;
                     debts.set(sale.customerId, currentDebt + debt);
@@ -607,7 +612,7 @@ const CustomersAndSuppliers: React.FC = () => {
         const customersWithStats = filtered.map(c => ({
             ...c,
             totalPurchases: customerStats.totals.get(c.id) || 0,
-            debt: customerStats.debts.get(c.id) || 0
+            debt: (customerStats.debts.get(c.id) || 0) + (Number(c.credit_used) || 0)
         }));
 
         let result = customersWithStats;

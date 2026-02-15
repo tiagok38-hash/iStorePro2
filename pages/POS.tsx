@@ -9,7 +9,7 @@ import {
     getCashSessions, getUsers, addCashSession, updateCashSession,
     getProducts, getSales, getCustomers, getReceiptTerms, addCashMovement,
     getSuppliers, getPermissionProfiles, getBrands, getCategories, getProductModels,
-    getGrades, getGradeValues, addCustomer, addProduct, cancelSale, getPaymentMethods
+    getGrades, getGradeValues, addCustomer, addProduct, cancelSale, getPaymentMethods, updateCustomer
 } from '../services/mockApi.ts';
 import {
     CashSession, User, Product, Sale, Customer, ReceiptTermParameter,
@@ -485,6 +485,7 @@ const POS: React.FC = () => {
                                 permissionProfiles={permissionProfiles} brands={brands}
                                 categories={categories} productModels={productModels}
                                 grades={grades} gradeValues={gradeValues} receiptTerms={receiptTerms}
+
                                 onAddNewCustomer={async (data) => {
                                     const nc = await addCustomer(data);
                                     setCustomers(prev => [...prev, nc]);
@@ -497,6 +498,13 @@ const POS: React.FC = () => {
                                 }}
                                 openCashSessionId={workingSession.id}
                                 openCashSessionDisplayId={workingSession.displayId}
+                                onUpdateCustomer={async (data) => {
+                                    const updated = await updateCustomer(data, user?.id, user?.name);
+                                    if (updated) {
+                                        setCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+                                    }
+                                    return updated;
+                                }}
                                 saleToEdit={saleToEdit}
                             />
                         ) : (

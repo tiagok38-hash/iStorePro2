@@ -131,7 +131,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         if (editData) {
             setType(editData.type);
             setDescription(editData.description);
-            setAmount(String(editData.amount));
+            setAmount(editData.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
             setCategoryId(editData.category_id);
             setDueDate(editData.due_date);
             setPaymentDate(editData.payment_date || '');
@@ -176,7 +176,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                 ...(editData ? { id: editData.id } : {}),
                 type,
                 description: description.trim(),
-                amount: parseFloat(amount),
+                amount: parseFloat(amount.replace(/\./g, '').replace(',', '.')),
                 category_id: categoryId,
                 due_date: dueDate,
                 payment_date: paymentDate || undefined,
@@ -195,8 +195,15 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
 
     // Handle BRL input formatting
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
-        setAmount(raw);
+        let value = e.target.value.replace(/\D/g, '');
+        const amountValue = Number(value) / 100;
+
+        const formatted = amountValue.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        setAmount(formatted);
     };
 
     if (!isOpen) return null;

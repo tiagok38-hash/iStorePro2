@@ -10,6 +10,7 @@ import {
     PlusIcon, MinusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon,
     TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon
 } from '../icons.tsx';
+import { useToast } from '../../contexts/ToastContext.tsx';
 import SearchableDropdown from '../SearchableDropdown.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
 import CustomerModal from '../CustomerModal.tsx';
@@ -45,6 +46,7 @@ interface NewSaleViewProps {
     openCashSessionDisplayId?: number;
     saleToEdit?: Sale | null;
     paymentMethods: PaymentMethodParameter[];
+    onUpdateCustomer?: (data: any) => Promise<Customer | null>;
 }
 
 export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
@@ -55,11 +57,13 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
     const [matchingUnits, setMatchingUnits] = React.useState<Product[]>([]);
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
+    const [customerToEdit, setCustomerToEdit] = React.useState<Customer | null>(null);
     const [isCreditModalOpen, setIsCreditModalOpen] = React.useState(false);
     const [creditWarning, setCreditWarning] = React.useState<{ isOpen: boolean, customerName: string, creditLimit: number, creditUsed: number, purchaseAmount: number } | null>(null);
     const [variationModalConfig, setVariationModalConfig] = React.useState<{ isOpen: boolean, method: string, variations: string[] } | null>(null);
 
 
+    const { showToast } = useToast();
     const { state, actions, refs } = useSaleForm(props);
 
     const {
@@ -289,7 +293,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             className={!selectedCustomerId ? "bg-red-50 border-red-300 ring-2 ring-red-100 placeholder:text-red-400" : ""}
                                         />
                                     </div>
-                                    <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="w-10 sm:w-12 h-full bg-success-light text-success rounded-xl hover:bg-success hover:text-white transition-all flex items-center justify-center border border-success/20 shadow-sm flex-shrink-0"><PlusIcon className="h-5 w-5" /></button>
+                                    <button type="button" onClick={() => { setCustomerToEdit(null); setIsCustomerModalOpen(true); }} className="w-10 sm:w-12 h-full bg-success-light text-success rounded-xl hover:bg-success hover:text-white transition-all flex items-center justify-center border border-success/20 shadow-sm flex-shrink-0"><PlusIcon className="h-5 w-5" /></button>
                                 </div>
                             </div>
                             <div className="md:col-span-3 flex flex-col justify-end">
@@ -621,25 +625,18 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 onClick={() => {
                                                     if (label === 'Crediário' || label === 'Promissória') {
                                                         if (balance <= 0.01) {
-                                                            alert('Não há saldo pendente para parcelar.');
+                                                            showToast('Não há saldo pendente para parcelar.', 'error');
                                                             return;
                                                         }
 
-                                                        // Validação de Limite de Crédito
+                                                        // Validação de Limite de Crédito movida para dentro do Modal
+                                                        // Apenas verificamos se o cliente existe
                                                         const customerForCredit = customers.find(c => c.id === selectedCustomerId);
-                                                        if (customerForCredit) {
-                                                            const limitCheck = checkCreditLimit(customerForCredit, balance);
-                                                            if (!limitCheck.allowed) {
-                                                                setCreditWarning({
-                                                                    isOpen: true,
-                                                                    customerName: customerForCredit.name,
-                                                                    creditLimit: customerForCredit.credit_limit || 0,
-                                                                    creditUsed: customerForCredit.credit_used || 0,
-                                                                    purchaseAmount: balance
-                                                                });
-                                                                return;
-                                                            }
+                                                        if (!customerForCredit) {
+                                                            alert('Selecione um cliente para prosseguir.');
+                                                            return;
                                                         }
+
 
                                                         setIsCreditModalOpen(true);
 
@@ -861,16 +858,47 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
             {isCustomerModalOpen && (
                 <CustomerModal
-                    entity={null}
-                    initialType="Cliente"
-                    onClose={() => setIsCustomerModalOpen(false)}
+                    onClose={() => { setIsCustomerModalOpen(false); setCustomerToEdit(null); }}
                     onSave={async (entityData, entityType, personType) => {
-                        const customerPayload: any = { name: entityData.name, email: entityData.email, phone: entityData.phone, address: entityData.address, avatarUrl: entityData.avatarUrl };
-                        if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
-                        const nc = await onAddNewCustomer(customerPayload);
-                        if (nc) setSelectedCustomerId(nc.id);
-                        setIsCustomerModalOpen(false);
+                        try {
+                            const customerPayload: any = {
+                                name: entityData.name,
+                                email: entityData.email,
+                                phone: entityData.phone,
+                                address: entityData.address,
+                                avatarUrl: entityData.avatarUrl,
+                                credit_limit: entityData.credit_limit,
+                                credit_used: entityData.credit_used,
+                                allow_credit: entityData.allow_credit
+                            };
+                            if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
+
+                            // Check if we are in "Edit Mode"
+                            if (customerToEdit) {
+                                if (props.onUpdateCustomer) {
+                                    await props.onUpdateCustomer({ ...customerPayload, id: customerToEdit.id });
+                                    showToast('Cliente atualizado com sucesso!', 'success');
+                                } else {
+                                    console.warn('onUpdateCustomer prop missing in NewSaleView');
+                                }
+                            } else {
+                                // Create Mode
+                                const nc = await onAddNewCustomer(customerPayload);
+                                if (nc) setSelectedCustomerId(nc.id);
+                                showToast('Cliente cadastrado com sucesso!', 'success');
+                            }
+
+                            setIsCustomerModalOpen(false);
+                            setCustomerToEdit(null);
+                        } catch (error: any) {
+                            console.error('NewSaleView: Error saving customer:', error);
+                            // Show the specific error message from the API (e.g., "Já existe um cliente...")
+                            // Fallback to generic error only if message is missing
+                            showToast(error.message || 'Erro ao salvar cliente.', 'error');
+                        }
                     }}
+                    entity={customerToEdit || undefined} // Explicitly pass undefined if null
+                    initialType="Cliente"
                 />
             )}
 
@@ -886,6 +914,16 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 isOpen={isCreditModalOpen}
                 onClose={() => setIsCreditModalOpen(false)}
                 totalAmount={balance} // Pass balance as the amount to finance
+                availableLimit={(() => {
+                    const c = customers.find(cust => cust.id === selectedCustomerId);
+                    return c ? (c.credit_limit || 0) - (c.credit_used || 0) : 0;
+                })()}
+                customerId={selectedCustomerId}
+                onUpdateLimit={(newLimit) => {
+                    if (selectedCustomerId && props.onUpdateCustomer) {
+                        props.onUpdateCustomer({ id: selectedCustomerId, credit_limit: newLimit });
+                    }
+                }}
                 onConfirm={(details) => {
                     // 1. Add Entry if any (Assuming Money for now, or we could ask)
                     if (details.entryAmount > 0) {
@@ -914,15 +952,15 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     // Let's use Principal amount for the Payment record to clear the sale balance.
                     // The `creditDetails` will hold the real debt info.
 
-                    const principal = Math.max(0, balance - details.entryAmount);
-
-                    addPayment({
-                        id: `pay-credit-${Date.now()}`,
-                        method: 'Crediário',
-                        value: principal,
-                        type: 'Outros',
-                        creditDetails: details
-                    });
+                    if (details.financedAmount > 0) {
+                        addPayment({
+                            id: `pay-credit-${Date.now()}`,
+                            method: 'Crediário',
+                            value: details.financedAmount,
+                            type: 'Outros',
+                            creditDetails: details
+                        });
+                    }
                 }}
             />
 
@@ -936,7 +974,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     purchaseAmount={creditWarning.purchaseAmount}
                     onOpenProfile={() => {
                         setCreditWarning(null);
-                        setIsCustomerModalOpen(true);
+                        const customer = customers.find(c => c.id === selectedCustomerId);
+                        if (customer) {
+                            setCustomerToEdit(customer);
+                            setIsCustomerModalOpen(true);
+                        }
                     }}
                 />
             )}

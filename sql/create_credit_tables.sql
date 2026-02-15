@@ -28,8 +28,18 @@ create table if not exists credit_installments (
   payment_method text, -- 'Dinheiro', 'Pix', etc.
   observation text,
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  amortization_value decimal(10,2) default 0,
+  interest_value decimal(10,2) default 0,
+  remaining_balance decimal(10,2) default 0
 );
+
+-- Adicionar colunas na tabela de sales para controle de crediário
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS interest_rate numeric DEFAULT 0;
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS total_financed numeric DEFAULT 0;
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS installment_amount numeric DEFAULT 0;
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS current_debt_balance numeric DEFAULT 0;
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS amortization_table jsonb DEFAULT '[]';
 
 -- Índices para performance
 create index if not exists idx_credit_installments_sale_id on credit_installments(sale_id);

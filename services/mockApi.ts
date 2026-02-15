@@ -4,7 +4,7 @@ import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts'
 import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
-import { calculateInstallmentDates } from '../utils/creditUtils.ts';
+import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
 
 // --- CACHE SYSTEM ---
 const cache: Record<string, { data: any, timestamp: number }> = {};
@@ -1460,6 +1460,67 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
     clearCache(['products']);
 };
 
+const mapSale = (sale: any): Sale => {
+    try {
+        const separatorCSDID = '\n---CSDID---\n';
+        const separatorInternal = '\n---INTERNAL---\n';
+        const separatorCancelReason = '\n---CANCEL_REASON---\n';
+
+        let external = sale.observations || '';
+        let internal = '';
+        let csdid = undefined;
+        let cancelReason = '';
+
+        // Extrair motivo de cancelamento primeiro
+        if (external.includes(separatorCancelReason)) {
+            const parts = external.split(separatorCancelReason);
+            external = parts[0];
+            cancelReason = parts.slice(1).join(separatorCancelReason);
+        }
+
+        if (external.includes(separatorCSDID)) {
+            const parts = external.split(separatorCSDID);
+            external = parts[0];
+            const csdidStr = parts[1];
+            csdid = parseInt(csdidStr, 10);
+        }
+
+        if (external.includes(separatorInternal)) {
+            const parts = external.split(separatorInternal);
+            external = parts[0];
+            internal = parts.slice(1).join(separatorInternal);
+        }
+
+        return {
+            ...sale,
+            customerId: sale.customer_id,
+            salespersonId: sale.salesperson_id,
+            cashSessionId: sale.cash_session_id,
+            warrantyTerm: sale.warranty_term,
+            posTerminal: sale.pos_terminal,
+            observations: external,
+            internalObservations: internal,
+            cashSessionDisplayId: csdid,
+            cancellationReason: cancelReason,
+            interestRate: Number(sale.interest_rate || 0),
+            totalFinanced: Number(sale.total_financed || 0),
+            installmentAmount: Number(sale.installment_amount || 0),
+            currentDebtBalance: Number(sale.current_debt_balance || 0),
+            amortizationTable: Array.isArray(sale.amortization_table) ? sale.amortization_table : (typeof sale.amortization_table === 'string' ? JSON.parse(sale.amortization_table) : []),
+            items: Array.isArray(sale.items) ? sale.items : (typeof sale.items === 'string' ? JSON.parse(sale.items) : []),
+            payments: Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? JSON.parse(sale.payments) : [])
+        };
+    } catch (e) {
+        console.error("Error mapping sale:", sale.id, e);
+        return {
+            ...sale,
+            items: [],
+            payments: [],
+            observations: sale.observations || '',
+        };
+    }
+};
+
 export const getSales = async (currentUserId?: string, cashSessionId?: string, startDate?: string, endDate?: string): Promise<Sale[]> => {
     const cacheKey = `sales_${currentUserId || 'all'}_${cashSessionId || 'all'}_${startDate || 'none'}_${endDate || 'none'}`;
     return fetchWithCache(cacheKey, async () => {
@@ -1519,61 +1580,7 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
             return data;
         }).then(data => {
 
-            return (data || []).map((sale: any) => {
-                try {
-                    const separatorCSDID = '\n---CSDID---\n';
-                    const separatorInternal = '\n---INTERNAL---\n';
-                    const separatorCancelReason = '\n---CANCEL_REASON---\n';
-
-                    let external = sale.observations || '';
-                    let internal = '';
-                    let csdid = undefined;
-                    let cancelReason = '';
-
-                    // Extrair motivo de cancelamento primeiro
-                    if (external.includes(separatorCancelReason)) {
-                        const parts = external.split(separatorCancelReason);
-                        external = parts[0];
-                        cancelReason = parts.slice(1).join(separatorCancelReason);
-                    }
-
-                    if (external.includes(separatorCSDID)) {
-                        const parts = external.split(separatorCSDID);
-                        external = parts[0];
-                        const csdidStr = parts[1];
-                        csdid = parseInt(csdidStr, 10);
-                    }
-
-                    if (external.includes(separatorInternal)) {
-                        const parts = external.split(separatorInternal);
-                        external = parts[0];
-                        internal = parts.slice(1).join(separatorInternal);
-                    }
-
-                    return {
-                        ...sale,
-                        customerId: sale.customer_id,
-                        salespersonId: sale.salesperson_id,
-                        cashSessionId: sale.cash_session_id,
-                        warrantyTerm: sale.warranty_term,
-                        posTerminal: sale.pos_terminal,
-                        observations: external,
-                        internalObservations: internal,
-                        cashSessionDisplayId: csdid,
-                        cancellationReason: cancelReason,
-                        items: Array.isArray(sale.items) ? sale.items : (typeof sale.items === 'string' ? JSON.parse(sale.items) : []),
-                        payments: Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? JSON.parse(sale.payments) : [])
-                    };
-                } catch (e) {
-                    console.error("Error mapping sale:", sale.id, e);
-                    return {
-                        ...sale,
-                        items: [],
-                        payments: [],
-                        observations: sale.observations || '',
-                    };
-                }
-            });
+            return (data || []).map(mapSale);
         });
     });
 };
@@ -2072,35 +2079,77 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
     // Generate Credit Installments if (Crediário)
     if (saleData.status === 'Finalizada') {
-        const creditPayment = data.payments?.find((p: any) => p.method === 'Crediário' && p.creditDetails);
+        const creditPayment = data.payments?.find((p: any) => (p.method === 'Crediário' || p.method === 'Crediario') && p.creditDetails);
+
+        if (creditPayment) {
+        } else {
+            const hasCrediarioMethod = data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario');
+        }
+
         if (creditPayment && creditPayment.creditDetails) {
             try {
                 const { creditDetails } = creditPayment;
-                const dates = calculateInstallmentDates(creditDetails.firstDueDate, creditDetails.totalInstallments, creditDetails.frequency);
+                const interestRate = Number(creditDetails.interestRate || 0);
+                const totalInstallments = Number(creditDetails.totalInstallments || 1);
+                const productValue = Number(creditDetails.totalAmount || 0);
 
-                const installmentsPayload: CreditInstallment[] = dates.map((date, index) => ({
+                // Regra 2: Cálculo do valor total financiado (Juros Simples)
+                const { totalFinanced, installmentAmount } = calculateFinancedAmount(productValue, interestRate, totalInstallments);
+
+                // Gerar Tabela de Amortização (para persistir no sale)
+                const amortizationTable = generateAmortizationTable(totalFinanced, installmentAmount, totalInstallments, interestRate);
+
+                const installmentsPayload: CreditInstallment[] = amortizationTable.map((entry: any) => ({
                     id: crypto.randomUUID(),
                     saleId: newSale.id,
                     customerId: newSale.customer_id,
-                    installmentNumber: index + 1,
-                    totalInstallments: creditDetails.totalInstallments,
-                    dueDate: date,
-                    amount: creditDetails.installmentValue,
+                    installmentNumber: entry.number,
+                    totalInstallments: totalInstallments,
+                    dueDate: creditDetails.installmentsPreview[entry.number - 1]?.date || getNowISO(),
+                    amount: entry.installmentAmount,
                     status: 'pending',
                     amountPaid: 0,
-                    interestApplied: 0,
+                    interestApplied: entry.interest,
+                    amortizationValue: entry.amortization,
+                    remainingBalance: entry.remainingBalance,
                     penaltyApplied: 0
                 }));
 
                 await addCreditInstallments(installmentsPayload);
-            } catch (err) {
-                console.error('Failed to create credit installments:', err);
-                // Should we rollback or notify? For now just log.
+
+                // Update sale with amortization info and initial debt balance
+                await supabase.from('sales').update({
+                    interest_rate: interestRate,
+                    total_financed: totalFinanced,
+                    installment_amount: installmentAmount,
+                    current_debt_balance: totalFinanced,
+                    amortization_table: amortizationTable
+                }).eq('id', newSale.id);
+
+                if (newSale.customer_id) {
+                    const totalUsed = await syncCustomerCreditLimit(newSale.customer_id);
+
+                    await addAuditLog(
+                        AuditActionType.UPDATE,
+                        AuditEntityType.CUSTOMER,
+                        newSale.customer_id,
+                        `Aprovação de Crediário: Financiado ${formatCurrency(totalFinanced)} | Novo Saldo Devedor: ${formatCurrency(totalUsed)}`,
+                        userId,
+                        userName
+                    );
+                }
+
+            } catch (err: any) {
+                console.error('Failed to create credit installments or update limit:', err);
+                throw new Error(`Erro no Crediário: ${err.message || 'Falha desconhecida'}`);
             }
+        } else if (data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario')) {
+            throw new Error('Falha: Pagamento Crediário selecionado, mas os detalhes das parcelas estão ausentes.');
         }
     }
 
-    clearCache(['sales', 'products', 'cash_sessions']);
+
+    clearCache(['sales', 'products', 'cash_sessions', 'customers']);
     return mappedSale;
 };
 
@@ -2271,6 +2320,53 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             );
         }
 
+        // Auto-generate installments when finalizing a pending sale with Credit
+        const credPayment = updated.payments?.find((p: any) => p.method === 'Crediário');
+        if (credPayment && updated.customer_id && (newStatus === 'Finalizada' || newStatus === 'Editada') && (oldStatus !== 'Finalizada' && oldStatus !== 'Editada')) {
+            try {
+                console.log('[updateSale] Pending sale finalized with Crediário. Generating installments.');
+                const cDetails = credPayment.creditDetails || {};
+                let cPreviews = cDetails.installmentsPreview || [];
+
+                if (!cPreviews.length) {
+                    const amt = Number(cDetails.financedAmount) || Number(credPayment.value) || 0;
+                    const cnt = Number(cDetails.totalInstallments) || 1;
+                    const val = amt / cnt;
+                    const dt = new Date();
+                    dt.setDate(dt.getDate() + 30);
+
+                    for (let k = 0; k < cnt; k++) {
+                        const d = new Date(dt);
+                        d.setMonth(d.getMonth() + k);
+                        cPreviews.push({ number: k + 1, date: d.toISOString().split('T')[0], amount: val });
+                    }
+                }
+
+                const iPayload = cPreviews.map((p: any) => ({
+                    id: crypto.randomUUID(),
+                    saleId: updated.id,
+                    customerId: updated.customer_id,
+                    installmentNumber: p.number,
+                    totalInstallments: cPreviews.length,
+                    dueDate: p.date,
+                    amount: p.amount,
+                    status: 'pending',
+                    amountPaid: 0,
+                    interestApplied: 0,
+                    penaltyApplied: 0
+                }));
+
+                await addCreditInstallments(iPayload);
+
+                const { data: cust } = await supabase.from('customers').select('credit_used').eq('id', updated.customer_id).single();
+                if (cust) {
+                    const added = iPayload.reduce((s: number, i: any) => s + i.amount, 0);
+                    await supabase.from('customers').update({ credit_used: (cust.credit_used || 0) + added }).eq('id', updated.customer_id);
+                    await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito atualizado via finalização de venda #${updated.display_id}`, userId, userName);
+                }
+            } catch (e) { console.error('[updateSale] Error creating installments:', e); }
+        }
+
         // TELEGRAM NOTIFICATION: Send notification when pending sale is finalized
         try {
             let totalProfit = 0;
@@ -2360,6 +2456,58 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             });
         } catch (telegramError) {
             console.warn('[updateSale] Telegram notification failed:', telegramError);
+        }
+    }
+
+    // FIX: If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
+    // FIX: If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
+    if (originalSale && (oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Cancelada' || newStatus === 'Pendente')) {
+        const creditPayment = originalSale.payments?.find((p: any) => p.method === 'Crediário' || p.method === 'Promissória'); // removed requirement for creditDetails to be strictly present for finding it, but used value.
+
+        if (creditPayment && originalSale.customer_id) {
+            console.log(`[updateSale] Reverting credit limit for sale ${data.id}. Status: ${newStatus}`);
+
+            // 1. Delete installments for this sale
+            const { error: deleteError } = await supabase
+                .from('credit_installments')
+                .delete()
+                .eq('sale_id', data.id);
+
+            if (deleteError) {
+                console.error('[updateSale] Error deleting credit installments:', deleteError);
+            } else {
+                console.log('[updateSale] Deleted credit installments.');
+            }
+
+            // 2. Restore customer credit limit
+            const creditUsedToRevert = creditPayment.value || 0;
+
+            if (creditUsedToRevert > 0) {
+                const { data: customerData } = await supabase
+                    .from('customers')
+                    .select('credit_used, name')
+                    .eq('id', originalSale.customer_id)
+                    .single();
+
+                if (customerData) {
+                    const currentUsed = customerData.credit_used || 0;
+                    const newCreditUsed = Math.max(0, currentUsed - creditUsedToRevert);
+
+                    await supabase
+                        .from('customers')
+                        .update({ credit_used: newCreditUsed })
+                        .eq('id', originalSale.customer_id);
+
+                    await addAuditLog(
+                        AuditActionType.UPDATE,
+                        AuditEntityType.CUSTOMER,
+                        originalSale.customer_id,
+                        `Limite restaurado (Venda ${newStatus}): +${formatCurrency(creditUsedToRevert)}`,
+                        userId,
+                        userName
+                    );
+                }
+            }
         }
     }
 
@@ -2693,7 +2841,57 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
         }
     }
 
-    clearCache(['sales', 'products']);
+    // CREDIT REVERT: If sale had "Crediário", revert the customer's credit_used and delete installments
+    if (sale.payments && Array.isArray(sale.payments)) {
+        const creditPayment = sale.payments.find((p: any) =>
+            p.method === 'Crediário' || p.method === 'Crediario'
+        );
+
+        if (creditPayment && sale.customer_id) {
+            try {
+                // 1. Delete installments
+                const { error: delError } = await supabase.from('credit_installments').delete().eq('sale_id', sale.id);
+                if (delError) console.error('Error deleting installments:', delError);
+
+                // 2. Fetch current customer credit_used
+                const { data: customer } = await supabase
+                    .from('customers')
+                    .select('credit_used, name')
+                    .eq('id', sale.customer_id)
+                    .single();
+
+                if (customer) {
+                    // Important: Use financedAmount if available, otherwise fallback to payment value
+                    // The creditDetails might be in creditPayment.creditDetails
+                    const financedAmount = creditPayment.creditDetails?.financedAmount || creditPayment.value;
+                    const currentUsed = Number(customer.credit_used || 0);
+                    const newUsed = Math.max(0, currentUsed - Number(financedAmount));
+
+                    const { error: updError } = await supabase
+                        .from('customers')
+                        .update({ credit_used: newUsed })
+                        .eq('id', sale.customer_id);
+
+                    if (updError) {
+                        console.error('Error updating customer credit_used:', updError);
+                    } else {
+                        await addAuditLog(
+                            AuditActionType.UPDATE,
+                            AuditEntityType.CUSTOMER,
+                            sale.customer_id,
+                            `Estorno de crédito (venda cancelada): -${formatCurrency(financedAmount)}. Novo total: ${formatCurrency(newUsed)}`,
+                            userId,
+                            userName
+                        );
+                    }
+                }
+            } catch (err) {
+                console.error('Error reverting credit on cancellation:', err);
+            }
+        }
+    }
+
+    clearCache(['sales', 'products', 'customers']);
 
     // Return with info about trade-in products that were already sold
     return {
@@ -2744,7 +2942,7 @@ const mapSupplier = (s: any) => ({
 });
 
 // Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
-const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url, active';
+const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url, active, credit_limit, credit_used, allow_credit';
 
 // Helper to ensure date format is YYYY-MM-DD
 const ensureISODate = (dateStr: string | undefined | null): string | null => {
@@ -2858,9 +3056,14 @@ const populateTradeInHistory = async (customer: Customer): Promise<Customer> => 
 };
 
 export const addCustomer = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+    // STRICT VALIDATION: Name is mandatory
+    if (!data.name || data.name.trim() === '') {
+        throw new Error('O nome do cliente é obrigatório.');
+    }
+
     // Only include fields that exist in the actual customers table schema
     const payload: any = {
-        name: data.name,
+        name: data.name.trim(), // Ensure trimmed name
         phone: data.phone
     };
 
@@ -2991,12 +3194,66 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
     return mapCustomer(newCustomer);
 };
 
+
+/**
+ * Regra 3 & 6: Sincroniza o limite_utilizado do cliente com base nos saldos devedores atuais.
+ * Se uma venda antiga não tiver saldo_devedor_atual, calcula a partir das parcelas pendentes.
+ */
+export const syncCustomerCreditLimit = async (customerId: string) => {
+    try {
+        // 1. Buscar todas as vendas ativas do cliente que possuem pagamento em crediário
+        const { data: sales, error: salesError } = await supabase
+            .from('sales')
+            .select('id, current_debt_balance, payments')
+            .eq('customer_id', customerId)
+            .in('status', ['Finalizada', 'Editada']);
+
+        if (salesError) throw salesError;
+
+        let totalUsed = 0;
+
+        for (const sale of (sales || [])) {
+            // Check if mapped or raw payments have credit
+            const payments = Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? JSON.parse(sale.payments) : []);
+            const hasCredit = payments.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória');
+            if (!hasCredit) continue;
+
+            let debt = Number(sale.current_debt_balance || 0);
+
+            // Fallback para vendas antigas: se saldo é 0/null, buscar parcelas pendentes
+            if (debt <= 0) {
+                const { data: installments } = await supabase
+                    .from('credit_installments')
+                    .select('amount, amount_paid')
+                    .eq('sale_id', sale.id)
+                    .in('status', ['pending', 'partial', 'overdue']);
+
+                debt = (installments || []).reduce((sum, inst) => sum + (Number(inst.amount) - Number(inst.amount_paid)), 0);
+
+                // Opcional: Atualizar a venda com este saldo para futuras consultas
+                if (debt > 0) {
+                    await supabase.from('sales').update({ current_debt_balance: debt }).eq('id', sale.id);
+                }
+            }
+
+            totalUsed += debt;
+        }
+
+        // 2. Atualizar o cliente
+        await supabase.from('customers').update({ credit_used: totalUsed }).eq('id', customerId);
+
+        return totalUsed;
+    } catch (err) {
+        console.error('[syncCustomerCreditLimit] Error:', err);
+        return 0;
+    }
+};
+
 export const updateCustomer = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
     // Only include fields that exist in the actual customers table schema
-    const payload: any = {
-        name: data.name,
-        phone: data.phone
-    };
+    const payload: any = {};
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.phone !== undefined) payload.phone = data.phone;
 
     // Optional fields - only add if they have values
     if (data.email !== undefined) payload.email = data.email || null;
@@ -5155,9 +5412,17 @@ export const getCustomer = async (id: string): Promise<Customer | null> => {
 };
 
 export const getSale = async (id: string): Promise<Sale | null> => {
-    const { data, error } = await supabase.from('sales').select('*').eq('id', id).single();
-    if (error) return null;
-    return data;
+    try {
+        const { data, error } = await supabase.from('sales').select('*').eq('id', id).maybeSingle();
+        if (error) {
+            console.error(`getSale error for id ${id}:`, error);
+            return null;
+        }
+        return data ? mapSale(data) : null;
+    } catch (e) {
+        console.error(`getSale exception for id ${id}:`, e);
+        return null;
+    }
 };
 
 
@@ -5467,8 +5732,9 @@ export const updateCreditSettings = async (settings: Partial<CreditSettings>): P
     }
 };
 
-export const addCreditInstallments = async (installments: Omit<CreditInstallment, 'id'>[]): Promise<CreditInstallment[]> => {
+export const addCreditInstallments = async (installments: Partial<CreditInstallment>[]): Promise<CreditInstallment[]> => {
     const payload = installments.map(i => ({
+        id: i.id, // Include ID if provided
         sale_id: i.saleId,
         customer_id: i.customerId,
         installment_number: i.installmentNumber,
@@ -5515,7 +5781,7 @@ export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
         .select(`
             *,
             customer:customers(name, phone),
-            sale:sales(id, display_id)
+            sale:sales(id)
         `)
         .order('due_date', { ascending: true });
 
@@ -5527,10 +5793,10 @@ export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
     return (data || []).map((d: any) => ({
         id: d.id,
         saleId: d.sale_id,
-        saleDisplayId: d.sale?.display_id,
+        saleDisplayId: d.sale?.id || d.sale_id, // Usar o ID da venda como DisplayId já que display_id não existe
         customerId: d.customer_id,
-        customerName: d.customer?.name,
-        customerPhone: d.customer?.phone,
+        customerName: d.customer?.name || 'Cliente',
+        customerPhone: d.customer?.phone || '',
         installmentNumber: d.installment_number,
         totalInstallments: d.total_installments,
         dueDate: d.due_date,
@@ -5539,6 +5805,9 @@ export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
         amountPaid: Number(d.amount_paid),
         interestApplied: Number(d.interest_applied),
         penaltyApplied: Number(d.penalty_applied),
+        amortizationValue: Number(d.amortization_value || 0),
+        interestValue: Number(d.interest_value || 0),
+        remainingBalance: Number(d.remaining_balance || 0),
         paidAt: d.paid_at,
         paymentMethod: d.payment_method,
         observation: d.observation
@@ -5550,14 +5819,16 @@ export const payInstallment = async (
     amountPaid: number,
     method: string,
     penalty: number,
-    observation?: string
+    observation?: string,
+    userId?: string,
+    userName?: string
 ): Promise<CreditInstallment> => {
     const now = new Date().toISOString();
 
-    // First get current installment to check total
+    // First get current installment to check total and get customer name
     const { data: current, error: fetchError } = await supabase
         .from('credit_installments')
-        .select('*')
+        .select('*, customer:customers(name, id)')
         .eq('id', id)
         .single();
 
@@ -5594,14 +5865,120 @@ export const payInstallment = async (
 
     if (error) throw error;
 
-    // TODO: Create a FinancialTransaction for this payment ("Receita")
+    // --- NEW: Amortization Logic (Regra 4) ---
+    // valor_juros = saldo_devedor_atual × taxa_juros_percentual_parcela
+    // valor_amortizacao = valor_parcela − valor_juros
+    // saldo_devedor_atual = saldo_devedor_atual − valor_amortizacao
+
+    try {
+        if (current.sale_id) {
+            const { data: sale } = await supabase
+                .from('sales')
+                .select('*')
+                .eq('id', current.sale_id)
+                .single();
+
+            if (sale) {
+                const interestRate = Number(sale.interest_rate || 0);
+                const installmentsCount = Number(current.total_installments || 1);
+                const ratePerInstallment = (interestRate / 100) / installmentsCount;
+
+                let currentDebt = Number(sale.current_debt_balance || 0);
+
+                // Recuperar saldo se for venda antiga
+                if (currentDebt <= 0) {
+                    const { data: installments } = await supabase
+                        .from('credit_installments')
+                        .select('amount, amount_paid')
+                        .eq('sale_id', sale.id)
+                        .in('status', ['pending', 'partial', 'overdue']);
+                    currentDebt = (installments || []).reduce((sum, inst) => sum + (Number(inst.amount) - Number(inst.amount_paid)), 0);
+                }
+
+                const calculatedInterest = currentDebt * ratePerInstallment;
+
+                // Amortização é o valor pago MENOS os juros calculados sobre o saldo
+                const amortizationPart = Math.max(0, amountPaid - calculatedInterest);
+                const newDebtBalance = Math.max(0, currentDebt - amortizationPart);
+
+                await supabase.from('sales').update({
+                    current_debt_balance: newDebtBalance
+                }).eq('id', sale.id);
+
+                // Update installment with amort/interest details of THIS payment
+                await supabase.from('credit_installments').update({
+                    interest_value: calculatedInterest,
+                    amortization_value: amortizationPart,
+                    remaining_balance: newDebtBalance
+                }).eq('id', id);
+
+
+                // Regra 6: Atualizar total credit_used do cliente baseado em TODOS os saldos devedores atuais
+                if (current.customer_id) {
+                    const newTotalUsed = await syncCustomerCreditLimit(current.customer_id);
+
+                    await addAuditLog(
+                        AuditActionType.UPDATE,
+                        AuditEntityType.CUSTOMER,
+                        current.customer_id,
+                        `Pagamento efetuado: Amortizado ${formatCurrency(amortizationPart)} | Juros: ${formatCurrency(calculatedInterest)} | Novo total devedor: ${formatCurrency(newTotalUsed)}`,
+                        userId,
+                        userName
+                    );
+                }
+            }
+        }
+    } catch (restorationError) {
+        console.error('payInstallment: Amortization logic error:', restorationError);
+    }
+    // --- END Restore Credit ---
+
+    // Create a FinancialTransaction for this payment ("Receita")
     // This is important for the cash register flow.
-    // For now, we just return the updated installment.
+    try {
+        // Find a suitable category for sales/credit
+        const { data: categories } = await supabase
+            .from('transaction_categories')
+            .select('id, name')
+            .eq('type', 'income')
+            .limit(1);
+
+        const categoryId = categories && categories.length > 0 ? categories[0].id : null;
+
+        if (categoryId) {
+            const customerName = current.customer?.name || 'Cliente Desconhecido';
+            const description = `Recebimento Parc. ${current.installment_number}/${current.total_installments} - ${customerName}`;
+
+            await addFinancialTransaction({
+                type: 'income',
+                description: description,
+                amount: amountPaid,
+                category_id: categoryId,
+                due_date: now.split('T')[0],
+                payment_date: now.split('T')[0],
+                status: 'paid',
+                payment_method: method,
+                entity_name: customerName,
+                is_recurring: false,
+                notes: `Ref. Venda #${current.sale_id || '?'}. Obs: ${observation || ''}`
+            }, userId, userName);
+        } else {
+            console.warn('payInstallment: No income category found, skipping financial transaction creation.');
+        }
+    } catch (ftError) {
+        console.error('payInstallment: Error creating financial transaction:', ftError);
+        // Do not fail the installment payment just because FT creation failed, but log it.
+    }
+
+    clearCache(['credit_installments', 'customers', 'financial_transactions']);
 
     return {
         id: data.id,
         saleId: data.sale_id,
+        saleDisplayId: data.sale_id,
         customerId: data.customer_id,
+        customerName: current.customer?.name || 'Cliente',
+        customerPhone: current.customer?.phone || '',
         installmentNumber: data.installment_number,
         totalInstallments: data.total_installments,
         dueDate: data.due_date,

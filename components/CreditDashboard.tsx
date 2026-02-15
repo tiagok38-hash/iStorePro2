@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    ClockIcon, AlertCircleIcon, CalendarIcon, SearchIcon, PhoneIcon,
-    FilterIcon, ArrowUpRightIcon, CheckCircleIcon, Settings as SettingsIcon
-} from 'lucide-react';
+    ClockIcon, ErrorIcon as AlertCircleIcon, CalendarDaysIcon as CalendarIcon, SearchIcon, WhatsAppIcon,
+    FilterIcon, CheckIcon as CheckCircleIcon, Cog6ToothIcon as SettingsIcon,
+    ChevronDownIcon
+} from './icons';
 import {
     CreditInstallment, Customer
 } from '../types.ts';
@@ -12,9 +13,13 @@ import {
 import InstallmentPaymentModal from './modals/InstallmentPaymentModal.tsx';
 import CreditSettingsModal from './modals/CreditSettingsModal.tsx';
 import StatusBadge from './StatusBadge.tsx';
-import { CarnetPrintButton } from './print/CarnetPrintButton.tsx';
+import { CarnetPrintButton } from './print/CarnetPrintButton';
+import { useUser } from '../contexts/UserContext.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
 const CreditDashboard: React.FC = () => {
+    const { user } = useUser();
+    const { showToast } = useToast();
     const [installments, setInstallments] = useState<CreditInstallment[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'overdue' | 'paid'>('all');
@@ -90,15 +95,58 @@ const CreditDashboard: React.FC = () => {
 
         if (searchTerm) {
             const lower = searchTerm.toLowerCase();
-            filtered = filtered.filter(i =>
-                (i as any).customerName?.toLowerCase().includes(lower) ||
-                i.saleDisplayId?.toString().includes(lower) ||
-                i.id.includes(lower)
-            );
+            filtered = filtered.filter(i => {
+                const customerMatch = (i as any).customerName?.toLowerCase()?.includes(lower);
+                const saleDisplayMatch = i.saleDisplayId?.toString()?.toLowerCase()?.includes(lower);
+                const saleIdMatch = i.saleId?.toLowerCase()?.includes(lower);
+                const idMatch = i.id?.toLowerCase()?.includes(lower);
+
+                return customerMatch || saleDisplayMatch || saleIdMatch || idMatch;
+            });
         }
 
         return filtered;
     }, [installments, filterStatus, searchTerm]);
+
+
+    const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
+
+    const toggleCustomer = (customerId: string) => {
+        setExpandedCustomers(prev => ({ ...prev, [customerId]: !prev[customerId] }));
+    };
+
+    const groupedData = useMemo(() => {
+        const groups: Record<string, {
+            customerId: string;
+            customerName: string;
+            customerPhone: string;
+            installments: CreditInstallment[];
+            totalOpen: number;
+            overdueCount: number;
+        }> = {};
+
+        filteredInstallments.forEach(inst => {
+            const cid = inst.customerId || 'unknown';
+            if (!groups[cid]) {
+                groups[cid] = {
+                    customerId: cid,
+                    customerName: (inst as any).customerName || 'Cliente sem Nome',
+                    customerPhone: (inst as any).customerPhone || '',
+                    installments: [],
+                    totalOpen: 0,
+                    overdueCount: 0
+                };
+            }
+            groups[cid].installments.push(inst);
+            if (inst.status !== 'paid') {
+                groups[cid].totalOpen += (inst.amount - inst.amountPaid);
+                const isLate = new Date(inst.dueDate) < new Date(new Date().toISOString().split('T')[0]);
+                if (isLate) groups[cid].overdueCount++;
+            }
+        });
+
+        return Object.values(groups).sort((a, b) => a.customerName.localeCompare(b.customerName));
+    }, [filteredInstallments]);
 
 
     const handlePaymentSuccess = (updated: CreditInstallment) => {
@@ -107,25 +155,22 @@ const CreditDashboard: React.FC = () => {
     };
 
     const handleWhatsapp = (inst: CreditInstallment) => {
-        // We need customer phone. 
-        // Best approach: check if we have it in `inst`. 
-        // If the API isn't returning it yet, we might fallback or update API. 
-        // Let's update `getCreditInstallments` in mockApi to fetch phone.
-        // Assuming it's there as `(inst as any).customerPhone` or nested.
-
-        // Construct message
         const customerName = (inst as any).customerName || 'Cliente';
         const dueDate = new Date(inst.dueDate).toLocaleDateString('pt-BR');
         const amount = formatCurrency(inst.amount - inst.amountPaid);
-        const storeName = "iStorePro"; // Or dynamic from settings/company context
+        const storeName = "iStorePro";
 
         const message = `Olá *${customerName}*,\n\nPassando para lembrar que sua parcela de *${amount}* na *${storeName}* venceu dia *${dueDate}*.\n\nPodemos enviar a chave Pix para regularização?`;
 
-        // Check if we have phone
-        // Verify mockApi change in next step. For now assume we might have it or user will pick contact manually if web.
-        // Actually wa.me needs a number. If null, maybe open empty?
-        // Let's use a generic number or try to find it.
-        const phone = (inst as any).customerPhone || '';
+        let phone = (inst as any).customerPhone || '';
+        if (!phone) {
+            showToast('Cliente sem telefone cadastrado', 'error');
+            return;
+        }
+
+        // Clean phone: remove non-digits and ensure 55 prefix
+        phone = phone.replace(/\D/g, '');
+        if (!phone.startsWith('55')) phone = '55' + phone;
 
         const encoded = encodeURIComponent(message);
         const url = `https://wa.me/${phone}?text=${encoded}`;
@@ -221,108 +266,134 @@ const CreditDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th className="px-6 py-4 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Vencimento</th>
-                            <th className="px-6 py-4 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Cliente / Venda</th>
-                            <th className="px-6 py-4 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Parcela</th>
-                            <th className="px-6 py-4 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-right">Valor</th>
-                            <th className="px-6 py-4 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-center">Status</th>
-                            <th className="px-6 py-4 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-center">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {filteredInstallments.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic font-medium">Nenhum registro encontrado.</td>
-                            </tr>
-                        ) : filteredInstallments.map((inst) => {
-                            const isLate = inst.status !== 'paid' && new Date(inst.dueDate) < new Date(new Date().toISOString().split('T')[0]);
-                            return (
-                                <tr key={inst.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <CalendarIcon className={`h-4 w-4 ${isLate ? 'text-red-400' : 'text-gray-400'}`} />
-                                            <span className={`text-sm font-bold ${isLate ? 'text-red-600' : 'text-gray-700'}`}>
-                                                {new Date(inst.dueDate).toLocaleDateString('pt-BR')}
+            {/* Customer Groups */}
+            <div className="space-y-4">
+                {groupedData.length === 0 ? (
+                    <div className="bg-white border border-gray-200 rounded-3xl p-12 text-center text-gray-400 italic font-medium">
+                        Nenhum registro encontrado.
+                    </div>
+                ) : groupedData.map((group) => (
+                    <div key={group.customerId} className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm transition-all">
+                        {/* Customer Summary Row */}
+                        <div
+                            onClick={() => toggleCustomer(group.customerId)}
+                            className="p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-lg">
+                                    {group.customerName.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-black text-gray-900 uppercase tracking-tight">{group.customerName}</h3>
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                        <span className="text-xs font-bold text-gray-500">{group.installments.length} {group.installments.length === 1 ? 'crediário' : 'crediários'}</span>
+                                        {group.overdueCount > 0 && (
+                                            <span className="text-[10px] font-black bg-red-100 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                                                {group.overdueCount} em atraso
                                             </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-black text-gray-900">{(inst as any).customerName}</span>
-                                            <span className="text-xs font-medium text-gray-500">Venda #{(inst as any).saleDisplayId}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
-                                            {inst.installmentNumber}/{inst.totalInstallments}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-sm font-black text-gray-900">{formatCurrency(inst.amount)}</span>
-                                            {inst.status === 'partial' && (
-                                                <span className="text-[10px] font-bold text-orange-500">
-                                                    Restam: {formatCurrency(inst.amount - inst.amountPaid)}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <StatusBadge status={isLate ? 'Atrasado' : inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Pendente'} />
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        {inst.status !== 'paid' && (
-                                            <button
-                                                onClick={() => setSelectedInstallment(inst)}
-                                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors font-bold text-xs uppercase tracking-wider border border-indigo-100 hover:border-indigo-200 shadow-sm"
-                                            >
-                                                Baixar
-                                            </button>
                                         )}
-                                        {inst.status !== 'paid' && (isLate || inst.status === 'pending' || inst.status === 'partial') && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const phone = (inst as any).customer?.phone || (inst as any).customerPhone || '';
-                                                    // Assuming we have phone. If not, we might need to fetch or it's in the joined data.
-                                                    // In getCreditInstallments mockApi, we joined 'customer:customers(name)'.
-                                                    // We need to ensure we join 'phone' too. 
+                                    </div>
+                                </div>
+                            </div>
 
-                                                    // Let's optimize this: first update mockApi to return phone, then use it here.
-                                                    // But for now, let's just put the logic assuming phone "might" be there or we handle the click to fetch.
-                                                    // better: use a handler function.
-                                                    handleWhatsapp(inst);
-                                                }}
-                                                className="ml-2 p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors font-bold text-xs uppercase tracking-wider border border-emerald-100 hover:border-emerald-200 shadow-sm"
-                                                title="Enviar cobrança via WhatsApp"
-                                            >
-                                                <PhoneIcon size={16} />
-                                            </button>
-                                        )}
+                            <div className="flex items-center gap-6">
+                                <div className="text-right">
+                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Saldo em Aberto</p>
+                                    <p className={`text-lg font-black ${group.overdueCount > 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatCurrency(group.totalOpen)}</p>
+                                </div>
+                                <div className={`transition-transform duration-300 ${expandedCustomers[group.customerId] ? 'rotate-180' : ''}`}>
+                                    <ChevronDownIcon className="h-5 w-5 text-gray-300" />
+                                </div>
+                            </div>
+                        </div>
 
-                                        <div className="inline-block ml-2">
-                                            <CarnetPrintButton
-                                                saleId={(inst as any).saleId}
-                                                installments={[inst]}
-                                                buttonLabel=""
-                                                className="p-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 shadow-sm"
-                                            />
-                                        </div>
+                        {/* Expandable Installments Table */}
+                        {expandedCustomers[group.customerId] && (
+                            <div className="bg-gray-50/50 border-t border-gray-100 animate-slide-down">
+                                <div className="overflow-x-auto text-sm">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="bg-gray-100/30">
+                                                <th className="pl-6 sm:pl-10 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Parcela</th>
+                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Vencimento</th>
+                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-right">Valor</th>
+                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-center">Status</th>
+                                                <th className="pr-6 sm:pr-10 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-right">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {group.installments.map((inst) => {
+                                                const isLate = inst.status !== 'paid' && new Date(inst.dueDate) < new Date(new Date().toISOString().split('T')[0]);
+                                                return (
+                                                    <tr key={inst.id} className="hover:bg-white transition-colors">
+                                                        <td className="pl-6 sm:pl-10 py-4">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-black text-gray-900">#{inst.installmentNumber}/{inst.totalInstallments}</span>
+                                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Venda #{(inst as any).saleDisplayId}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <CalendarIcon className={`h-4 w-4 ${isLate ? 'text-red-400' : 'text-gray-400'}`} />
+                                                                <span className={`text-sm font-bold ${isLate ? 'text-red-600' : 'text-gray-700'}`}>
+                                                                    {new Date(inst.dueDate).toLocaleDateString('pt-BR')}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="text-sm font-black text-gray-900">{formatCurrency(inst.amount)}</span>
+                                                                {inst.status === 'partial' && (
+                                                                    <span className="text-[10px] font-bold text-orange-500">
+                                                                        Restam: {formatCurrency(inst.amount - inst.amountPaid)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <StatusBadge status={isLate ? 'Atrasado' : inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Pendente'} />
+                                                        </td>
+                                                        <td className="pr-6 sm:pr-10 py-4 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {inst.status !== 'paid' && (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setSelectedInstallment(inst); }}
+                                                                        className="h-8 px-3 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-sm active:scale-95"
+                                                                    >
+                                                                        Baixar
+                                                                    </button>
+                                                                )}
 
-                                        {inst.status === 'paid' && (
-                                            <CheckCircleIcon className="h-5 w-5 text-emerald-400 mx-auto" />
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                                                {(isLate || inst.status === 'pending' || inst.status === 'partial') && (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleWhatsapp(inst); }}
+                                                                        className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100"
+                                                                        title="Lembrete WhatsApp"
+                                                                    >
+                                                                        <WhatsAppIcon size={14} />
+                                                                    </button>
+                                                                )}
+
+                                                                <div onClick={(e) => e.stopPropagation()}>
+                                                                    <CarnetPrintButton
+                                                                        saleId={(inst as any).saleId}
+                                                                        installments={group.installments.filter(i => (i as any).saleId === (inst as any).saleId)}
+                                                                        buttonLabel=""
+                                                                        className="h-8 px-3 border border-gray-300 text-gray-700 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-gray-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
             </div>
 
             <InstallmentPaymentModal
@@ -330,6 +401,8 @@ const CreditDashboard: React.FC = () => {
                 onClose={() => setSelectedInstallment(null)}
                 installment={selectedInstallment}
                 onPaymentSuccess={handlePaymentSuccess}
+                userId={user?.id}
+                userName={user?.name}
             />
 
             <CreditSettingsModal
