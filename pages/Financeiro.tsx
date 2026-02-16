@@ -15,12 +15,13 @@ import {
 import { TransactionCategory, FinancialTransaction, PaymentMethodParameter, Sale, CreditInstallment, Product, PurchaseOrder } from '../types.ts';
 import {
     PlusIcon, SearchIcon, FilterIcon, CloseIcon, CheckIcon, TrashIcon, WalletIcon,
+    ChartBarIcon, CalendarDaysIcon
 } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import {
     TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle,
-    AlertTriangle, Receipt, Pencil, Edit3Icon, Eye as EyeIcon, ChevronLeft, ChevronRight
+    AlertTriangle, Receipt, Pencil, Edit3Icon, Eye as EyeIcon, ChevronLeft, ChevronRight, CreditCard
 } from 'lucide-react';
 import CreditDashboard from '../components/CreditDashboard.tsx';
 
