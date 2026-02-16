@@ -789,13 +789,20 @@ const Financeiro: React.FC = () => {
             {/* Header */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-black text-primary tracking-tight">Financeiro</h1>
-                        <div className="px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
-                            <span className="text-[10px] font-black text-accent uppercase tracking-widest">Controle de Caixa</span>
+                    <div className="flex items-center gap-4">
+                        <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20">
+                            <WalletIcon className="h-7 w-7 text-white" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-black text-primary tracking-tight">Financeiro</h1>
+                                <div className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
+                                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Controle de Caixa</span>
+                                </div>
+                            </div>
+                            <p className="text-sm text-secondary font-medium">Controle suas receitas, despesas e fluxo de caixa em tempo real.</p>
                         </div>
                     </div>
-                    <p className="text-sm text-secondary font-medium">Controle suas receitas, despesas e fluxo de caixa em tempo real.</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                     <button
@@ -808,20 +815,19 @@ const Financeiro: React.FC = () => {
                 </div>
             </header>
 
-            {/* Dashboard Tabs */}
-            <div className="flex bg-gray-100/80 p-1.5 rounded-2xl w-full max-w-md group">
+            <div className="flex bg-gray-900/5 p-1.5 rounded-2xl w-full max-w-md">
                 <button
                     onClick={() => setActiveTab('transactions')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-white text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-gray-900 text-white shadow-lg' : 'text-secondary hover:text-gray-900'}`}
                 >
-                    <WalletIcon className={`h-4 w-4 ${activeTab === 'transactions' ? 'text-accent' : ''}`} />
+                    <WalletIcon className="h-4 w-4" />
                     Transações
                 </button>
                 <button
                     onClick={() => setActiveTab('installments')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'installments' ? 'bg-white text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'installments' ? 'bg-gray-900 text-white shadow-lg' : 'text-secondary hover:text-gray-900'}`}
                 >
-                    <CreditCard className={`h-4 w-4 ${activeTab === 'installments' ? 'text-accent' : ''}`} />
+                    <CreditCard className="h-4 w-4" />
                     Crediário
                 </button>
             </div>
@@ -857,8 +863,8 @@ const Financeiro: React.FC = () => {
                             title="Lucro Líquido"
                             value={formatCurrency(kpis.netProfit)}
                             subtitle={`Margem de ${kpis.margin.toFixed(1)}%`}
-                            icon={<ChartBarIcon className="h-5 w-5 text-amber-600" />}
-                            iconBg="bg-amber-50"
+                            icon={<ChartBarIcon className={`h-5 w-5 ${kpis.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />}
+                            iconBg={kpis.netProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}
                         />
                     </div>
 
