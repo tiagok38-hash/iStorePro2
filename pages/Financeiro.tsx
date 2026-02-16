@@ -837,15 +837,6 @@ const Financeiro: React.FC = () => {
                     {/* KPI Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         <KPICard
-                            title="Saldo Previsto"
-                            value={formatCurrency(kpis.balance)}
-                            subtitle="Total líquido em caixa"
-                            icon={<WalletIcon className="h-5 w-5 text-blue-600" />}
-                            iconBg="bg-blue-50"
-                            trend={kpis.balance >= 0 ? 'up' : 'down'}
-                            trendLabel="Saldo do Mês"
-                        />
-                        <KPICard
                             title="Total Receitas"
                             value={formatCurrency(kpis.totalRevenue)}
                             subtitle="Entradas confirmadas"
@@ -858,6 +849,15 @@ const Financeiro: React.FC = () => {
                             subtitle="Saídas e compras pagas"
                             icon={<TrendingDown className="h-5 w-5 text-red-600" />}
                             iconBg="bg-red-50"
+                        />
+                        <KPICard
+                            title="Saldo"
+                            value={formatCurrency(kpis.balance)}
+                            subtitle="Total líquido em caixa"
+                            icon={<WalletIcon className="h-5 w-5 text-blue-600" />}
+                            iconBg="bg-blue-50"
+                            trend={kpis.balance >= 0 ? 'up' : 'down'}
+                            trendLabel="Saldo do Mês"
                         />
                         <KPICard
                             title="Lucro Líquido"
