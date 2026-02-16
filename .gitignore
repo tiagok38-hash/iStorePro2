@@ -52,3 +52,6 @@ metadata.json
 
 backup_*.zip
 backup_istorepro_2026-02-09_final_v22.tar.gz
+
+# Vite cache
+.vite/

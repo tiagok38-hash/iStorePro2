@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods } from '../services/mockApi.ts';
-import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet } from '../types.ts';
+import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers } from '../services/mockApi.ts';
+import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User } from '../types.ts';
 import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
+import SaleDetailModal from '../components/SaleDetailModal.tsx';
 
 // --- Permission Guard ---
 const getPermissionForRoute = (to: string, permissions: PermissionSet | null): boolean => {
@@ -273,7 +274,21 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     );
 });
 
-const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ sales, customers, className, isPrivacyMode }) => {
+const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products: Product[]; users: User[]; className?: string; isPrivacyMode?: boolean; to?: string; permissions?: PermissionSet | null; onDenied?: () => void }> = React.memo(({ sales, customers, products, users, className, isPrivacyMode, to, permissions, onDenied }) => {
+    const navigate = useNavigate();
+    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+
+    const handleNavigate = () => {
+        if (!to) return;
+        if (permissions && !getPermissionForRoute(to, permissions)) { onDenied?.(); return; }
+        navigate(to);
+    };
+
+    const productMap = useMemo(() => products.reduce((acc, p) => {
+        acc[p.id] = p;
+        return acc;
+    }, {} as Record<string, Product>), [products]);
+
     const customerMap = useMemo(() => customers.reduce((acc, c) => {
         acc[c.id] = c.name;
         return acc;
@@ -306,68 +321,91 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; className
     };
 
     return (
-        <div className={`p-6 glass-card h-full flex flex-col group hover:shadow-lg transition-all duration-300 ${className || ''}`}>
-            <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm">
-                        <ClockIcon className="h-6 w-6" />
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Vendas de Hoje</h3>
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl font-black text-gray-800 tracking-tight">{isPrivacyMode ? 'R$ ****' : formatCurrency(todaysSummary.total)}</span>
+        <>
+            <div
+                className={`p-6 glass-card h-full flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-lg hover:scale-[1.01] cursor-pointer' : ''} ${className || ''}`}
+                onClick={handleNavigate}
+            >
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm">
+                            <ClockIcon className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Vendas de Hoje</h3>
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl font-black text-gray-800 tracking-tight">{isPrivacyMode ? 'R$ ****' : formatCurrency(todaysSummary.total)}</span>
+                            </div>
                         </div>
                     </div>
+                    {todaysSummary.count > 0 && (
+                        <span className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full font-bold border border-indigo-100">
+                            {todaysSummary.count} {todaysSummary.count === 1 ? 'venda' : 'vendas'}
+                        </span>
+                    )}
                 </div>
-                {todaysSummary.count > 0 && (
-                    <span className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full font-bold border border-indigo-100">
-                        {todaysSummary.count} {todaysSummary.count === 1 ? 'venda' : 'vendas'}
-                    </span>
+                {todaysSalesList.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center flex-1 text-center py-8">
+                        <ShoppingCartIcon className="w-12 h-12 text-border" />
+                        <p className="mt-2 font-semibold">Nenhuma venda ainda...</p>
+                        <p className="text-sm text-muted">Aqui você verá suas vendas de hoje.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-y-auto flex-1 space-y-2 custom-scrollbar max-h-72 pr-1">
+                        {todaysSalesList.map(sale => (
+                            <div key={sale.id} className="p-3 bg-surface-secondary rounded-xl border border-border hover:border-accent transition-colors group/item relative">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-accent text-sm">#{sale.id}</span>
+                                        <span className="text-xs text-muted bg-white px-2 py-0.5 rounded">
+                                            {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-primary text-lg">{isPrivacyMode ? 'R$ ****' : formatCurrency(sale.total)}</span>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setSelectedSale(sale); }}
+                                            className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-accent hover:border-accent transition-all opacity-0 group-hover/item:opacity-100"
+                                            title="Ver detalhes"
+                                        >
+                                            <EyeIcon className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <div className="flex flex-col gap-1.5">
+                                        <p className="text-xs text-primary font-medium truncate max-w-[150px] flex items-center gap-1.5" title={customerMap[sale.customerId]}>
+                                            <UserIcon className="h-3.5 w-3.5 text-gray-400" />
+                                            {customerMap[sale.customerId] || 'Cliente'}
+                                        </p>
+                                        <p className="text-xs text-muted flex items-center gap-1.5">
+                                            <CubeIcon className="h-3.5 w-3.5 text-gray-400" />
+                                            {isPrivacyMode ? '***' : sale.items.reduce((sum, i) => sum + i.quantity, 0)} {sale.items.length === 1 ? 'item' : 'itens'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 justify-end">
+                                        {getPaymentBadges(sale).map((badge, idx) => (
+                                            <span key={idx} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${badge.color}`}>
+                                                {badge.method}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
-            {todaysSalesList.length === 0 ? (
-                <div className="flex flex-col items-center justify-center flex-1 text-center py-8">
-                    <ShoppingCartIcon className="w-12 h-12 text-border" />
-                    <p className="mt-2 font-semibold">Nenhuma venda ainda...</p>
-                    <p className="text-sm text-muted">Aqui você verá suas vendas de hoje.</p>
-                </div>
-            ) : (
-                <div className="overflow-y-auto flex-1 space-y-2 custom-scrollbar max-h-72">
-                    {todaysSalesList.map(sale => (
-                        <div key={sale.id} className="p-3 bg-surface-secondary rounded-xl border border-border hover:border-accent transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-accent text-sm">#{sale.id}</span>
-                                    <span className="text-xs text-muted bg-white px-2 py-0.5 rounded">
-                                        {new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </div>
-                                <span className="font-bold text-primary text-lg">{isPrivacyMode ? 'R$ ****' : formatCurrency(sale.total)}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex flex-col gap-1.5">
-                                    <p className="text-xs text-primary font-medium truncate max-w-[150px] flex items-center gap-1.5" title={customerMap[sale.customerId]}>
-                                        <UserIcon className="h-3.5 w-3.5 text-gray-400" />
-                                        {customerMap[sale.customerId] || 'Cliente'}
-                                    </p>
-                                    <p className="text-xs text-muted flex items-center gap-1.5">
-                                        <CubeIcon className="h-3.5 w-3.5 text-gray-400" />
-                                        {isPrivacyMode ? '***' : sale.items.reduce((sum, i) => sum + i.quantity, 0)} {sale.items.length === 1 ? 'item' : 'itens'}
-                                    </p>
-                                </div>
-                                <div className="flex flex-wrap gap-1 justify-end">
-                                    {getPaymentBadges(sale).map((badge, idx) => (
-                                        <span key={idx} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${badge.color}`}>
-                                            {badge.method}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+            {selectedSale && (
+                <SaleDetailModal
+                    sale={selectedSale}
+                    productMap={productMap}
+                    customers={customers}
+                    users={users}
+                    onClose={() => setSelectedSale(null)}
+                />
             )}
-        </div>
+        </>
     );
 });
 
@@ -1163,6 +1201,7 @@ const Dashboard: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
     const [billingPeriod, setBillingPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('year');
@@ -1229,6 +1268,7 @@ const Dashboard: React.FC = () => {
 
             // Priority 2: Configs
             fetchItem('ActiveMethods', getPaymentMethods, []).then(setPaymentMethods);
+            fetchItem('Users', getUsers, []).then(setUsers);
 
         } catch (error: any) {
             console.error('Dashboard: Critical error fetching data:', error);
@@ -1484,7 +1524,16 @@ const Dashboard: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
-                    <ProtectedLink to="/vendas?period=hoje" className="block h-full cursor-pointer" permissions={permissions} onDenied={handlePermissionDenied}><SalesByDayCard sales={sales} customers={customers} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
+                    <SalesByDayCard
+                        sales={sales}
+                        customers={customers}
+                        products={products}
+                        users={users}
+                        isPrivacyMode={isPrivacyMode}
+                        to="/vendas?period=hoje"
+                        permissions={permissions}
+                        onDenied={handlePermissionDenied}
+                    />
                 </div>
                 <div className="lg:col-span-2 min-h-[400px]">
                     <BillingChart data={dashboardMetrics.billingChartData} period={billingPeriod} onPeriodChange={setBillingPeriod} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateReports} />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     getTransactionCategories,
@@ -8,27 +7,33 @@ import {
     deleteFinancialTransaction,
     formatCurrency,
     getPaymentMethods,
+    getSales,
+    getCreditInstallments,
+    getProducts,
+    getPurchaseOrders,
 } from '../services/mockApi.ts';
-import { TransactionCategory, FinancialTransaction, PaymentMethodParameter } from '../types.ts';
+import { TransactionCategory, FinancialTransaction, PaymentMethodParameter, Sale, CreditInstallment, Product, PurchaseOrder } from '../types.ts';
 import {
     PlusIcon, SearchIcon, FilterIcon, CloseIcon, CheckIcon, TrashIcon, WalletIcon,
-    CurrencyDollarIcon, ChartBarIcon, ClockIcon, TagIcon, CalendarDaysIcon,
 } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import {
     TrendingUp, TrendingDown, ArrowUpCircle, ArrowDownCircle,
-    AlertTriangle, CreditCard, Receipt, Repeat, FileText, ChevronDown, ChevronUp, Pencil
+    AlertTriangle, Receipt, Pencil, Edit3Icon, Eye as EyeIcon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import CreditDashboard from '../components/CreditDashboard.tsx';
-import TransactionsFilterModal from '../components/TransactionsFilterModal.tsx';
 
 // ============================================================
 // Helper
 // ============================================================
 const fmtDate = (d: string) => {
     if (!d) return '—';
-    const parts = d.split('-');
+    let datePart = d;
+    if (d.includes('T')) {
+        datePart = d.split('T')[0];
+    }
+    const parts = datePart.split('-');
     if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
     return new Date(d).toLocaleDateString('pt-BR');
 };
@@ -113,9 +118,16 @@ interface TransactionModalProps {
 }
 
 const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSave, categories, paymentMethods, editData }) => {
+    const formatToBRL = (value: number) => {
+        return new Intl.NumberFormat("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    };
+
     const [type, setType] = useState<'income' | 'expense'>(editData?.type || 'expense');
     const [description, setDescription] = useState(editData?.description || '');
-    const [amount, setAmount] = useState(editData ? String(editData.amount) : '');
+    const [amount, setAmount] = useState(editData ? formatToBRL(editData.amount) : '');
     const [categoryId, setCategoryId] = useState(editData?.category_id || '');
     const [dueDate, setDueDate] = useState(editData?.due_date || todayISO());
     const [paymentDate, setPaymentDate] = useState(editData?.payment_date || '');
@@ -131,7 +143,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         if (editData) {
             setType(editData.type);
             setDescription(editData.description);
-            setAmount(editData.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            setAmount(formatToBRL(editData.amount));
             setCategoryId(editData.category_id);
             setDueDate(editData.due_date);
             setPaymentDate(editData.payment_date || '');
@@ -193,16 +205,17 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
         }
     };
 
-    // Handle BRL input formatting
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let value = e.target.value.replace(/\D/g, '');
-        const amountValue = Number(value) / 100;
-
-        const formatted = amountValue.toLocaleString('pt-BR', {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value === "") {
+            setAmount("");
+            return;
+        }
+        const numericValue = parseInt(value, 10) / 100;
+        const formatted = new Intl.NumberFormat("pt-BR", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        });
-
+        }).format(numericValue);
         setAmount(formatted);
     };
 
@@ -444,7 +457,7 @@ const ConfirmDeleteModal: React.FC<{ isOpen: boolean; onClose: () => void; onCon
                     <h3 className="text-lg font-black text-primary">Excluir Lançamento</h3>
                 </div>
                 <p className="text-sm text-secondary mb-6">
-                    Tem certeza que deseja excluir <strong>"{description}"</strong>? Esta ação não pode ser desfeita.
+                    Tem certeza que deseja excluir <strong>"${description}"</strong>? Esta ação não pode ser desfeita.
                 </p>
                 <div className="flex gap-3">
                     <button onClick={onClose} className="flex-1 h-11 rounded-xl border border-border text-sm font-bold text-secondary hover:bg-gray-50 transition-all">Cancelar</button>
@@ -463,17 +476,78 @@ const ConfirmDeleteModal: React.FC<{ isOpen: boolean; onClose: () => void; onCon
 };
 
 // ============================================================
+// Pagination Footer
+// ============================================================
+interface PaginationFooterProps {
+    currentPage: number;
+    itemsPerPage: number;
+    totalItems: number;
+    onPageChange: (page: number) => void;
+    onItemsPerPageChange: (count: number) => void;
+}
+
+const PaginationFooter: React.FC<PaginationFooterProps> = ({ currentPage, itemsPerPage, totalItems, onPageChange, onItemsPerPageChange }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    return (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-border bg-surface">
+            <div className="text-sm text-muted">
+                Mostrando ${Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} - ${Math.min(currentPage * itemsPerPage, totalItems)} de ${totalItems} itens
+            </div>
+            <div className="flex items-center gap-3">
+                <select
+                    value={itemsPerPage}
+                    onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+                    className="h-9 px-3 bg-gray-50 border border-border rounded-xl text-xs font-bold focus:border-accent outline-none transition-all appearance-none cursor-pointer"
+                >
+                    <option value={5}>5 por página</option>
+                    <option value={10}>10 por página</option>
+                    <option value={15}>15 por página</option>
+                    <option value={20}>20 por página</option>
+                    <option value={50}>50 por página</option>
+                </select>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => onPageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronLeft size={16} />
+                    </button>
+                    <span className="text-sm font-bold text-primary">Página ${currentPage} de ${totalPages}</span>
+                    <button
+                        onClick={() => onPageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronRight size={16} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============================================================
 // Main Page
 // ============================================================
 const Financeiro: React.FC = () => {
-    const { user } = useUser();
+    const { user, permissions } = useUser();
     const { showToast } = useToast();
 
     // Data State
     const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
     const [categories, setCategories] = useState<TransactionCategory[]>([]);
-    const [paymentMethodsList, setPaymentMethodsList] = useState<string[]>([]);
+    const [paymentMethodsList, setPaymentMethodsList] = useState<PaymentMethodParameter[]>([]);
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [installments, setInstallments] = useState<CreditInstallment[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(15);
 
     // Filter State
     const [filterType, setFilterType] = useState<'' | 'income' | 'expense'>('');
@@ -498,7 +572,7 @@ const Financeiro: React.FC = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const [cats, txns, methods] = await Promise.all([
+            const [cats, txns, methods, allSales, allInstallments, allProducts, allPurchases] = await Promise.all([
                 getTransactionCategories(),
                 getFinancialTransactions({
                     type: filterType || undefined,
@@ -508,10 +582,18 @@ const Financeiro: React.FC = () => {
                     search: searchTerm || undefined,
                 }),
                 getPaymentMethods(),
+                getSales(undefined, undefined, filterStartDate, filterEndDate),
+                getCreditInstallments(),
+                getProducts(),
+                getPurchaseOrders(),
             ]);
             setCategories(cats);
             setTransactions(txns);
-            setPaymentMethodsList((methods as PaymentMethodParameter[]).map((m: PaymentMethodParameter) => m.name));
+            setPaymentMethodsList(methods as PaymentMethodParameter[]);
+            setSales(allSales);
+            setInstallments(allInstallments);
+            setProducts(allProducts);
+            setPurchases(allPurchases);
         } catch (err) {
             console.error('Error loading financial data:', err);
             showToast('Erro ao carregar dados financeiros', 'error');
@@ -520,52 +602,168 @@ const Financeiro: React.FC = () => {
         }
     }, [filterType, filterStatus, filterStartDate, filterEndDate, searchTerm]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => {
+        loadData();
+    }, [loadData, filterType, filterStatus, filterStartDate, filterEndDate, searchTerm]);
 
-    // KPIs
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterType, filterStatus, searchTerm, filterStartDate, filterEndDate]);
+
+    // Derived Metrics
     const kpis = useMemo(() => {
-        const incomeList = transactions.filter(t => t.type === 'income');
-        const expenseList = transactions.filter(t => t.type === 'expense');
+        // Balance: Total Paid Income - Total Paid Expense (Manual + Sales + Purchases)
+        const manualIncome = transactions.filter(t => t.type === 'income' && t.status === 'paid').reduce((sum, t) => sum + t.amount, 0);
+        const saleIncome = sales.filter(s => s.status === 'Finalizada').reduce((sum, s) => sum + s.total, 0);
+        const totalRevenue = manualIncome + saleIncome;
 
-        const totalIncome = incomeList.filter(t => t.status === 'paid').reduce((s, t) => s + t.amount, 0);
-        const totalExpense = expenseList.filter(t => t.status === 'paid').reduce((s, t) => s + t.amount, 0);
-        const balance = totalIncome - totalExpense;
+        // FILTER Purchases by date for KPIs consistency (since API returns all)
+        const filteredPurchases = purchases.filter(p => {
+            if (!p.purchaseDate) return false;
+            if (filterStartDate && p.purchaseDate < filterStartDate) return false;
+            if (filterEndDate && p.purchaseDate > filterEndDate) return false;
+            return true;
+        });
 
-        const pendingIncome = incomeList.filter(t => t.status === 'pending').reduce((s, t) => s + t.amount, 0);
-        const pendingExpense = expenseList.filter(t => t.status === 'pending').reduce((s, t) => s + t.amount, 0);
+        const manualExpenses = transactions.filter(t => t.type === 'expense' && t.status === 'paid').reduce((sum, t) => sum + t.amount, 0);
+        const purchaseExpenses = filteredPurchases.reduce((sum, p) => {
+            if (p.financialStatus === 'Pago') {
+                return sum + p.total;
+            }
+            return sum;
+        }, 0);
+        const totalExpenses = manualExpenses + purchaseExpenses;
 
-        const today = todayISO();
-        const overdueExpense = expenseList.filter(t => t.status !== 'paid' && t.due_date < today).reduce((s, t) => s + t.amount, 0);
-        const overdueCount = expenseList.filter(t => t.status !== 'paid' && t.due_date < today).length;
+        const balance = totalRevenue - totalExpenses;
 
-        const allIncome = incomeList.reduce((s, t) => s + t.amount, 0);
-        const allExpense = expenseList.reduce((s, t) => s + t.amount, 0);
-        const netProfit = allIncome - allExpense;
+        // Total Credit (Pending Installments)
+        const totalCredit = installments.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, i) => sum + i.amount, 0);
+
+        // Net Profit Calculation (Approximation)
+        // Profit = Sales Revenue - Cost of Goods Sold (COGS) - Expenses - Fees
+        const totalCOGS = sales.filter(s => s.status === 'Finalizada').reduce((sum, s) => {
+            const cost = s.items.reduce((itemSum, item) => {
+                const p = products.find(prod => prod.id === item.productId);
+                return itemSum + ((p?.costPrice || 0) + (p?.additionalCostPrice || 0)) * item.quantity;
+            }, 0);
+            return sum + cost;
+        }, 0);
+
+        let totalFees = 0;
+        sales.filter(s => s.status === 'Finalizada').forEach(s => {
+            s.payments.forEach(p => {
+                const method = paymentMethodsList.find(m => m.name === p.method);
+                if (method?.config && method.type === 'card') {
+                    let rate = 0;
+                    const isDebit = p.card?.toLowerCase().includes('débito') || p.method.toLowerCase().includes('débito');
+                    if (isDebit) {
+                        rate = method.config.debitRate || 0;
+                    } else {
+                        const installmentsCount = p.installments || 1;
+                        const rateObj = method.config.creditNoInterestRates?.find(r => r.installments === installmentsCount);
+                        rate = rateObj ? rateObj.rate : 0;
+                    }
+                    totalFees += (p.value * rate) / 100;
+                }
+            });
+        });
+
+        const netProfit = totalRevenue - totalExpenses - totalCOGS - totalFees;
+        const margin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         return {
-            balance, totalIncome, totalExpense,
-            pendingIncome, pendingExpense,
-            overdueExpense, overdueCount,
+            balance,
+            totalRevenue,
+            totalExpenses,
+            totalCredit,
             netProfit,
-            txnCount: transactions.length,
+            margin,
+            txnCount: transactions.length + sales.length + filteredPurchases.length,
+            pendingCreditCount: installments.filter(i => i.status === 'overdue').length,
         };
-    }, [transactions]);
+    }, [transactions, sales, installments, products, paymentMethodsList, purchases, filterStartDate, filterEndDate]);
 
-    // Handlers
+    // Unified Timeline
+    const unifiedTransactions = useMemo(() => {
+        let items: any[] = [];
+
+        transactions.forEach(t => {
+            if (t.status !== 'paid') return;
+            items.push({
+                id: t.id,
+                date: t.payment_date || t.due_date,
+                description: t.description,
+                category: t.category?.name || 'Geral',
+                entity: t.entity_name || 'N/A',
+                value: t.amount,
+                type: t.type === 'income' ? 'Receita' : 'Despesa',
+                status: 'Pago',
+                source: 'manual',
+                original: t
+            });
+        });
+
+        sales.forEach(s => {
+            if (s.status === 'Cancelada') return;
+            if (s.status !== 'Finalizada') return;
+            items.push({
+                id: s.id,
+                date: s.date,
+                description: `Venda #${s.id.replace('ID-', '')}`,
+                category: 'Venda de Produtos',
+                entity: 'Cliente Final',
+                value: s.total,
+                type: 'Receita',
+                status: 'Pago',
+                source: 'sale',
+                original: s
+            });
+        });
+
+        purchases.forEach(p => {
+            if (filterStartDate && p.purchaseDate < filterStartDate) return;
+            if (filterEndDate && p.purchaseDate > filterEndDate) return;
+            if (p.status === 'Cancelada') return;
+            if (p.financialStatus !== 'Pago') return;
+            items.push({
+                id: p.id,
+                date: p.purchaseDate,
+                description: `Compra PO-${p.displayId} - ${p.supplierName}`,
+                category: 'Compra de Mercadorias',
+                entity: p.supplierName,
+                value: p.total,
+                type: 'Despesa',
+                status: 'Pago',
+                source: 'purchase',
+                original: p
+            });
+        });
+
+        return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [transactions, sales, purchases, filterStartDate, filterEndDate]);
+
+    // Pagination Logic
+    const totalItems = unifiedTransactions.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const currentItems = unifiedTransactions.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     const handleSave = async (data: Partial<FinancialTransaction>) => {
         try {
-            if ((data as any).id) {
-                await updateFinancialTransaction(data as any, user?.id, user?.name);
+            if (data.id) {
+                await updateFinancialTransaction(data as FinancialTransaction);
                 showToast('Lançamento atualizado com sucesso!', 'success');
             } else {
-                await addFinancialTransaction(data, user?.id, user?.name);
+                await addFinancialTransaction(data as Omit<FinancialTransaction, 'id'>);
                 showToast('Lançamento criado com sucesso!', 'success');
             }
-            await loadData();
+            loadData();
         } catch (err) {
             console.error('Error saving transaction:', err);
             showToast('Erro ao salvar lançamento', 'error');
-            throw err;
         }
     };
 
@@ -573,10 +771,10 @@ const Financeiro: React.FC = () => {
         if (!deleteItem) return;
         setDeleting(true);
         try {
-            await deleteFinancialTransaction(deleteItem.id, user?.id, user?.name);
-            showToast('Lançamento excluído com sucesso!', 'success');
+            await deleteFinancialTransaction(deleteItem.id);
+            showToast('Lançamento excluído!', 'success');
+            loadData();
             setDeleteItem(null);
-            await loadData();
         } catch (err) {
             console.error('Error deleting transaction:', err);
             showToast('Erro ao excluir lançamento', 'error');
@@ -585,265 +783,248 @@ const Financeiro: React.FC = () => {
         }
     };
 
-    const handleEdit = (txn: FinancialTransaction) => {
-        setEditItem(txn);
-        setModalOpen(true);
-    };
-
-    const handleQuickStatusToggle = async (txn: FinancialTransaction) => {
-        const newStatus = txn.status === 'paid' ? 'pending' : 'paid';
-        try {
-            await updateFinancialTransaction({
-                id: txn.id,
-                status: newStatus,
-                payment_date: newStatus === 'paid' ? todayISO() : undefined,
-            } as any, user?.id, user?.name);
-            showToast(newStatus === 'paid' ? 'Marcado como pago!' : 'Marcado como pendente!', 'success');
-            await loadData();
-        } catch (err) {
-            showToast('Erro ao atualizar status', 'error');
-        }
-    };
-
     return (
-        <div className="max-w-7xl mx-auto animate-fade-in">
-            {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl shadow-lg shadow-purple-200">
-                        <WalletIcon className="h-6 w-6 text-white" />
+        <div className="p-4 md:p-8 space-y-8 animate-fade-in max-w-[1600px] mx-auto pb-24">
+            {/* Header */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-black text-primary tracking-tight">Financeiro</h1>
+                        <div className="px-3 py-1 bg-accent/10 border border-accent/20 rounded-full">
+                            <span className="text-[10px] font-black text-accent uppercase tracking-widest">Controle de Caixa</span>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-black text-primary tracking-tight">Financeiro</h1>
-                        <p className="text-xs text-muted font-medium">Gestão de receitas e despesas</p>
-                    </div>
+                    <p className="text-sm text-secondary font-medium">Controle suas receitas, despesas e fluxo de caixa em tempo real.</p>
                 </div>
-                {activeTab === 'transactions' && (
+                <div className="flex flex-wrap gap-3">
                     <button
                         onClick={() => { setEditItem(null); setModalOpen(true); }}
-                        className="flex items-center justify-center gap-2 h-11 px-5 bg-accent text-white rounded-2xl font-bold text-sm shadow-lg shadow-accent/25 hover:shadow-xl hover:shadow-accent/30 active:scale-[0.98] transition-all"
+                        className="flex-1 md:flex-none h-12 px-6 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 group"
                     >
-                        <PlusIcon className="h-4 w-4" />
-                        Nova Transação
+                        <PlusIcon className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+                        Novo Lançamento
                     </button>
-                )}
-            </div>
+                </div>
+            </header>
 
-            {/* Tabs */}
-            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm mb-6">
+            {/* Dashboard Tabs */}
+            <div className="flex bg-gray-100/80 p-1.5 rounded-2xl w-full max-w-md group">
                 <button
                     onClick={() => setActiveTab('transactions')}
-                    className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === 'transactions' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-white text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
                 >
-                    Receitas e Despesas
+                    <WalletIcon className={`h-4 w-4 ${activeTab === 'transactions' ? 'text-accent' : ''}`} />
+                    Transações
                 </button>
                 <button
                     onClick={() => setActiveTab('installments')}
-                    className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === 'installments' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'installments' ? 'bg-white text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
                 >
-                    Crediários
+                    <CreditCard className={`h-4 w-4 ${activeTab === 'installments' ? 'text-accent' : ''}`} />
+                    Crediário
                 </button>
             </div>
 
             {activeTab === 'transactions' ? (
                 <>
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+                    {/* KPI Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         <KPICard
-                            title="Saldo"
+                            title="Saldo Previsto"
                             value={formatCurrency(kpis.balance)}
-                            subtitle={`${kpis.txnCount} lançamentos`}
+                            subtitle="Total líquido em caixa"
                             icon={<WalletIcon className="h-5 w-5 text-blue-600" />}
                             iconBg="bg-blue-50"
-                            className={kpis.balance >= 0 ? '' : 'ring-1 ring-red-100'}
+                            trend={kpis.balance >= 0 ? 'up' : 'down'}
+                            trendLabel="Saldo do Mês"
                         />
                         <KPICard
-                            title="Receitas"
-                            value={formatCurrency(kpis.totalIncome)}
-                            subtitle={kpis.pendingIncome > 0 ? `${formatCurrency(kpis.pendingIncome)} a receber` : 'Tudo recebido'}
-                            icon={<ArrowUpCircle size={20} className="text-emerald-600" />}
+                            title="Total Receitas"
+                            value={formatCurrency(kpis.totalRevenue)}
+                            subtitle="Entradas confirmadas"
+                            icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
                             iconBg="bg-emerald-50"
                         />
                         <KPICard
-                            title="Despesas"
-                            value={formatCurrency(kpis.totalExpense)}
-                            subtitle={kpis.pendingExpense > 0 ? `${formatCurrency(kpis.pendingExpense)} a pagar` : 'Tudo pago'}
-                            icon={<ArrowDownCircle size={20} className="text-red-600" />}
+                            title="Total Despesas"
+                            value={formatCurrency(kpis.totalExpenses)}
+                            subtitle="Saídas e compras pagas"
+                            icon={<TrendingDown className="h-5 w-5 text-red-600" />}
                             iconBg="bg-red-50"
-                        />
-                        <KPICard
-                            title="Atrasado"
-                            value={formatCurrency(kpis.overdueExpense)}
-                            subtitle={kpis.overdueCount > 0 ? `${kpis.overdueCount} ${kpis.overdueCount === 1 ? 'conta' : 'contas'} vencidas` : 'Nenhuma conta atrasada'}
-                            icon={<AlertTriangle size={20} className="text-amber-600" />}
-                            iconBg="bg-amber-50"
-                            className={kpis.overdueCount > 0 ? 'ring-1 ring-amber-100' : ''}
                         />
                         <KPICard
                             title="Lucro Líquido"
                             value={formatCurrency(kpis.netProfit)}
-                            subtitle={kpis.totalIncome > 0 ? `${((kpis.netProfit / kpis.totalIncome) * 100).toFixed(1)}% margem` : '—'}
-                            icon={<TrendingUp size={20} className="text-violet-600" />}
-                            iconBg="bg-violet-50"
-                            trend={kpis.netProfit >= 0 ? 'up' : 'down'}
-                            trendLabel={kpis.netProfit >= 0 ? 'Positivo' : 'Negativo'}
-                            className="col-span-2 lg:col-span-1"
+                            subtitle={`Margem de ${kpis.margin.toFixed(1)}%`}
+                            icon={<ChartBarIcon className="h-5 w-5 text-amber-600" />}
+                            iconBg="bg-amber-50"
                         />
                     </div>
 
-                    {/* Filters Bar */}
-                    <div className="bg-surface rounded-2xl border border-border p-3 mb-4 shadow-sm">
-                        <div className="flex flex-wrap items-center gap-2">
-                            {/* Search */}
-                            <div className="relative flex-1 min-w-[200px]">
-                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted h-4 w-4" />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    placeholder="Buscar descrição, fornecedor..."
-                                    className="w-full h-9 pl-9 pr-3 bg-gray-50 border border-border rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
-                                />
+                    {/* Main Content Card */}
+                    <div className="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+                        {/* Filters Bar */}
+                        <div className="p-6 border-b border-border flex flex-wrap items-center justify-between gap-6">
+                            <div className="flex flex-wrap items-center gap-4">
+                                <div className="relative group min-w-[300px]">
+                                    <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted group-focus-within:text-accent transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Pesquisar por descrição ou entidade..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        className="h-11 pl-11 pr-4 bg-gray-50 border border-border rounded-xl text-sm font-medium focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none transition-all w-full"
+                                    />
+                                </div>
+                                <div className="flex items-center bg-gray-50 border border-border rounded-xl px-2 h-11">
+                                    <FilterIcon className="h-4 w-4 text-muted mx-2" />
+                                    <select
+                                        value={filterType}
+                                        onChange={e => setFilterType(e.target.value as any)}
+                                        className="bg-transparent border-none text-xs font-bold focus:ring-0 cursor-pointer text-secondary"
+                                    >
+                                        <option value="">Todos os Tipos</option>
+                                        <option value="income">Receitas</option>
+                                        <option value="expense">Despesas</option>
+                                    </select>
+                                    <div className="w-px h-6 bg-border mx-2"></div>
+                                    <select
+                                        value={filterStatus}
+                                        onChange={e => setFilterStatus(e.target.value as any)}
+                                        className="bg-transparent border-none text-xs font-bold focus:ring-0 cursor-pointer text-secondary"
+                                    >
+                                        <option value="">Todos Status</option>
+                                        <option value="paid">Pago</option>
+                                        <option value="pending">Pendente</option>
+                                        <option value="overdue">Atrasado</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            {/* Type Filter */}
-                            <select
-                                value={filterType}
-                                onChange={e => setFilterType(e.target.value as any)}
-                                className="h-9 px-3 bg-gray-50 border border-border rounded-xl text-xs font-bold focus:border-accent outline-none transition-all appearance-none cursor-pointer"
-                            >
-                                <option value="">Todos os tipos</option>
-                                <option value="income">Receitas</option>
-                                <option value="expense">Despesas</option>
-                            </select>
-
-                            {/* Status Filter */}
-                            <select
-                                value={filterStatus}
-                                onChange={e => setFilterStatus(e.target.value as any)}
-                                className="h-9 px-3 bg-gray-50 border border-border rounded-xl text-xs font-bold focus:border-accent outline-none transition-all appearance-none cursor-pointer"
-                            >
-                                <option value="">Todos os status</option>
-                                <option value="paid">Pagos</option>
-                                <option value="pending">Pendentes</option>
-                                <option value="overdue">Atrasados</option>
-                            </select>
-
-                            {/* Date Range */}
-                            <div className="flex items-center gap-1.5">
-                                <input
-                                    type="date"
-                                    value={filterStartDate}
-                                    onChange={e => setFilterStartDate(e.target.value)}
-                                    className="h-9 px-2 bg-gray-50 border border-border rounded-xl text-xs font-bold focus:border-accent outline-none transition-all"
-                                />
-                                <span className="text-xs text-muted font-bold">até</span>
-                                <input
-                                    type="date"
-                                    value={filterEndDate}
-                                    onChange={e => setFilterEndDate(e.target.value)}
-                                    className="h-9 px-2 bg-gray-50 border border-border rounded-xl text-xs font-bold focus:border-accent outline-none transition-all"
-                                />
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center bg-gray-50 border border-border rounded-xl px-3 h-11">
+                                    <CalendarDaysIcon className="h-4 w-4 text-muted mr-3" />
+                                    <input
+                                        type="date"
+                                        value={filterStartDate}
+                                        onChange={e => setFilterStartDate(e.target.value)}
+                                        className="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 text-secondary"
+                                    />
+                                    <span className="text-muted mx-3 font-black text-xs">ATÉ</span>
+                                    <input
+                                        type="date"
+                                        value={filterEndDate}
+                                        onChange={e => setFilterEndDate(e.target.value)}
+                                        className="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 text-secondary"
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Transactions Table */}
-                    <div className="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden">
                         {loading ? (
-                            <div className="flex items-center justify-center py-20">
-                                <span className="animate-spin w-8 h-8 border-3 border-accent/20 border-t-accent rounded-full"></span>
+                            <div className="flex-1 flex flex-col items-center justify-center py-20 gap-4">
+                                <span className="animate-spin w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full" />
+                                <p className="text-sm font-bold text-secondary animate-pulse uppercase tracking-widest">Carregando dados financeiros...</p>
                             </div>
-                        ) : transactions.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 text-center">
-                                <div className="p-4 bg-gray-50 rounded-2xl mb-4">
+                        ) : unifiedTransactions.length === 0 ? (
+                            <div className="flex-1 flex flex-col items-center justify-center py-24 text-center px-6">
+                                <div className="bg-gray-50 p-6 rounded-full mb-6">
                                     <Receipt size={40} className="text-gray-300" />
                                 </div>
-                                <p className="font-bold text-primary">Nenhum lançamento encontrado</p>
-                                <p className="text-sm text-muted mt-1">Crie seu primeiro lançamento financeiro</p>
+                                <h3 className="text-lg font-black text-primary uppercase tracking-tight mb-2">Nenhum lançamento encontrado</h3>
+                                <p className="text-sm text-secondary max-w-xs mx-auto mb-8 font-medium">Não há registros financeiros para este período ou com os filtros aplicados.</p>
                                 <button
-                                    onClick={() => { setEditItem(null); setModalOpen(true); }}
-                                    className="mt-4 flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-xl text-sm font-bold shadow-lg shadow-accent/25 hover:shadow-xl transition-all"
+                                    onClick={() => { setFilterStartDate(monthStartISO()); setFilterEndDate(monthEndISO()); setFilterType(''); setFilterStatus(''); setSearchTerm(''); }}
+                                    className="h-11 px-6 bg-gray-100 text-secondary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-all border border-gray-200"
                                 >
-                                    <PlusIcon className="h-4 w-4" />
-                                    Novo Lançamento
+                                    Limpar Filtros
                                 </button>
                             </div>
                         ) : (
                             <>
-                                {/* Desktop Table */}
-                                <div className="hidden md:block overflow-x-auto">
-                                    <table className="w-full text-sm">
+                                {/* Timeline Table */}
+                                <div className="flex-1 overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[1000px]">
                                         <thead>
-                                            <tr className="text-left text-[10px] font-black text-muted uppercase tracking-wider border-b border-border">
-                                                <th className="px-4 py-3">Venc.</th>
+                                            <tr className="bg-gray-50/50 text-[10px] font-black text-secondary uppercase tracking-[0.1em] border-b border-border">
+                                                <th className="px-4 py-3 w-32">Vencimento</th>
                                                 <th className="px-4 py-3">Descrição</th>
                                                 <th className="px-4 py-3">Categoria</th>
                                                 <th className="px-4 py-3">Entidade</th>
                                                 <th className="px-4 py-3 text-right">Valor</th>
                                                 <th className="px-4 py-3 text-center">Status</th>
+                                                <th className="px-4 py-3 text-center">Tipo</th>
                                                 <th className="px-4 py-3 text-center w-24">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border/50">
-                                            {transactions.map(txn => (
-                                                <tr key={txn.id} className="group hover:bg-gray-50/80 transition-colors">
+                                            {currentItems.map((item: any) => (
+                                                <tr key={`${item.source}-${item.id}`} className="group hover:bg-gray-50/80 transition-colors">
                                                     <td className="px-4 py-3">
-                                                        <span className="text-xs font-bold text-secondary">{fmtDate(txn.due_date)}</span>
+                                                        <span className="text-xs font-bold text-secondary">{fmtDate(item.date)}</span>
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-2">
-                                                            <div className={`w-1.5 h-8 rounded-full flex-shrink-0 ${txn.type === 'income' ? 'bg-emerald-400' : 'bg-red-400'}`}></div>
-                                                            <div>
-                                                                <p className="font-bold text-primary truncate max-w-[200px]">{txn.description}</p>
-                                                                {txn.is_recurring && (
-                                                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-full mt-0.5">
-                                                                        <Repeat size={8} /> Recorrente
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                            <div className={`w-1.5 h-8 rounded-full flex-shrink-0 ${item.type === 'Receita' ? 'bg-emerald-400' : 'bg-red-400'}`}></div>
+                                                            <span className="font-bold text-primary truncate max-w-[200px]" title={item.description}>
+                                                                {item.description}
+                                                            </span>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span
-                                                            className="inline-flex items-center text-[10px] font-bold px-2 py-1 rounded-full"
-                                                            style={{
-                                                                backgroundColor: `${txn.category?.color || '#6B7280'}15`,
-                                                                color: txn.category?.color || '#6B7280',
-                                                            }}
-                                                        >
-                                                            {txn.category?.name || '—'}
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${item.category === 'Compra de Mercadorias' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                            {item.category}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span className="text-xs text-secondary truncate max-w-[120px] block">{txn.entity_name || '—'}</span>
+                                                        <span className="text-xs text-muted truncate max-w-[150px] block" title={item.entity}>
+                                                            {item.entity}
+                                                        </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <span className={`text-sm font-black ${txn.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                            {txn.type === 'income' ? '+' : '-'} {formatCurrency(txn.amount)}
+                                                        <span className={`font-black ${item.type === 'Receita' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                            {item.type === 'Receita' ? '+' : '-'} {formatCurrency(item.value)}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <button onClick={() => handleQuickStatusToggle(txn)} title="Clique para alterar status">
-                                                            <StatusBadge status={txn.status} />
-                                                        </button>
+                                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${item.status === 'Pago' ? 'bg-emerald-100/50 text-emerald-700' : item.status === 'Pendente' ? 'bg-amber-100/50 text-amber-700' : 'bg-red-100/50 text-red-700'}`}>
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'Pago' ? 'bg-emerald-500' : item.status === 'Pendente' ? 'bg-amber-500' : 'bg-red-500'}`}></div>
+                                                            {item.status}
+                                                        </span>
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button
-                                                                onClick={() => handleEdit(txn)}
-                                                                className="p-1.5 rounded-lg hover:bg-accent/10 text-accent transition-colors"
-                                                                title="Editar"
-                                                            >
-                                                                <Pencil size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setDeleteItem(txn)}
-                                                                className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-                                                                title="Excluir"
-                                                            >
-                                                                <TrashIcon className="h-4 w-4" />
-                                                            </button>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className={`text-[10px] font-black uppercase tracking-wider ${item.type === 'Receita' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                            {item.type}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {item.source === 'manual' && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => { setEditItem(item.original); setModalOpen(true); }}
+                                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                        title="Editar"
+                                                                    >
+                                                                        <Edit3Icon size={16} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setDeleteItem(item.original)}
+                                                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                        title="Excluir"
+                                                                    >
+                                                                        <TrashIcon size={16} />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            {(item.source === 'sale' || item.source === 'purchase') && (
+                                                                <button
+                                                                    className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors cursor-not-allowed"
+                                                                    title="Sincronizado via Sistema"
+                                                                >
+                                                                    <EyeIcon size={16} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -852,51 +1033,20 @@ const Financeiro: React.FC = () => {
                                     </table>
                                 </div>
 
-                                {/* Mobile Cards */}
-                                <div className="md:hidden divide-y divide-border/50">
-                                    {transactions.map(txn => (
-                                        <div key={txn.id} className="p-4">
-                                            <div className="flex items-center justify-between" onClick={() => setExpandedId(expandedId === txn.id ? null : txn.id)}>
-                                                <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${txn.type === 'income' ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                                                        {txn.type === 'income' ? <ArrowUpCircle size={18} className="text-emerald-600" /> : <ArrowDownCircle size={18} className="text-red-600" />}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-primary truncate">{txn.description}</p>
-                                                        <p className="text-[10px] text-muted font-medium">{fmtDate(txn.due_date)} • {txn.category?.name || '—'}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right ml-3 flex-shrink-0">
-                                                    <p className={`text-sm font-black ${txn.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                        {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount)}
-                                                    </p>
-                                                    <StatusBadge status={txn.status} />
-                                                </div>
-                                            </div>
-                                            {expandedId === txn.id && (
-                                                <div className="mt-3 pt-3 border-t border-dashed border-border flex items-center gap-2 animate-fade-in">
-                                                    <button onClick={() => handleQuickStatusToggle(txn)} className="flex-1 h-9 rounded-xl bg-gray-100 text-xs font-bold text-secondary hover:bg-gray-200 transition-all">
-                                                        {txn.status === 'paid' ? 'Marcar Pendente' : 'Marcar Pago'}
-                                                    </button>
-                                                    <button onClick={() => handleEdit(txn)} className="h-9 w-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
-                                                        <Pencil size={16} />
-                                                    </button>
-                                                    <button onClick={() => setDeleteItem(txn)} className="h-9 w-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
-                                                        <TrashIcon className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                                {/* Pagination Footer */}
+                                <PaginationFooter
+                                    currentPage={currentPage}
+                                    itemsPerPage={itemsPerPage}
+                                    totalItems={totalItems}
+                                    onPageChange={setCurrentPage}
+                                    onItemsPerPageChange={setItemsPerPage}
+                                />
                             </>
                         )}
                     </div>
                 </>
             ) : (
-                <div className="animate-fade-in">
-                    <CreditDashboard />
-                </div>
+                <CreditDashboard />
             )}
 
             {/* Modals */}
@@ -905,8 +1055,8 @@ const Financeiro: React.FC = () => {
                 onClose={() => { setModalOpen(false); setEditItem(null); }}
                 onSave={handleSave}
                 categories={categories}
-                paymentMethods={paymentMethodsList}
                 editData={editItem}
+                paymentMethods={paymentMethodsList.map(m => m.name)}
             />
 
             <ConfirmDeleteModal
@@ -916,7 +1066,7 @@ const Financeiro: React.FC = () => {
                 description={deleteItem?.description || ''}
                 deleting={deleting}
             />
-        </div >
+        </div>
     );
 };
 
