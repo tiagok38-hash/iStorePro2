@@ -327,7 +327,6 @@ export const useSaleForm = ({
             method: method as PaymentMethodType,
             value: paymentInput.amount,
             type: methodDef?.type,
-            type: methodDef?.type,
             internalNote: paymentInput.internalNote,
             pixVariation: paymentInput.pixVariation
         };
@@ -359,50 +358,6 @@ export const useSaleForm = ({
         });
     }, [showToast]);
 
-    const handleSaveTradeInProduct = useCallback(async (productData: any) => {
-        if (!selectedCustomerId) { setIsTradeInProductModalOpen(false); return; }
-        const salesperson = users.find(u => u.id === selectedSalespersonId);
-        const newProductPayload = {
-            ...productData,
-            stock: 0, // Trade-in products start with 0 stock, only added when sale is finalized
-            selectedCustomerId,
-            createdBy: selectedSalespersonId,
-            createdByName: salesperson?.name,
-            supplierName: suppliers.find(s => s.id === productData.supplierId)?.name || 'N/A'
-        };
-        const tradeInValue = newProductPayload.costPrice || 0;
-
-        try {
-            // DEFER CREATION: Do not call onAddProduct here. 
-            // Store payload to be created upon Sale Finalization.
-            const tempId = `temp-trade-${Date.now()}`;
-
-            setPendingTradeInProduct({ ...newProductPayload, id: tempId } as Product); // Keep it for UI feedback if needed, but mainly rely on payments
-
-            const newPayment: Payment = {
-                id: `pay-trade-${Date.now()}`,
-                method: 'Aparelho na Troca',
-                value: tradeInValue,
-                tradeInDetails: {
-                    productId: tempId, // Temporary ID
-                    model: newProductPayload.model,
-                    serialNumber: newProductPayload.serialNumber,
-                    imei1: newProductPayload.imei1,
-                    imei2: newProductPayload.imei2,
-                    batteryHealth: newProductPayload.batteryHealth,
-                    condition: newProductPayload.condition,
-                    newProductPayload: newProductPayload // Store for later creation
-                }
-            };
-            setPayments(prev => [...prev, newPayment]);
-            showToast('Produto de troca agendado! Será criado ao finalizar a venda.', 'success');
-        } catch (error: any) {
-            showToast(error?.message || 'Erro ao criar produto de troca.', 'error');
-        } finally {
-            setProductForTradeIn(null);
-            setIsTradeInProductModalOpen(false);
-        }
-    }, [selectedCustomerId, selectedSalespersonId, users, onAddProduct, showToast]);
 
     // Wrapper function for TradeInModal which has a different signature
     const handleSaveTradeInFromModal = useCallback(async ({ tradeInValue, newProductData }: { tradeInValue: number; newProductData: any }) => {
@@ -454,6 +409,13 @@ export const useSaleForm = ({
             setIsTradeInProductModalOpen(false);
         }
     }, [selectedCustomerId, selectedSalespersonId, users, onAddProduct, showToast]);
+
+    const handleSaveTradeInProduct = useCallback(async (productData: any) => {
+        return handleSaveTradeInFromModal({
+            tradeInValue: productData.costPrice || 0,
+            newProductData: productData
+        });
+    }, [handleSaveTradeInFromModal]);
 
 
     const handleSave = useCallback(async (targetStatus: 'Finalizada' | 'Pendente' = 'Finalizada') => {

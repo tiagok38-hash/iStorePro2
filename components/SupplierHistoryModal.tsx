@@ -6,7 +6,7 @@ import PurchaseOrderDetailModal from './PurchaseOrderDetailModal.tsx';
 
 const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
-const stockStatusStyles: Record<StockStatus, string> = { 'Lançado': 'bg-green-100 text-green-600', 'Pendente': 'bg-orange-100 text-orange-600', 'Parcialmente Lançado': 'bg-yellow-100 text-yellow-600' };
+const stockStatusStyles: Record<StockStatus, string> = { 'Lançado': 'bg-green-100 text-green-600', 'Pendente': 'bg-orange-100 text-orange-600', 'Parcialmente Lançado': 'bg-yellow-100 text-yellow-600', 'Cancelada': 'bg-red-100 text-red-600' };
 const financialStatusStyles: Record<FinancialStatus, string> = { 'Pago': 'bg-green-100 text-green-600', 'Pendente': 'bg-orange-100 text-orange-600' };
 
 interface SupplierHistoryModalProps {
