@@ -267,7 +267,7 @@ const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: 
                         <PackageIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Lotes em Baixa</h3>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Produtos Lote em baixa</h3>
                         <p className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : lowStockBulk.length}</p>
                     </div>
                 </div>
@@ -1741,13 +1741,15 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                <CustomersStatsCard
-                    customers={customers}
+                <SalesByDayCard
                     sales={sales}
+                    customers={customers}
+                    products={products}
+                    users={users}
                     isPrivacyMode={isPrivacyMode}
-                    onNavigate={() => {
-                        if (getPermissionForRoute('/customers', permissions)) { navigate('/customers'); } else { handlePermissionDenied(); }
-                    }}
+                    to="/vendas?period=hoje"
+                    permissions={permissions}
+                    onDenied={handlePermissionDenied}
                 />
                 <OpenServiceOrdersCard serviceOrders={serviceOrders} isPrivacyMode={isPrivacyMode} to="/service-orders/list" />
                 <LowStockBulkProductsCard products={products} isPrivacyMode={isPrivacyMode} to="/products?filter=low_stock" />
@@ -1755,15 +1757,13 @@ const Dashboard: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1">
-                    <SalesByDayCard
-                        sales={sales}
+                    <CustomersStatsCard
                         customers={customers}
-                        products={products}
-                        users={users}
+                        sales={sales}
                         isPrivacyMode={isPrivacyMode}
-                        to="/vendas?period=hoje"
-                        permissions={permissions}
-                        onDenied={handlePermissionDenied}
+                        onNavigate={() => {
+                            if (getPermissionForRoute('/customers', permissions)) { navigate('/customers'); } else { handlePermissionDenied(); }
+                        }}
                     />
                 </div>
                 <div className="lg:col-span-2 min-h-[400px]">
