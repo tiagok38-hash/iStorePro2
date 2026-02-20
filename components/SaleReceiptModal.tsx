@@ -3,9 +3,10 @@ import React, { useId, useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter, WarrantyParameter } from '../types.ts';
 import { formatCurrency, getCompanyInfo, getReceiptTerms, getWarranties } from '../services/mockApi.ts';
-import { CloseIcon, PrinterIcon, SpinnerIcon } from './icons.tsx';
+import { CloseIcon, PrinterIcon, SpinnerIcon, WhatsAppIcon, EnvelopeIcon, DocumentTextIcon } from './icons.tsx';
 import { CarnetPrintButton } from './print/CarnetPrintButton.tsx';
 import { CreditInstallment } from '../types.ts';
+import { shareViaWhatsApp, shareViaEmail, downloadReceiptPDF } from '../utils/receiptShare.ts';
 
 const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -429,6 +430,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
     const [receiptTerms, setReceiptTerms] = useState<ReceiptTermParameter[]>([]);
     const [warranties, setWarranties] = useState<WarrantyParameter[]>([]);
     const [loading, setLoading] = useState(true);
+    const [sharing, setSharing] = useState<'whatsapp' | 'email' | 'pdf' | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -632,7 +634,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
             <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full print:max-h-none print:h-auto rounded-3xl print:rounded-none overflow-hidden print:overflow-visible`} id={`print-container-${uniqueId}`}>
                 <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white">
                     <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Recibo da Venda #{sale.id}</h2>
-                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap justify-end">
                         {showCarnetButton && (
                             <CarnetPrintButton
                                 saleId={sale.id}
@@ -641,7 +643,71 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                                 className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-800 text-white rounded-xl text-xs sm:text-sm hover:bg-gray-900 transition-colors shadow-sm"
                             />
                         )}
-                        <button onClick={handlePrint} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm hover:bg-opacity-90">
+                        <button
+                            disabled={sharing === 'whatsapp'}
+                            onClick={async () => {
+                                setSharing('whatsapp');
+                                try {
+                                    await shareViaWhatsApp({
+                                        receiptElementId: `print-container-${uniqueId}`,
+                                        saleId: sale.id,
+                                        customerName: customer?.name,
+                                        customerPhone: customer?.phone,
+                                        format,
+                                    });
+                                } finally {
+                                    setSharing(null);
+                                }
+                            }}
+                            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm hover:bg-green-700 transition-colors shadow-sm disabled:opacity-60"
+                            title="Enviar via WhatsApp com PDF"
+                        >
+                            {sharing === 'whatsapp' ? <SpinnerIcon size={18} /> : <WhatsAppIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
+                            <span className="hidden sm:inline">{sharing === 'whatsapp' ? 'Gerando...' : 'WhatsApp'}</span>
+                        </button>
+                        <button
+                            disabled={sharing === 'email'}
+                            onClick={async () => {
+                                setSharing('email');
+                                try {
+                                    await shareViaEmail({
+                                        receiptElementId: `print-container-${uniqueId}`,
+                                        saleId: sale.id,
+                                        customerName: customer?.name,
+                                        customerEmail: customer?.email,
+                                        format,
+                                    });
+                                } finally {
+                                    setSharing(null);
+                                }
+                            }}
+                            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-xl text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60"
+                            title="Enviar via E-mail com PDF"
+                        >
+                            {sharing === 'email' ? <SpinnerIcon size={18} /> : <EnvelopeIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
+                            <span className="hidden sm:inline">{sharing === 'email' ? 'Gerando...' : 'E-mail'}</span>
+                        </button>
+                        <button
+                            disabled={sharing === 'pdf'}
+                            onClick={async () => {
+                                setSharing('pdf');
+                                try {
+                                    await downloadReceiptPDF({
+                                        receiptElementId: `print-container-${uniqueId}`,
+                                        saleId: sale.id,
+                                        format,
+                                    });
+                                } finally {
+                                    setSharing(null);
+                                }
+                            }}
+                            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-xl text-xs sm:text-sm hover:bg-gray-700 transition-colors shadow-sm disabled:opacity-60"
+                            title="Baixar PDF"
+                        >
+                            {sharing === 'pdf' ? <SpinnerIcon size={18} /> : <DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
+                            <span className="hidden sm:inline">{sharing === 'pdf' ? 'Gerando...' : 'PDF'}</span>
+                        </button>
+                        <button onClick={handlePrint} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm hover:bg-opacity-90 transition-colors shadow-sm">
                             <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Imprimir
                         </button>
                         <button onClick={onClose} className="p-1 text-muted hover:text-danger"><CloseIcon className="h-6 w-6" /></button>

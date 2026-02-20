@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    SpinnerIcon, XCircleIcon, CheckIcon, ArchiveBoxIcon, DocumentTextIcon, PrinterIcon
+    SpinnerIcon, XCircleIcon, CheckIcon, ArchiveBoxIcon, DocumentTextIcon, PrinterIcon, WhatsAppIcon, EnvelopeIcon
 } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import {
@@ -579,22 +579,48 @@ const POS: React.FC = () => {
                 )}
                 <CashMovementModal isOpen={isCashMovementModalOpen} onClose={() => setIsCashMovementModalOpen(false)} onConfirm={handleConfirmCashMovement} type={cashMovementType} />
 
-                {showFormatSelector && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm animate-scale-in">
-                            <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">Selecionar Formato</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button onClick={() => { setReceiptFormat('A4'); setShowFormatSelector(false); }} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-100 hover:border-primary transition-all group">
-                                    <DocumentTextIcon className="h-8 w-8 text-gray-400 group-hover:text-primary" /><span className="font-bold text-sm">Folha A4</span>
-                                </button>
-                                <button onClick={() => { setReceiptFormat('thermal'); setShowFormatSelector(false); }} className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-100 hover:border-primary transition-all group">
-                                    <PrinterIcon className="h-8 w-8 text-gray-400 group-hover:text-primary" /><span className="font-bold text-sm">Térmica 80mm</span>
-                                </button>
+                {showFormatSelector && (() => {
+                    const saleForShare = receiptSale;
+                    const customerForShare = saleForShare ? customers.find(c => c.id === saleForShare.customerId) : null;
+
+                    return (
+                        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                            <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md animate-scale-in">
+                                <h3 className="text-lg font-bold text-gray-800 mb-2 text-center">Comprovante de Venda</h3>
+                                <p className="text-xs text-gray-400 text-center mb-4">Escolha como deseja enviar ou imprimir</p>
+
+                                {/* Print Options */}
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Imprimir</p>
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <button onClick={() => { setReceiptFormat('A4'); setShowFormatSelector(false); }} className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50/50 transition-all group">
+                                        <DocumentTextIcon className="h-8 w-8 text-gray-400 group-hover:text-blue-600" /><span className="font-bold text-sm">Folha A4</span>
+                                    </button>
+                                    <button onClick={() => { setReceiptFormat('thermal'); setShowFormatSelector(false); }} className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50/50 transition-all group">
+                                        <PrinterIcon className="h-8 w-8 text-gray-400 group-hover:text-blue-600" /><span className="font-bold text-sm">Térmica 80mm</span>
+                                    </button>
+                                </div>
+
+                                {/* Share Options - opens receipt modal in A4 where PDF generation + share buttons exist */}
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Enviar para o Cliente (com PDF)</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={() => { setReceiptFormat('A4'); setShowFormatSelector(false); }} className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-gray-100 hover:border-green-500 hover:bg-green-50/50 transition-all group">
+                                        <WhatsAppIcon className="h-8 w-8 text-gray-400 group-hover:text-green-600" />
+                                        <span className="font-bold text-sm">WhatsApp</span>
+                                        {customerForShare?.phone && <span className="text-[10px] text-gray-400 truncate max-w-full">{customerForShare.phone}</span>}
+                                    </button>
+                                    <button onClick={() => { setReceiptFormat('A4'); setShowFormatSelector(false); }} className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50/50 transition-all group">
+                                        <EnvelopeIcon className="h-8 w-8 text-gray-400 group-hover:text-blue-600" />
+                                        <span className="font-bold text-sm">E-mail</span>
+                                        {customerForShare?.email && <span className="text-[10px] text-gray-400 truncate max-w-full">{customerForShare.email}</span>}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-center text-gray-300 mt-2">Ao enviar, o comprovante será aberto e você poderá gerar o PDF com os botões na barra superior</p>
+
+                                <button onClick={() => { setShowFormatSelector(false); setReceiptSale(null); }} className="mt-5 w-full py-3 bg-gray-100 rounded-xl text-gray-500 font-bold hover:bg-gray-200 transition-colors">Cancelar</button>
                             </div>
-                            <button onClick={() => { setShowFormatSelector(false); setReceiptSale(null); }} className="mt-6 w-full py-3 bg-gray-100 rounded-xl text-gray-500 font-bold">Cancelar</button>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {detailSale && <SaleDetailModal sale={detailSale} productMap={productMap} customers={customers} users={users} onClose={() => setDetailSale(null)} />}
                 {receiptSale && !showFormatSelector && <SaleReceiptModal sale={receiptSale} productMap={productMap} customers={customers} users={users} onClose={() => setReceiptSale(null)} format={receiptFormat} />}
