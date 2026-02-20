@@ -1738,6 +1738,9 @@ const Dashboard: React.FC = () => {
                     isPrivacyMode={isPrivacyMode}
                     to="/service-orders/financial"
                 />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <CustomersStatsCard
                     customers={customers}
                     sales={sales}
@@ -1746,9 +1749,6 @@ const Dashboard: React.FC = () => {
                         if (getPermissionForRoute('/customers', permissions)) { navigate('/customers'); } else { handlePermissionDenied(); }
                     }}
                 />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
                 <OpenServiceOrdersCard serviceOrders={serviceOrders} isPrivacyMode={isPrivacyMode} to="/service-orders/list" />
                 <LowStockBulkProductsCard products={products} isPrivacyMode={isPrivacyMode} to="/products?filter=low_stock" />
             </div>
