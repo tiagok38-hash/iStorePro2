@@ -424,8 +424,16 @@ const getInstallmentsForPrinting = (sale: Sale): CreditInstallment[] => {
     return installments;
 };
 
-const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Product>; customers: Customer[]; users: User[]; onClose: () => void; format: 'A4' | 'thermal'; }> = ({ sale, productMap, customers, users, onClose, format }) => {
+const SaleReceiptModal: React.FC<{
+    sale: Sale;
+    productMap: Record<string, Product>;
+    customers: Customer[];
+    users: User[];
+    onClose: () => void;
+    initialFormat?: 'A4' | 'thermal';
+}> = ({ sale, productMap, customers, users, onClose, initialFormat = 'thermal' }) => {
     const uniqueId = useId().replace(/:/g, '');
+    const [format, setFormat] = useState<'A4' | 'thermal'>(initialFormat);
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     const [receiptTerms, setReceiptTerms] = useState<ReceiptTermParameter[]>([]);
     const [warranties, setWarranties] = useState<WarrantyParameter[]>([]);
@@ -451,7 +459,12 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
             }
         };
         loadData();
-    }, []);
+
+        // Save preference when changed
+        if (format) {
+            localStorage.setItem('pos_default_receipt_format', format);
+        }
+    }, [format]);
 
     const customer = useMemo(() => customers.find(c => c.id === sale.customerId), [customers, sale.customerId]);
     const salesperson = useMemo(() => users.find(u => u.id === sale.salespersonId), [users, sale.salespersonId]);
@@ -654,10 +667,26 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
             </style>
             <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full print:max-h-none print:h-auto rounded-3xl print:rounded-none overflow-hidden print:overflow-visible`} id={`print-container-${uniqueId}`}>
                 <div className="p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white space-y-2">
-                    {/* Title row with close button */}
-                    <div className="flex justify-between items-center">
-                        <h2 className={`font-bold text-primary truncate ${format === 'thermal' ? 'text-sm' : 'text-lg sm:text-2xl'}`}>Recibo #{sale.id}</h2>
-                        <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 text-muted hover:text-danger transition-colors" title="Fechar">
+                    {/* Title row with format toggle and close button */}
+                    <div className="flex justify-between items-center gap-2">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <h2 className={`font-bold text-primary truncate ${format === 'thermal' ? 'text-sm' : 'text-lg sm:text-2xl'}`}>Recibo #{sale.id}</h2>
+                            <div className="flex p-0.5 bg-gray-100 rounded-lg shrink-0">
+                                <button
+                                    onClick={() => setFormat('thermal')}
+                                    className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${format === 'thermal' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    Térmica
+                                </button>
+                                <button
+                                    onClick={() => setFormat('A4')}
+                                    className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${format === 'A4' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    A4
+                                </button>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 text-muted hover:text-danger transition-colors shrink-0" title="Fechar">
                             <CloseIcon className="h-5 w-5" />
                         </button>
                     </div>
