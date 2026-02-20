@@ -27,6 +27,8 @@ interface ChatContextData {
     loadMore: () => Promise<void>;
     refetchMessages: () => Promise<void>;
     setCurrentUserId: (id: string | null) => void;
+    typingUsers: string[];
+    sendTypingEvent: (userName: string) => void;
 }
 
 const ChatContext = createContext<ChatContextData | undefined>(undefined);
@@ -44,6 +46,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const oldestCreatedAtRef = useRef<string | null>(null);
     const lastOpenedRef = useRef<string | null>(null);
     const currentUserIdRef = useRef<string | null>(null);
+
+    // Typing logic
+    const [typingUsers, setTypingUsers] = useState<{ id: string, name: string }[]>([]);
+    const typingTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
+    const broadcastChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
     // Init: recupera o último timestamp de abertura do chat
     useEffect(() => {
@@ -144,6 +151,53 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         recalcUnread(messages);
     }, [isChatOpen, recalcUnread, messages]);
 
+    // Setup de Broadcast (Typing Indicator)
+    useEffect(() => {
+        const channel = supabase.channel('chat_broadcast', {
+            config: { broadcast: { self: false } }
+        });
+
+        channel.on('broadcast', { event: 'typing' }, (payload) => {
+            const { user_id, user_name } = payload.payload;
+            if (!user_id || !user_name || user_id === currentUserIdRef.current) return;
+
+            setTypingUsers(prev => {
+                if (!prev.some(u => u.id === user_id)) {
+                    return [...prev, { id: user_id, name: user_name }];
+                }
+                return prev;
+            });
+
+            if (typingTimeouts.current[user_id]) {
+                clearTimeout(typingTimeouts.current[user_id]);
+            }
+
+            typingTimeouts.current[user_id] = setTimeout(() => {
+                setTypingUsers(prev => prev.filter(u => u.id !== user_id));
+                delete typingTimeouts.current[user_id];
+            }, 3000);
+        }).subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                broadcastChannelRef.current = channel;
+            }
+        });
+
+        return () => {
+            channel.unsubscribe();
+            Object.values(typingTimeouts.current).forEach(clearTimeout);
+            broadcastChannelRef.current = null;
+        };
+    }, []);
+
+    const sendTypingEvent = useCallback((userName: string) => {
+        if (!broadcastChannelRef.current || !currentUserIdRef.current) return;
+        broadcastChannelRef.current.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { user_id: currentUserIdRef.current, user_name: userName }
+        });
+    }, []);
+
     // Subscription Realtime — ÚNICO listener global para toda a app
     // NOTA: filtro 'conversation_id=is.null' NÃO é suportado pelo Supabase Realtime
     // Por isso escutamos todos os eventos da tabela e filtramos no cliente
@@ -223,6 +277,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             loadMore,
             refetchMessages,
             setCurrentUserId,
+            typingUsers: typingUsers.map(u => u.name),
+            sendTypingEvent,
         }}>
             {children}
         </ChatContext.Provider>

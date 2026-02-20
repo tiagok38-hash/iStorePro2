@@ -4,9 +4,10 @@ interface ChatInputProps {
     onSend: (content: string) => Promise<boolean>;
     disabled?: boolean;
     sending?: boolean;
+    onTyping?: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled, sending }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled, sending, onTyping }) => {
     const [value, setValue] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,7 +48,10 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled, sending }) => {
                 <textarea
                     ref={textareaRef}
                     value={value}
-                    onChange={e => setValue(e.target.value)}
+                    onChange={e => {
+                        setValue(e.target.value);
+                        onTyping?.();
+                    }}
                     onKeyDown={handleKeyDown}
                     placeholder="Digite uma mensagem..."
                     disabled={disabled || sending}

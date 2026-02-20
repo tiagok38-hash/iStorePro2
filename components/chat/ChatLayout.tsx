@@ -50,8 +50,10 @@ const shouldShowDateDivider = (current: ChatMessage, previous?: ChatMessage): st
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
     const { user } = useUser();
-    const { messages, loading, loadingMore, hasMore, loadMore, refetchMessages } = useChat();
+    const { messages, loading, loadingMore, hasMore, loadMore, refetchMessages, typingUsers, sendTypingEvent } = useChat();
     const { sending, sendMessage, editMessage } = useSendMessage(user?.id ?? null);
+
+    const [unreadInChat, setUnreadInChat] = useState(0);
 
     // Wrapper de envio: tenta Realtime, mas garante refetch como fallback
     const handleSend = useCallback(async (content: string): Promise<boolean> => {
@@ -105,6 +107,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
                 top: container.scrollHeight,
                 behavior: smooth ? 'smooth' : 'auto'
             });
+            setUnreadInChat(0); // Limpa novas mensagens ao scrollar pro fim
         }
     }, []);
 
@@ -139,6 +142,9 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
                 const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
                 if (isNearBottom) {
                     scrollToBottom(true);
+                } else if (!isInitialScrollRef.current) {
+                    // Incrementa não lidas se o usuário ativamente rolou pra cima e uma nova mensagem chegou
+                    setUnreadInChat(prev => prev + 1);
                 }
             }
         }
@@ -166,14 +172,21 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
         });
     }, [loadMore]);
 
-    // Scroll listener para detectar aproximação do topo (carregar mais)
+    // Scroll listener para detectar aproximação do topo (carregar mais) e fim (limpar não lidas)
     const handleScroll = useCallback(() => {
         const container = messagesContainerRef.current;
         if (!container) return;
         if (container.scrollTop < 100 && hasMore && !loadingMore) {
             handleLoadMore();
         }
-    }, [hasMore, loadingMore, handleLoadMore]);
+
+        // Verifica se chegou ao fim para resetar contador de novas mensagens
+        const threshold = 50;
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+        if (isNearBottom && unreadInChat > 0) {
+            setUnreadInChat(0);
+        }
+    }, [hasMore, loadingMore, handleLoadMore, unreadInChat]);
 
     // Enriquecer mensagens com nomes
     const enrichedMessages = messages.map(m => ({
@@ -310,11 +323,48 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
                     })}
                 </div>
 
+                {/* Status de Digitanto e Botão de Scroll (Flutuantes sobre o Input) */}
+                <div className="absolute bottom-[72px] left-0 right-0 px-4 pointer-events-none flex flex-col items-center justify-end">
+                    {/* Botão de Novas Mensagens */}
+                    {unreadInChat > 0 && (
+                        <button
+                            onClick={() => scrollToBottom(true)}
+                            className="pointer-events-auto mb-2 px-4 py-1.5 bg-violet-600 text-white text-[11px] font-semibold rounded-full shadow-lg shadow-violet-600/30 flex items-center gap-2 hover:-translate-y-0.5 transition-transform animate-fade-in-up"
+                        >
+                            <span>{unreadInChat} nova{unreadInChat > 1 ? 's' : ''} mensagem{unreadInChat > 1 ? 'ns' : ''}</span>
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                        </button>
+                    )}
+
+                    {/* Indicador de Digitanto */}
+                    {typingUsers.length > 0 && (
+                        <div className="w-full flex justify-start mb-1 animate-fade-in">
+                            <div className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-2xl rounded-bl-sm px-3 py-1.5 shadow-sm inline-flex items-center gap-1.5">
+                                <span className="text-[10px] text-gray-500 italic">
+                                    {typingUsers.length === 1
+                                        ? `${typingUsers[0]} está digitando...`
+                                        : `${typingUsers.join(', ')} estão digitando...`}
+                                </span>
+                                <div className="flex gap-0.5 items-center mt-0.5">
+                                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Input */}
                 <ChatInput
                     onSend={handleSend}
                     sending={sending}
                     disabled={!user}
+                    onTyping={() => {
+                        if (user?.name) sendTypingEvent(user.name);
+                    }}
                 />
             </div>
         </>
