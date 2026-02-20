@@ -1637,13 +1637,27 @@ const PerfilTab: React.FC = () => {
 
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => {
+            reader.onloadend = async () => {
                 const base64String = reader.result as string;
                 setFormData(prev => ({ ...prev, avatarUrl: base64String }));
-                showToast('Foto atualizada. Lembre-se de salvar as alterações.', 'info');
+
+                if (user) {
+                    try {
+                        await updateUser({ ...user, avatarUrl: base64String } as User);
+                        refreshPermissions();
+                        showToast('Foto de perfil atualizada com sucesso!', 'success');
+                    } catch (error) {
+                        showToast('Erro ao atualizar a foto de perfil.', 'error');
+                    }
+                }
+
+                if (photoInputRef.current) {
+                    photoInputRef.current.value = '';
+                }
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         }
     };
 
@@ -1737,7 +1751,18 @@ const PerfilTab: React.FC = () => {
                                 )}
                             </div>
                             {formData.avatarUrl && (
-                                <button onClick={() => { setFormData(prev => ({ ...prev, avatarUrl: undefined })); if (photoInputRef.current) photoInputRef.current.value = ""; }} className="mt-4 text-sm text-danger hover:underline">Remover Foto</button>
+                                <button onClick={async () => {
+                                    setFormData(prev => ({ ...prev, avatarUrl: undefined }));
+                                    if (photoInputRef.current) photoInputRef.current.value = "";
+                                    if (user) {
+                                        try {
+                                            const updatedUser = { ...user };
+                                            delete updatedUser.avatarUrl;
+                                            await updateUser(updatedUser);
+                                            refreshPermissions();
+                                        } catch (e) { }
+                                    }
+                                }} className="mt-4 text-sm text-danger hover:underline">Remover Foto</button>
                             )}
                         </div>
                     </div>
@@ -1780,9 +1805,18 @@ const PerfilTab: React.FC = () => {
             <CameraModal
                 isOpen={isCameraModalOpen}
                 onClose={() => setIsCameraModalOpen(false)}
-                onCapture={(imageData) => {
+                onCapture={async (imageData) => {
                     setFormData(prev => ({ ...prev, avatarUrl: imageData }));
                     setIsCameraModalOpen(false);
+                    if (user) {
+                        try {
+                            await updateUser({ ...user, avatarUrl: imageData } as User);
+                            refreshPermissions();
+                            showToast('Foto de perfil atualizada com sucesso!', 'success');
+                        } catch (error) {
+                            showToast('Erro ao atualizar a foto de perfil.', 'error');
+                        }
+                    }
                 }}
             />
         </div>
