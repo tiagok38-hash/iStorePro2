@@ -50,10 +50,16 @@ const shouldShowDateDivider = (current: ChatMessage, previous?: ChatMessage): st
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
     const { user } = useUser();
-    const { messages, loading, loadingMore, hasMore, loadMore, refetchMessages, typingUsers, sendTypingEvent } = useChat();
+    const { messages, loading, loadingMore, hasMore, loadMore, refetchMessages, typingUsers, sendTypingEvent, openChat } = useChat();
     const { sending, sendMessage, editMessage } = useSendMessage(user?.id ?? null);
 
     const [unreadInChat, setUnreadInChat] = useState(0);
+
+    // Notification Preview State
+    const [showPreview, setShowPreview] = useState(false);
+    const [previewContent, setPreviewContent] = useState<{ name: string, text: string, avatar: string | undefined } | null>(null);
+    const lastMessageCountRef = useRef(messages.length);
+    const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Wrapper de envio: tenta Realtime, mas garante refetch como fallback
     const handleSend = useCallback(async (content: string): Promise<boolean> => {
@@ -150,12 +156,40 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
         }
     }, [messages, loading, scrollToBottom, user?.id, isOpen]);
 
-    // Quando o chat abre, scroll para o fim imediatamente
+    // Quando o chat abre, scroll para o fim imediatamente e oculta preview
     useEffect(() => {
         if (isOpen && !loading) {
             scrollToBottom(false);
+            setShowPreview(false);
         }
     }, [isOpen, loading, scrollToBottom]);
+
+    // Cleanup preview timer and detect new messages for preview
+    useEffect(() => {
+        if (messages.length > lastMessageCountRef.current) {
+            const newMsg = messages[messages.length - 1];
+            // Se chat fechado e mensagem não é nossa
+            if (!isOpen && newMsg.sender_id !== user?.id) {
+                const sName = userProfiles.get(newMsg.sender_id)?.name || newMsg.sender_name || 'Novo usuário';
+                const sAvatar = userProfiles.get(newMsg.sender_id)?.avatar || newMsg.sender_avatar;
+
+                setPreviewContent({ name: sName, text: newMsg.content, avatar: sAvatar });
+                setShowPreview(true);
+
+                if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+                previewTimeoutRef.current = setTimeout(() => {
+                    setShowPreview(false);
+                }, 4000);
+            }
+        }
+        lastMessageCountRef.current = messages.length;
+    }, [messages, isOpen, user?.id, userProfiles]);
+
+    useEffect(() => {
+        return () => {
+            if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+        };
+    }, []);
 
     // Preserva posição do scroll ao carregar mensagens antigas
     const handleLoadMore = useCallback(async () => {
@@ -195,7 +229,71 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
         sender_avatar: userProfiles.get(m.sender_id)?.avatar ?? m.sender_avatar,
     }));
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return (
+            <>
+                {showPreview && previewContent && (
+                    <div
+                        onClick={() => {
+                            setShowPreview(false);
+                            openChat();
+                        }}
+                        className="fixed top-4 left-4 right-4 sm:top-20 sm:left-auto sm:right-4 z-[99999] sm:w-[320px] bg-white rounded-2xl shadow-2xl border border-violet-100 p-4 flex items-start gap-3 cursor-pointer animate-fade-in-down sm:animate-fade-in-right hover:scale-[1.02] transition-transform"
+                        style={{ boxShadow: '0 20px 60px rgba(123, 97, 255, 0.2), 0 8px 20px rgba(0,0,0,0.1)' }}
+                    >
+                        {previewContent.avatar ? (
+                            <img src={previewContent.avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover shrink-0 border border-violet-100 bg-gray-50" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+                                <span className="text-violet-600 font-bold text-sm">
+                                    {previewContent.name.charAt(0).toUpperCase()}
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex-1 min-w-0 pr-2">
+                            <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{previewContent.name}</h4>
+                            <p className="text-xs text-gray-500 line-clamp-2 mt-0.5 break-words">
+                                {previewContent.text}
+                            </p>
+                            <span className="text-[10px] text-violet-500 font-medium mt-1 md:mt-1.5 inline-flex items-center gap-1 bg-violet-50 px-2 py-0.5 rounded-full">
+                                Toque para abrir o chat
+                            </span>
+                        </div>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowPreview(false);
+                            }}
+                            className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <CloseIcon className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                )}
+                <style>{`
+                    @keyframes fade-in-right {
+                        from { opacity: 0; transform: translateX(20px) scale(0.95); }
+                        to { opacity: 1; transform: translateX(0) scale(1); }
+                    }
+                    @keyframes fade-in-down {
+                        from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    .animate-fade-in-right {
+                        animation: fade-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    }
+                    .animate-fade-in-down {
+                        animation: fade-in-down 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    }
+                    @media (min-width: 640px) {
+                        .sm\\:animate-fade-in-right {
+                            animation: fade-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                        }
+                    }
+                `}</style>
+            </>
+        );
+    }
 
     return (
         <>
