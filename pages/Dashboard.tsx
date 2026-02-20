@@ -1727,6 +1727,9 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
+                <ProtectedLink to="/products" className="block h-full md:col-span-2" permissions={permissions} onDenied={handlePermissionDenied}>
+                    <StockStatsCard products={products} isPrivacyMode={isPrivacyMode} />
+                </ProtectedLink>
                 <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
                 <ServiceOrderProfitCard
                     serviceOrders={serviceOrders}
@@ -1735,7 +1738,6 @@ const Dashboard: React.FC = () => {
                     isPrivacyMode={isPrivacyMode}
                     to="/service-orders/financial"
                 />
-                <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><StockStatsCard products={products} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <CustomersStatsCard
                     customers={customers}
                     sales={sales}
