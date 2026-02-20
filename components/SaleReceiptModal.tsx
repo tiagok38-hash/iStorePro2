@@ -492,8 +492,15 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         `}
 
                         /* Reset html/body */
-                        html, body {
+                        html {
                             margin: 0 !important;
+                            padding: 0 !important;
+                            width: 100% !important;
+                            background: white !important;
+                        }
+
+                        body {
+                            margin: 0 auto !important;
                             padding: 0 !important;
                             width: ${format === 'thermal' ? '80mm' : '100%'} !important;
                             height: auto !important;
@@ -518,11 +525,12 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             display: none !important;
                         }
 
-                        /* Overlay — collapse it completely */
+                        /* Overlay — collapse/center */
                         #print-modal-overlay-${uniqueId} {
                             position: static !important;
-                            display: block !important;
-                            width: ${format === 'thermal' ? '80mm' : '100%'} !important;
+                            display: flex !important;
+                            justify-content: center !important;
+                            width: 100% !important;
                             height: auto !important;
                             min-height: 0 !important;
                             max-height: none !important;
@@ -533,7 +541,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             inset: auto !important;
                         }
 
-                        /* Print container — flat block, no flex, no constraints */
+                        /* Print container — flat block, no flex, centered */
                         #print-container-${uniqueId} {
                             display: block !important;
                             position: static !important;
@@ -542,7 +550,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             height: auto !important;
                             min-height: 0 !important;
                             max-height: none !important;
-                            margin: 0 !important;
+                            margin: 0 auto !important;
                             padding: 0 !important;
                             background: white !important;
                             box-shadow: none !important;
@@ -555,7 +563,7 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         .print-content-wrapper {
                             display: block !important;
                             flex: none !important;
-                            width: ${format === 'thermal' ? '80mm' : '100%'} !important;
+                            width: 100% !important;
                             height: auto !important;
                             min-height: 0 !important;
                             max-height: none !important;
@@ -568,17 +576,17 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                         /* Receipt body */
                         .receipt-body {
                             display: block !important;
-                            width: ${format === 'thermal' ? '80mm' : '100%'} !important;
+                            width: 100% !important;
                             max-width: ${format === 'thermal' ? '80mm' : 'none'} !important;
                             height: auto !important;
                             min-height: 0 !important;
                             max-height: none !important;
-                            margin: 0 !important;
-                            padding: ${format === 'thermal' ? '2mm' : '0'} !important;
+                            margin: 0 auto !important;
+                            padding: ${format === 'thermal' ? '4mm' : '0'} !important;
                             overflow: visible !important;
                             color: black !important;
                             background: white !important;
-                            font-size: ${format === 'thermal' ? '9pt' : '8pt'} !important;
+                            font-size: ${format === 'thermal' ? '10pt' : '8pt'} !important;
                         }
 
                         ${format === 'A4' ? `
@@ -593,15 +601,16 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                             .receipt-body h3 { font-size: 8pt !important; }
                             .receipt-body header img { height: 10mm !important; width: 10mm !important; }
                         ` : `
-                            /* Thermal specific adjustments */
+                            /* Thermal specific adjustments - slightly smaller to be safe on wrapping */
                             .receipt-body * {
-                                max-width: 76mm !important;
+                                max-width: 72mm !important;
                                 word-wrap: break-word !important;
                                 overflow-wrap: break-word !important;
                             }
                             .receipt-body img {
-                                max-height: 20mm !important;
-                                max-width: 60mm !important;
+                                max-height: 25mm !important;
+                                max-width: 55mm !important;
+                                margin-bottom: 2mm !important;
                             }
                         `}
 
