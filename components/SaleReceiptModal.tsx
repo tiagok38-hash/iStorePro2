@@ -671,16 +671,16 @@ const SaleReceiptModal: React.FC<{
                     <div className="flex justify-between items-center gap-2">
                         <div className="flex items-center gap-3 overflow-hidden">
                             <h2 className={`font-bold text-primary truncate ${format === 'thermal' ? 'text-sm' : 'text-lg sm:text-2xl'}`}>Recibo #{sale.id}</h2>
-                            <div className="flex p-0.5 bg-gray-100 rounded-lg shrink-0">
+                            <div className="flex p-0.5 bg-gray-200/80 rounded-lg shrink-0 border border-gray-300/50">
                                 <button
                                     onClick={() => setFormat('thermal')}
-                                    className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${format === 'thermal' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-md transition-all ${format === 'thermal' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-800 hover:bg-white/50'}`}
                                 >
                                     Térmica
                                 </button>
                                 <button
                                     onClick={() => setFormat('A4')}
-                                    className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${format === 'A4' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-md transition-all ${format === 'A4' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-800 hover:bg-white/50'}`}
                                 >
                                     Folha A4
                                 </button>
