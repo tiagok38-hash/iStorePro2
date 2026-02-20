@@ -2322,7 +2322,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         const credPayment = updated.payments?.find((p: any) => p.method === 'Crediário');
         if (credPayment && updated.customer_id && (newStatus === 'Finalizada' || newStatus === 'Editada') && (oldStatus !== 'Finalizada' && oldStatus !== 'Editada')) {
             try {
-                console.log('[updateSale] Pending sale finalized with Crediário. Generating installments.');
+
                 const cDetails = credPayment.creditDetails || {};
                 let cPreviews = cDetails.installmentsPreview || [];
 
@@ -2463,7 +2463,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         const creditPayment = originalSale.payments?.find((p: any) => p.method === 'Crediário' || p.method === 'Promissória'); // removed requirement for creditDetails to be strictly present for finding it, but used value.
 
         if (creditPayment && originalSale.customer_id) {
-            console.log(`[updateSale] Reverting credit limit for sale ${data.id}. Status: ${newStatus}`);
+
 
             // 1. Delete installments for this sale
             const { error: deleteError } = await supabase
@@ -2474,7 +2474,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             if (deleteError) {
                 console.error('[updateSale] Error deleting credit installments:', deleteError);
             } else {
-                console.log('[updateSale] Deleted credit installments.');
+
             }
 
             // 2. Restore customer credit limit

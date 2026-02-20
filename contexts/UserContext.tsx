@@ -139,7 +139,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Garante que todas as chaves existam fundindo com o padrão
           setPermissions({ ...defaultPermissions, ...profile.permissions });
         } else {
-          // console.warn(`UserContext: Perfil...`);
+
           setPermissions(defaultPermissions);
         }
       } catch (e) {
@@ -195,7 +195,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
-        // console.warn('UserContext: Erro na sessão:', error.message);
+
         // Se erro crítico (ex: refresh token revogado), logout
         if (error.message.includes('invalid_grant') || error.message.includes('refresh_token_not_found')) {
           await updateUserAndPermissions(null);

@@ -346,7 +346,6 @@ export const useSaleForm = ({
                 if ((paymentToRemove.method === 'Débito' || paymentToRemove.method === 'Crédito') && paymentToRemove.fees) {
                     // Só remove do cardFees se o tipo for 'Débito' ou 'Com Juros' (onde a taxa foi somada ao total)
                     if (paymentToRemove.type === 'Débito' || paymentToRemove.type === 'Com Juros') {
-                        // setCardFees(fees => Math.max(0, fees - paymentToRemove.fees!));
                     }
                 }
                 if (paymentToRemove.method === 'Aparelho na Troca') {
@@ -464,7 +463,6 @@ export const useSaleForm = ({
             const processedPayments = await Promise.all(payments.map(async (p) => {
                 if (p.method === 'Aparelho na Troca' && p.tradeInDetails?.newProductPayload) {
                     try {
-                        console.log('Creating deferred Trade-in Product:', p.tradeInDetails.model);
                         const created = await onAddProduct(p.tradeInDetails.newProductPayload);
                         if (created) {
                             // Update payment with real ID and remove payload to avoid cluttering DB
