@@ -421,21 +421,21 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
     return (
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                         <CurrencyDollarIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Lucro Estimado</h3>
-                        <p className="text-3xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Lucro Estimado</h3>
+                        <p className="text-2xl font-black text-emerald-600 tracking-tight mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value as any)}
-                        className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer outline-none transition-all"
+                        className="text-[10px] font-black tracking-widest text-gray-500 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 outline-none transition-all uppercase cursor-pointer"
                     >
                         <option value="day">Hoje</option>
                         <option value="yesterday">Ontem</option>
@@ -1125,14 +1125,14 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
 
     return (
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
                         <ArchiveBoxIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Estoque</h3>
-                        <p className="text-3xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Estoque</h3>
+                        <p className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
                     </div>
                 </div>
                 <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wide border border-blue-100 flex items-center gap-1">
@@ -1333,15 +1333,15 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
     return (
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl shadow-sm">
+                    <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shadow-sm">
                         <UsersIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Clientes</h3>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Clientes</h3>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-3xl font-black text-gray-800 tracking-tight">{isPrivacyMode ? '***' : customers.length}</p>
+                            <p className="text-2xl font-black text-gray-800 tracking-tight">{isPrivacyMode ? '***' : customers.length}</p>
                             {newCustomersCount > 0 && (
                                 <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">
                                     +{isPrivacyMode ? '***' : newCustomersCount}
@@ -1727,9 +1727,6 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
-                <ProtectedLink to="/products" className="block h-full md:col-span-2" permissions={permissions} onDenied={handlePermissionDenied}>
-                    <StockStatsCard products={products} isPrivacyMode={isPrivacyMode} />
-                </ProtectedLink>
                 <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
                 <ServiceOrderProfitCard
                     serviceOrders={serviceOrders}
@@ -1738,6 +1735,9 @@ const Dashboard: React.FC = () => {
                     isPrivacyMode={isPrivacyMode}
                     to="/service-orders/financial"
                 />
+                <ProtectedLink to="/products" className="block h-full md:col-span-2" permissions={permissions} onDenied={handlePermissionDenied}>
+                    <StockStatsCard products={products} isPrivacyMode={isPrivacyMode} />
+                </ProtectedLink>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
