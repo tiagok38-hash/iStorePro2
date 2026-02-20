@@ -632,15 +632,22 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                 `}
             </style>
             <div className={`bg-white shadow-xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} flex flex-col max-h-full print:max-h-none print:h-auto rounded-3xl print:rounded-none overflow-hidden print:overflow-visible`} id={`print-container-${uniqueId}`}>
-                <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white">
-                    <h2 className="text-lg sm:text-2xl font-bold text-primary truncate">Recibo da Venda #{sale.id}</h2>
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap justify-end">
+                <div className="p-3 sm:p-4 border-b border-border no-print shrink-0 bg-white space-y-2">
+                    {/* Title row with close button */}
+                    <div className="flex justify-between items-center">
+                        <h2 className={`font-bold text-primary truncate ${format === 'thermal' ? 'text-sm' : 'text-lg sm:text-2xl'}`}>Recibo #{sale.id}</h2>
+                        <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 text-muted hover:text-danger transition-colors" title="Fechar">
+                            <CloseIcon className="h-5 w-5" />
+                        </button>
+                    </div>
+                    {/* Action buttons row */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
                         {showCarnetButton && (
                             <CarnetPrintButton
                                 saleId={sale.id}
                                 installments={carnetInstallments}
-                                buttonLabel="Imprimir Carnê"
-                                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-800 text-white rounded-xl text-xs sm:text-sm hover:bg-gray-900 transition-colors shadow-sm"
+                                buttonLabel="Carnê"
+                                className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-800 text-white rounded-lg text-xs hover:bg-gray-900 transition-colors shadow-sm"
                             />
                         )}
                         <button
@@ -659,11 +666,11 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                                     setSharing(null);
                                 }
                             }}
-                            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-xl text-xs sm:text-sm hover:bg-green-700 transition-colors shadow-sm disabled:opacity-60"
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition-colors shadow-sm disabled:opacity-60"
                             title="Enviar via WhatsApp com PDF"
                         >
-                            {sharing === 'whatsapp' ? <SpinnerIcon size={18} /> : <WhatsAppIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
-                            <span className="hidden sm:inline">{sharing === 'whatsapp' ? 'Gerando...' : 'WhatsApp'}</span>
+                            {sharing === 'whatsapp' ? <SpinnerIcon size={16} /> : <WhatsAppIcon className="h-4 w-4" />}
+                            <span>WhatsApp</span>
                         </button>
                         <button
                             disabled={sharing === 'email'}
@@ -681,11 +688,11 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                                     setSharing(null);
                                 }
                             }}
-                            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-xl text-xs sm:text-sm hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60"
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60"
                             title="Enviar via E-mail com PDF"
                         >
-                            {sharing === 'email' ? <SpinnerIcon size={18} /> : <EnvelopeIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
-                            <span className="hidden sm:inline">{sharing === 'email' ? 'Gerando...' : 'E-mail'}</span>
+                            {sharing === 'email' ? <SpinnerIcon size={16} /> : <EnvelopeIcon className="h-4 w-4" />}
+                            <span>E-mail</span>
                         </button>
                         <button
                             disabled={sharing === 'pdf'}
@@ -701,16 +708,15 @@ const SaleReceiptModal: React.FC<{ sale: Sale; productMap: Record<string, Produc
                                     setSharing(null);
                                 }
                             }}
-                            className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-xl text-xs sm:text-sm hover:bg-gray-700 transition-colors shadow-sm disabled:opacity-60"
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-600 text-white rounded-lg text-xs hover:bg-gray-700 transition-colors shadow-sm disabled:opacity-60"
                             title="Baixar PDF"
                         >
-                            {sharing === 'pdf' ? <SpinnerIcon size={18} /> : <DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
-                            <span className="hidden sm:inline">{sharing === 'pdf' ? 'Gerando...' : 'PDF'}</span>
+                            {sharing === 'pdf' ? <SpinnerIcon size={16} /> : <DocumentTextIcon className="h-4 w-4" />}
+                            <span>PDF</span>
                         </button>
-                        <button onClick={handlePrint} className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm hover:bg-opacity-90 transition-colors shadow-sm">
-                            <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Imprimir
+                        <button onClick={handlePrint} className="flex items-center gap-1 px-2.5 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-opacity-90 transition-colors shadow-sm">
+                            <PrinterIcon className="h-4 w-4" /> Imprimir
                         </button>
-                        <button onClick={onClose} className="p-1 text-muted hover:text-danger"><CloseIcon className="h-6 w-6" /></button>
                     </div>
                 </div>
                 <div className="p-2 sm:p-4 print:p-0 overflow-y-auto flex-1 print-content-wrapper bg-white">
