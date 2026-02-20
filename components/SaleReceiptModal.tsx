@@ -682,7 +682,7 @@ const SaleReceiptModal: React.FC<{
                                     onClick={() => setFormat('A4')}
                                     className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${format === 'A4' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
-                                    A4
+                                    Folha A4
                                 </button>
                             </div>
                         </div>
@@ -775,7 +775,7 @@ const SaleReceiptModal: React.FC<{
                     )}
                 </div>
             </div>
-        </div>,
+        </div >,
         document.body
     );
 };
