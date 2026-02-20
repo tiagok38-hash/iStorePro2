@@ -1,0 +1,33 @@
+
+> istore---gerenciador-de-vendas-e-estoque@0.0.0 build
+> vite build
+
+vite v6.4.1 building for production...
+
+/index.css doesn't exist at build time, it will remain unchanged to be resolved at runtime
+transforming...
+✓ 1676 modules transformed.
+✗ Build failed in 746ms
+error during build:
+[vite:esbuild] Transform failed with 1 error:
+/Users/istore/Desktop/Arquivos iStorePro/backup_istorepro_2026-02-10_final_v24/services/mockApi.ts:7:0: ERROR: Unexpected "<<"
+file: /Users/istore/Desktop/Arquivos iStorePro/backup_istorepro_2026-02-10_final_v24/services/mockApi.ts:7:0
+
+Unexpected "<<"
+5  |  import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
+6  |  import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
+7  |  <<<<<<< HEAD
+   |  ^
+8  |  import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
+9  |  =======
+
+    at failureErrorWithLog (/Users/istore/Desktop/Arquivos iStorePro/backup_istorepro_2026-02-10_final_v24/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/istore/Desktop/Arquivos iStorePro/backup_istorepro_2026-02-10_final_v24/node_modules/esbuild/lib/main.js:736:50
+    at responseCallbacks.<computed> (/Users/istore/Desktop/Arquivos iStorePro/backup_istorepro_2026-02-10_final_v24/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/istore/Desktop/Arquivos iStorePro/backup_istorepro_2026-02-10_final_v24/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/istore/Desktop/Arquivos iStorePro/backup_istorepro_2026-02-10_final_v24/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:507:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

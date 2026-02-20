@@ -34,7 +34,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
-    // Update viewDate when value changes from outside (e.g. initial load)
+    // Update viewDate when value changes from outside
     useEffect(() => {
         if (value) {
             const parsed = new Date(value + 'T12:00:00');
@@ -59,7 +59,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
     const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
     const firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
 
-    const days = [];
+    const days: (number | null)[] = [];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
@@ -98,7 +98,9 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 p-4 bg-white border border-gray-100 rounded-xl shadow-2xl z-[100] w-64 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div
+                    className="absolute top-full left-0 mt-2 p-4 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 w-64 animate-in fade-in slide-in-from-top-2 duration-200"
+                >
                     <div className="flex items-center justify-between mb-4">
                         <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-xl transition-colors">
                             <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
@@ -110,8 +112,8 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
                     </div>
 
                     <div className="grid grid-cols-7 gap-1 text-center mb-1">
-                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => (
-                            <span key={d} className="text-[10px] font-black text-gray-400">{d}</span>
+                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                            <span key={i} className="text-[10px] font-black text-gray-400">{d}</span>
                         ))}
                     </div>
 

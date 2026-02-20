@@ -1,26 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BellIcon, ArrowRightCircleIcon } from './icons.tsx';
+import { ArrowRightCircleIcon } from './icons.tsx';
 import { CompanyInfo } from '../types.ts';
 import { getCompanyInfo } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';
+import { useChat } from '../contexts/ChatContext.tsx';
+import ChatBadge from './chat/ChatBadge.tsx';
 
 const TopBar: React.FC = () => {
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     const { logout } = useUser();
     const navigate = useNavigate();
+    const { isChatOpen, toggleChat, unreadCount } = useChat();
 
     useEffect(() => {
         const fetchInfo = () => {
             getCompanyInfo().then(setCompanyInfo);
         };
 
-        fetchInfo(); // Initial fetch
-
-        window.addEventListener('companyInfoUpdated', fetchInfo); // Listen for updates
+        fetchInfo();
+        window.addEventListener('companyInfoUpdated', fetchInfo);
 
         return () => {
-            window.removeEventListener('companyInfoUpdated', fetchInfo); // Cleanup
+            window.removeEventListener('companyInfoUpdated', fetchInfo);
         };
     }, []);
 
@@ -75,10 +77,14 @@ const TopBar: React.FC = () => {
                 {companyInfo?.logoUrl && (
                     <img src={companyInfo.logoUrl} alt={companyInfo.name} className="h-10 w-10 rounded-full object-cover border-2 border-border" />
                 )}
-                <button className="relative text-muted hover:text-primary">
-                    <BellIcon className="h-6 w-6" />
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">1</span>
-                </button>
+
+                {/* Botão Chat (substitui sino) */}
+                <ChatBadge
+                    count={unreadCount}
+                    onClick={toggleChat}
+                    isOpen={isChatOpen}
+                />
+
                 <button onClick={handleLogout} className="text-muted hover:text-primary" title="Sair">
                     <ArrowRightCircleIcon className="h-7 w-7" />
                 </button>

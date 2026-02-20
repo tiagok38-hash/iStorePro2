@@ -28,6 +28,7 @@ const ServiceOrderLayout: React.FC = () => {
         { label: 'Peças e Serviços', path: '/service-orders/products', icon: <Package size={20} /> },
         { label: 'Financeiro', path: '/service-orders/financial', icon: <DollarSign size={20} /> },
         { label: 'Relatórios', path: '/service-orders/reports', icon: <BarChart2 size={20} /> },
+        { label: 'Configurações', path: '/service-orders/settings', icon: <Settings size={20} /> },
     ];
 
     const isActive = (path: string) => {

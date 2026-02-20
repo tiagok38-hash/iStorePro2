@@ -5,11 +5,24 @@ import Header from './components/Header.tsx';
 import TopBar from './components/TopBar.tsx';
 import { ToastProvider } from './contexts/ToastContext.tsx';
 import { UserProvider } from './contexts/UserContext.tsx';
+import { ChatProvider, useChat } from './contexts/ChatContext.tsx';
 import { SpinnerIcon } from './components/icons.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import AuthLayout from './components/AuthLayout.tsx';
 import { OnlineStatusIndicator, SuspenseFallback } from './components/GlobalLoading.tsx';
 import BottomNav from './components/BottomNav.tsx';
+import ChatLayout from './components/chat/ChatLayout.tsx';
+import { useUser } from './contexts/UserContext.tsx';
+
+// Sincroniza o userId do usuário logado com o ChatContext (para cálculo de não lidas)
+const ChatUserSync: React.FC = () => {
+    const { user } = useUser();
+    const { setCurrentUserId } = useChat();
+    React.useEffect(() => {
+        setCurrentUserId(user?.id ?? null);
+    }, [user?.id, setCurrentUserId]);
+    return null;
+};
 
 const Dashboard = lazy(() => import('./pages/Dashboard.tsx'));
 const Products = lazy(() => import('./pages/Products.tsx'));
@@ -39,6 +52,7 @@ const MainLayout: React.FC = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const location = useLocation();
+    const { isChatOpen, closeChat } = useChat();
 
     const toggleSidebarCollapse = () => {
         setIsSidebarCollapsed(prev => !prev);
@@ -53,7 +67,8 @@ const MainLayout: React.FC = () => {
                 onCloseSidebar={() => setSidebarOpen(false)}
             />
 
-
+            {/* Sincroniza userId com ChatContext para cálculo de não lidas */}
+            <ChatUserSync />
 
             <div className="flex-1 flex flex-col w-full min-w-0 pb-[calc(env(safe-area-inset-bottom)+70px)] lg:pb-0">
                 <Header onMenuClick={() => { }} />
@@ -67,6 +82,9 @@ const MainLayout: React.FC = () => {
                 </main>
             </div>
             <BottomNav />
+
+            {/* Chat Global */}
+            <ChatLayout isOpen={isChatOpen} onClose={closeChat} />
         </div>
     );
 }
@@ -75,76 +93,78 @@ const App: React.FC = () => {
     return (
         <ToastProvider>
             <UserProvider>
-                <Router>
-                    <Suspense fallback={<SuspenseFallback fullScreen />}>
-                        <Routes>
-                            {/* Public Auth Routes */}
-                            <Route element={<AuthLayout />}>
-                                <Route path="/login" element={<Login />} />
-                                {/* Registro bloqueado - redireciona para login */}
-                                <Route path="/register" element={<Login />} />
-                            </Route>
+                <ChatProvider>
+                    <Router>
+                        <Suspense fallback={<SuspenseFallback fullScreen />}>
+                            <Routes>
+                                {/* Public Auth Routes */}
+                                <Route element={<AuthLayout />}>
+                                    <Route path="/login" element={<Login />} />
+                                    {/* Registro bloqueado - redireciona para login */}
+                                    <Route path="/register" element={<Login />} />
+                                </Route>
 
-                            {/* Protected App Routes */}
-                            <Route element={<ProtectedRoute />}>
-                                <Route element={<MainLayout />}>
+                                {/* Protected App Routes */}
+                                <Route element={<ProtectedRoute />}>
+                                    <Route element={<MainLayout />}>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
+                                            <Route path="/" element={<Dashboard />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessEstoque" />}>
+                                            <Route path="/products" element={<Products />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessClientes" />}>
+                                            <Route path="/customers" element={<Customers />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessVendas" />}>
+                                            <Route path="/vendas" element={<Vendas />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessRelatorios" />}>
+                                            <Route path="/reports" element={<Reports />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey={["canAccessEmpresa", "canEditOwnProfile", "canManageMarcasECategorias"]} />}>
+                                            <Route path="/company" element={<Company />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessFinanceiro" />}>
+                                            <Route path="/financeiro" element={<Financeiro />} />
+                                        </Route>
+                                    </Route>
+                                    <Route element={<ProtectedRoute permissionKey="canAccessPOS" />}>
+                                        <Route path="/pos" element={<POS />} />
+                                    </Route>
+
+                                    {/* Service Order Module (Immersive) */}
                                     <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
-                                        <Route path="/" element={<Dashboard />} />
+                                        <Route path="/service-orders" element={<ServiceOrderLayout />}>
+                                            <Route index element={<ServiceOrderDashboard />} />
+                                            <Route path="list" element={<ServiceOrderList />} />
+                                            <Route path="new" element={<ServiceOrderForm />} />
+                                            <Route path="edit/:id" element={<ServiceOrderForm />} />
+                                            <Route path="products" element={<ServiceOrderProducts />} />
+                                            <Route path="customers" element={<ServiceOrderCustomers />} />
+                                            <Route path="financial" element={<ServiceOrderFinancial />} />
+                                            <Route path="reports" element={<ServiceOrderReports />} />
+                                            <Route path="settings" element={<ServiceOrderSettings />} />
+                                        </Route>
                                     </Route>
-                                    <Route element={<ProtectedRoute permissionKey="canAccessEstoque" />}>
-                                        <Route path="/products" element={<Products />} />
-                                    </Route>
-                                    <Route element={<ProtectedRoute permissionKey="canAccessClientes" />}>
-                                        <Route path="/customers" element={<Customers />} />
-                                    </Route>
-                                    <Route element={<ProtectedRoute permissionKey="canAccessVendas" />}>
-                                        <Route path="/vendas" element={<Vendas />} />
-                                    </Route>
-                                    <Route element={<ProtectedRoute permissionKey="canAccessRelatorios" />}>
-                                        <Route path="/reports" element={<Reports />} />
-                                    </Route>
-                                    <Route element={<ProtectedRoute permissionKey={["canAccessEmpresa", "canEditOwnProfile", "canManageMarcasECategorias"]} />}>
-                                        <Route path="/company" element={<Company />} />
-                                    </Route>
-                                    <Route element={<ProtectedRoute permissionKey="canAccessFinanceiro" />}>
-                                        <Route path="/financeiro" element={<Financeiro />} />
-                                    </Route>
-                                </Route>
-                                <Route element={<ProtectedRoute permissionKey="canAccessPOS" />}>
-                                    <Route path="/pos" element={<POS />} />
-                                </Route>
 
-                                {/* Service Order Module (Immersive) */}
-                                <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
-                                    <Route path="/service-orders" element={<ServiceOrderLayout />}>
-                                        <Route index element={<ServiceOrderDashboard />} />
-                                        <Route path="list" element={<ServiceOrderList />} />
-                                        <Route path="new" element={<ServiceOrderForm />} />
-                                        <Route path="edit/:id" element={<ServiceOrderForm />} />
-                                        <Route path="products" element={<ServiceOrderProducts />} />
-                                        <Route path="customers" element={<ServiceOrderCustomers />} />
-                                        <Route path="financial" element={<ServiceOrderFinancial />} />
-                                        <Route path="reports" element={<ServiceOrderReports />} />
-                                        <Route path="settings" element={<ServiceOrderSettings />} />
+                                    {/* Catalog Module (Immersive) */}
+                                    <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
+                                        <Route path="/catalog" element={<CatalogLayout />}>
+                                            <Route index element={<CatalogAdmin />} />
+                                            <Route path="settings" element={<CatalogSettings />} />
+                                        </Route>
                                     </Route>
                                 </Route>
 
-                                {/* Catalog Module (Immersive) */}
-                                <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
-                                    <Route path="/catalog" element={<CatalogLayout />}>
-                                        <Route index element={<CatalogAdmin />} />
-                                        <Route path="settings" element={<CatalogSettings />} />
-                                    </Route>
-                                </Route>
-                            </Route>
-
-                            {/* Public Catalog (No Auth Required) */}
-                            <Route path="/catalogo/:slug" element={<CatalogPublic />} />
-                        </Routes>
-                    </Suspense>
-                    {/* Global Online/Offline Status Indicator */}
-                    <OnlineStatusIndicator />
-                </Router>
+                                {/* Public Catalog (No Auth Required) */}
+                                <Route path="/catalogo/:slug" element={<CatalogPublic />} />
+                            </Routes>
+                        </Suspense>
+                        {/* Global Online/Offline Status Indicator */}
+                        <OnlineStatusIndicator />
+                    </Router>
+                </ChatProvider>
             </UserProvider>
         </ToastProvider>
     );

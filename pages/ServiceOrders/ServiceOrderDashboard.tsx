@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Clock,
     Calendar,
@@ -7,12 +6,14 @@ import {
     TrendingDown,
     AlertCircle,
     CheckCircle2,
-    XCircle,
     WrenchIcon,
     SmartphoneIcon,
     DollarSign,
-    MoreVertical,
-    ArrowRight
+    ArrowRight,
+    Users,
+    Package,
+    ClipboardList,
+    PieChart as PieChartIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getServiceOrders } from '../../services/mockApi';
@@ -27,9 +28,7 @@ import {
     ResponsiveContainer,
     PieChart,
     Pie,
-    Cell,
-    AreaChart,
-    Area
+    Cell
 } from 'recharts';
 
 // --- Constants ---
@@ -38,21 +37,6 @@ const KPI_CONFIG = [
     { key: 'Análise', label: 'Em Análise', icon: SmartphoneIcon, color: 'text-purple-500', bg: 'bg-purple-500/10' },
     { key: 'Aprovado', label: 'Aprovadas', icon: WrenchIcon, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { key: 'Pronto', label: 'Prontas p/ Entrega', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-];
-
-const WEEKLY_FLOW_DATA = [
-    { name: 'Seg', entrada: 4, saida: 3 },
-    { name: 'Ter', entrada: 7, saida: 5 },
-    { name: 'Qua', entrada: 5, saida: 8 },
-    { name: 'Qui', entrada: 9, saida: 4 },
-    { name: 'Sex', entrada: 12, saida: 10 },
-    { name: 'Sab', entrada: 8, saida: 6 },
-    { name: 'Dom', entrada: 0, saida: 0 },
-];
-
-const REVENUE_DATA = [
-    { name: 'Serviços', value: 12500, color: '#7B61FF' },
-    { name: 'Peças', value: 8300, color: '#3B82F6' },
 ];
 
 const AGENDA_ITEMS = [
@@ -66,7 +50,14 @@ const ServiceOrderDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [orders, setOrders] = useState<ServiceOrder[]>([]);
+    const [expenses, setExpenses] = useState<any[]>(() => {
+        const saved = localStorage.getItem('os_expenses');
+        return saved ? JSON.parse(saved) : [];
+    });
     const [isLoading, setIsLoading] = useState(true);
+    const [periodFilter, setPeriodFilter] = useState('month'); // today, yesterday, week, month, custom
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -78,6 +69,9 @@ const ServiceOrderDashboard: React.FC = () => {
         try {
             const data = await getServiceOrders();
             setOrders(data || []);
+            // Update expenses from local storage in case they changed
+            const saved = localStorage.getItem('os_expenses');
+            if (saved) setExpenses(JSON.parse(saved));
         } catch (error) {
             console.error("Error loading dashboard data:", error);
         } finally {
@@ -93,19 +87,132 @@ const ServiceOrderDashboard: React.FC = () => {
         return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     };
 
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    };
+
     // Greeting logic
     const hour = currentTime.getHours();
     let greeting = 'Bom dia';
     if (hour >= 12) greeting = 'Boa tarde';
     if (hour >= 18) greeting = 'Boa noite';
 
+    // Filtering logic
+    const filteredOrders = useMemo(() => orders.filter(os => {
+        const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (periodFilter === 'today') {
+            return date >= today;
+        }
+        if (periodFilter === 'yesterday') {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayEnd = new Date(today);
+            yesterdayEnd.setMilliseconds(-1);
+            return date >= yesterday && date <= yesterdayEnd;
+        }
+        if (periodFilter === 'week') {
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            return date >= weekStart;
+        }
+        if (periodFilter === 'month') {
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            return date >= monthStart;
+        }
+        if (periodFilter === 'custom' && customStartDate && customEndDate) {
+            const start = new Date(customStartDate + 'T00:00:00');
+            const end = new Date(customEndDate + 'T23:59:59');
+            return date >= start && date <= end;
+        }
+        return true;
+    }), [orders, periodFilter, customStartDate, customEndDate]);
+
+    const filteredExpenses = useMemo(() => expenses.filter(exp => {
+        const date = new Date(exp.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (periodFilter === 'today') {
+            return date >= today;
+        }
+        if (periodFilter === 'yesterday') {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayEnd = new Date(today);
+            yesterdayEnd.setMilliseconds(-1);
+            return date >= yesterday && date <= yesterdayEnd;
+        }
+        if (periodFilter === 'week') {
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            return date >= weekStart;
+        }
+        if (periodFilter === 'month') {
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            return date >= monthStart;
+        }
+        if (periodFilter === 'custom' && customStartDate && customEndDate) {
+            const start = new Date(customStartDate + 'T00:00:00');
+            const end = new Date(customEndDate + 'T23:59:59');
+            return date >= start && date <= end;
+        }
+        return true;
+    }), [expenses, periodFilter, customStartDate, customEndDate]);
+
+    const totalRevenue = useMemo(() => filteredOrders
+        .filter(os => os.status === 'Entregue' || os.status === 'Concluído')
+        .reduce((acc, os) => acc + (os.total || 0), 0), [filteredOrders]);
+
+    const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [filteredExpenses]);
+
+    // Compute chart data dynamically
+    const weeklyFlowData = useMemo(() => {
+        const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+        const flow = days.map(name => ({ name, entrada: 0, saida: 0 }));
+
+        filteredOrders.forEach(os => {
+            const entryDate = new Date(os.entryDate || os.createdAt);
+            flow[entryDate.getDay()].entrada += 1;
+
+            if (os.exitDate && (os.status === 'Entregue' || os.status === 'Concluído')) {
+                const exitDate = new Date(os.exitDate);
+                flow[exitDate.getDay()].saida += 1;
+            }
+        });
+
+        // Reorder to start from Monday for better visualization in Brazil
+        return [...flow.slice(1), flow[0]];
+    }, [filteredOrders]);
+
+    const revenueChartData = useMemo(() => {
+        let services = 0;
+        let parts = 0;
+
+        filteredOrders.forEach(os => {
+            if (os.status === 'Entregue' || os.status === 'Concluído') {
+                os.items.forEach(item => {
+                    if (item.type === 'service') services += (item.price * item.quantity);
+                    else parts += (item.price * item.quantity);
+                });
+            }
+        });
+
+        return [
+            { name: 'Serviços', value: services, color: '#7B61FF' },
+            { name: 'Peças', value: parts, color: '#3B82F6' },
+        ];
+    }, [filteredOrders]);
+
     return (
         <div className="space-y-6 pb-20 fade-in">
             {/* 1. Header & Greeting */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-primary">
-                        {greeting}, <span className="text-secondary font-medium">Equipe Técnica.</span>
+                        {greeting}.
                     </h1>
                     <p className="text-secondary mt-1 flex items-center gap-2">
                         <Calendar size={14} />
@@ -116,26 +223,137 @@ const ServiceOrderDashboard: React.FC = () => {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="px-4 py-2 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                        <span className="text-sm font-bold text-emerald-600">Loja Aberta</span>
-                    </div>
+                <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+                    <button
+                        onClick={() => navigate('/service-orders/customers')}
+                        className="px-5 py-3 bg-cyan-50 text-cyan-700 rounded-xl font-bold shadow-sm border border-cyan-100 hover:bg-cyan-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        <Users size={16} />
+                        Clientes
+                    </button>
+                    <button
+                        onClick={() => navigate('/service-orders/financial')}
+                        className="px-5 py-3 bg-emerald-50 text-emerald-700 rounded-xl font-bold shadow-sm border border-emerald-100 hover:bg-emerald-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        <DollarSign size={16} />
+                        Financeiro
+                    </button>
+                    <button
+                        onClick={() => navigate('/service-orders/products')}
+                        className="px-5 py-3 bg-amber-50 text-amber-700 rounded-xl font-bold shadow-sm border border-amber-100 hover:bg-amber-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        <Package size={16} />
+                        Peças e Serviços
+                    </button>
+                    <button
+                        onClick={() => navigate('/service-orders/list')}
+                        className="px-5 py-3 bg-violet-50 text-violet-700 rounded-xl font-bold shadow-sm border border-violet-100 hover:bg-violet-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        <ClipboardList size={16} />
+                        Ordens de Serviço
+                    </button>
+                    <button
+                        onClick={() => navigate('/service-orders/reports')}
+                        className="px-5 py-3 bg-rose-50 text-rose-700 rounded-xl font-bold shadow-sm border border-rose-100 hover:bg-rose-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        <PieChartIcon size={16} />
+                        Relatórios
+                    </button>
+
                     <button
                         onClick={() => navigate('/service-orders/new')}
-                        className="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2">
+                        className="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2 whitespace-nowrap">
                         <WrenchIcon size={18} />
                         Nova OS
                     </button>
                 </div>
             </div>
 
-            {/* 2. Quick Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Filters Bar */}
+            <div className="flex flex-wrap items-center gap-2 bg-white/50 backdrop-blur-md p-2 rounded-2xl border border-white/40 shadow-sm">
+                <button
+                    onClick={() => setPeriodFilter('today')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${periodFilter === 'today' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-white'}`}
+                >
+                    Hoje
+                </button>
+                <button
+                    onClick={() => setPeriodFilter('yesterday')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${periodFilter === 'yesterday' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-white'}`}
+                >
+                    Ontem
+                </button>
+                <button
+                    onClick={() => setPeriodFilter('week')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${periodFilter === 'week' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-white'}`}
+                >
+                    Semana
+                </button>
+                <button
+                    onClick={() => setPeriodFilter('month')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${periodFilter === 'month' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-white'}`}
+                >
+                    Mês
+                </button>
+                <div className="flex items-center gap-2 ml-auto">
+                    <div className={`flex items-center gap-2 p-1 rounded-xl transition-all ${periodFilter === 'custom' ? 'bg-white shadow-sm border border-gray-100' : ''}`}>
+                        <Calendar size={14} className="text-secondary ml-2" />
+                        <input
+                            type="date"
+                            value={customStartDate}
+                            onChange={(e) => {
+                                setCustomStartDate(e.target.value);
+                                setPeriodFilter('custom');
+                            }}
+                            className="bg-transparent text-[10px] font-bold outline-none border-none p-1 focus:ring-0"
+                        />
+                        <span className="text-gray-300">|</span>
+                        <input
+                            type="date"
+                            value={customEndDate}
+                            onChange={(e) => {
+                                setCustomEndDate(e.target.value);
+                                setPeriodFilter('custom');
+                            }}
+                            className="bg-transparent text-[10px] font-bold outline-none border-none p-1 focus:ring-0"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Financial & Status KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                {/* Financial Totals */}
+                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                    <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform">
+                        <TrendingUp size={100} className="text-emerald-500" />
+                    </div>
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-600">
+                            <TrendingUp size={24} strokeWidth={1.5} />
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-secondary text-sm font-medium">Total Receitas</p>
+                        <h3 className="text-2xl font-black text-emerald-600 mt-1">{isLoading ? '...' : formatCurrency(totalRevenue)}</h3>
+                    </div>
+                </div>
+
+                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                    <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform">
+                        <TrendingDown size={100} className="text-red-500" />
+                    </div>
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 rounded-2xl bg-red-100 text-red-600">
+                            <TrendingDown size={24} strokeWidth={1.5} />
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-secondary text-sm font-medium">Total Despesas</p>
+                        <h3 className="text-2xl font-black text-red-600 mt-1">{isLoading ? '...' : formatCurrency(totalExpenses)}</h3>
+                    </div>
+                </div>
+
+                {/* Status KPIs */}
                 {KPI_CONFIG.map((config, idx) => {
-                    const count = orders.filter(os => os.status === config.key).length;
+                    const count = filteredOrders.filter(os => os.status === config.key).length;
                     return (
-                        <div key={idx} className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group">
+                        <div key={idx} className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
                             <div className="flex justify-between items-start mb-4">
                                 <div className={`p-3 rounded-2xl ${config.bg} ${config.color} group-hover:scale-110 transition-transform`}>
                                     <config.icon size={24} strokeWidth={1.5} />
@@ -143,7 +361,7 @@ const ServiceOrderDashboard: React.FC = () => {
                             </div>
                             <div>
                                 <p className="text-secondary text-sm font-medium">{config.label}</p>
-                                <h3 className="text-3xl font-black text-primary mt-1">{isLoading ? '...' : count}</h3>
+                                <h3 className="text-2xl font-black text-primary mt-1">{isLoading ? '...' : count}</h3>
                             </div>
                         </div>
                     );
@@ -168,7 +386,7 @@ const ServiceOrderDashboard: React.FC = () => {
 
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={WEEKLY_FLOW_DATA} barGap={8}>
+                            <BarChart data={weeklyFlowData} barGap={8}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
@@ -228,7 +446,7 @@ const ServiceOrderDashboard: React.FC = () => {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={REVENUE_DATA}
+                                    data={revenueChartData}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={60}
@@ -236,7 +454,7 @@ const ServiceOrderDashboard: React.FC = () => {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {REVENUE_DATA.map((entry, index) => (
+                                    {revenueChartData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                                     ))}
                                 </Pie>
@@ -245,7 +463,7 @@ const ServiceOrderDashboard: React.FC = () => {
                         </ResponsiveContainer>
                     </div>
                     <div className="flex justify-center gap-6 mt-4">
-                        {REVENUE_DATA.map((item, idx) => (
+                        {revenueChartData.map((item, idx) => (
                             <div key={idx} className="flex items-center gap-2">
                                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                                 <div>

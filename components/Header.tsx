@@ -2,8 +2,10 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogoIcon, UserCircleIcon, LogoutIcon } from './icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
+import { useChat } from '../contexts/ChatContext.tsx';
 import { CompanyInfo } from '../types.ts';
 import { getCompanyInfo } from '../services/mockApi.ts';
+import ChatBadge from './chat/ChatBadge.tsx';
 
 const Logo: React.FC = () => (
     <Link to="/" className="flex items-center h-full overflow-hidden">
@@ -23,6 +25,7 @@ const Header: React.FC<HeaderProps> = () => {
     const { user, logout } = useUser();
     const navigate = useNavigate();
     const [companyInfo, setCompanyInfo] = React.useState<CompanyInfo | null>(null);
+    const { isChatOpen, toggleChat, unreadCount } = useChat();
 
     React.useEffect(() => {
         const fetchInfo = () => {
@@ -61,6 +64,13 @@ const Header: React.FC<HeaderProps> = () => {
                 <Logo />
 
                 <div className="flex items-center gap-3">
+                    {/* Botão Chat (mobile) */}
+                    <ChatBadge
+                        count={unreadCount}
+                        onClick={toggleChat}
+                        isOpen={isChatOpen}
+                    />
+
                     <div className="flex items-center">
                         {companyInfo?.logoUrl && (
                             <div className="relative z-0 -mr-2">

@@ -1,6 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { CashRegisterIcon, ArchiveBoxIcon, CreditCardIcon } from '../icons.tsx';
+import { useChat } from '../../contexts/ChatContext.tsx';
+import ChatBadge from '../chat/ChatBadge.tsx';
 
 interface PosHeaderProps {
     cashId?: number;
@@ -10,6 +11,7 @@ interface PosHeaderProps {
 
 export const PosHeader: React.FC<PosHeaderProps> = ({ cashId, onOpenStockSearch, onOpenCardSimulator }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const { isChatOpen, toggleChat, unreadCount } = useChat();
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -33,6 +35,11 @@ export const PosHeader: React.FC<PosHeaderProps> = ({ cashId, onOpenStockSearch,
                     )}
                 </div>
                 <div className="flex items-center gap-2 md:gap-4">
+                    <ChatBadge
+                        count={unreadCount}
+                        onClick={toggleChat}
+                        isOpen={isChatOpen}
+                    />
                     <button
                         onClick={onOpenStockSearch}
                         className="flex items-center gap-2 bg-gray-100/80 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl font-bold text-[10px] md:text-xs uppercase transition-all active:scale-95 border border-gray-200"

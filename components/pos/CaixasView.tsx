@@ -44,7 +44,7 @@ export const CaixasView: React.FC<CaixasViewProps> = ({
                 )}
             </div>
 
-            <div className="glass-card p-3 md:p-5 flex flex-col md:flex-row items-end gap-3 md:gap-5">
+            <div className="glass-card p-3 md:p-5 flex flex-col md:flex-row items-end gap-3 md:gap-5 relative z-20">
                 <div className="flex items-end gap-3 w-full md:w-auto">
                     <CustomDatePicker
                         label="Data Início"
