@@ -48,11 +48,15 @@ const CatalogPublic = lazy(() => import('./pages/Catalog/CatalogPublic.tsx'));
 const Financeiro = lazy(() => import('./pages/Financeiro.tsx'));
 
 
+const GlobalChat = () => {
+    const { isChatOpen, closeChat } = useChat();
+    return <ChatLayout isOpen={isChatOpen} onClose={closeChat} />;
+};
+
 const MainLayout: React.FC = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const location = useLocation();
-    const { isChatOpen, closeChat } = useChat();
 
     const toggleSidebarCollapse = () => {
         setIsSidebarCollapsed(prev => !prev);
@@ -82,9 +86,6 @@ const MainLayout: React.FC = () => {
                 </main>
             </div>
             <BottomNav />
-
-            {/* Chat Global */}
-            <ChatLayout isOpen={isChatOpen} onClose={closeChat} />
         </div>
     );
 }
@@ -163,6 +164,7 @@ const App: React.FC = () => {
                         </Suspense>
                         {/* Global Online/Offline Status Indicator */}
                         <OnlineStatusIndicator />
+                        <GlobalChat />
                     </Router>
                 </ChatProvider>
             </UserProvider>

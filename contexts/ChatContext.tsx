@@ -214,8 +214,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 table: 'chat_messages',
             }, (payload) => {
                 const newMsg = payload.new as ChatMessage;
-                // Filtrar no cliente: apenas mensagens do chat global (conversation_id === null)
-                if (newMsg.conversation_id !== null) return;
+                // Filtrar no cliente: apenas mensagens do chat global
+                if (newMsg.conversation_id) return;
                 setMessages(prev => {
                     if (prev.some(m => m.id === newMsg.id)) return prev;
                     const updated = [...prev, newMsg];
@@ -229,7 +229,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 table: 'chat_messages',
             }, (payload) => {
                 const updatedMsg = payload.new as ChatMessage;
-                if (updatedMsg.conversation_id !== null) return;
+                if (updatedMsg.conversation_id) return;
                 setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
             })
             .subscribe();
