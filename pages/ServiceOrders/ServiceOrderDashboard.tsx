@@ -226,31 +226,31 @@ const ServiceOrderDashboard: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2 lg:gap-3">
                     <button
                         onClick={() => navigate('/service-orders/customers')}
-                        className="px-5 py-3 bg-cyan-50 text-cyan-700 rounded-xl font-bold shadow-sm border border-cyan-100 hover:bg-cyan-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        className="px-5 py-3 bg-cyan-50/50 text-cyan-700 rounded-xl font-black shadow-sm border-2 border-cyan-200/80 hover:bg-cyan-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <Users size={16} />
                         Clientes
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/financial')}
-                        className="px-5 py-3 bg-emerald-50 text-emerald-700 rounded-xl font-bold shadow-sm border border-emerald-100 hover:bg-emerald-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        className="px-5 py-3 bg-emerald-50/50 text-emerald-700 rounded-xl font-black shadow-sm border-2 border-emerald-200/80 hover:bg-emerald-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <DollarSign size={16} />
                         Financeiro
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/products')}
-                        className="px-5 py-3 bg-amber-50 text-amber-700 rounded-xl font-bold shadow-sm border border-amber-100 hover:bg-amber-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        className="px-5 py-3 bg-amber-50/50 text-amber-700 rounded-xl font-black shadow-sm border-2 border-amber-200/80 hover:bg-amber-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <Package size={16} />
                         Peças e Serviços
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/list')}
-                        className="px-5 py-3 bg-violet-50 text-violet-700 rounded-xl font-bold shadow-sm border border-violet-100 hover:bg-violet-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        className="px-5 py-3 bg-violet-50/50 text-violet-700 rounded-xl font-black shadow-sm border-2 border-violet-200/80 hover:bg-violet-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <ClipboardList size={16} />
                         Ordens de Serviço
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/reports')}
-                        className="px-5 py-3 bg-rose-50 text-rose-700 rounded-xl font-bold shadow-sm border border-rose-100 hover:bg-rose-100 hover:scale-105 transition-all text-sm flex items-center gap-2 whitespace-nowrap">
+                        className="px-5 py-3 bg-rose-50/50 text-rose-700 rounded-xl font-black shadow-sm border-2 border-rose-200/80 hover:bg-rose-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <PieChartIcon size={16} />
                         Relatórios
                     </button>

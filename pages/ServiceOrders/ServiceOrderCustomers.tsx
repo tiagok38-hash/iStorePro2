@@ -164,21 +164,21 @@ const ServiceOrderCustomers: React.FC = () => {
 
             {/* Tabs & Search */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
-                <div className="flex p-1 bg-gray-100 rounded-xl">
+                <div className="flex p-0.5 bg-gray-200/50 rounded-xl border border-gray-200">
                     <button
                         onClick={() => setActiveTab('customers')}
-                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'customers'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                        className={`px-8 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'customers'
+                            ? 'bg-gray-800 text-white shadow-md'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                             }`}
                     >
                         Clientes
                     </button>
                     <button
                         onClick={() => setActiveTab('suppliers')}
-                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'suppliers'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                        className={`px-8 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'suppliers'
+                            ? 'bg-gray-800 text-white shadow-md'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                             }`}
                     >
                         Fornecedores
