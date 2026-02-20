@@ -379,7 +379,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, on
                                 onChange={e => setIsRecurring(e.target.checked)}
                                 className="sr-only peer"
                             />
-                            <div className="w-9 h-5 bg-gray-200 peer-focus:ring-4 peer-focus:ring-accent/20 rounded-full peer peer-checked:bg-accent transition-all after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-600/20 rounded-full peer peer-checked:bg-blue-600 transition-all after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
                         </label>
                         <div className="flex-1">
                             <p className="text-sm font-bold text-primary">Lançamento recorrente</p>
@@ -805,13 +805,15 @@ const Financeiro: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                    <button
-                        onClick={() => { setEditItem(null); setModalOpen(true); }}
-                        className="flex-1 md:flex-none h-12 px-6 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 group"
-                    >
-                        <PlusIcon className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
-                        Novo Lançamento
-                    </button>
+                    {activeTab === 'transactions' && (
+                        <button
+                            onClick={() => { setEditItem(null); setModalOpen(true); }}
+                            className="flex-1 md:flex-none h-12 px-6 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 group"
+                        >
+                            <PlusIcon className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+                            Novo Lançamento
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -821,7 +823,7 @@ const Financeiro: React.FC = () => {
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'transactions' ? 'bg-gray-900 text-white shadow-lg' : 'text-secondary hover:text-gray-900'}`}
                 >
                     <WalletIcon className="h-4 w-4" />
-                    Transações
+                    Despesas e Receitas
                 </button>
                 <button
                     onClick={() => setActiveTab('installments')}

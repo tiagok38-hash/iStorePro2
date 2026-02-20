@@ -980,15 +980,12 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                     {/* Local de Estoque Choice */}
                                     <div className="space-y-4 p-4 bg-gray-50 rounded-3xl border border-gray-100">
                                         <div className="flex items-center justify-between">
-                                            <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setShowStockLocation(!showStockLocation)}>
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showStockLocation ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${showStockLocation ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                </div>
                                                 Exibir Local de Estoque?
-                                                <input
-                                                    type="checkbox"
-                                                    checked={showStockLocation}
-                                                    onChange={e => setShowStockLocation(e.target.checked)}
-                                                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-                                                />
-                                            </label>
+                                            </div>
                                         </div>
                                         {showStockLocation && (
                                             <select
@@ -1009,7 +1006,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                         <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Opções de Exibição</h4>
                                         <div className="flex flex-col gap-3">
                                             <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showStockQty ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showStockQty ? 'bg-blue-600' : 'bg-gray-300'}`}>
                                                     <div className={`w-3 h-3 bg-white rounded-full transition-transform ${showStockQty ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={showStockQty} onChange={e => setShowStockQty(e.target.checked)} />
@@ -1017,7 +1014,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                             </label>
                                             {selectedType === 'apple' && (
                                                 <label className="flex items-center gap-3 cursor-pointer group">
-                                                    <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showBatteryHealth ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                    <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showBatteryHealth ? 'bg-blue-600' : 'bg-gray-300'}`}>
                                                         <div className={`w-3 h-3 bg-white rounded-full transition-transform ${showBatteryHealth ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                     </div>
                                                     <input type="checkbox" className="hidden" checked={showBatteryHealth} onChange={e => setShowBatteryHealth(e.target.checked)} />
@@ -1025,7 +1022,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                 </label>
                                             )}
                                             <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${groupIdentical ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${groupIdentical ? 'bg-blue-600' : 'bg-gray-300'}`}>
                                                     <div className={`w-3 h-3 bg-white rounded-full transition-transform ${groupIdentical ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={groupIdentical} onChange={e => setGroupIdentical(e.target.checked)} />
@@ -1033,7 +1030,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                             </label>
 
                                             <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${groupColors ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${groupColors ? 'bg-blue-600' : 'bg-gray-300'}`}>
                                                     <div className={`w-3 h-3 bg-white rounded-full transition-transform ${groupColors ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={groupColors} onChange={e => setGroupColors(e.target.checked)} />
@@ -1041,7 +1038,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                             </label>
 
                                             <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${calculateAverages ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${calculateAverages ? 'bg-blue-600' : 'bg-gray-300'}`}>
                                                     <div className={`w-3 h-3 bg-white rounded-full transition-transform ${calculateAverages ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={calculateAverages} onChange={e => setCalculateAverages(e.target.checked)} />
@@ -1049,7 +1046,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                             </label>
 
                                             <label className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showProductIdentifiers ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showProductIdentifiers ? 'bg-blue-600' : 'bg-gray-300'}`}>
                                                     <div className={`w-3 h-3 bg-white rounded-full transition-transform ${showProductIdentifiers ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={showProductIdentifiers} onChange={e => setShowProductIdentifiers(e.target.checked)} />
@@ -1072,7 +1069,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                     key={sort.id}
                                                     onClick={() => setSortBy(sort.id as any)}
                                                     className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border-2 ${sortBy === sort.id
-                                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
+                                                        ? 'bg-blue-600 border-indigo-600 text-white shadow-md'
                                                         : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                                                 >
                                                     {sort.label}
@@ -1110,7 +1107,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                         : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
                                                         }`}
                                                 >
-                                                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${selectedPriceTypes.includes(price.id) ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                                                    <div className={`w-4 h-4 rounded flex items-center justify-center border ${selectedPriceTypes.includes(price.id) ? 'bg-blue-600 border-indigo-600' : 'border-gray-300'}`}>
                                                         {selectedPriceTypes.includes(price.id) && <CheckIcon className="w-3 h-3 text-white" />}
                                                     </div>
                                                     <span className="text-xs font-bold">{price.label}</span>

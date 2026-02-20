@@ -931,12 +931,10 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
             <div className="grid grid-cols-2 gap-4">
                 {/* Apple Column */}
                 <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200/60 shadow-sm relative overflow-hidden group">
-                    {/* Decorative bg icon */}
-                    <AppleIcon className="absolute -right-4 -bottom-4 w-16 h-16 text-gray-200/50 transform rotate-12 transition-transform group-hover:scale-110" />
 
                     <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <div className="w-6 h-6 flex items-center justify-center bg-black rounded-full shadow-sm text-white">
-                            <AppleIcon className="w-3.5 h-3.5" />
+                        <div className="w-6 h-6 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-white">
+                            <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-cover" />
                         </div>
                         <p className="font-bold text-sm text-gray-800">Apple</p>
                     </div>

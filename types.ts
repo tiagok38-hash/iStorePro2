@@ -80,7 +80,9 @@ export interface PermissionSet {
 
     // Catalog permissions
     canAccessCatalog: boolean;
-    canManageCatalog: boolean;
+    canCreateCatalogItem: boolean;
+    canEditCatalogItem: boolean;
+    canDeleteCatalogItem: boolean;
 }
 
 export interface PermissionProfile {
@@ -99,6 +101,7 @@ export interface User {
     phone: string;
     createdAt: string;
     avatarUrl?: string;
+    active?: boolean;
     address?: Address;
     lastSessionId?: string;
 }

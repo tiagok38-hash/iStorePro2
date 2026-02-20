@@ -730,9 +730,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     <div className="md:col-span-2">
                         <label className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1 ml-1 block">Fornecedor / Cliente*</label>
                         <div className="flex flex-col sm:flex-row gap-2">
-                            <div className="flex items-center h-11 bg-gray-100/50 px-3 rounded-lg border border-gray-200 shadow-sm shrink-0">
-                                <input type="checkbox" id="isCustomerPurchase" checked={isCustomerPurchase} onChange={e => setIsCustomerPurchase(e.target.checked)} className="h-4 w-4 text-accent rounded" />
-                                <label htmlFor="isCustomerPurchase" className="ml-2 text-xs font-bold text-gray-600 cursor-pointer">De Cliente</label>
+                            <div
+                                onClick={() => setIsCustomerPurchase(!isCustomerPurchase)}
+                                className="flex items-center h-11 bg-gray-100/50 px-3 rounded-lg border border-gray-200 shadow-sm shrink-0 cursor-pointer group"
+                            >
+                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${isCustomerPurchase ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${isCustomerPurchase ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                </div>
+                                <span className="ml-2 text-xs font-bold text-gray-600 group-hover:text-gray-900 transition-colors">De Cliente</span>
                             </div>
                             <div className="flex flex-1 gap-2">
                                 <div className="flex-1 min-w-0">

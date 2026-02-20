@@ -260,7 +260,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                     <label className="text-[10px] font-black uppercase tracking-wider text-muted mb-1 block pl-1">Vendedor</label>
                     <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="px-3 border rounded-xl bg-white border-gray-200 h-10 w-48 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
                         <option value="todos">Todos os vendedores</option>
-                        {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                        {users.filter(u => u.active !== false).map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                     </select>
                 </div>
             </div>

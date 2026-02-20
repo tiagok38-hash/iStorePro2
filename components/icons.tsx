@@ -142,17 +142,14 @@ export const SpinnerIcon = ({ size = 40, className = '', ...props }: IconProps) 
 );
 
 // Special Icons (Logos/Brand) - Manually crafted to match Lucide style (1.5 stroke, outline)
-export const AppleIcon = ({ className = '', ...props }: IconProps) => (
-    <svg
-        width={props.size || ICON_SIZE}
-        height={props.size || ICON_SIZE}
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        className={className}
-        {...props}
-    >
-        <path d="M17.062 10.222c.01 2.016 1.644 2.99 1.666 3.003-.01.03-.258.913-.87 1.792-.525.758-1.07 1.516-1.916 1.54-.844.026-1.114-.492-2.076-.492-.962 0-1.255.474-2.065.5-.81.026-1.428-1.01-1.966-1.78-1.1-1.583-1.923-4.571-.462-7.052.724-1.233 1.99-2.012 3.348-2.031 1.031-.013 2.004.706 2.634.706.63 0 1.795-.85 3.019-.72.51.02 1.956.206 2.883 1.564-.075.045-1.722.998-1.7 3.013zM14.954 4.922c.459-.556.77-1.332.684-2.106-.658.026-1.464.44-1.936.992-.43.5-.8 1.28-.7 2.04.735.056 1.493-.37 1.952-.926z" />
-    </svg>
+export const AppleIcon = ({ className = '', size, strokeWidth, ...props }: IconProps) => (
+    <div className={`flex items-center justify-center ${className}`} style={size ? { width: size, height: size } : undefined} {...props as any}>
+        <img
+            src="/apple-logo.svg"
+            alt="Apple"
+            className="w-full h-full object-contain"
+        />
+    </div>
 );
 
 export const PixIcon = ({ className = '', ...props }: IconProps) => (

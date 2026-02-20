@@ -236,7 +236,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                                         onChange={() => setApplyInterest(!applyInterest)}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </div>
                                 <span className={`text-xs font-bold uppercase tracking-wide transition-colors ${applyInterest ? 'text-indigo-900' : 'text-gray-500'}`}>Aplicar Juros?</span>
                             </label>

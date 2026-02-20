@@ -309,9 +309,12 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                         <p className="text-sm text-yellow-600 bg-yellow-100 p-2 rounded-xl">Marque as opções que apresentam defeito ou avaria.</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
                             {checklistItems.map(item => (
-                                <label key={item} className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={checklistData.toggles[item]} onChange={() => handleChecklistToggle(item)} className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent" />
-                                    <span className="text-sm">{item}</span>
+                                <label key={item} className="flex items-center gap-3 cursor-pointer group">
+                                    <div className={`w-10 h-5 rounded-full p-1 transition-colors ${checklistData.toggles[item] ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                        <div className={`w-3 h-3 bg-white rounded-full transition-transform ${checklistData.toggles[item] ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                    </div>
+                                    <input type="checkbox" className="hidden" checked={checklistData.toggles[item]} onChange={() => handleChecklistToggle(item)} />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{item}</span>
                                 </label>
                             ))}
                         </div>
@@ -346,9 +349,12 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                             <h3 className="font-semibold text-lg flex items-center gap-2 mb-3">Itens Inclusos / Acessórios</h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 bg-gray-50 p-4 rounded-3xl border border-gray-100">
                                 {accessoryItems.map(item => (
-                                    <label key={item} className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={accessoriesData[item]} onChange={() => handleAccessoryToggle(item)} className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent" />
-                                        <span className="text-sm">{item}</span>
+                                    <label key={item} className="flex items-center gap-3 cursor-pointer group">
+                                        <div className={`w-10 h-5 rounded-full p-1 transition-colors ${accessoriesData[item] ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                            <div className={`w-3 h-3 bg-white rounded-full transition-transform ${accessoriesData[item] ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                        </div>
+                                        <input type="checkbox" className="hidden" checked={accessoriesData[item]} onChange={() => handleAccessoryToggle(item)} />
+                                        <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{item}</span>
                                     </label>
                                 ))}
                             </div>

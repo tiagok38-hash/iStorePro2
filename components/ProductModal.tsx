@@ -837,7 +837,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0 max-h-[240px] overflow-y-auto custom-scrollbar pr-2 border border-gray-100 rounded-xl p-4 bg-gray-50/50">
                                     {checklistItems.map(item => (
                                         <label key={item} className="flex items-center gap-4 cursor-pointer p-2 hover:bg-gray-100 rounded-xl transition-colors group border border-transparent hover:border-gray-200">
-                                            <div className={`w-10 h-5 rounded-full p-0.5 transition-colors relative shrink-0 ${formData.checklist?.[item] ? 'bg-red-500' : 'bg-gray-300'}`}>
+                                            <div className={`w-10 h-5 rounded-full p-0.5 transition-colors relative shrink-0 ${formData.checklist?.[item] ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-300'}`}>
                                                 <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${formData.checklist?.[item] ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </div>
                                             <input
@@ -846,7 +846,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                                 onChange={() => handleChecklistToggle(item)}
                                                 className="hidden"
                                             />
-                                            <span className={`text-xs font-bold truncate ${formData.checklist?.[item] ? 'text-red-600' : 'text-gray-600'}`} title={item}>{item}</span>
+                                            <span className={`text-xs font-bold truncate ${formData.checklist?.[item] ? 'text-blue-600' : 'text-gray-600'}`} title={item}>{item}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -1135,7 +1135,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 {!isTradeInMode && (
                                     <div className="flex items-end gap-6 h-[76px]">
                                         <label className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-12 h-6 rounded-full transition-all relative ${isMinimumStockEnabled ? 'bg-success' : 'bg-gray-200'}`}>
+                                            <div className={`w-12 h-6 rounded-full transition-all relative ${isMinimumStockEnabled ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-200'}`}>
                                                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isMinimumStockEnabled ? 'left-7' : 'left-1'}`} />
                                             </div>
                                             <input type="checkbox" checked={isMinimumStockEnabled} onChange={(e) => handleToggleMinimumStock(e.target.checked)} className="hidden" />
@@ -1218,8 +1218,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     {accessoryItems.map(item => (
                                         <label key={item} className={`flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${formData.accessories?.includes(item) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 hover:border-gray-200'}`}>
-                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${formData.accessories?.includes(item) ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-white'}`}>
-                                                {formData.accessories?.includes(item) && <CheckIcon className="h-3 w-3 text-white" />}
+                                            <div className={`w-10 h-5 rounded-full p-0.5 transition-colors relative shrink-0 ${formData.accessories?.includes(item) ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-300'}`}>
+                                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${formData.accessories?.includes(item) ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </div>
                                             <input
                                                 type="checkbox"

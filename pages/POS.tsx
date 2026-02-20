@@ -384,7 +384,7 @@ const POS: React.FC = () => {
 
     const userMap = useMemo(() => users.reduce((acc, u) => ({ ...acc, [u.id]: u.name }), {} as Record<string, string>), [users]);
     const productMap = useMemo(() => products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as Record<string, Product>), [products]);
-    const userOptions = useMemo(() => users.map(u => ({ value: u.id, label: u.name })), [users]);
+    const userOptions = useMemo(() => users.filter(u => u.active !== false).map(u => ({ value: u.id, label: u.name })), [users]);
 
     const filteredSessions = useMemo(() => {
         const normalizedSearch = searchTerm.toLowerCase().trim().replace(/^#/, '');

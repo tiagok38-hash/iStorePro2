@@ -374,7 +374,7 @@ const ServiceOrderForm: React.FC = () => {
                             className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
                         >
                             <option value="">Selecione...</option>
-                            {users.map(u => (
+                            {users.filter(u => u.active !== false).map(u => (
                                 <option key={u.id} value={u.id}>{u.name}</option>
                             ))}
                         </select>

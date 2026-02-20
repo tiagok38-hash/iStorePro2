@@ -8,7 +8,10 @@ import { CatalogItem, Product, Brand } from '../../types.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import CatalogItemModal from './CatalogItemModal.tsx';
 
+import { useUser } from '../../contexts/UserContext.tsx';
+
 const CatalogAdmin: React.FC = () => {
+    const { permissions } = useUser();
     const { showToast } = useToast();
     const [items, setItems] = useState<CatalogItem[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
@@ -113,6 +116,14 @@ const CatalogAdmin: React.FC = () => {
             );
         }
 
+        if (!permissions?.canEditCatalogItem) {
+            return (
+                <div className="text-xs text-secondary font-medium text-right w-full">
+                    {prefix}{value.toLocaleString('pt-BR', { minimumFractionDigits: field === 'displayOrder' || field === 'installments' ? 0 : 2, maximumFractionDigits: 2 })}
+                </div>
+            );
+        }
+
         return (
             <button
                 onClick={() => { setEditingField({ id: item.id, field }); setEditValue(String(value)); }}
@@ -133,13 +144,15 @@ const CatalogAdmin: React.FC = () => {
                     <h1 className="text-2xl font-bold text-primary">Meus Catálogos</h1>
                     <p className="text-secondary text-sm mt-1">Gerencie os produtos que aparecem na sua vitrine virtual</p>
                 </div>
-                <button
-                    onClick={() => { setEditingItem(null); setShowModal(true); }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all active:scale-95"
-                >
-                    <Plus size={18} />
-                    Adicionar Item
-                </button>
+                {permissions?.canCreateCatalogItem && (
+                    <button
+                        onClick={() => { setEditingItem(null); setShowModal(true); }}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all active:scale-95"
+                    >
+                        <Plus size={18} />
+                        Adicionar Item
+                    </button>
+                )}
             </div>
 
             {/* Public Link Card */}
@@ -274,8 +287,9 @@ const CatalogAdmin: React.FC = () => {
                                         {/* Toggle */}
                                         <td className="px-4 py-3 text-center">
                                             <button
+                                                disabled={!permissions?.canEditCatalogItem}
                                                 onClick={() => handleToggleActive(item)}
-                                                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${item.isActive ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${item.isActive ? 'bg-blue-600' : 'bg-gray-300'} ${!permissions?.canEditCatalogItem ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             >
                                                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${item.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </button>
@@ -292,18 +306,25 @@ const CatalogAdmin: React.FC = () => {
                                                 <>
                                                     <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)} />
                                                     <div className={`absolute right-4 z-50 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 min-w-[150px] animate-fade-in ${filteredItems.indexOf(item) >= filteredItems.length - 2 ? 'bottom-12' : 'top-12'}`}>
-                                                        <button
-                                                            onClick={() => { setEditingItem(item); setShowModal(true); setMenuOpenId(null); }}
-                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-primary hover:bg-gray-50 transition-colors"
-                                                        >
-                                                            <Pencil size={14} /> Editar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(item.id)}
-                                                            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                                                        >
-                                                            <Trash2 size={14} /> Excluir
-                                                        </button>
+                                                        {permissions?.canEditCatalogItem && (
+                                                            <button
+                                                                onClick={() => { setEditingItem(item); setShowModal(true); setMenuOpenId(null); }}
+                                                                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-primary hover:bg-gray-50 transition-colors"
+                                                            >
+                                                                <Pencil size={14} /> Editar
+                                                            </button>
+                                                        )}
+                                                        {permissions?.canDeleteCatalogItem && (
+                                                            <button
+                                                                onClick={() => handleDelete(item.id)}
+                                                                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                                            >
+                                                                <Trash2 size={14} /> Excluir
+                                                            </button>
+                                                        )}
+                                                        {!permissions?.canEditCatalogItem && !permissions?.canDeleteCatalogItem && (
+                                                            <div className="px-4 py-2 text-xs text-muted">Sem permissões</div>
+                                                        )}
                                                     </div>
                                                 </>
                                             )}
@@ -317,22 +338,26 @@ const CatalogAdmin: React.FC = () => {
             </div>
 
             {/* Stats Footer */}
-            {!isLoading && items.length > 0 && (
-                <div className="flex items-center justify-between text-sm text-secondary">
-                    <span>{items.length} itens no catálogo · {items.filter(i => i.isActive).length} ativos</span>
-                </div>
-            )}
+            {
+                !isLoading && items.length > 0 && (
+                    <div className="flex items-center justify-between text-sm text-secondary">
+                        <span>{items.length} itens no catálogo · {items.filter(i => i.isActive).length} ativos</span>
+                    </div>
+                )
+            }
 
             {/* Modal */}
-            {showModal && (
-                <CatalogItemModal
-                    item={editingItem}
-                    products={products}
-                    onClose={() => { setShowModal(false); setEditingItem(null); }}
-                    onSaved={() => { setShowModal(false); setEditingItem(null); loadData(); }}
-                />
-            )}
-        </div>
+            {
+                showModal && (
+                    <CatalogItemModal
+                        item={editingItem}
+                        products={products}
+                        onClose={() => { setShowModal(false); setEditingItem(null); }}
+                        onSaved={() => { setShowModal(false); setEditingItem(null); loadData(); }}
+                    />
+                )
+            }
+        </div >
     );
 };
 

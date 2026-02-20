@@ -352,21 +352,19 @@ export const updateUser = async (data: any) => {
 export const deleteUser = async (id: string, userId: string = 'system', userName: string = 'Sistema') => {
     const { data: user } = await supabase.from('users').select('*').eq('id', id).single();
 
-    const { error } = await supabase.from('users').delete().eq('id', id);
+    // Em vez de deletar fisicamente, inativamos o usuário para preservar histórico
+    const { error } = await supabase.from('users').update({ active: false }).eq('id', id);
     if (error) {
-        console.error('Erro ao excluir usuário:', error);
-        if (error.code === '23503' || (error as any).status === 409) {
-            throw new Error('Não é possível excluir este usuário pois ele possui registros vinculados (Vendas, Caixas, etc). Para remover o acesso, altere a senha ou o perfil de permissões.');
-        }
+        console.error('Erro ao inativar usuário:', error);
         throw error;
     }
 
     if (user) {
         await addAuditLog(
-            AuditActionType.DELETE,
+            AuditActionType.UPDATE,
             AuditEntityType.USER,
             id,
-            `Usuário excluído: ${user.name} (${user.email})`,
+            `Usuário inativado (soft-delete): ${user.name} (${user.email})`,
             userId,
             userName
         );

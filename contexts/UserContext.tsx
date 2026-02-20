@@ -125,7 +125,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         canAccessCrm: true, canCreateCrmDeal: true, canEditCrmDeal: true,
         canDeleteCrmDeal: true, canMoveCrmDeal: true, canViewAllCrmDeals: true,
 
-        canAccessCatalog: true, canManageCatalog: true,
+        canAccessCatalog: true,
+        canCreateCatalogItem: true,
+        canEditCatalogItem: true,
+        canDeleteCatalogItem: true,
       };
 
       try {

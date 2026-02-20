@@ -9,7 +9,7 @@ import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import Button from '../components/Button.tsx';
 
 // --- PermissionProfileModal ---
-const permissionGroups: { title: string; permissions: { key: keyof PermissionSet; label: string }[] }[] = [
+const permissionGroups: { title: string; requiredSection?: keyof PermissionSet; permissions: { key: keyof PermissionSet; label: string }[] }[] = [
     {
         title: 'Acesso às Seções',
         permissions: [
@@ -24,11 +24,13 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
             { key: 'canAccessEmpresa', label: 'Acessar Configurações da Empresa' },
             { key: 'canAccessServiceOrders', label: 'Acessar Ordens de Serviço' },
             { key: 'canAccessCrm', label: 'Acessar CRM' },
+            { key: 'canAccessFinanceiro', label: 'Acessar Financeiro' },
             { key: 'canAccessCatalog', label: 'Acessar Catálogo' },
         ],
     },
     {
         title: 'Módulo Financeiro',
+        requiredSection: 'canAccessFinanceiro',
         permissions: [
             { key: 'canCreateTransaction', label: 'Criar Receitas/Despesas' },
             { key: 'canEditTransaction', label: 'Editar Transações' },
@@ -38,6 +40,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'Ordem de Serviço (OS)',
+        requiredSection: 'canAccessServiceOrders',
         permissions: [
             { key: 'canCreateServiceOrder', label: 'Criar Nova OS' },
             { key: 'canEditServiceOrder', label: 'Editar OS' },
@@ -47,6 +50,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'CRM (Gestão de Leads)',
+        requiredSection: 'canAccessCrm',
         permissions: [
             { key: 'canCreateCrmDeal', label: 'Criar Leads' },
             { key: 'canEditCrmDeal', label: 'Editar Leads' },
@@ -57,12 +61,16 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'Catálogo Digital',
+        requiredSection: 'canAccessCatalog',
         permissions: [
-            { key: 'canManageCatalog', label: 'Gerenciar Itens do Catálogo (Adicionar/Editar/Excluir)' },
+            { key: 'canCreateCatalogItem', label: 'Adicionar Itens ao Catálogo' },
+            { key: 'canEditCatalogItem', label: 'Editar Itens do Catálogo' },
+            { key: 'canDeleteCatalogItem', label: 'Excluir Itens do Catálogo' },
         ],
     },
     {
         title: 'Produtos e Estoque',
+        requiredSection: 'canAccessEstoque',
         permissions: [
             { key: 'canCreateProduct', label: 'Criar/Lançar Novos Produtos' },
             { key: 'canEditProduct', label: 'Editar Produtos' },
@@ -72,6 +80,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'Vendas',
+        requiredSection: 'canAccessVendas',
         permissions: [
             { key: 'canCreateSale', label: 'Realizar Novas Vendas' },
             { key: 'canEditSale', label: 'Editar venda' },
@@ -81,6 +90,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'Compras',
+        requiredSection: 'canViewPurchases',
         permissions: [
             { key: 'canCreatePurchase', label: 'Criar Novas Compras' },
             { key: 'canEditPurchase', label: 'Editar Compras' },
@@ -91,6 +101,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'Gestão de Clientes',
+        requiredSection: 'canAccessClientes',
         permissions: [
             { key: 'canCreateCustomer', label: 'Criar Clientes' },
             { key: 'canEditCustomer', label: 'Editar Clientes' },
@@ -101,6 +112,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'Gestão de Fornecedores',
+        requiredSection: 'canAccessFornecedores',
         permissions: [
             { key: 'canCreateSupplier', label: 'Criar Fornecedores' },
             { key: 'canEditSupplier', label: 'Editar Fornecedores' },
@@ -110,6 +122,7 @@ const permissionGroups: { title: string; permissions: { key: keyof PermissionSet
     },
     {
         title: 'Administração da Empresa',
+        requiredSection: 'canAccessEmpresa',
         permissions: [
             { key: 'canManageCompanyData', label: 'Gerenciar Dados da Empresa' },
             { key: 'canManageUsers', label: 'Gerenciar Usuários' },
@@ -170,24 +183,45 @@ const PermissionProfileModal: React.FC<{
                     <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded-xl" />
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-                    {permissionGroups.map(group => (
-                        <div key={group.title}>
-                            <h3 className="font-semibold text-primary mb-2 border-b pb-1">{group.title}</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                {group.permissions.map(perm => (
-                                    <label key={perm.key} className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={!!permissions[perm.key]}
-                                            onChange={e => handlePermissionChange(perm.key, e.target.checked)}
-                                            className="form-checkbox h-4 w-4 text-accent rounded-xl focus:ring-accent"
-                                        />
-                                        <span className="text-sm">{perm.label}</span>
-                                    </label>
-                                ))}
+                    {permissionGroups.map(group => {
+                        const isSectionEnabled = !group.requiredSection || permissions[group.requiredSection];
+
+                        return (
+                            <div key={group.title} className={!isSectionEnabled ? 'opacity-50' : ''}>
+                                <div className="flex items-center justify-between border-b pb-1 mb-2">
+                                    <h3 className="font-semibold text-primary">{group.title}</h3>
+                                    {!isSectionEnabled && (
+                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold uppercase">
+                                            Seção Desativada
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                    {group.permissions.map(perm => {
+                                        const isEnabled = isSectionEnabled;
+
+                                        return (
+                                            <div key={perm.key} className={`flex items-center justify-between p-2 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors ${!isEnabled ? 'grayscale pointer-events-none' : ''}`}>
+                                                <span className={`text-sm font-medium ${!isEnabled ? 'text-gray-400' : 'text-primary'}`}>{perm.label}</span>
+                                                <button
+                                                    type="button"
+                                                    disabled={!isEnabled}
+                                                    onClick={() => handlePermissionChange(perm.key, !permissions[perm.key])}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${permissions[perm.key] && isEnabled ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-200'
+                                                        }`}
+                                                >
+                                                    <span
+                                                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${permissions[perm.key] && isEnabled ? 'translate-x-5' : 'translate-x-1'
+                                                            }`}
+                                                    />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
                 <div className="flex justify-end gap-4 mt-6 pt-4 border-t">
                     <Button onClick={onClose} variant="secondary">Cancelar</Button>
@@ -286,6 +320,7 @@ const Users: React.FC = () => {
     const [editingProfile, setEditingProfile] = useState<Partial<PermissionProfile> | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [deletingProfile, setDeletingProfile] = useState<PermissionProfile | null>(null);
+    const [showInactive, setShowInactive] = useState(false);
 
     const fetchData = useCallback(async (retryCount = 0) => {
         setLoading(true);
@@ -345,10 +380,20 @@ const Users: React.FC = () => {
         if (!deletingUser) return;
         try {
             await deleteUser(deletingUser.id, loggedInUser?.id, loggedInUser?.name);
-            showToast('Usuário excluído com sucesso!', 'success');
+            showToast('Usuário inativado com sucesso!', 'success');
             fetchData();
-        } catch (error) { showToast('Erro ao excluir usuário.', 'error'); }
+        } catch (error) { showToast('Erro ao inativar usuário.', 'error'); }
         finally { setDeletingUser(null); }
+    };
+    const handleReactivateUser = async (user: User) => {
+        try {
+            await updateUser({ ...user, active: true });
+            showToast('Usuário reativado com sucesso!', 'success');
+            fetchData();
+            if (loggedInUser && user.id === loggedInUser.id) {
+                refreshPermissions();
+            }
+        } catch (error) { showToast('Erro ao reativar usuário.', 'error'); }
     };
 
     // Handlers for Profiles
@@ -403,7 +448,21 @@ const Users: React.FC = () => {
             <div className="w-full lg:max-w-5xl space-y-8">
                 {/* Users Section */}
                 <div className="bg-surface rounded-3xl border border-border p-6 space-y-4 shadow-sm">
-                    <div className="flex justify-end items-center">
+                    <div className="flex justify-between items-center flex-wrap gap-4">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-secondary">Mostrar inativos</span>
+                            <button
+                                type="button"
+                                onClick={() => setShowInactive(!showInactive)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${showInactive ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-300'
+                                    }`}
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showInactive ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                />
+                            </button>
+                        </div>
                         <button onClick={handleAddUser} className="flex items-center gap-2 px-3 py-2 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-opacity-90">
                             <UserPlusIcon className="h-5 w-5" />
                             Novo Usuário
@@ -421,16 +480,20 @@ const Users: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="text-primary">
-                                {users.map(user => (
-                                    <tr key={user.id} className="border-t border-border">
-                                        <td className="px-4 py-3">{user.email}</td>
+                                {users.filter(u => showInactive ? true : u.active !== false).map(user => (
+                                    <tr key={user.id} className={`border-t border-border ${user.active === false ? 'opacity-50 grayscale' : ''}`}>
+                                        <td className="px-4 py-3">{user.email} {user.active === false && <span className="ml-2 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Inativo</span>}</td>
                                         <td className="px-4 py-3">{user.name}</td>
                                         <td className="px-4 py-3">{formatPhone(user.phone)}</td>
                                         <td className="px-4 py-3">{profileMap[user.permissionProfileId] || 'N/A'}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-end gap-3">
                                                 <button onClick={() => handleEditUser(user)} title="Editar Usuário" className="text-muted hover:text-primary"><LockClosedIcon /></button>
-                                                <button onClick={() => handleDeleteUser(user)} title="Excluir Usuário" className="text-on-primary bg-danger rounded-full p-0.5 hover:bg-opacity-80"><TrashIcon className="h-4 w-4" /></button>
+                                                {user.active === false ? (
+                                                    <button onClick={() => handleReactivateUser(user)} title="Reativar Usuário" className="text-emerald-600 bg-emerald-50 rounded-full p-1 hover:bg-emerald-100 flex items-center gap-1 text-xs px-2"><CheckIcon className="h-3 w-3" /> Reativar</button>
+                                                ) : (
+                                                    <button onClick={() => handleDeleteUser(user)} title="Inativar Usuário" className="text-on-primary bg-danger rounded-full p-0.5 hover:bg-opacity-80"><TrashIcon className="h-4 w-4" /></button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -486,8 +549,8 @@ const Users: React.FC = () => {
                 isOpen={!!deletingUser}
                 onClose={() => setDeletingUser(null)}
                 onConfirm={confirmDeleteUser}
-                title="Excluir Usuário"
-                message={`Tem certeza que deseja excluir o usuário "${deletingUser?.name}"?`}
+                title="Inativar Usuário"
+                message={`Tem certeza que deseja inativar o usuário "${deletingUser?.name}"? Ele não terá mais acesso de login ao sistema, mas o histórico de suas ações ficará preservado.`}
             />
             <ConfirmationModal
                 isOpen={!!deletingProfile}
