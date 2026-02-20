@@ -18,37 +18,42 @@ interface ShareReceiptOptions {
  * Captures the receipt HTML element and generates a PDF Blob.
  */
 async function generateReceiptPDF(elementId: string, format: 'A4' | 'thermal'): Promise<Blob> {
-    const element = document.querySelector(`.receipt-body`) as HTMLElement;
-    if (!element) throw new Error('Receipt content not found');
+    // Find receipt body element inside the container
+    const container = document.getElementById(elementId);
+    const element = container?.querySelector('.receipt-body') as HTMLElement
+        ?? document.querySelector('.receipt-body') as HTMLElement;
 
-    // Capture the HTML as a high-resolution canvas
+    if (!element) {
+        throw new Error('Elemento do recibo não encontrado');
+    }
+
+    // Capture the HTML as a canvas image
     const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5, // Lower scale for smaller file + faster generation
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
+        foreignObjectRendering: false, // Avoid document.write issues
+        removeContainer: true,
     });
 
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.85); // JPEG for smaller size
     const imgWidth = canvas.width;
     const imgHeight = canvas.height;
 
     let pdf: jsPDF;
 
     if (format === 'thermal') {
-        // Thermal: 80mm width, dynamic height
         const pdfWidth = 80;
         const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
         pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] });
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
     } else {
-        // A4: Standard A4 page
         pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const a4Width = 210;
-        const a4UsableWidth = a4Width - 20; // 10mm margin each side
+        const a4UsableWidth = 190;
         const scaledHeight = (imgHeight * a4UsableWidth) / imgWidth;
-        pdf.addImage(imgData, 'PNG', 10, 10, a4UsableWidth, scaledHeight);
+        pdf.addImage(imgData, 'JPEG', 10, 10, a4UsableWidth, scaledHeight);
     }
 
     return pdf.output('blob');
@@ -80,12 +85,14 @@ function downloadBlob(blob: Blob, filename: string) {
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
 }
 
 /**
- * Share via WhatsApp using Web Share API (with file) or fallback to wa.me with text.
+ * Share via WhatsApp: generates PDF, downloads it, then opens WhatsApp with message.
  */
 export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<void> {
     const { saleId, customerName, customerPhone, format, receiptElementId } = options;
@@ -97,13 +104,18 @@ export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<vo
         const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
         // Try Web Share API with file (works on mobile Chrome/Safari)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                title: `Comprovante de Venda #${saleId}`,
-                text: message,
-                files: [file],
-            });
-            return;
+        if (navigator.share && navigator.canShare) {
+            try {
+                const shareData = { title: `Comprovante de Venda #${saleId}`, text: message, files: [file] };
+                if (navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    return;
+                }
+            } catch (shareErr: any) {
+                // If user cancelled share dialog, just return
+                if (shareErr?.name === 'AbortError') return;
+                // If share failed, fall through to download + wa.me
+            }
         }
 
         // Fallback: Download the PDF, then open WhatsApp with the message
@@ -111,12 +123,13 @@ export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<vo
 
         const phone = customerPhone?.replace(/\D/g, '') || '';
         const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
-        const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message + `\n\n📎 O PDF "${filename}" foi baixado no seu dispositivo. Anexe-o na conversa.`)}`;
-        window.open(waUrl, '_blank');
-    } catch (error: any) {
-        if (error.name === 'AbortError') return; // User cancelled share dialog
-        console.error('Error sharing via WhatsApp:', error);
+        const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message + `\n\n📎 O PDF foi baixado. Anexe-o na conversa.`)}`;
 
+        setTimeout(() => {
+            window.open(waUrl, '_blank');
+        }, 300);
+    } catch (error: any) {
+        console.error('Erro ao compartilhar via WhatsApp:', error);
         // Last resort fallback: just open whatsapp with text
         const phone = customerPhone?.replace(/\D/g, '') || '';
         const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
@@ -125,7 +138,7 @@ export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<vo
 }
 
 /**
- * Share via Email using Web Share API (with file) or fallback to mailto with download.
+ * Share via Email: generates PDF, downloads it, then opens mailto.
  */
 export async function shareViaEmail(options: ShareReceiptOptions): Promise<void> {
     const { saleId, customerName, customerEmail, format, receiptElementId } = options;
@@ -138,25 +151,29 @@ export async function shareViaEmail(options: ShareReceiptOptions): Promise<void>
         const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
         // Try Web Share API with file
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                title: subject,
-                text: message,
-                files: [file],
-            });
-            return;
+        if (navigator.share && navigator.canShare) {
+            try {
+                const shareData = { title: subject, text: message, files: [file] };
+                if (navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    return;
+                }
+            } catch (shareErr: any) {
+                if (shareErr?.name === 'AbortError') return;
+            }
         }
 
         // Fallback: Download the PDF, then open mailto
         downloadBlob(pdfBlob, filename);
 
         const to = customerEmail || '';
-        const body = message + `\n\n📎 O PDF "${filename}" foi baixado no seu dispositivo. Anexe-o ao e-mail.`;
-        window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    } catch (error: any) {
-        if (error.name === 'AbortError') return;
-        console.error('Error sharing via email:', error);
+        const body = message + `\n\nO PDF "${filename}" foi baixado. Anexe-o ao e-mail.`;
 
+        setTimeout(() => {
+            window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }, 300);
+    } catch (error: any) {
+        console.error('Erro ao compartilhar via email:', error);
         const to = customerEmail || '';
         window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
     }
@@ -169,11 +186,6 @@ export async function downloadReceiptPDF(options: Pick<ShareReceiptOptions, 'rec
     const { receiptElementId, saleId, format } = options;
     const filename = `Comprovante_Venda_${saleId}.pdf`;
 
-    try {
-        const pdfBlob = await generateReceiptPDF(receiptElementId, format);
-        downloadBlob(pdfBlob, filename);
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-        throw error;
-    }
+    const pdfBlob = await generateReceiptPDF(receiptElementId, format);
+    downloadBlob(pdfBlob, filename);
 }
