@@ -178,9 +178,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (updatedMsg.conversation_id !== null) return;
                 setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
             })
-            .subscribe((status) => {
-                console.log('[Chat] Realtime status:', status);
-            });
+            .subscribe();
 
         subscriptionRef.current = channel;
 

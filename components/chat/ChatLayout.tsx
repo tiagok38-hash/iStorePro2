@@ -98,22 +98,51 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
 
     // Scroll automático para o fim quando chegam mensagens novas
     const scrollToBottom = useCallback((smooth = true) => {
-        messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+        const container = messagesContainerRef.current;
+        if (container) {
+            // Usamos scrollTo diretamente no container para maior controle
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        }
     }, []);
 
     useEffect(() => {
-        if (isInitialScrollRef.current && !loading && messages.length > 0) {
-            scrollToBottom(false);
-            isInitialScrollRef.current = false;
-            return;
+        if (!isOpen || loading) return;
+
+        // Scroll inicial ao abrir o chat
+        if (isInitialScrollRef.current && messages.length > 0) {
+            // Usamos um pequeno timeout para garantir que o DOM renderizou completamente
+            const timer = setTimeout(() => {
+                scrollToBottom(false);
+                isInitialScrollRef.current = false;
+            }, 100);
+            return () => clearTimeout(timer);
         }
 
-        // Scroll automático quando a nova mensagem é do usuário atual
+        // Lógica de scroll para novas mensagens
         const lastMsg = messages[messages.length - 1];
-        if (lastMsg && lastMsg.sender_id === user?.id) {
+        if (!lastMsg) return;
+
+        const isOwnMessage = lastMsg.sender_id === user?.id;
+
+        // Se for mensagem do próprio usuário, sempre scrolla para o fim
+        if (isOwnMessage) {
             scrollToBottom(true);
+        } else {
+            // Se for de outro usuário, scrolla apenas se o usuário já estiver "perto" do fundo
+            // Isso evita "quebrar" a leitura se o usuário estiver vendo mensagens antigas
+            const container = messagesContainerRef.current;
+            if (container) {
+                const threshold = 150; // pixels de margem
+                const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+                if (isNearBottom) {
+                    scrollToBottom(true);
+                }
+            }
         }
-    }, [messages, loading, scrollToBottom, user?.id]);
+    }, [messages, loading, scrollToBottom, user?.id, isOpen]);
 
     // Quando o chat abre, scroll para o fim imediatamente
     useEffect(() => {
@@ -180,7 +209,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
                 {/* Header */}
                 <div className="flex-shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gradient-to-r from-violet-600 to-violet-700 rounded-t-3xl lg:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        {/* Ícone de chat */}
                         <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
@@ -280,9 +308,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
                             </React.Fragment>
                         );
                     })}
-
-                    {/* Âncora para scroll automático */}
-                    <div ref={messagesEndRef} className="h-1" />
                 </div>
 
                 {/* Input */}
