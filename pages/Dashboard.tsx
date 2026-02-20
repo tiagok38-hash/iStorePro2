@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers } from '../services/mockApi.ts';
-import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User } from '../types.ts';
-import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon } from '../components/icons.tsx';
+import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices } from '../services/mockApi.ts';
+import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service } from '../types.ts';
+import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
@@ -90,6 +90,219 @@ const StatCard: React.FC<{ title: string; value: string | number; subValue1?: st
     }
     return content;
 });
+
+const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacyMode?: boolean; to?: string }> = React.memo(({ serviceOrders, isPrivacyMode, to }) => {
+    const navigate = useNavigate();
+
+    const openOrders = useMemo(() => {
+        return serviceOrders
+            .filter(os => os.status === 'Aberto')
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }, [serviceOrders]);
+
+    const recentOrders = useMemo(() => openOrders.slice(0, 5), [openOrders]);
+
+    return (
+        <div
+            className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-lg hover:scale-[1.01] cursor-pointer' : ''}`}
+            onClick={() => to && navigate(to)}
+        >
+            <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-amber-50 text-amber-600 rounded-xl shadow-sm">
+                        <WrenchIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">OS em Aberto</h3>
+                        <p className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : openOrders.length}</p>
+                    </div>
+                </div>
+                {to && (
+                    <button className="text-[10px] font-black tracking-widest text-amber-600 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-xl hover:bg-amber-100 transition-all uppercase">Ver Todas</button>
+                )}
+            </div>
+
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[220px] pr-1 custom-scrollbar">
+                {recentOrders.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                        <WrenchIcon className="w-8 h-8 text-gray-300 mb-2" />
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nenhuma OS em aberto</p>
+                    </div>
+                ) : (
+                    recentOrders.map(os => (
+                        <div key={os.id} className="p-3 bg-gray-50/50 hover:bg-white rounded-xl border border-gray-100 transition-all">
+                            <div className="flex justify-between items-start mb-1">
+                                <span className="text-[11px] font-black text-amber-600 uppercase tracking-wider">#{os.displayId}</span>
+                                <span className="text-[10px] font-bold text-gray-400">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <p className="text-xs font-black text-gray-800 truncate">{os.deviceModel}</p>
+                            <p className="text-[10px] text-gray-500 truncate font-medium mt-0.5">{os.customerName}</p>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+});
+
+const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services: Service[]; products: Product[]; isPrivacyMode?: boolean; to?: string }> = React.memo(({ serviceOrders, services, products, isPrivacyMode, to }) => {
+    const navigate = useNavigate();
+    const [period, setPeriod] = useState<'today' | 'yesterday' | 'day_before' | 'week' | 'month'>('today');
+
+    const metrics = useMemo(() => {
+        const now = new Date();
+        let startDate = new Date();
+        let endDate = new Date();
+
+        switch (period) {
+            case 'today':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                break;
+            case 'yesterday':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+                break;
+            case 'day_before':
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0, 0);
+                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 23, 59, 59);
+                break;
+            case 'week':
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case 'month':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+        }
+
+        const validOS = serviceOrders.filter(os => {
+            const date = new Date(os.createdAt);
+            return date >= startDate && date <= endDate && os.status !== 'Cancelado';
+        });
+
+        const serviceMap = services.reduce((acc, s) => { acc[s.id] = s; return acc; }, {} as Record<string, Service>);
+        const productMap = products.reduce((acc, p) => { acc[p.id] = p; return acc; }, {} as Record<string, Product>);
+
+        let totalRevenue = 0;
+        let totalCost = 0;
+
+        validOS.forEach(os => {
+            totalRevenue += (os.subtotal - os.discount);
+            os.items.forEach(item => {
+                if (item.type === 'service') {
+                    const s = serviceMap[item.id];
+                    totalCost += (s?.cost || 0) * item.quantity;
+                } else {
+                    const p = productMap[item.id];
+                    totalCost += ((p?.costPrice || 0) + (p?.additionalCostPrice || 0)) * item.quantity;
+                }
+            });
+        });
+
+        return { profit: totalRevenue - totalCost, revenue: totalRevenue, count: validOS.length };
+    }, [serviceOrders, services, products, period]);
+
+    return (
+        <div
+            className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-lg hover:scale-[1.01] cursor-pointer' : ''}`}
+            onClick={() => to && navigate(to)}
+        >
+            <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
+                        <TrendingUpIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Lucro em OS</h3>
+                        <p className="text-2xl font-black text-emerald-600 tracking-tight mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}</p>
+                    </div>
+                </div>
+                <select
+                    value={period}
+                    onChange={(e) => { e.stopPropagation(); setPeriod(e.target.value as any); }}
+                    className="text-[10px] font-black tracking-widest text-gray-500 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 outline-none transition-all uppercase cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <option value="today">Hoje</option>
+                    <option value="yesterday">Ontem</option>
+                    <option value="day_before">Anteontem</option>
+                    <option value="week">Semana</option>
+                    <option value="month">Mês</option>
+                </select>
+            </div>
+
+            <div className="mt-auto pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+                <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Faturamento</p>
+                    <p className="text-xs font-black text-gray-700">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.revenue)}</p>
+                </div>
+                <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total de OS</p>
+                    <p className="text-xs font-black text-gray-700">{isPrivacyMode ? '***' : metrics.count}</p>
+                </div>
+            </div>
+        </div>
+    );
+});
+
+const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: boolean; to?: string }> = React.memo(({ products, isPrivacyMode, to }) => {
+    const navigate = useNavigate();
+
+    const lowStockBulk = useMemo(() => {
+        return products.filter(p => !p.hasIMEI && p.stock <= (p.minimumStock || 0))
+            .sort((a, b) => (a.stock / (a.minimumStock || 1)) - (b.stock / (b.minimumStock || 1)));
+    }, [products]);
+
+    const recentItems = useMemo(() => lowStockBulk.slice(0, 5), [lowStockBulk]);
+
+    return (
+        <div
+            className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-lg hover:scale-[1.01] cursor-pointer' : ''}`}
+            onClick={() => to && navigate(to)}
+        >
+            <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-red-50 text-red-600 rounded-xl shadow-sm">
+                        <PackageIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Lotes em Baixa</h3>
+                        <p className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : lowStockBulk.length}</p>
+                    </div>
+                </div>
+                {to && (
+                    <button className="text-[10px] font-black tracking-widest text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-xl hover:bg-red-100 transition-all uppercase">Repor</button>
+                )}
+            </div>
+
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[220px] pr-1 custom-scrollbar">
+                {recentItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                        <PackageIcon className="w-8 h-8 text-gray-300 mb-2" />
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Estoque OK</p>
+                    </div>
+                ) : (
+                    recentItems.map(p => (
+                        <div key={p.id} className="p-3 bg-red-50/30 hover:bg-white rounded-xl border border-red-100/50 transition-all">
+                            <div className="flex justify-between items-center mb-1">
+                                <p className="text-xs font-black text-gray-800 truncate flex-1 pr-2">{p.model}</p>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${p.stock <= 0 ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700'}`}>
+                                    {isPrivacyMode ? '***' : p.stock} un
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                                <span>Mínimo: {p.minimumStock} un</span>
+                                <span className="text-red-500">Repor urgente</span>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+});
+
 
 const ProfitTooltip: React.FC<any> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -1201,6 +1414,8 @@ const Dashboard: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
+    const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
     const [billingPeriod, setBillingPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('year');
     const [isPrivacyMode, setIsPrivacyMode] = useState(() => {
@@ -1254,15 +1469,19 @@ const Dashboard: React.FC = () => {
             oneYearAgo.setDate(oneYearAgo.getDate() - 365);
             const startDate = oneYearAgo.toISOString().split('T')[0];
 
-            const [salesData, productsData, customersData] = await Promise.all([
+            const [salesData, productsData, customersData, serviceOrdersData, servicesData] = await Promise.all([
                 fetchItem('Sales', () => getSales(undefined, undefined, startDate), []),
                 fetchItem('Products', () => getProducts(), []),
-                fetchItem('Customers', () => getCustomers(false), [])
+                fetchItem('Customers', () => getCustomers(false), []),
+                fetchItem('ServiceOrders', () => getServiceOrders(), []),
+                fetchItem('Services', () => getServices(), [])
             ]);
 
             setSales(salesData);
             setProducts(productsData);
             setCustomers(customersData);
+            setServiceOrders(serviceOrdersData);
+            setServices(servicesData);
 
             // Priority 2: Configs
             fetchItem('ActiveMethods', getPaymentMethods, []).then(setPaymentMethods);
@@ -1509,6 +1728,13 @@ const Dashboard: React.FC = () => {
 
             <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
                 <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
+                <ServiceOrderProfitCard
+                    serviceOrders={serviceOrders}
+                    services={services}
+                    products={products}
+                    isPrivacyMode={isPrivacyMode}
+                    to="/service-orders/financial"
+                />
                 <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><StockStatsCard products={products} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <CustomersStatsCard
                     customers={customers}
@@ -1518,6 +1744,11 @@ const Dashboard: React.FC = () => {
                         if (getPermissionForRoute('/customers', permissions)) { navigate('/customers'); } else { handlePermissionDenied(); }
                     }}
                 />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+                <OpenServiceOrdersCard serviceOrders={serviceOrders} isPrivacyMode={isPrivacyMode} to="/service-orders/list" />
+                <LowStockBulkProductsCard products={products} isPrivacyMode={isPrivacyMode} to="/products?filter=low_stock" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

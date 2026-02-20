@@ -80,7 +80,8 @@ import {
     Phone,
     Mail,
     ArchiveRestore,
-    Wallet
+    Wallet,
+    TrendingUp
 } from 'lucide-react';
 
 /**
@@ -242,6 +243,7 @@ export const BuildingOfficeIcon = BuildingOffice2Icon;
 export const ShieldCheckIcon = wrapIcon(ShieldCheck);
 export const ExclamationTriangleIcon = wrapIcon(AlertTriangle);
 export const TruckIcon = wrapIcon(Truck);
+export const TrendingUpIcon = wrapIcon(TrendingUp);
 export const ArrowPathIcon = wrapIcon(RefreshCw);
 export const PackageIcon = wrapIcon(Package);
 export const FilterIcon = wrapIcon(Filter);
