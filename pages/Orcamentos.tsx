@@ -137,7 +137,7 @@ const Orcamentos: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('new')}
-                        className="flex items-center justify-center gap-2 bg-orange-400 hover:bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm shadow-orange-400/20 transition-all hover:-translate-y-0.5"
+                        className="flex items-center justify-center gap-2 bg-orange-300 hover:bg-orange-400 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm shadow-orange-300/20 transition-all hover:-translate-y-0.5"
                     >
                         <PlusIcon className="h-5 w-5" />
                         <span className="hidden sm:inline">Novo Orçamento</span>
@@ -157,7 +157,7 @@ const Orcamentos: React.FC = () => {
                         <p className="text-gray-500 mb-6">Comece a cadastrar orçamentos simulados para seus clientes.</p>
                         <button
                             onClick={() => setActiveTab('new')}
-                            className="bg-orange-400 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-orange-400/20"
+                            className="bg-orange-300 hover:bg-orange-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-orange-300/20"
                         >
                             Criar Primeiro Orçamento
                         </button>
@@ -175,7 +175,7 @@ const Orcamentos: React.FC = () => {
                                         <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg mb-2 group-hover:bg-orange-100 group-hover:text-orange-700 transition-colors">
                                             #{orc.numero}
                                         </span>
-                                        <h4 className="font-black text-orange-600 text-xl tracking-tighter">
+                                        <h4 className="font-black text-orange-400 text-xl tracking-tighter">
                                             {formatCurrency(orc.total_final)}
                                         </h4>
                                     </div>
@@ -189,7 +189,7 @@ const Orcamentos: React.FC = () => {
                                     </div>
                                     <div className="flex items-center text-sm text-gray-600">
                                         <div className="w-24 text-gray-400">Fechamento:</div>
-                                        <div className="font-bold text-orange-600">{orc.probabilidade_fechamento_percentual || 0}%</div>
+                                        <div className="font-bold text-orange-500">{orc.probabilidade_fechamento_percentual || 0}%</div>
                                     </div>
                                 </div>
 
@@ -312,7 +312,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                                                 {item.quantidade}x {formatCurrency(item.preco_unitario_snapshot)}
                                             </p>
                                         </div>
-                                        <div className="font-black text-orange-600 text-sm ml-4">
+                                        <div className="font-black text-orange-400 text-sm ml-4">
                                             {formatCurrency(item.total_snapshot || (item.quantidade * item.preco_unitario_snapshot))}
                                         </div>
                                     </div>
@@ -327,7 +327,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                                 {orcamento.forma_pagamento_snapshot?.pagamentos?.map((p: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center bg-orange-50/30 p-2.5 rounded-lg border border-orange-100/50">
                                         <span className="text-xs font-bold text-gray-700">{p.method} {p.installments > 1 ? `(${p.installments}x)` : ''}</span>
-                                        <span className="text-xs font-black text-orange-600">{formatCurrency(p.value)}</span>
+                                        <span className="text-xs font-black text-orange-400">{formatCurrency(p.value)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -349,7 +349,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                                 )}
                                 <div className="flex justify-between items-end pt-4 border-t border-gray-100 mt-2">
                                     <span className="font-black text-gray-400 text-[10px] uppercase tracking-widest pb-1">Total Final</span>
-                                    <span className="text-3xl font-black text-orange-600 tracking-tighter">{formatCurrency(orcamento.total_final)}</span>
+                                    <span className="text-3xl font-black text-orange-400 tracking-tighter">{formatCurrency(orcamento.total_final)}</span>
                                 </div>
                             </div>
                         </div>
@@ -369,7 +369,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                             <button onClick={onEdit} className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 font-bold py-3 rounded-xl transition-all active:scale-95">
                                 Editar
                             </button>
-                            <button onClick={onConvert} className="flex items-center justify-center gap-2 bg-orange-400 hover:bg-orange-500 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-orange-400/20 active:scale-95">
+                            <button onClick={onConvert} className="flex items-center justify-center gap-2 bg-orange-300 hover:bg-orange-400 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-orange-300/20 active:scale-95">
                                 Converter Venda
                             </button>
                             <button onClick={onDelete} className="col-span-2 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 font-bold py-2 transition-all">

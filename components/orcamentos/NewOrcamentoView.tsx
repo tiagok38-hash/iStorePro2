@@ -41,6 +41,9 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
         { id: '1', method: 'Dinheiro', value: 0, installments: 1 }
     ]);
 
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+
     useEffect(() => {
         const loadInitData = async () => {
             try {
@@ -263,7 +266,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                             placeholder="Buscar produto por nome ou SKU..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-gray-100 border-transparent rounded-xl focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10 transition-all font-medium outline-none"
+                            className="w-full pl-10 pr-4 py-3 bg-gray-100 border-transparent rounded-xl focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-300/10 transition-all font-medium outline-none"
                             autoFocus
                         />
                     </div>
@@ -290,7 +293,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                                     <div className="text-sm font-bold text-gray-800 line-clamp-2 leading-tight mb-1">{`${p.brand || ''} ${p.model || ''}`.trim() || p.sku || 'Produto sem nome'}</div>
                                     <div className="text-xs text-gray-500 mb-2">{p.sku}</div>
                                     <div className="mt-auto flex justify-between items-center w-full">
-                                        <div className="font-bold text-orange-600">{formatCurrency(p.price)}</div>
+                                        <div className="font-bold text-orange-400">{formatCurrency(p.price)}</div>
                                         <div className={`text-xs px-2 py-0.5 rounded-md font-bold ${p.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                             {p.stock}
                                         </div>
@@ -304,7 +307,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
 
             {/* Right side: Resume & Simulation */}
             <div className="w-full lg:w-[35%] flex flex-col h-[50vh] lg:h-full bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.03)] z-10 relative">
-                <div className="p-4 bg-orange-400 text-white flex justify-between items-center shadow-md pb-6 pt-5 shrink-0">
+                <div className="p-4 bg-orange-300 text-white flex justify-between items-center shadow-md pb-6 pt-5 shrink-0">
                     <div>
                         <h2 className="text-xl font-bold">Resumo do Orçamento</h2>
                         <p className="text-orange-100 text-sm opacity-90">{cart.length} ite{cart.length === 1 ? 'm' : 'ns'} na simulação</p>
@@ -312,17 +315,71 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                 </div>
 
                 <div className="flex-1 overflow-auto p-4 custom-scrollbar -mt-3 relative z-10 bg-white rounded-t-[20px]">
-                    {/* Customer Selection */}
-                    <div className="mb-4">
-                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Cliente (Opcional)</label>
-                        <select
-                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-orange-500"
-                            onChange={e => setSelectedCustomer(customers.find(c => c.id === e.target.value) || null)}
-                            value={selectedCustomer?.id || ''}
-                        >
-                            <option value="">Consumidor Final (Sem Cadastro)</option>
-                            {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                    {/* Customer Selection Searchable */}
+                    <div className="mb-4 relative">
+                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Cliente (Nome ou CPF)</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-orange-300/30 focus:border-orange-300 outline-none transition-all pl-10"
+                                placeholder="Buscar cliente..."
+                                value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                                onChange={(e) => {
+                                    setCustomerSearch(e.target.value);
+                                    if (selectedCustomer) setSelectedCustomer(null);
+                                    setIsCustomerDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsCustomerDropdownOpen(true)}
+                            />
+                            <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+
+                            {selectedCustomer && (
+                                <button
+                                    onClick={() => setSelectedCustomer(null)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                                >
+                                    <CloseIcon className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+
+                        {isCustomerDropdownOpen && !selectedCustomer && (
+                            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-100 shadow-xl rounded-2xl z-[100] max-h-48 overflow-y-auto custom-scrollbar animate-fade-in">
+                                <div
+                                    className="p-3 hover:bg-orange-50 cursor-pointer text-sm font-bold text-gray-500 border-b border-gray-50"
+                                    onClick={() => {
+                                        setSelectedCustomer(null);
+                                        setCustomerSearch('');
+                                        setIsCustomerDropdownOpen(false);
+                                    }}
+                                >
+                                    Consumidor Final (Sem Cadastro)
+                                </div>
+                                {customers
+                                    .filter(c =>
+                                        c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                                        c.cpf?.includes(customerSearch)
+                                    )
+                                    .map(c => (
+                                        <div
+                                            key={c.id}
+                                            className="p-3 hover:bg-orange-50 cursor-pointer text-sm transition-colors border-b border-gray-50 last:border-0"
+                                            onClick={() => {
+                                                setSelectedCustomer(c);
+                                                setIsCustomerDropdownOpen(false);
+                                                setCustomerSearch('');
+                                            }}
+                                        >
+                                            <div className="font-bold text-gray-800">{c.name}</div>
+                                            {c.cpf && <div className="text-[10px] text-gray-400 font-medium">CPF: {c.cpf}</div>}
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        )}
+                        {isCustomerDropdownOpen && (
+                            <div className="fixed inset-0 z-[90]" onClick={() => setIsCustomerDropdownOpen(false)} />
+                        )}
                     </div>
 
                     {/* Cart Items */}
@@ -339,7 +396,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                                         <CloseIcon className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <div className="text-orange-600 font-bold text-sm mt-1 mb-2">{formatCurrency(item.price)}</div>
+                                <div className="text-orange-400 font-bold text-sm mt-1 mb-2">{formatCurrency(item.price)}</div>
 
                                 <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-gray-200/60">
                                     <div className="flex items-center bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
@@ -373,7 +430,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                                 </h3>
                                 <button
                                     onClick={() => setPayments([...payments, { id: Math.random().toString(), method: 'Dinheiro', value: summary.remainingBalance > 0 ? summary.remainingBalance : 0, installments: 1 }])}
-                                    className="text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                    className="text-xs font-bold text-orange-400 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
                                 >
                                     <PlusIcon className="w-4 h-4" /> Adicionar
                                 </button>
@@ -442,7 +499,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                             </div>
 
                             {summary.remainingBalance !== 0 && (
-                                <div className={`text-xs font-bold mb-3 flex items-center justify-between px-3 py-2 rounded-lg ${summary.remainingBalance > 0 ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-600'}`}>
+                                <div className={`text-xs font-bold mb-3 flex items-center justify-between px-3 py-2 rounded-lg ${summary.remainingBalance > 0 ? 'bg-orange-50 text-orange-500' : 'bg-red-50 text-red-600'}`}>
                                     <span>{summary.remainingBalance > 0 ? 'Falta simular pagamentos:' : 'Pagamentos excedem o total:'}</span>
                                     <span>{formatCurrency(Math.abs(summary.remainingBalance))}</span>
                                 </div>
@@ -455,8 +512,8 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                                     Probabilidade de Fechamento (%)
                                 </label>
                                 <div className="flex items-center gap-3">
-                                    <input type="range" min="0" max="100" step="10" value={fechamentoProbabilidade} onChange={(e) => setFechamentoProbabilidade(Number(e.target.value))} className="flex-1 accent-blue-500" />
-                                    <span className="font-bold text-blue-700 w-10 text-right">{fechamentoProbabilidade}%</span>
+                                    <input type="range" min="0" max="100" step="10" value={fechamentoProbabilidade} onChange={(e) => setFechamentoProbabilidade(Number(e.target.value))} className="flex-1 accent-orange-300" />
+                                    <span className="font-bold text-orange-400 w-10 text-right">{fechamentoProbabilidade}%</span>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1">Ajuda a prever seu funil de vendas futuro.</p>
                             </div>
@@ -488,7 +545,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                             <span>{formatCurrency(summary.totalFinal)}</span>
                         </div>
                         {payments.some(p => p.installments > 1) && (
-                            <div className="flex justify-between text-[11px] font-bold text-orange-600 mt-2 px-3 py-2 bg-orange-50 rounded-lg">
+                            <div className="flex justify-between text-[11px] font-bold text-orange-500 mt-2 px-3 py-2 bg-orange-50 rounded-lg">
                                 <span>Resumo Parcelado</span>
                                 <div className="text-right flex flex-col items-end gap-1">
                                     {payments.filter(p => p.installments > 1).map((p, idx) => {
@@ -506,7 +563,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                         onClick={handleFinalize}
                         disabled={cart.length === 0 || summary.remainingBalance !== 0}
                         className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-lg ${cart.length > 0 && summary.remainingBalance === 0
-                            ? 'bg-orange-400 hover:bg-orange-500 text-white shadow-orange-400/25 hover:-translate-y-1'
+                            ? 'bg-orange-300 hover:bg-orange-400 text-white shadow-orange-300/25 hover:-translate-y-1'
                             : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none'
                             }`}
                     >
@@ -519,12 +576,12 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
             {isSaved && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-fade-in print:hidden">
                     <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-scale-in">
-                        <div className="bg-orange-400 p-8 text-white text-center">
+                        <div className="bg-orange-300 p-8 text-white text-center">
                             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/30">
                                 <SuccessIcon className="w-10 h-10 text-white" />
                             </div>
                             <h3 className="text-2xl font-bold">Orçamento Salvo!</h3>
-                            <p className="text-orange-100 mt-2 font-medium">O que deseja fazer agora?</p>
+                            <p className="text-white mt-2 font-medium opacity-90">O que deseja fazer agora?</p>
                         </div>
 
                         <div className="p-6 space-y-3">
@@ -532,7 +589,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                                 onClick={handlePrint}
                                 className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition-all group"
                             >
-                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-600 group-hover:text-orange-400 transition-colors">
+                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-600 group-hover:text-orange-300 transition-colors">
                                     <PrinterIcon className="w-6 h-6" />
                                 </div>
                                 <div className="text-left">
