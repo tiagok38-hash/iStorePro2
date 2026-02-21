@@ -136,7 +136,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
 
     // Filter products
     const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.model && p.model.toLowerCase().includes(searchTerm.toLowerCase()))
     ).slice(0, 15);
 
