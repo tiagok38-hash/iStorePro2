@@ -177,8 +177,9 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
         }
 
         const validOS = serviceOrders.filter(os => {
-            const date = new Date(os.createdAt);
-            return date >= startDate && date <= endDate && os.status !== 'Cancelado';
+            const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
+            const isFinished = ['Entregue', 'Concluído'].includes(os.status as string);
+            return date >= startDate && date <= endDate && isFinished && os.status !== 'Cancelado';
         });
 
         const serviceMap = services.reduce((acc, s) => { acc[s.id] = s; return acc; }, {} as Record<string, Service>);
@@ -188,14 +189,17 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
         let totalCost = 0;
 
         validOS.forEach(os => {
-            totalRevenue += (os.subtotal - os.discount);
+            totalRevenue += (os.total || (os.subtotal - os.discount));
             os.items.forEach(item => {
+                const refId = (item as any).catalogItemId || item.id;
                 if (item.type === 'service') {
-                    const s = serviceMap[item.id];
+                    const s = serviceMap[refId];
                     totalCost += (s?.cost || 0) * item.quantity;
                 } else {
-                    const p = productMap[item.id];
-                    totalCost += ((p?.costPrice || 0) + (p?.additionalCostPrice || 0)) * item.quantity;
+                    const p = productMap[refId];
+                    if (p) {
+                        totalCost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
+                    }
                 }
             });
         });
@@ -208,7 +212,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
             className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-lg hover:scale-[1.01] cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                         <TrendingUpIcon className="h-6 w-6" />
@@ -421,7 +425,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
     return (
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                         <CurrencyDollarIcon className="h-6 w-6" />
@@ -545,8 +549,8 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products:
                             <ClockIcon className="h-6 w-6" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Vendas de Hoje</h3>
-                            <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Vendas de Hoje</h3>
+                            <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-2xl font-black text-gray-800 tracking-tight">{isPrivacyMode ? 'R$ ****' : formatCurrency(todaysSummary.total)}</span>
                             </div>
                         </div>
@@ -669,14 +673,14 @@ const BillingChart: React.FC<{
 }> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode, onNavigate }) => {
     return (
         <div className={`p-6 glass-card h-full flex flex-col transition-all duration-300 ${className || ''}`}>
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
                         <ChartBarIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Faturamento x Lucro</h3>
-                        <div className="flex gap-4 mt-2">
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Faturamento x Lucro</h3>
+                        <div className="flex gap-4 mt-1.5">
                             <div className="flex items-center gap-1.5 font-bold">
                                 <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
                                 <span className="text-[10px] text-muted uppercase">Faturamento</span>
@@ -729,7 +733,6 @@ const BillingChart: React.FC<{
 const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ sales, activeMethods, className, isPrivacyMode, onNavigate }) => {
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
-    // Helper for colors
     const getColorForMethod = (method: string) => {
         const lower = method.toLowerCase();
         if (lower.includes('pix')) return { color: 'bg-green-500', lightColor: 'bg-green-100 text-green-700' };
@@ -739,7 +742,6 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
         if (lower.includes('troca')) return { color: 'bg-orange-500', lightColor: 'bg-orange-100 text-orange-700' };
         if (lower.includes('crediário')) return { color: 'bg-red-500', lightColor: 'bg-red-100 text-red-700' };
 
-        // Hash for consistent random colors
         const colors = [
             { color: 'bg-pink-500', lightColor: 'bg-pink-100 text-pink-700' },
             { color: 'bg-indigo-500', lightColor: 'bg-indigo-100 text-indigo-700' },
@@ -753,12 +755,8 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
     };
 
     const allMethodNames = useMemo(() => {
-        // Confirmed active methods from settings
         const configured = activeMethods.map(m => m.name);
-        // Methods actually used in sales (history)
-        // Also explicitly include 'Aparelho na Troca' if not present, as it's a system feature
         const systemMethods = ['Aparelho na Troca'];
-
         const all = new Set([...configured, ...systemMethods]);
         return Array.from(all);
     }, [activeMethods]);
@@ -801,31 +799,24 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
             return sale.status !== 'Cancelada' && saleDate >= startDate && saleDate <= endDate;
         });
 
-        // Initialize with all known methods
         const totals: Record<string, number> = {};
         allMethodNames.forEach(name => totals[name] = 0);
 
         filteredSales.forEach(sale => {
             sale.payments.forEach(payment => {
-                // Normalize legacy names to avoid duplicates
                 let methodKey = payment.method;
                 const normalizeMap: Record<string, string> = {
                     'Crédito': 'Cartão Crédito',
                     'Cartão de crédito': 'Cartão Crédito',
                     'Débito': 'Cartão de débito'
                 };
-
                 if (normalizeMap[methodKey] && allMethodNames.includes(normalizeMap[methodKey])) {
                     methodKey = normalizeMap[methodKey];
                 }
-                // If key exists in our predefined 'totals', use it. Else initialize it (for historical methods that were deleted but exist in sales)
-                if (totals[methodKey] === undefined) {
-                    totals[methodKey] = 0;
-                }
+                if (totals[methodKey] === undefined) totals[methodKey] = 0;
                 totals[methodKey] += payment.value;
             });
         });
-
         return totals;
     }, [sales, period, allMethodNames]);
 
@@ -833,10 +824,8 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
         Object.values(paymentTotals).reduce((sum: number, val: number) => sum + val, 0)
         , [paymentTotals]);
 
-    // Generate list for rendering, sorted by value desc or stable order
     const renderedList = useMemo(() => {
         const keys = Object.keys(paymentTotals);
-        // Sort: Non-zero values first (desc), then alphabetical
         return keys.sort((a, b) => {
             const valA = paymentTotals[a];
             const valB = paymentTotals[b];
@@ -850,25 +839,23 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
         }));
     }, [paymentTotals]);
 
-
     return (
-
-        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm">
+                    <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
                         <CreditCardIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Formas de Pagamento</h3>
-                        <p className="text-xs text-muted mt-0.5">Total processado</p>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Metódos de Pagto</h3>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Resumo por período</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value as any)}
-                        className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 hover:bg-gray-100 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer outline-none transition-all"
+                        className="text-[10px] font-black tracking-widest text-gray-500 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 outline-none transition-all uppercase cursor-pointer"
                     >
                         <option value="day">Hoje</option>
                         <option value="yesterday">Ontem</option>
@@ -877,7 +864,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                         <option value="year">Ano</option>
                     </select>
                     {onNavigate && (
-                        <button onClick={onNavigate} className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-all active:scale-95" title="Ver vendas">
+                        <button onClick={onNavigate} className="p-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-600 transition-all active:scale-95" title="Ver vendas">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                         </button>
                     )}
@@ -933,8 +920,8 @@ const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: 
                     <TagIcon className="h-6 w-6" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Últimas Vendas</h3>
-                    <p className="text-xs text-muted mt-0.5">Produtos vendidos recentemente</p>
+                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Últimas Vendas</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Produtos vendidos recentemente</p>
                 </div>
             </div>
             {soldItems.length === 0 ? (
@@ -983,8 +970,8 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: strin
                     <PlusIcon className="h-6 w-6" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Estoque Recente</h3>
-                    <p className="text-xs text-muted mt-0.5">Últimos produtos adicionados</p>
+                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Estoque Recente</h3>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Últimos produtos adicionados</p>
                 </div>
             </div>
             {products.length === 0 ? (
@@ -1040,17 +1027,14 @@ const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: str
     return (
 
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
-            <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
-                        <DeviceExchangeIcon className="h-6 w-6" />
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Trocas e Compras</h3>
-                        <p className="text-xs text-muted mt-0.5">Aparelhos recentes</p>
-                    </div>
+            <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
+                    <DeviceExchangeIcon className="h-6 w-6" />
                 </div>
-                <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2.5 py-1 rounded-full uppercase tracking-wide border border-orange-100">Recentes</span>
+                <div>
+                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Trocas Recentes</h3>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Aparelhos recebidos na troca</p>
+                </div>
             </div>
             {products.length === 0 ? (
                 <p className="text-sm text-muted text-center py-4">Nenhum aparelho Trade-in.</p>
@@ -1125,7 +1109,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
 
     return (
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
                         <ArchiveBoxIcon className="h-6 w-6" />
@@ -1333,7 +1317,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
     return (
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shadow-sm">
                         <UsersIcon className="h-6 w-6" />
@@ -1741,22 +1725,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                <SalesByDayCard
-                    sales={sales}
-                    customers={customers}
-                    products={products}
-                    users={users}
-                    isPrivacyMode={isPrivacyMode}
-                    to="/vendas?period=hoje"
-                    permissions={permissions}
-                    onDenied={handlePermissionDenied}
-                />
-                <OpenServiceOrdersCard serviceOrders={serviceOrders} isPrivacyMode={isPrivacyMode} to="/service-orders/list" />
-                <LowStockBulkProductsCard products={products} isPrivacyMode={isPrivacyMode} to="/products?filter=low_stock" />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
+                <div className="md:col-span-1">
                     <CustomersStatsCard
                         customers={customers}
                         sales={sales}
@@ -1764,6 +1733,23 @@ const Dashboard: React.FC = () => {
                         onNavigate={() => {
                             if (getPermissionForRoute('/customers', permissions)) { navigate('/customers'); } else { handlePermissionDenied(); }
                         }}
+                    />
+                </div>
+                <OpenServiceOrdersCard serviceOrders={serviceOrders} isPrivacyMode={isPrivacyMode} to="/service-orders/list" />
+                <LowStockBulkProductsCard products={products} isPrivacyMode={isPrivacyMode} to="/products?filter=low_stock" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1">
+                    <SalesByDayCard
+                        sales={sales}
+                        customers={customers}
+                        products={products}
+                        users={users}
+                        isPrivacyMode={isPrivacyMode}
+                        to="/vendas?period=hoje"
+                        permissions={permissions}
+                        onDenied={handlePermissionDenied}
                     />
                 </div>
                 <div className="lg:col-span-2 min-h-[400px]">

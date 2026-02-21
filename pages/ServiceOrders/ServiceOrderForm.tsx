@@ -23,9 +23,11 @@ import {
     Image as ImageIcon,
     X,
     Eye,
-    Package
+    Package,
+    ChevronRight,
+    ChevronLeft
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { useUser } from '../../contexts/UserContext';
 import {
@@ -33,6 +35,8 @@ import {
     getCustomers,
     addCustomer,
     addServiceOrder,
+    getServiceOrder,
+    updateServiceOrder,
     formatCurrency
 } from '../../services/mockApi';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist } from '../../types';
@@ -60,8 +64,13 @@ const CONDITION_ICONS = [
     { id: 'others', label: 'Outros', icon: CheckCircle2 },
 ];
 
+type TabId = 'client_device' | 'diagnosis' | 'financial';
+const TAB_ORDER: TabId[] = ['client_device', 'diagnosis', 'financial'];
+
 const ServiceOrderForm: React.FC = () => {
     const navigate = useNavigate();
+    const { id: editId } = useParams<{ id: string }>();
+    const isEditing = !!editId;
     const { showToast } = useToast();
     const { user: currentUser } = useUser();
 
@@ -74,8 +83,9 @@ const ServiceOrderForm: React.FC = () => {
     };
 
     // --- State ---
-    const [activeTab, setActiveTab] = useState<'client_device' | 'diagnosis' | 'financial'>('client_device');
+    const [activeTab, setActiveTab] = useState<TabId>('client_device');
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingEdit, setIsLoadingEdit] = useState(isEditing);
 
     // Data Sources
     const [users, setUsers] = useState<User[]>([]);
@@ -108,7 +118,7 @@ const ServiceOrderForm: React.FC = () => {
 
     const [defectDescription, setDefectDescription] = useState('');
     const [technicalReport, setTechnicalReport] = useState('');
-    const [observations, setObservations] = useState(''); // New Field
+    const [observations, setObservations] = useState('');
 
     const [photos, setPhotos] = useState<string[]>([]);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -116,6 +126,9 @@ const ServiceOrderForm: React.FC = () => {
     // Financial
     const [items, setItems] = useState<ServiceOrderItem[]>([]);
     const [discount, setDiscount] = useState(0);
+
+    // OS Status (para edição)
+    const [osStatus, setOsStatus] = useState<string>('Aberto');
 
     // --- Effects ---
     useEffect(() => {
@@ -127,6 +140,13 @@ const ServiceOrderForm: React.FC = () => {
             setResponsibleId(currentUser.id);
         }
     }, [currentUser]);
+
+    // Carrega dados da OS ao editar
+    useEffect(() => {
+        if (isEditing && editId) {
+            loadServiceOrderData(editId);
+        }
+    }, [editId]);
 
     const loadData = async () => {
         try {
@@ -144,6 +164,72 @@ const ServiceOrderForm: React.FC = () => {
             console.error("Error loading data:", error);
             toast.error("Erro ao carregar dados iniciais.");
         }
+    };
+
+    const loadServiceOrderData = async (id: string) => {
+        setIsLoadingEdit(true);
+        try {
+            const so = await getServiceOrder(id);
+            if (!so) {
+                toast.error("Ordem de Serviço não encontrada.");
+                navigate('/service-orders/list');
+                return;
+            }
+
+            // Preencher todos os campos com os dados da OS
+            setDeviceModel(so.deviceModel || '');
+            setImei(so.imei || '');
+            setSerialNumber(so.serialNumber || '');
+            setPasscode(so.passcode || '');
+            setPatternLock(so.patternLock || []);
+            setChecklist(so.checklist || {});
+            setOthersDescription((so.checklist as any)?.othersDescription || '');
+            setDefectDescription(so.defectDescription || '');
+            setTechnicalReport(so.technicalReport || '');
+            setObservations(so.observations || '');
+            setPhotos(so.photos || []);
+            setItems(so.items || []);
+            setDiscount(so.discount || 0);
+            setResponsibleId(so.responsibleId || '');
+            setOsStatus(so.status || 'Aberto');
+
+            // Carregar e selecionar cliente
+            if (so.customerName) {
+                setCustomerSearch(so.customerName);
+                // Buscar cliente completo por ID
+                if (so.customerId) {
+                    const custList = await getCustomers();
+                    const cust = custList.find(c => c.id === so.customerId);
+                    if (cust) {
+                        setSelectedCustomer(cust);
+                    } else {
+                        // Fallback: criar objeto parcial
+                        setSelectedCustomer({
+                            id: so.customerId,
+                            name: so.customerName,
+                        } as Customer);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error loading service order:", error);
+            toast.error("Erro ao carregar dados da OS.");
+        } finally {
+            setIsLoadingEdit(false);
+        }
+    };
+
+    // --- Tab navigation ---
+    const currentTabIndex = TAB_ORDER.indexOf(activeTab);
+    const canGoNext = currentTabIndex < TAB_ORDER.length - 1;
+    const canGoPrev = currentTabIndex > 0;
+
+    const goToNextTab = () => {
+        if (canGoNext) setActiveTab(TAB_ORDER[currentTabIndex + 1]);
+    };
+
+    const goToPrevTab = () => {
+        if (canGoPrev) setActiveTab(TAB_ORDER[currentTabIndex - 1]);
     };
 
     // --- Search Logic ---
@@ -190,6 +276,7 @@ const ServiceOrderForm: React.FC = () => {
     const handleAddItemFromCatalog = (item: Service | Product, type: 'service' | 'part') => {
         const newItem: ServiceOrderItem = {
             id: Date.now().toString(),
+            catalogItemId: item.id, // Adicionado para cálculo de lucro
             description: type === 'service' ? (item as Service).name : (item as Product).model,
             type: type,
             price: item.price,
@@ -245,7 +332,7 @@ const ServiceOrderForm: React.FC = () => {
                 defectDescription,
                 technicalReport,
                 observations,
-                status: 'Aberto' as const,
+                status: (isEditing ? osStatus : 'Aberto') as any,
                 items,
                 subtotal,
                 discount,
@@ -256,9 +343,14 @@ const ServiceOrderForm: React.FC = () => {
                 entryDate: new Date().toISOString()
             };
 
-            await addServiceOrder(serviceOrderData);
-            toast.success("Ordem de Serviço criada com sucesso!");
-            navigate('/service-orders');
+            if (isEditing && editId) {
+                await updateServiceOrder(editId, serviceOrderData);
+                toast.success("Ordem de Serviço atualizada com sucesso!");
+            } else {
+                await addServiceOrder(serviceOrderData);
+                toast.success("Ordem de Serviço criada com sucesso!");
+            }
+            navigate('/service-orders/list');
         } catch (error) {
             toast.error("Erro ao salvar Ordem de Serviço.");
         } finally {
@@ -289,22 +381,43 @@ const ServiceOrderForm: React.FC = () => {
         </div>
     );
 
+    if (isLoadingEdit) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-secondary text-sm">Carregando OS...</p>
+                </div>
+            </div>
+        );
+    }
+
+    const TAB_LABELS: Record<TabId, string> = {
+        client_device: 'Próximo: Diagnóstico',
+        diagnosis: 'Próximo: Orçamento',
+        financial: 'Salvar OS',
+    };
+
     return (
         <div className="max-w-5xl mx-auto pb-20">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 justify-between">
                 <div className="flex items-center gap-4 self-start sm:self-auto">
-                    <button onClick={() => navigate('/service-orders')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <button onClick={() => navigate('/service-orders/list')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                         <ArrowLeft size={24} className="text-secondary" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black text-primary">Nova Ordem de Serviço</h1>
-                        <p className="text-secondary text-sm">Preencha os dados do atendimento</p>
+                        <h1 className="text-2xl font-black text-primary">
+                            {isEditing ? `Ordem de Serviço #${editId?.slice(0, 8)}` : 'Nova Ordem de Serviço'}
+                        </h1>
+                        <p className="text-secondary text-sm">
+                            {isEditing ? 'Editar dados do atendimento' : 'Preencha os dados do atendimento'}
+                        </p>
                     </div>
                 </div>
                 <div className="flex gap-3 self-end sm:self-auto">
                     <button
-                        onClick={() => navigate('/service-orders')}
+                        onClick={() => navigate('/service-orders/list')}
                         className="px-6 py-2 rounded-xl text-sm font-bold text-secondary border border-gray-200 hover:bg-gray-50 transition-colors"
                     >
                         Cancelar
@@ -365,7 +478,7 @@ const ServiceOrderForm: React.FC = () => {
                         </div>
                     </button>
 
-                    {/* Visual Responsible Selector in Sidebar */}
+                    {/* Responsible Selector in Sidebar */}
                     <div className="mt-8 p-4 bg-white/50 rounded-2xl border border-gray-100">
                         <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Responsável Técnico</label>
                         <select
@@ -379,14 +492,30 @@ const ServiceOrderForm: React.FC = () => {
                             ))}
                         </select>
                     </div>
+
+                    {/* Status selector em modo edição */}
+                    {isEditing && (
+                        <div className="p-4 bg-white/50 rounded-2xl border border-gray-100">
+                            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Status da OS</label>
+                            <select
+                                value={osStatus}
+                                onChange={(e) => setOsStatus(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
+                            >
+                                {['Aberto', 'Análise', 'Orçamento', 'Aprovado', 'Em Reparo', 'Pronto', 'Entregue'].map(s => (
+                                    <option key={s} value={s}>{s}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column - Form Content */}
-                <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-white/40 p-6 sm:p-8 rounded-3xl shadow-sm min-h-[600px]">
+                <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-white/40 p-6 sm:p-8 rounded-3xl shadow-sm min-h-[600px] flex flex-col">
 
                     {/* TAB 1: CLIENT & DEVICE */}
                     {activeTab === 'client_device' && (
-                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-6 animate-fade-in flex-1">
                             {/* Client Search */}
                             <div>
                                 <label className="block text-sm font-bold text-primary mb-2">Cliente</label>
@@ -562,7 +691,7 @@ const ServiceOrderForm: React.FC = () => {
 
                     {/* TAB 2: DIAGNOSIS */}
                     {activeTab === 'diagnosis' && (
-                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-6 animate-fade-in flex-1">
                             <div>
                                 <label className="block text-sm font-bold text-primary mb-2">Defeito Relatado pelo Cliente</label>
                                 <textarea
@@ -607,7 +736,7 @@ const ServiceOrderForm: React.FC = () => {
 
                     {/* TAB 3: FINANCIAL */}
                     {activeTab === 'financial' && (
-                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-6 animate-fade-in flex-1">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-lg text-primary">Peças e Serviços</h3>
                                 <div className="flex gap-2">
@@ -729,6 +858,42 @@ const ServiceOrderForm: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* ---- NAVIGATION FOOTER ---- */}
+                    <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
+                        {/* Botão Voltar */}
+                        {canGoPrev ? (
+                            <button
+                                onClick={goToPrevTab}
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-secondary border border-gray-200 hover:bg-gray-50 transition-colors"
+                            >
+                                <ChevronLeft size={16} />
+                                Voltar
+                            </button>
+                        ) : (
+                            <div />
+                        )}
+
+                        {/* Botão Avançar ou Salvar */}
+                        {canGoNext ? (
+                            <button
+                                onClick={goToNextTab}
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-accent shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
+                            >
+                                {TAB_LABELS[activeTab]}
+                                <ChevronRight size={16} />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSave}
+                                disabled={isLoading}
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Save size={16} />
+                                {isLoading ? 'Salvando...' : 'Salvar OS'}
+                            </button>
+                        )}
+                    </div>
 
                 </div>
             </div>

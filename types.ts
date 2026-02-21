@@ -259,6 +259,7 @@ export interface ServiceOrderChecklist {
 
 export interface ServiceOrderItem {
     id: string;
+    catalogItemId?: string;
     description: string;
     type: 'service' | 'part';
     price: number;
