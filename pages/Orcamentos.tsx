@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext.tsx';
-import { PlusIcon, DocumentTextIcon, SuccessIcon, XCircleIcon, ArrowPathIcon } from '../components/icons.tsx';
+import { PlusIcon, DocumentTextIcon, SuccessIcon, XCircleIcon, ArrowPathIcon, TrashIcon, WhatsAppIcon, PrinterIcon } from '../components/icons.tsx';
+import OrcamentoPrintModal from '../components/orcamentos/OrcamentoPrintModal.tsx';
 import { Orcamento } from '../types.ts';
 import { getOrcamentos, convertOrcamentoToSale } from '../services/orcamentosService.ts';
 import { getCashSessions } from '../services/mockApi.ts';
@@ -22,6 +23,8 @@ const Orcamentos: React.FC = () => {
     // Lista de Orçamentos
     const [orcamentosList, setOrcamentosList] = useState<Orcamento[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedOrcamento, setSelectedOrcamento] = useState<Orcamento | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
 
     const loadOrcamentos = async () => {
         setLoading(true);
@@ -46,7 +49,24 @@ const Orcamentos: React.FC = () => {
         loadOrcamentos();
     };
 
-    const handleConvert = async (orcamento: Orcamento) => {
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Deseja realmente excluir este orçamento?')) return;
+        try {
+            setLoading(true);
+            const { deleteOrcamento } = await import('../services/orcamentosService.ts');
+            await deleteOrcamento(id);
+            showToast('Orçamento excluído.', 'success');
+            setSelectedOrcamento(null);
+            loadOrcamentos();
+        } catch (e) {
+            showToast('Erro ao excluir.', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleConvert = async (orcamento: Orcamento, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         if (!user) return;
         try {
             setLoading(true);
@@ -67,6 +87,7 @@ const Orcamentos: React.FC = () => {
 
             await convertOrcamentoToSale(orcamento, user.id, user.name, openSession.id, openSession.displayId);
             showToast('Orçamento convertido em venda com sucesso!', 'success');
+            setSelectedOrcamento(null);
             loadOrcamentos();
         } catch (e: any) {
             showToast(e.message || 'Falha ao converter o orçamento.', 'error');
@@ -76,11 +97,20 @@ const Orcamentos: React.FC = () => {
         }
     };
 
-    if (activeTab === 'new') {
+    if (activeTab === 'new' || isEditing) {
         return (
             <NewOrcamentoView
-                onCancel={() => setActiveTab('list')}
-                onSaved={handleSaveOrcamento}
+                onCancel={() => {
+                    setActiveTab('list');
+                    setIsEditing(false);
+                    setSelectedOrcamento(null);
+                }}
+                onSaved={() => {
+                    handleSaveOrcamento();
+                    setIsEditing(false);
+                    setSelectedOrcamento(null);
+                }}
+                orcamentoToEdit={selectedOrcamento}
             />
         );
     }
@@ -135,10 +165,14 @@ const Orcamentos: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {orcamentosList.map(orc => (
-                            <div key={orc.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-glass-sm hover:shadow-glass hover:-translate-y-1 transition-all flex flex-col cursor-pointer">
+                            <div
+                                key={orc.id}
+                                onClick={() => setSelectedOrcamento(orc)}
+                                className="bg-white rounded-2xl border border-gray-100 p-5 shadow-glass-sm hover:shadow-glass hover:-translate-y-1 transition-all flex flex-col cursor-pointer group"
+                            >
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
-                                        <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg mb-2">
+                                        <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg mb-2 group-hover:bg-orange-100 group-hover:text-orange-700 transition-colors">
                                             #{orc.numero}
                                         </span>
                                         <h4 className="font-bold text-gray-800 text-lg">
@@ -162,12 +196,12 @@ const Orcamentos: React.FC = () => {
                                 <div className="border-t border-gray-100 pt-4 flex gap-2">
                                     {orc.status !== 'convertido' && (
                                         <button
-                                            onClick={() => handleConvert(orc)}
-                                            className="flex-1 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-xl font-bold transition-colors text-sm">
+                                            onClick={(e) => handleConvert(orc, e)}
+                                            className="flex-1 py-2.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl font-bold transition-all text-sm shadow-sm shadow-orange-500/10">
                                             Converter Venda
                                         </button>
                                     )}
-                                    <button className="flex-1 py-2 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-colors text-sm">
+                                    <button className="flex-1 py-2.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-all text-sm">
                                         Detalhes
                                     </button>
                                 </div>
@@ -176,6 +210,162 @@ const Orcamentos: React.FC = () => {
                     </div>
                 )}
             </main>
+
+            {/* Modal de Detalhes do Orçamento */}
+            {selectedOrcamento && (
+                <OrcamentoDetailsModal
+                    orcamento={selectedOrcamento}
+                    onClose={() => setSelectedOrcamento(null)}
+                    onEdit={() => setIsEditing(true)}
+                    onDelete={() => handleDelete(selectedOrcamento.id)}
+                    onConvert={() => handleConvert(selectedOrcamento)}
+                    user={user}
+                />
+            )}
+        </div>
+    );
+};
+
+// Componente Interno de Detalhes
+const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert, user }: any) => {
+    const [showPrint, setShowPrint] = useState(false);
+    const { showToast } = useToast();
+
+    const handleWhatsApp = () => {
+        const itemsText = orcamento.itens?.map((item: any) =>
+            `• ${item.quantidade}x ${item.nome_produto_snapshot}: ${formatCurrency(item.total_snapshot)}`
+        ).join('\n') || '';
+
+        const message = [
+            `*🏷️ ORÇAMENTO #${orcamento.numero}*`,
+            `----------------------------------------------`,
+            `Olá! Segue abaixo o resumo do seu orçamento:`,
+            ``,
+            itemsText,
+            ``,
+            `*💰 TOTAL FINAL: ${formatCurrency(orcamento.total_final)}*`,
+            ``,
+            `*💳 FORMAS DE PAGAMENTO:*`,
+            orcamento.forma_pagamento_snapshot?.pagamentos?.map((p: any) =>
+                `• ${p.method}${p.installments > 1 ? ` (${p.installments}x)` : ''}: ${formatCurrency(p.value)}`
+            ).join('\n'),
+            ``,
+            orcamento.observacoes ? `*📝 Obs:* ${orcamento.observacoes}` : null,
+            `----------------------------------------------`,
+            `*Atendimento por:* ${orcamento.vendedor_nome || user?.name || 'iStore'}`,
+            `_Gerado via iStore Pro_`
+        ].filter(Boolean).join('\n');
+
+        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[150] p-4 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl animate-scale-in">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 rounded-lg">
+                            <DocumentTextIcon className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-gray-800 uppercase tracking-tight">Detalhes do Orçamento</h3>
+                            <p className="text-xs text-gray-500 font-bold">#{orcamento.numero}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                        <XCircleIcon className="w-6 h-6 text-gray-400" />
+                    </button>
+                </div>
+
+                <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    <div className="space-y-6">
+                        {/* Status e Criacao */}
+                        <div className="flex justify-between items-center">
+                            <StatusBadge status={orcamento.status} />
+                            <span className="text-xs text-gray-400 font-bold">Criado em {formatDateTimeBR(orcamento.created_at)}</span>
+                        </div>
+
+                        {/* Itens */}
+                        <div>
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Itens do Orçamento</h4>
+                            <div className="space-y-2">
+                                {orcamento.itens?.map((item: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                        <div>
+                                            <p className="font-bold text-gray-800 text-sm leading-tight">{item.nome_produto_snapshot}</p>
+                                            <p className="text-[10px] text-gray-500">{item.quantidade}x {formatCurrency(item.preco_unitario_snapshot)}</p>
+                                        </div>
+                                        <div className="font-black text-gray-900 text-sm">
+                                            {formatCurrency(item.total_snapshot || (item.quantidade * item.preco_unitario_snapshot))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Pagamentos */}
+                        <div>
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Simulação de Pagamento</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                {orcamento.forma_pagamento_snapshot?.pagamentos?.map((p: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-center bg-orange-50/30 p-2.5 rounded-lg border border-orange-100/50">
+                                        <span className="text-xs font-bold text-gray-700">{p.method} {p.installments > 1 ? `(${p.installments}x)` : ''}</span>
+                                        <span className="text-xs font-black text-orange-600">{formatCurrency(p.value)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Totais */}
+                        <div className="bg-gray-900 rounded-2xl p-5 text-white">
+                            <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Subtotal</span>
+                                <span>{formatCurrency(orcamento.subtotal)}</span>
+                            </div>
+                            {orcamento.desconto_total > 0 && (
+                                <div className="flex justify-between text-xs text-green-400 mb-1">
+                                    <span>Desconto</span>
+                                    <span>-{formatCurrency(orcamento.desconto_total)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-lg font-black pt-2 border-t border-white/10 mt-2">
+                                <span>TOTAL</span>
+                                <span className="text-orange-400">{formatCurrency(orcamento.total_final)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6 bg-gray-50 border-t border-gray-100 grid grid-cols-2 gap-3">
+                    <button onClick={handleWhatsApp} className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-green-500/20 active:scale-95">
+                        <WhatsAppIcon className="w-5 h-5" /> WhatsApp
+                    </button>
+                    <button onClick={() => setShowPrint(true)} className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-500/20 active:scale-95">
+                        <PrinterIcon className="w-5 h-5" /> Imprimir
+                    </button>
+
+                    {orcamento.status !== 'convertido' && (
+                        <>
+                            <button onClick={onEdit} className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 font-bold py-3 rounded-xl transition-all active:scale-95">
+                                Editar
+                            </button>
+                            <button onClick={onConvert} className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-orange-500/20 active:scale-95">
+                                Converter Venda
+                            </button>
+                            <button onClick={onDelete} className="col-span-2 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 font-bold py-2 transition-all">
+                                <TrashIcon className="w-4 h-4" /> Excluir Orçamento
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {showPrint && (
+                <div className="z-[200]">
+                    <OrcamentoPrintModal orcamento={orcamento} onClose={() => setShowPrint(false)} />
+                </div>
+            )}
         </div>
     );
 };

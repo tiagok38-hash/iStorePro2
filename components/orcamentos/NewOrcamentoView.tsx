@@ -7,18 +7,19 @@ import {
     WhatsAppIcon, PrinterIcon, DocumentTextIcon
 } from '../icons.tsx';
 import { getProducts, getCustomers } from '../../services/mockApi.ts';
-import { createOrcamento } from '../../services/orcamentosService.ts';
+import { createOrcamento, updateOrcamento } from '../../services/orcamentosService.ts';
 import { Product, Customer, OrcamentoItem } from '../../types.ts';
-import { formatCurrency } from '../../services/mockApi.ts';
 import CurrencyInput from '../CurrencyInput.tsx';
 import OrcamentoPrintModal from './OrcamentoPrintModal.tsx';
+import { formatCurrency } from '../../services/mockApi.ts';
 
 interface NewOrcamentoViewProps {
     onCancel: () => void;
     onSaved: () => void;
+    orcamentoToEdit?: any;
 }
 
-const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }) => {
+const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, orcamentoToEdit }) => {
     const { user } = useUser();
     const { showToast } = useToast();
 
@@ -120,7 +121,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
             }));
 
             const payload = {
-                numero: `ORC-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                numero: orcamentoToEdit?.numero || `ORC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
                 cliente_id: selectedCustomer?.id || undefined,
                 status: 'finalizado' as const,
                 subtotal: summary.subtotal,
@@ -136,10 +137,14 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                 vendedor_nome: user?.name || ''
             };
 
-            await createOrcamento(payload, items, user?.id || '', user?.name || '');
+            if (orcamentoToEdit?.id) {
+                await updateOrcamento(orcamentoToEdit.id, payload, items as OrcamentoItem[]);
+            } else {
+                await createOrcamento(payload, items, user?.id || '', user?.name || '');
+            }
             setLastSavedOrcamento({ ...payload, items });
             setIsSaved(true);
-            showToast('Orçamento salvo com sucesso!', 'success');
+            showToast(orcamentoToEdit ? 'Orçamento atualizado!' : 'Orçamento salvo!', 'success');
         } catch (e: any) {
             showToast(e.message || 'Erro ao salvar orçamento', 'error');
         }
@@ -357,6 +362,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                                                     <option value="Cartão Crédito">Cartão de Crédito</option>
                                                     <option value="Cartão Débito">Cartão de Débito</option>
                                                     <option value="Crediário">Crediário iStore</option>
+                                                    <option value="Aparelho de troca">Aparelho de troca</option>
                                                 </select>
                                             </div>
 

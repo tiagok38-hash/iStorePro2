@@ -100,12 +100,12 @@ const A4LayoutOrcamento: React.FC<{
             </div>
 
             <section className="mt-10 p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                <h3 className="font-bold text-xs uppercase text-gray-500 mb-2">Simulação de Pagamento Sugerida</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <h3 className="font-bold text-[9px] uppercase text-gray-400 mb-2 tracking-wider">Simulação de Pagamento Sugerida</h3>
+                <div className="grid grid-cols-3 gap-x-8 gap-y-2">
                     {orcamento.forma_pagamento_snapshot?.pagamentos?.map((p: any, idx: number) => (
-                        <div key={idx} className="flex justify-between text-xs border-b border-gray-200 pb-1">
-                            <span className="font-bold">{p.method} {p.installments > 1 ? `(${p.installments}x)` : ''}</span>
-                            <span>{formatCurrency(p.value)}</span>
+                        <div key={idx} className="flex justify-between text-[10px] border-b border-gray-100 pb-1">
+                            <span className="font-bold text-gray-700">{p.method} {p.installments > 1 ? `(${p.installments}x)` : ''}</span>
+                            <span className="text-gray-600 font-medium">{formatCurrency(p.value)}</span>
                         </div>
                     ))}
                 </div>
