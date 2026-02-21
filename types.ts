@@ -11,6 +11,7 @@ export interface PermissionSet {
     canAccessFornecedores: boolean;
     canAccessRelatorios: boolean;
     canAccessEmpresa: boolean;
+    canAccessOrcamentos: boolean;
 
     // Product permissions
     canCreateProduct: boolean;
@@ -783,4 +784,44 @@ export interface InventoryMovement {
     user_name: string;
     company_id?: string;
     created_at: string;
+}
+
+// Orçamentos Module
+export interface OrcamentoItem {
+    id: string;
+    orcamento_id: string;
+    produto_id?: string;
+    nome_produto_snapshot: string;
+    sku_snapshot?: string;
+    preco_unitario_snapshot: number;
+    custo_snapshot: number;
+    quantidade: number;
+    desconto: number;
+    subtotal: number;
+    metadata_snapshot?: Record<string, any>;
+    created_at: string;
+}
+
+export type OrcamentoStatus = 'draft' | 'finalizado' | 'expirado' | 'convertido';
+
+export interface Orcamento {
+    id: string;
+    numero: string;
+    vendedor_id: string;
+    cliente_id?: string;
+    status: OrcamentoStatus;
+    subtotal: number;
+    desconto_total: number;
+    juros_total: number;
+    total_final: number;
+    forma_pagamento_snapshot?: Record<string, any>;
+    condicoes_pagamento_snapshot?: Record<string, any>[];
+    validade_em?: string;
+    convertido_em?: string;
+    venda_id?: string;
+    observacoes?: string;
+    probabilidade_fechamento_percentual?: number;
+    created_at: string;
+    updated_at: string;
+    itens?: OrcamentoItem[];
 }

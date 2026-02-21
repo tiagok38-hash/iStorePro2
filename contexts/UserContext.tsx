@@ -100,7 +100,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const defaultPermissions: PermissionSet = {
         canAccessDashboard: true, canAccessEstoque: true, canAccessVendas: true,
         canAccessPOS: true, canAccessClientes: true, canAccessFornecedores: true,
-        canAccessRelatorios: true, canAccessEmpresa: true,
+        canAccessRelatorios: true, canAccessEmpresa: true, canAccessOrcamentos: true,
         canCreateProduct: true, canEditProduct: true, canDeleteProduct: true,
         canEditStock: true,
         canViewPurchases: true, canCreatePurchase: true, canEditPurchase: true,

@@ -31,6 +31,7 @@ const POS = lazy(() => import('./pages/POS.tsx'));
 const Reports = lazy(() => import('./pages/Reports.tsx'));
 const Company = lazy(() => import('./pages/Company.tsx'));
 const Vendas = lazy(() => import('./pages/Vendas.tsx'));
+const Orcamentos = lazy(() => import('./pages/Orcamentos.tsx'));
 const Login = lazy(() => import('./pages/Login.tsx'));
 const ServiceOrderLayout = lazy(() => import('./pages/ServiceOrders/ServiceOrderLayout.tsx'));
 const ServiceOrderDashboard = lazy(() => import('./pages/ServiceOrders/ServiceOrderDashboard.tsx'));
@@ -119,6 +120,9 @@ const App: React.FC = () => {
                                         </Route>
                                         <Route element={<ProtectedRoute permissionKey="canAccessVendas" />}>
                                             <Route path="/vendas" element={<Vendas />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessOrcamentos" />}>
+                                            <Route path="/orcamentos" element={<Orcamentos />} />
                                         </Route>
                                         <Route element={<ProtectedRoute permissionKey="canAccessRelatorios" />}>
                                             <Route path="/reports" element={<Reports />} />

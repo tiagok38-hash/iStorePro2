@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
     Squares2x2Icon, ArchiveBoxIcon, CashRegisterIcon, ChartBarIcon,
-    UsersIcon, BuildingOffice2Icon, BanknotesIcon, LogoutIcon, WrenchIcon, ShoppingCartIcon, WalletIcon
+    UsersIcon, BuildingOffice2Icon, BanknotesIcon, LogoutIcon, WrenchIcon, ShoppingCartIcon, WalletIcon, DocumentTextIcon
 } from './icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { PermissionSet } from '../types.ts';
@@ -20,6 +20,7 @@ const BottomNav: React.FC = () => {
         { name: 'Dashboard', to: '/', icon: <Squares2x2Icon />, permissionKey: 'canAccessDashboard' },
         { name: 'Estoque', to: '/products', icon: <ArchiveBoxIcon />, permissionKey: 'canAccessEstoque' },
         { name: 'Vendas', to: '/vendas', icon: <BanknotesIcon />, permissionKey: 'canAccessVendas' },
+        { name: 'Orçamentos', to: '/orcamentos', icon: <DocumentTextIcon />, permissionKey: 'canAccessOrcamentos' },
         { name: 'Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessDashboard' },
         { name: 'PDV', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS' },
         { name: 'Clientes', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },

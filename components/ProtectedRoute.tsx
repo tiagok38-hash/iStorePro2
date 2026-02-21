@@ -34,6 +34,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         canAccessFornecedores: true,
         canAccessRelatorios: true,
         canAccessEmpresa: true,
+        canAccessOrcamentos: true,
         canAccessPOS: true,
         canManageProducts: true,
         canEditProductPrices: true,
