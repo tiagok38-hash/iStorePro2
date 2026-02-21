@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.orcamentos (
     condicoes_pagamento_snapshot JSONB,
     validade_em TIMESTAMP WITH TIME ZONE,
     convertido_em TIMESTAMP WITH TIME ZONE,
-    venda_id UUID REFERENCES public.sales(id),
+    venda_id VARCHAR(255) REFERENCES public.sales(id),
     observacoes TEXT,
     probabilidade_fechamento_percentual DECIMAL(5,2),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
