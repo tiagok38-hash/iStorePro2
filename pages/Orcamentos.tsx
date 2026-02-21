@@ -137,7 +137,7 @@ const Orcamentos: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('new')}
-                        className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm shadow-orange-500/20 transition-all hover:-translate-y-0.5"
+                        className="flex items-center justify-center gap-2 bg-orange-400 hover:bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm shadow-orange-400/20 transition-all hover:-translate-y-0.5"
                     >
                         <PlusIcon className="h-5 w-5" />
                         <span className="hidden sm:inline">Novo Orçamento</span>
@@ -157,7 +157,7 @@ const Orcamentos: React.FC = () => {
                         <p className="text-gray-500 mb-6">Comece a cadastrar orçamentos simulados para seus clientes.</p>
                         <button
                             onClick={() => setActiveTab('new')}
-                            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-orange-500/20"
+                            className="bg-orange-400 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-orange-400/20"
                         >
                             Criar Primeiro Orçamento
                         </button>
@@ -197,7 +197,7 @@ const Orcamentos: React.FC = () => {
                                     {orc.status !== 'convertido' && (
                                         <button
                                             onClick={(e) => handleConvert(orc, e)}
-                                            className="flex-1 py-2.5 bg-orange-500 text-white hover:bg-orange-600 rounded-xl font-bold transition-all text-sm shadow-sm shadow-orange-500/10">
+                                            className="flex-1 py-2.5 bg-orange-400 text-white hover:bg-orange-500 rounded-xl font-bold transition-all text-sm shadow-sm shadow-orange-400/10">
                                             Converter Venda
                                         </button>
                                     )}
@@ -293,12 +293,18 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                                 {orcamento.itens?.map((item: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
                                         <div className="flex-1">
-                                            <p className="font-bold text-gray-800 text-sm leading-tight">
-                                                {item.nome_produto_snapshot || `Produto #${item.sku_snapshot || item.produto_id}`}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">
+                                            <div className="flex items-baseline gap-2 mb-1">
+                                                <p className="font-bold text-gray-900 text-base leading-tight">
+                                                    {item.nome_produto_snapshot}
+                                                </p>
+                                                {item.sku_snapshot && (
+                                                    <p className="text-[11px] text-gray-400 font-bold uppercase">
+                                                        {item.sku_snapshot}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                                                 {item.quantidade}x {formatCurrency(item.preco_unitario_snapshot)}
-                                                {item.sku_snapshot && <span className="ml-2 border-l pl-2">REF: {item.sku_snapshot}</span>}
                                             </p>
                                         </div>
                                         <div className="font-black text-gray-900 text-sm ml-4">
@@ -346,10 +352,10 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                 </div>
 
                 <div className="p-6 bg-gray-50 border-t border-gray-100 grid grid-cols-2 gap-3">
-                    <button onClick={handleWhatsApp} className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-green-500/20 active:scale-95">
+                    <button onClick={handleWhatsApp} className="flex items-center justify-center gap-2 bg-green-400 hover:bg-green-500 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-green-400/20 active:scale-95">
                         <WhatsAppIcon className="w-5 h-5" /> WhatsApp
                     </button>
-                    <button onClick={() => setShowPrint(true)} className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-500/20 active:scale-95">
+                    <button onClick={() => setShowPrint(true)} className="flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-400/20 active:scale-95">
                         <PrinterIcon className="w-5 h-5" /> Imprimir
                     </button>
 
@@ -358,7 +364,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                             <button onClick={onEdit} className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 font-bold py-3 rounded-xl transition-all active:scale-95">
                                 Editar
                             </button>
-                            <button onClick={onConvert} className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-orange-500/20 active:scale-95">
+                            <button onClick={onConvert} className="flex items-center justify-center gap-2 bg-orange-400 hover:bg-orange-500 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-orange-400/20 active:scale-95">
                                 Converter Venda
                             </button>
                             <button onClick={onDelete} className="col-span-2 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 font-bold py-2 transition-all">

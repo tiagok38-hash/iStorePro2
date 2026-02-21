@@ -42,9 +42,53 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
     ]);
 
     useEffect(() => {
-        getProducts().then(setProducts).catch(() => showToast('Erro ao carregar produtos', 'error'));
-        getCustomers(false).then(setCustomers).catch(() => showToast('Erro ao carregar clientes', 'error'));
-    }, [showToast]);
+        const loadInitData = async () => {
+            try {
+                const [prods, custs] = await Promise.all([getProducts(), getCustomers(false)]);
+                setProducts(prods);
+                setCustomers(custs);
+
+                if (orcamentoToEdit) {
+                    setObservacoes(orcamentoToEdit.observacoes || '');
+                    setFechamentoProbabilidade(orcamentoToEdit.probabilidade_fechamento_percentual || 50);
+
+                    if (orcamentoToEdit.cliente_id) {
+                        const found = custs.find(c => c.id === orcamentoToEdit.cliente_id);
+                        if (found) setSelectedCustomer(found);
+                    }
+
+                    if (orcamentoToEdit.itens) {
+                        const initCart = orcamentoToEdit.itens.map((item: any) => {
+                            const p = prods.find(product => product.id === item.produto_id);
+                            return {
+                                product: (p || ({
+                                    id: item.produto_id,
+                                    name: item.nome_produto_snapshot,
+                                    sku: item.sku_snapshot,
+                                    price: item.preco_unitario_snapshot,
+                                    stock: 0
+                                } as unknown)) as Product,
+                                quantity: item.quantidade,
+                                price: item.preco_unitario_snapshot,
+                                discount: item.desconto || 0
+                            };
+                        });
+                        setCart(initCart);
+                    }
+
+                    if (orcamentoToEdit.forma_pagamento_snapshot?.pagamentos) {
+                        setPayments(orcamentoToEdit.forma_pagamento_snapshot.pagamentos.map((p: any) => ({
+                            id: Math.random().toString(),
+                            ...p
+                        })));
+                    }
+                }
+            } catch (err) {
+                showToast('Erro ao carregar dados iniciais', 'error');
+            }
+        };
+        loadInitData();
+    }, [orcamentoToEdit, showToast]);
 
     const addToCart = (product: Product) => {
         // Warning if no stock (but Orçamento allows it)
@@ -111,8 +155,8 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
         try {
             const items: Partial<OrcamentoItem>[] = cart.map(c => ({
                 produto_id: c.product.id,
-                nome_produto_snapshot: c.product.name || c.product.sku || 'Produto sem nome',
-                sku_snapshot: c.product.model || c.product.sku || 'N/A',
+                nome_produto_snapshot: `${c.product.brand || ''} ${c.product.model || ''}`.trim() || c.product.sku || 'Produto sem nome',
+                sku_snapshot: c.product.sku || 'N/A',
                 preco_unitario_snapshot: c.price,
                 custo_snapshot: c.product.costPrice || 0,
                 quantidade: c.quantity,
@@ -243,8 +287,8 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                                             <span className="text-2xl font-bold text-gray-300 select-none">ISTORE</span>
                                         )}
                                     </div>
-                                    <div className="text-sm font-bold text-gray-800 line-clamp-2 leading-tight mb-1">{p.name || p.sku || 'Produto sem nome'}</div>
-                                    <div className="text-xs text-gray-500 mb-2">{p.model || 'Sem marca'}</div>
+                                    <div className="text-sm font-bold text-gray-800 line-clamp-2 leading-tight mb-1">{`${p.brand || ''} ${p.model || ''}`.trim() || p.sku || 'Produto sem nome'}</div>
+                                    <div className="text-xs text-gray-500 mb-2">{p.sku}</div>
                                     <div className="mt-auto flex justify-between items-center w-full">
                                         <div className="font-bold text-orange-600">{formatCurrency(p.price)}</div>
                                         <div className={`text-xs px-2 py-0.5 rounded-md font-bold ${p.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -260,7 +304,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
 
             {/* Right side: Resume & Simulation */}
             <div className="w-full lg:w-[35%] flex flex-col h-[50vh] lg:h-full bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.03)] z-10 relative">
-                <div className="p-4 bg-orange-500 text-white flex justify-between items-center shadow-md pb-6 pt-5 shrink-0">
+                <div className="p-4 bg-orange-400 text-white flex justify-between items-center shadow-md pb-6 pt-5 shrink-0">
                     <div>
                         <h2 className="text-xl font-bold">Resumo do Orçamento</h2>
                         <p className="text-orange-100 text-sm opacity-90">{cart.length} ite{cart.length === 1 ? 'm' : 'ns'} na simulação</p>
@@ -290,7 +334,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                         ) : cart.map((item, idx) => (
                             <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-sm relative group">
                                 <div className="flex justify-between items-start pr-6">
-                                    <span className="font-bold text-gray-800 text-sm leading-tight">{item.product.name || item.product.sku || 'Produto sem nome'}</span>
+                                    <span className="font-bold text-gray-800 text-sm leading-tight">{`${item.product.brand || ''} ${item.product.model || ''}`.trim() || item.product.sku || 'Produto sem nome'}</span>
                                     <button onClick={() => removeFromCart(item.product.id)} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-red-500 transition-colors">
                                         <CloseIcon className="w-4 h-4" />
                                     </button>
@@ -324,7 +368,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                         <div className="bg-white border rounded-2xl p-4 mb-4 shadow-sm">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                    <CreditCardIcon className="w-5 h-5 text-orange-500" />
+                                    <CreditCardIcon className="w-5 h-5 text-orange-400" />
                                     Simulação de Pagamento
                                 </h3>
                                 <button
@@ -462,7 +506,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                         onClick={handleFinalize}
                         disabled={cart.length === 0 || summary.remainingBalance !== 0}
                         className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-lg ${cart.length > 0 && summary.remainingBalance === 0
-                            ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/25 hover:-translate-y-1'
+                            ? 'bg-orange-400 hover:bg-orange-500 text-white shadow-orange-400/25 hover:-translate-y-1'
                             : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none'
                             }`}
                     >
@@ -475,7 +519,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
             {isSaved && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-fade-in print:hidden">
                     <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-scale-in">
-                        <div className="bg-orange-500 p-8 text-white text-center">
+                        <div className="bg-orange-400 p-8 text-white text-center">
                             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/30">
                                 <SuccessIcon className="w-10 h-10 text-white" />
                             </div>
@@ -488,7 +532,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
                                 onClick={handlePrint}
                                 className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition-all group"
                             >
-                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-600 group-hover:text-orange-500 transition-colors">
+                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-600 group-hover:text-orange-400 transition-colors">
                                     <PrinterIcon className="w-6 h-6" />
                                 </div>
                                 <div className="text-left">
