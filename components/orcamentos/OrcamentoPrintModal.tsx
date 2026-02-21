@@ -215,32 +215,94 @@ const OrcamentoPrintModal: React.FC<{
     };
 
     return createPortal(
-        <div id={`print-modal-orcamento-${uniqueId}`} className="fixed inset-0 bg-black/70 flex justify-center items-start z-[300001] p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto backdrop-blur-sm">
+        <div id={`print-modal-orcamento-${uniqueId}`} className="fixed inset-0 bg-black/70 flex justify-center items-start z-[300001] p-0 sm:p-4 lg:py-8 print:inset-0 print:p-0 print:bg-white overflow-y-auto backdrop-blur-sm">
             <style>
                 {`
                     @media print {
-                        @page { 
-                            size: ${format === 'thermal' ? '80mm auto' : 'A4 portrait'}; 
-                            margin: ${format === 'thermal' ? '0' : '10mm'}; 
-                        }
-                        body * { visibility: hidden; }
-                        #print-container-orcamento-${uniqueId}, #print-container-orcamento-${uniqueId} * { visibility: visible; }
-                        #print-container-orcamento-${uniqueId} { 
-                            position: absolute; 
-                            left: 0; 
-                            top: 0; 
-                            width: 100%;
-                            box-shadow: none !important;
-                            border: none !important;
+                        /* Page setup */
+                        ${format === 'thermal' ? `
+                            @page { size: 80mm auto; margin: 0; }
+                        ` : `
+                            @page { size: A4 portrait; margin: 10mm; }
+                        `}
+
+                        /* Reset html/body */
+                        html, body {
                             margin: 0 !important;
                             padding: 0 !important;
+                            width: 100% !important;
+                            background: white !important;
                         }
-                        .no-print { display: none !important; }
+
+                        /* Hide everything */
+                        body > * {
+                            display: none !important;
+                        }
+
+                        /* Show only the portal root that contains our receipt */
+                        body > div:last-child {
+                            display: block !important;
+                        }
+
+                        /* Hide all non-receipt elements */
+                        .no-print {
+                            display: none !important;
+                        }
+
+                        /* Overlay — collapse/center */
+                        #print-modal-orcamento-${uniqueId} {
+                            position: static !important;
+                            display: block !important;
+                            width: 100% !important;
+                            height: auto !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            background: white !important;
+                            overflow: visible !important;
+                            inset: auto !important;
+                        }
+
+                        /* Print container — flat block */
+                        #print-container-orcamento-${uniqueId} {
+                            display: block !important;
+                            position: static !important;
+                            width: ${format === 'thermal' ? '80mm' : '100%'} !important;
+                            max-width: ${format === 'thermal' ? '80mm' : 'none'} !important;
+                            height: auto !important;
+                            margin: 0 auto !important;
+                            padding: 0 !important;
+                            background: white !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                            border-radius: 0 !important;
+                            overflow: visible !important;
+                        }
+
+                        /* Content wrapper */
+                        .print-content-wrapper {
+                            display: block !important;
+                            width: 100% !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            overflow: visible !important;
+                            background: white !important;
+                        }
+
+                        /* Receipt body */
+                        .receipt-body {
+                            display: block !important;
+                            width: 100% !important;
+                            max-width: ${format === 'thermal' ? '80mm' : 'none'} !important;
+                            padding: ${format === 'thermal' ? '4mm' : '0'} !important;
+                            overflow: visible !important;
+                            color: black !important;
+                            background: white !important;
+                        }
                     }
                 `}
             </style>
 
-            <div id={`print-container-orcamento-${uniqueId}`} className={`bg-white shadow-2xl w-full ${format === 'A4' ? 'max-w-4xl' : 'max-w-sm'} rounded-3xl overflow-hidden flex flex-col print:rounded-none print:shadow-none`}>
+            <div id={`print-container-orcamento-${uniqueId}`} className={`bg-white shadow-2xl w-full ${format === 'A4' ? 'max-w-[210mm]' : 'max-w-sm'} rounded-3xl overflow-hidden flex flex-col print:rounded-none print:shadow-none`}>
                 <div className="p-4 bg-white border-b border-gray-100 no-print flex justify-between items-center gap-4 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
@@ -280,7 +342,7 @@ const OrcamentoPrintModal: React.FC<{
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 lg:p-12 print:p-0 bg-gray-50/50 print:bg-white flex justify-center">
+                <div className="flex-1 overflow-y-auto p-4 lg:p-12 print:p-0 bg-gray-50/50 print:bg-white flex justify-center print-content-wrapper">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-4">
                             <SpinnerIcon className="animate-spin" size={40} />
