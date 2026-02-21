@@ -105,8 +105,8 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
         try {
             const items: Partial<OrcamentoItem>[] = cart.map(c => ({
                 produto_id: c.product.id,
-                nome_produto_snapshot: c.product.name,
-                sku_snapshot: c.product.model || 'N/A',
+                nome_produto_snapshot: c.product.name || c.product.sku || 'Produto sem nome',
+                sku_snapshot: c.product.model || c.product.sku || 'N/A',
                 preco_unitario_snapshot: c.price,
                 custo_snapshot: c.product.costPrice || 0,
                 quantidade: c.quantity,
@@ -190,7 +190,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                                             <span className="text-2xl font-bold text-gray-300 select-none">ISTORE</span>
                                         )}
                                     </div>
-                                    <div className="text-sm font-bold text-gray-800 line-clamp-2 leading-tight mb-1">{p.name}</div>
+                                    <div className="text-sm font-bold text-gray-800 line-clamp-2 leading-tight mb-1">{p.name || p.sku || 'Produto sem nome'}</div>
                                     <div className="text-xs text-gray-500 mb-2">{p.model || 'Sem marca'}</div>
                                     <div className="mt-auto flex justify-between items-center w-full">
                                         <div className="font-bold text-orange-600">{formatCurrency(p.price)}</div>
@@ -237,7 +237,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                         ) : cart.map((item, idx) => (
                             <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-sm relative group">
                                 <div className="flex justify-between items-start pr-6">
-                                    <span className="font-bold text-gray-800 text-sm leading-tight">{item.product.name}</span>
+                                    <span className="font-bold text-gray-800 text-sm leading-tight">{item.product.name || item.product.sku || 'Produto sem nome'}</span>
                                     <button onClick={() => removeFromCart(item.product.id)} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-red-500 transition-colors">
                                         <CloseIcon className="w-4 h-4" />
                                     </button>
