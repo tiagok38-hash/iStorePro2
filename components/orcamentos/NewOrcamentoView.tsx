@@ -3,12 +3,13 @@ import { useUser } from '../../contexts/UserContext.tsx';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import {
     ChevronLeftIcon, PlusIcon, SearchIcon, TrashIcon,
-    CloseIcon, CreditCardIcon, SuccessIcon, ChartBarIcon
+    CloseIcon, CreditCardIcon, SuccessIcon, ChartBarIcon, BanknotesIcon
 } from '../icons.tsx';
 import { getProducts, getCustomers } from '../../services/mockApi.ts';
 import { createOrcamento } from '../../services/orcamentosService.ts';
 import { Product, Customer, OrcamentoItem } from '../../types.ts';
 import { formatCurrency } from '../../services/mockApi.ts';
+import CurrencyInput from '../CurrencyInput.tsx';
 
 interface NewOrcamentoViewProps {
     onCancel: () => void;
@@ -26,11 +27,13 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Orcamento specifics
     const [observacoes, setObservacoes] = useState('');
     const [fechamentoProbabilidade, setFechamentoProbabilidade] = useState<number>(50);
-    const [installments, setInstallments] = useState(1);
-    const [paymentMethod, setPaymentMethod] = useState('À Vista');
+
+    // Novo estado de pagamentos múltiplos
+    const [payments, setPayments] = useState<{ id: string, method: string, value: number, installments: number }[]>([
+        { id: '1', method: 'Dinheiro', value: 0, installments: 1 }
+    ]);
 
     useEffect(() => {
         getProducts().then(setProducts).catch(() => showToast('Erro ao carregar produtos', 'error'));
@@ -79,17 +82,19 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
         let subAfterDiscounts = subtotal - totalDiscount;
         if (subAfterDiscounts < 0) subAfterDiscounts = 0;
 
-        // Mock simple interest logic if > 1 partials and custom method
         let jurosTotal = 0;
-        if (installments > 1 && paymentMethod === 'Cartão Crédito') {
-            // 2% per installment as a placeholder logic
-            jurosTotal = subAfterDiscounts * (0.02 * installments);
-        }
+        payments.forEach(p => {
+            if (p.method === 'Cartão Crédito' && p.installments > 1) {
+                jurosTotal += p.value * (0.02 * p.installments);
+            }
+        });
 
         const totalFinal = subAfterDiscounts + jurosTotal;
+        const totalPaid = payments.reduce((acc, p) => acc + (p.value || 0), 0);
+        const remainingBalance = subAfterDiscounts - totalPaid;
 
-        return { subtotal, totalDiscount, jurosTotal, totalFinal };
-    }, [cart, installments, paymentMethod]);
+        return { subtotal, totalDiscount, jurosTotal, totalFinal, totalPaid, remainingBalance };
+    }, [cart, payments]);
 
     const handleFinalize = async () => {
         if (cart.length === 0) {
@@ -120,8 +125,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                 observacoes,
                 probabilidade_fechamento_percentual: fechamentoProbabilidade,
                 forma_pagamento_snapshot: {
-                    metodo: paymentMethod,
-                    parcelas: installments,
+                    pagamentos: payments,
                     juros_aplicados: summary.jurosTotal
                 }
             };
@@ -134,11 +138,18 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
         }
     };
 
-    // Filter products
-    const filteredProducts = products.filter(p =>
-        (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.model && p.model.toLowerCase().includes(searchTerm.toLowerCase()))
-    ).slice(0, 15);
+    const filteredProducts = products.filter(p => {
+        const term = searchTerm.toLowerCase();
+        return (
+            (p.name || '').toLowerCase().includes(term) ||
+            (p.model || '').toLowerCase().includes(term) ||
+            (p.sku || '').toLowerCase().includes(term) ||
+            (p.imei1 || '').toLowerCase().includes(term) ||
+            (p.imei2 || '').toLowerCase().includes(term) ||
+            (p.serialNumber || '').toLowerCase().includes(term) ||
+            (p.barcodes || []).some(b => (b || '').toLowerCase().includes(term))
+        );
+    }).slice(0, 15);
 
     return (
         <div className="flex flex-col lg:flex-row h-full w-full flex-1 relative bg-gray-50 overflow-hidden animate-fade-in">
@@ -258,36 +269,86 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                     {/* Payment Simulation Settings */}
                     {cart.length > 0 && (
                         <div className="bg-white border rounded-2xl p-4 mb-4 shadow-sm">
-                            <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-4">
-                                <CreditCardIcon className="w-5 h-5 text-orange-500" />
-                                Simulação de Pagamento
-                            </h3>
-                            <div className="grid grid-cols-2 gap-3 mb-3">
-                                <div>
-                                    <label className="block text-xs text-gray-500 font-bold mb-1">Método</label>
-                                    <select
-                                        value={paymentMethod}
-                                        onChange={e => setPaymentMethod(e.target.value)}
-                                        className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-50"
-                                    >
-                                        <option value="À Vista">Pix / Dinheiro</option>
-                                        <option value="Cartão Crédito">Cartão de Crédito</option>
-                                        <option value="Crediário">Crediário iStore</option>
-                                    </select>
-                                </div>
-                                {paymentMethod !== 'À Vista' && (
-                                    <div>
-                                        <label className="block text-xs text-gray-500 font-bold mb-1">Parcelas</label>
-                                        <select
-                                            value={installments}
-                                            onChange={e => setInstallments(Number(e.target.value))}
-                                            className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-50"
-                                        >
-                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18].map(i => <option key={i} value={i}>{i}x</option>)}
-                                        </select>
-                                    </div>
-                                )}
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                    <CreditCardIcon className="w-5 h-5 text-orange-500" />
+                                    Simulação de Pagamento
+                                </h3>
+                                <button
+                                    onClick={() => setPayments([...payments, { id: Math.random().toString(), method: 'Dinheiro', value: summary.remainingBalance > 0 ? summary.remainingBalance : 0, installments: 1 }])}
+                                    className="text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                >
+                                    <PlusIcon className="w-4 h-4" /> Adicionar
+                                </button>
                             </div>
+
+                            <div className="space-y-3 mb-4">
+                                {payments.map((payment, index) => (
+                                    <div key={payment.id} className="relative bg-gray-50 border border-gray-200 rounded-xl p-3 shadow-sm group">
+                                        {payments.length > 1 && (
+                                            <button
+                                                onClick={() => setPayments(payments.filter(p => p.id !== payment.id))}
+                                                className="absolute -top-2 -right-2 bg-white text-gray-400 hover:text-red-500 rounded-full border border-gray-200 p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <CloseIcon className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                        <div className="grid grid-cols-[1fr_80px_120px] gap-2 items-center">
+                                            <div>
+                                                <select
+                                                    value={payment.method}
+                                                    onChange={e => {
+                                                        const newArr = [...payments];
+                                                        newArr[index].method = e.target.value;
+                                                        setPayments(newArr);
+                                                    }}
+                                                    className="w-full bg-white border border-gray-200 text-sm font-bold text-gray-700 h-9 px-2 outline-none rounded-md"
+                                                >
+                                                    <option value="Dinheiro">Dinheiro</option>
+                                                    <option value="Pix">Pix</option>
+                                                    <option value="Cartão Crédito">Cartão de Crédito</option>
+                                                    <option value="Cartão Débito">Cartão de Débito</option>
+                                                    <option value="Crediário">Crediário iStore</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <select
+                                                    value={payment.installments}
+                                                    onChange={e => {
+                                                        const newArr = [...payments];
+                                                        newArr[index].installments = Number(e.target.value);
+                                                        setPayments(newArr);
+                                                    }}
+                                                    disabled={payment.method !== 'Cartão Crédito' && payment.method !== 'Crediário'}
+                                                    className={`w-full bg-white border border-gray-200 text-sm font-bold text-gray-700 h-9 px-1 rounded-md outline-none ${payment.method !== 'Cartão Crédito' && payment.method !== 'Crediário' ? 'opacity-50' : ''}`}
+                                                >
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18].map(i => <option key={i} value={i}>{i}x</option>)}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <CurrencyInput
+                                                    value={payment.value}
+                                                    onChange={v => {
+                                                        const newArr = [...payments];
+                                                        newArr[index].value = v || 0;
+                                                        setPayments(newArr);
+                                                    }}
+                                                    size="compact"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {summary.remainingBalance !== 0 && (
+                                <div className={`text-xs font-bold mb-3 flex items-center justify-between px-3 py-2 rounded-lg ${summary.remainingBalance > 0 ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-600'}`}>
+                                    <span>{summary.remainingBalance > 0 ? 'Falta simular pagamentos:' : 'Pagamentos excedem o total:'}</span>
+                                    <span>{formatCurrency(Math.abs(summary.remainingBalance))}</span>
+                                </div>
+                            )}
 
                             {/* Fechamento Pipeline */}
                             <div>
@@ -328,18 +389,25 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                             <span>Total Final</span>
                             <span>{formatCurrency(summary.totalFinal)}</span>
                         </div>
-                        {(installments > 1) && (
-                            <div className="flex justify-between text-xs font-bold text-orange-600">
-                                <span>Simulação em {installments}x</span>
-                                <span>{installments} parcelas de {formatCurrency(summary.totalFinal / installments)}</span>
+                        {payments.some(p => p.installments > 1) && (
+                            <div className="flex justify-between text-[11px] font-bold text-orange-600 mt-2 px-3 py-2 bg-orange-50 rounded-lg">
+                                <span>Resumo Parcelado</span>
+                                <div className="text-right flex flex-col items-end gap-1">
+                                    {payments.filter(p => p.installments > 1).map((p, idx) => {
+                                        const finalValue = p.value + (p.method === 'Cartão Crédito' ? p.value * (0.02 * p.installments) : 0);
+                                        return (
+                                            <span key={idx}>{p.method}: {p.installments}x de {formatCurrency(finalValue / p.installments)}</span>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </div>
 
                     <button
                         onClick={handleFinalize}
-                        disabled={cart.length === 0}
-                        className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-lg ${cart.length > 0
+                        disabled={cart.length === 0 || summary.remainingBalance !== 0}
+                        className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-lg ${cart.length > 0 && summary.remainingBalance === 0
                             ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/25 hover:-translate-y-1'
                             : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none'
                             }`}
