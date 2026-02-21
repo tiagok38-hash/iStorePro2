@@ -141,7 +141,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
     ).slice(0, 15);
 
     return (
-        <div className="flex flex-col lg:flex-row h-full w-full bg-gray-50 overflow-hidden absolute inset-0 z-50 animate-fade-in">
+        <div className="flex flex-col lg:flex-row h-full w-full flex-1 relative bg-gray-50 overflow-hidden animate-fade-in">
             {/* Left side: Grid of Products / Search */}
             <div className="w-full lg:w-[65%] flex flex-col h-[50vh] lg:h-full bg-white border-r border-gray-200">
                 <div className="p-4 border-b border-gray-100 flex items-center gap-3">
