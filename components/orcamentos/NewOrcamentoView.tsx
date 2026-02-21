@@ -3,13 +3,15 @@ import { useUser } from '../../contexts/UserContext.tsx';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import {
     ChevronLeftIcon, PlusIcon, SearchIcon, TrashIcon,
-    CloseIcon, CreditCardIcon, SuccessIcon, ChartBarIcon, BanknotesIcon
+    CloseIcon, CreditCardIcon, SuccessIcon, ChartBarIcon, BanknotesIcon,
+    WhatsAppIcon, PrinterIcon, DocumentTextIcon
 } from '../icons.tsx';
 import { getProducts, getCustomers } from '../../services/mockApi.ts';
 import { createOrcamento } from '../../services/orcamentosService.ts';
 import { Product, Customer, OrcamentoItem } from '../../types.ts';
 import { formatCurrency } from '../../services/mockApi.ts';
 import CurrencyInput from '../CurrencyInput.tsx';
+import OrcamentoPrintModal from './OrcamentoPrintModal.tsx';
 
 interface NewOrcamentoViewProps {
     onCancel: () => void;
@@ -26,6 +28,9 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
     const [cart, setCart] = useState<{ product: Product, quantity: number, price: number, discount: number }[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isSaved, setIsSaved] = useState(false);
+    const [lastSavedOrcamento, setLastSavedOrcamento] = useState<any>(null);
+    const [showPrintModal, setShowPrintModal] = useState(false);
 
     const [observacoes, setObservacoes] = useState('');
     const [fechamentoProbabilidade, setFechamentoProbabilidade] = useState<number>(50);
@@ -127,12 +132,14 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                 forma_pagamento_snapshot: {
                     pagamentos: payments,
                     juros_aplicados: summary.jurosTotal
-                }
+                },
+                vendedor_nome: user?.name || ''
             };
 
             await createOrcamento(payload, items, user?.id || '', user?.name || '');
+            setLastSavedOrcamento({ ...payload, items });
+            setIsSaved(true);
             showToast('Orçamento salvo com sucesso!', 'success');
-            onSaved();
         } catch (e: any) {
             showToast(e.message || 'Erro ao salvar orçamento', 'error');
         }
@@ -150,6 +157,47 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
             (p.barcodes || []).some(b => (b || '').toLowerCase().includes(term))
         );
     }).slice(0, 15);
+
+    const shareWhatsApp = () => {
+        if (!lastSavedOrcamento) return;
+
+        const customerName = selectedCustomer?.name || 'Cliente';
+        const itemsText = lastSavedOrcamento.items.map((item: any) =>
+            `✅ *${item.quantidade}x* ${item.nome_produto_snapshot} - ${formatCurrency(item.preco_unitario_snapshot)}`
+        ).join('\n');
+
+        const message = [
+            `*🏷️ ORÇAMENTO #${lastSavedOrcamento.numero}*`,
+            `----------------------------------------------`,
+            `Olá, *${customerName}*! Segue abaixo a simulação dos itens do seu interesse:`,
+            ``,
+            itemsText,
+            ``,
+            `*Subtotal:* ${formatCurrency(lastSavedOrcamento.subtotal)}`,
+            lastSavedOrcamento.desconto_total > 0 ? `*Desconto:* -${formatCurrency(lastSavedOrcamento.desconto_total)}` : null,
+            lastSavedOrcamento.juros_total > 0 ? `*Simulação de Juros:* +${formatCurrency(lastSavedOrcamento.juros_total)}` : null,
+            `*💰 TOTAL FINAL: ${formatCurrency(lastSavedOrcamento.total_final)}*`,
+            ``,
+            `*💳 FORMAS DE PAGAMENTO:*`,
+            lastSavedOrcamento.forma_pagamento_snapshot?.pagamentos?.map((p: any) =>
+                `• ${p.method}${p.installments > 1 ? ` (${p.installments}x)` : ''}: ${formatCurrency(p.value)}`
+            ).join('\n'),
+            ``,
+            lastSavedOrcamento.observacoes ? `*📝 Obs:* ${lastSavedOrcamento.observacoes}` : null,
+            `----------------------------------------------`,
+            `*Atendimento por:* ${user?.name || 'Vendedor iStore'}`,
+            `_Gerado via iStore Pro - Gestão Inteligente_`
+        ].filter(Boolean).join('\n');
+
+        const phone = selectedCustomer?.phone?.replace(/\D/g, '') || '';
+        const waUrl = `https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank');
+    };
+
+    const handlePrint = () => {
+        setIsSaved(false); // Esconde o modal de sucesso para mostrar o de print
+        setShowPrintModal(true);
+    };
 
     return (
         <div className="flex flex-col lg:flex-row h-full w-full flex-1 relative bg-gray-50 overflow-hidden animate-fade-in">
@@ -412,10 +460,78 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved }
                             : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none'
                             }`}
                     >
-                        Fazendo Orçamento <SuccessIcon className="w-5 h-5" />
+                        Fechar Orçamento <SuccessIcon className="w-5 h-5" />
                     </button>
                 </div>
             </div>
+
+            {/* Success Modal / Options Overlay */}
+            {isSaved && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-fade-in print:hidden">
+                    <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-scale-in">
+                        <div className="bg-orange-500 p-8 text-white text-center">
+                            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/30">
+                                <SuccessIcon className="w-10 h-10 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold">Orçamento Salvo!</h3>
+                            <p className="text-orange-100 mt-2 font-medium">O que deseja fazer agora?</p>
+                        </div>
+
+                        <div className="p-6 space-y-3">
+                            <button
+                                onClick={handlePrint}
+                                className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition-all group"
+                            >
+                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-600 group-hover:text-orange-500 transition-colors">
+                                    <PrinterIcon className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="font-bold text-gray-800 uppercase text-xs tracking-wider">Imprimir</div>
+                                    <div className="text-xs text-gray-500 font-medium">Gerar via impressora / PDF</div>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={shareWhatsApp}
+                                className="w-full flex items-center gap-4 p-4 bg-green-50 hover:bg-green-100 rounded-2xl border border-green-100 transition-all group"
+                            >
+                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-green-600">
+                                    <WhatsAppIcon className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="font-bold text-gray-800 uppercase text-xs tracking-wider">Enviar WhatsApp</div>
+                                    <div className="text-xs text-gray-500 font-medium">Compartilhar texto completo</div>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={onSaved}
+                                className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-200 rounded-2xl border border-gray-100 transition-all group"
+                            >
+                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-500">
+                                    <CloseIcon className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="font-bold text-gray-800 uppercase text-xs tracking-wider">Apenas Sair</div>
+                                    <div className="text-xs text-gray-500 font-medium">Voltar para a listagem</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Print Modal Overlay */}
+            {showPrintModal && lastSavedOrcamento && (
+                <OrcamentoPrintModal
+                    orcamento={lastSavedOrcamento}
+                    customer={selectedCustomer}
+                    onClose={() => {
+                        setShowPrintModal(false);
+                        onSaved(); // Fecha tudo e volta pra lista após terminar o ciclo
+                    }}
+                />
+            )}
         </div>
     );
 };
