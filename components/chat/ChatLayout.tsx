@@ -168,37 +168,46 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
     useEffect(() => {
         if (messages.length > lastMessageCountRef.current) {
             const newMsg = messages[messages.length - 1];
+
             // Se chat fechado e mensagem não é nossa
-            if (!isOpen && newMsg.sender_id !== user?.id) {
-                const showNotification = (n: string, a: string | undefined) => {
-                    setPreviewContent({ name: n, text: newMsg.content, avatar: a });
-                    setShowPreview(true);
+            if (newMsg && !isOpen && newMsg.sender_id !== user?.id) {
+                const lastOpened = sessionStorage.getItem('chat_last_opened') || null;
+                const msgTime = new Date(newMsg.created_at).getTime();
+                const now = new Date().getTime();
+                const isVeryRecent = (now - msgTime) < 30000; // 30 seg
 
-                    if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
-                    previewTimeoutRef.current = setTimeout(() => {
-                        setShowPreview(false);
-                    }, 4000);
-                };
+                // Só mostra se for muito recente E posterior à última abertura (leitura)
+                if (isVeryRecent && (!lastOpened || newMsg.created_at > lastOpened)) {
+                    const showNotification = (n: string, a: string | undefined) => {
+                        setPreviewContent({ name: n, text: newMsg.content, avatar: a });
+                        setShowPreview(true);
 
-                const sName = userProfiles.get(newMsg.sender_id)?.name || newMsg.sender_name;
-                const sAvatar = userProfiles.get(newMsg.sender_id)?.avatar || newMsg.sender_avatar;
+                        if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+                        previewTimeoutRef.current = setTimeout(() => {
+                            setShowPreview(false);
+                        }, 4000);
+                    };
 
-                if (sName) {
-                    showNotification(sName, sAvatar);
-                } else {
-                    // Fallback para buscar o nome no banco caso a sincronização inicial de perfis atrase
-                    supabase
-                        .from('users')
-                        .select('name, "avatarUrl"')
-                        .eq('id', newMsg.sender_id)
-                        .single()
-                        .then(({ data, error }) => {
-                            if (data && !error) {
-                                showNotification(data.name, data.avatarUrl);
-                            } else {
-                                showNotification('Novo usuário', undefined);
-                            }
-                        });
+                    const sName = userProfiles.get(newMsg.sender_id)?.name || newMsg.sender_name;
+                    const sAvatar = userProfiles.get(newMsg.sender_id)?.avatar || newMsg.sender_avatar;
+
+                    if (sName) {
+                        showNotification(sName, sAvatar);
+                    } else {
+                        // Fallback para buscar o nome no banco caso a sincronização inicial de perfis atrase
+                        supabase
+                            .from('users')
+                            .select('name, "avatarUrl"')
+                            .eq('id', newMsg.sender_id)
+                            .single()
+                            .then(({ data, error }) => {
+                                if (data && !error) {
+                                    showNotification(data.name, data.avatarUrl);
+                                } else {
+                                    showNotification('Novo usuário', undefined);
+                                }
+                            });
+                    }
                 }
             }
         }
