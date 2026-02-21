@@ -175,7 +175,7 @@ const Orcamentos: React.FC = () => {
                                         <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg mb-2 group-hover:bg-orange-100 group-hover:text-orange-700 transition-colors">
                                             #{orc.numero}
                                         </span>
-                                        <h4 className="font-bold text-gray-800 text-lg">
+                                        <h4 className="font-black text-orange-600 text-xl tracking-tighter">
                                             {formatCurrency(orc.total_final)}
                                         </h4>
                                     </div>
@@ -280,10 +280,15 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
 
                 <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     <div className="space-y-6">
-                        {/* Status e Criacao */}
-                        <div className="flex justify-between items-center">
+                        {/* Status, Criacao e Vendedor */}
+                        <div className="flex justify-between items-start">
                             <StatusBadge status={orcamento.status} />
-                            <span className="text-xs text-gray-400 font-bold">Criado em {formatDateTimeBR(orcamento.created_at)}</span>
+                            <div className="text-right">
+                                <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Criado em {formatDateTimeBR(orcamento.created_at)}</span>
+                                <span className="block text-[10px] text-orange-500 font-black uppercase tracking-wider mt-0.5">
+                                    Por: {orcamento.vendedor_nome || user?.name || 'Sistema'}
+                                </span>
+                            </div>
                         </div>
 
                         {/* Itens */}
@@ -307,7 +312,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                                                 {item.quantidade}x {formatCurrency(item.preco_unitario_snapshot)}
                                             </p>
                                         </div>
-                                        <div className="font-black text-gray-900 text-sm ml-4">
+                                        <div className="font-black text-orange-600 text-sm ml-4">
                                             {formatCurrency(item.total_snapshot || (item.quantidade * item.preco_unitario_snapshot))}
                                         </div>
                                     </div>
@@ -334,7 +339,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                             <div className="relative space-y-3">
                                 <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
                                     <span>Subtotal</span>
-                                    <span>{formatCurrency(orcamento.subtotal)}</span>
+                                    <span className="text-orange-500">{formatCurrency(orcamento.subtotal)}</span>
                                 </div>
                                 {orcamento.desconto_total > 0 && (
                                     <div className="flex justify-between text-xs font-bold text-green-600 uppercase tracking-widest">
