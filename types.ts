@@ -764,3 +764,23 @@ export interface CrmActivity {
     created_by_name?: string;
     created_at: string;
 }
+
+// Inventory Movements
+export type MovementType = 'entrada' | 'saida';
+export type MovementReason = 'Avaria' | 'Perda' | 'Uso Interno' | 'Bonificação' | 'Ajuste Manual' | 'Devolução' | 'Outro';
+
+export interface InventoryMovement {
+    id: string;
+    product_id: string;
+    product_name: string;
+    imei?: string;
+    serial_number?: string;
+    movement_type: MovementType;
+    quantity: number;
+    reason: string;
+    custom_reason?: string;
+    user_id: string;
+    user_name: string;
+    company_id?: string;
+    created_at: string;
+}

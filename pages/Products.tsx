@@ -28,7 +28,7 @@ import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
     TicketIcon, DocumentArrowUpIcon, PlayCircleIcon, AppleIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
     BanknotesIcon, DocumentTextIcon, CalendarDaysIcon, ArrowsUpDownIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon,
-    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon
+    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon, ClockIcon
 } from '../components/icons.tsx';
 
 // Lazy load heavy modal components for better performance
@@ -38,6 +38,7 @@ const StockInModal = lazy(() => import('../components/StockInModal.tsx'));
 const PriceListModal = lazy(() => import('../components/PriceListModal.tsx'));
 const StockComparisonModal = lazy(() => import('../components/StockComparisonModal.tsx'));
 const LabelGeneratorModal = lazy(() => import('../components/LabelGenerator/LabelGeneratorModal.tsx'));
+const StockMovementModal = lazy(() => import('../components/StockMovementModal.tsx'));
 
 
 const ProductActionsDropdown: React.FC<{ onHistory: () => void, onUpdateStock: () => void, onEdit: () => void, onDelete: () => void, permissions: PermissionSet | null }> = ({ onHistory, onUpdateStock, onEdit, onDelete, permissions }) => {
@@ -182,9 +183,8 @@ const Products: React.FC = () => {
             setFilters(prev => ({ ...prev, type: 'Produtos de troca' }));
         }
 
-        if (filterStatus === 'baixo_estoque') {
-            setFilters(prev => ({ ...prev, stock: 'Em estoque' }));
-            // Additional logic for low stock if needed
+        if (filterStatus === 'baixo_estoque' || params.get('filter') === 'low_stock') {
+            setFilters(prev => ({ ...prev, stock: 'Em estoque', type: 'Estoque baixo' }));
         }
     }, [location]);
 
@@ -212,6 +212,7 @@ const Products: React.FC = () => {
     const [isBulkLocationUpdateModalOpen, setIsBulkLocationUpdateModalOpen] = useState(false);
     const [isUpdateStockModalOpen, setIsUpdateStockModalOpen] = useState(false);
     const [isLabelGeneratorModalOpen, setIsLabelGeneratorModalOpen] = useState(false);
+    const [isStockMovementModalOpen, setIsStockMovementModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [productForHistory, setProductForHistory] = useState<Product | null>(null);
@@ -374,6 +375,9 @@ const Products: React.FC = () => {
                     typeMatch = (p.brand || '').toLowerCase() !== 'apple';
                 } else if (filters.type === 'Produtos de troca') {
                     typeMatch = p.origin === 'Troca' || p.origin === 'Comprado de Cliente';
+                } else if (filters.type === 'Estoque baixo') {
+                    // Mover a lógica de filtro de estoque baixo para depois do agrupamento
+                    typeMatch = true;
                 }
 
                 return stockMatch && conditionMatch && locationMatch && typeMatch;
@@ -409,6 +413,9 @@ const Products: React.FC = () => {
                 typeMatch = (p.brand || '').toLowerCase() !== 'apple';
             } else if (filters.type === 'Produtos de troca') {
                 typeMatch = p.origin === 'Troca' || p.origin === 'Comprado de Cliente';
+            } else if (filters.type === 'Estoque baixo') {
+                // Mover a lógica de filtro de estoque baixo para depois do agrupamento
+                typeMatch = true;
             }
 
             return searchMatch && stockMatch && conditionMatch && locationMatch && typeMatch;
@@ -439,7 +446,16 @@ const Products: React.FC = () => {
             }
         }
 
-        const combinedList = [...finalResults, ...Array.from(groupedMap.values())];
+        let combinedList = [...finalResults, ...Array.from(groupedMap.values())];
+
+        // Aplicar filtro de Estoque Baixo após agrupamento se selecionado
+        if (filters.type === 'Estoque baixo') {
+            combinedList = combinedList.filter(p => {
+                const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
+                const isLow = p.stock > 0 && p.minimumStock !== undefined && p.stock <= p.minimumStock;
+                return !isUnique && isLow;
+            });
+        }
 
         return combinedList.sort((a, b) => {
             if (inventorySortOrder === 'newest') {
@@ -847,6 +863,13 @@ const Products: React.FC = () => {
                         <ArrowsUpDownIcon className="h-5 w-5 text-yellow-500 group-hover:text-yellow-600 transition-colors" />
                         Comparar Estoques
                     </button>
+                    <button
+                        onClick={() => setIsStockMovementModalOpen(true)}
+                        className="h-10 px-4 bg-orange-50 text-orange-700 rounded-xl hover:bg-orange-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-orange-200 uppercase tracking-wider group"
+                    >
+                        <ClockIcon className="h-5 w-5 text-orange-500 group-hover:text-orange-600 transition-colors" />
+                        Movimentação de estoque
+                    </button>
                     {permissions?.canManageParameters && (
                         <Link
                             to="/company?tab=parametros"
@@ -860,12 +883,6 @@ const Products: React.FC = () => {
                         className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
                     >
                         <TicketIcon className="h-5 w-5 text-gray-500" /> Etiquetas
-                    </button>
-                    <button
-                        onClick={() => setIsPriceListModalOpen(true)}
-                        className="h-10 px-5 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-xl hover:opacity-95 text-[11px] font-black flex items-center gap-2 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20"
-                    >
-                        <DocumentTextIcon className="h-5 w-5" /> Gerar Relatório
                     </button>
                     <div className="flex-grow"></div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-70">Total: {filteredProducts.length}</p>
@@ -905,6 +922,7 @@ const Products: React.FC = () => {
                                 <option value="Produtos Apple">Produtos Apple</option>
                                 <option value="Produtos Variados">Produtos Variados</option>
                                 <option value="Produtos de troca">Produtos de troca</option>
+                                <option value="Estoque baixo">Estoque baixo</option>
                             </select>
                         </div>
                         <div className="relative flex-grow min-w-[250px]">
@@ -966,7 +984,11 @@ const Products: React.FC = () => {
                                         const supplierLabelColor = getSupplierColorClass(supplier);
 
                                         let stockColorClass = 'bg-gray-100 text-gray-700 border-gray-200';
+                                        const isUnique = !!((product.serialNumber || '').trim() || (product.imei1 || '').trim() || (product.imei2 || '').trim());
+                                        const isLowStock = !isUnique && product.stock > 0 && product.minimumStock !== undefined && product.stock <= product.minimumStock;
+
                                         if (product.stock === 0) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
+                                        else if (isLowStock) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
                                         else if (product.condition === 'Reservado') stockColorClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
                                         else if (product.stock >= 1) stockColorClass = 'bg-green-100 text-green-700 border-green-200';
 
@@ -1371,16 +1393,25 @@ const Products: React.FC = () => {
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-primary">Estoque e Compras</h1>
 
-            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
-                {availableTabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
+            <div className="flex items-center justify-between gap-4">
+                <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
+                    {availableTabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                <button
+                    onClick={() => setIsPriceListModalOpen(true)}
+                    className="h-12 px-6 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap"
+                >
+                    <DocumentTextIcon className="h-6 w-6" /> Gerar Relatório
+                </button>
             </div>
 
             {(loading || authLoading) ? (
@@ -1418,6 +1449,7 @@ const Products: React.FC = () => {
                 {isPriceListModalOpen && <PriceListModal isOpen={isPriceListModalOpen} onClose={() => setIsPriceListModalOpen(false)} products={products} hideSummary={true} />}
                 {isStockComparisonModalOpen && <StockComparisonModal products={products} locations={storageLocations} onClose={() => setIsStockComparisonModalOpen(false)} />}
                 {isLabelGeneratorModalOpen && <LabelGeneratorModal isOpen={isLabelGeneratorModalOpen} onClose={() => setIsLabelGeneratorModalOpen(false)} availableProducts={products} purchases={purchases} />}
+                {isStockMovementModalOpen && <StockMovementModal isOpen={isStockMovementModalOpen} onClose={() => setIsStockMovementModalOpen(false)} products={products} users={users} currentUserId={user?.id} currentUserName={user?.name} onMovementCreated={() => fetchData(true)} showToast={showToast} />}
                 {isNewPurchaseModalOpen && <PurchaseOrderModal suppliers={suppliers} customers={customers} products={products} onClose={handleCloseNewPurchaseModal} purchaseOrderToEdit={purchaseToEdit} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onAddNewSupplier={handleAddNewSupplier} />}
                 {stockInPurchase && <StockInModal purchaseOrder={stockInPurchase} onClose={handleCloseStockInModal} allProducts={products} grades={grades} gradeValues={gradeValues} />}
             </Suspense>

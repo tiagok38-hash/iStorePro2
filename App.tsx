@@ -54,7 +54,6 @@ const GlobalChat = () => {
 };
 
 const MainLayout: React.FC = () => {
-    const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const location = useLocation();
 
@@ -65,18 +64,19 @@ const MainLayout: React.FC = () => {
     return (
         <div className="flex bg-background text-primary min-h-screen">
             <Sidebar
-                isOpen={isSidebarOpen}
+                isOpen={false}
                 isCollapsed={isSidebarCollapsed}
                 toggleCollapse={toggleSidebarCollapse}
-                onCloseSidebar={() => setSidebarOpen(false)}
+                onCloseSidebar={() => { }}
             />
 
             {/* Sincroniza userId com ChatContext para cálculo de não lidas */}
             <ChatUserSync />
 
             <div className="flex-1 flex flex-col w-full min-w-0 pb-[calc(env(safe-area-inset-bottom)+70px)] lg:pb-0">
-                <Header onMenuClick={() => { }} />
+                <Header />
                 <TopBar />
+
                 <main className="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto">
                     <Suspense fallback={<SuspenseFallback />}>
                         <div key={location.pathname} className="animate-fade-in h-full">

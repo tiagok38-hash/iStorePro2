@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Product, Sale, Customer, User, AuditLog, AuditActionType, Supplier } from '../types.ts';
-import { formatCurrency, getAuditLogs, getSuppliers } from '../services/mockApi.ts';
-import { SpinnerIcon } from './icons.tsx';
+import { Product, Sale, Customer, User, AuditLog, AuditActionType, Supplier, InventoryMovement } from '../types.ts';
+import { formatCurrency, getAuditLogs, getSuppliers, getProductMovements } from '../services/mockApi.ts';
+import { SpinnerIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.tsx';
 import SaleDetailModal from './SaleDetailModal.tsx';
 
 
@@ -202,6 +202,12 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
         'Alteração de Local': 'bg-cyan-100 text-cyan-700',
     };
 
+    // Match any "Movimentação: <reason>" entries from inventory_movements
+    const getReasonColor = (reason: string) => {
+        if (reason.startsWith('Movimentação:')) return 'bg-orange-100 text-orange-700';
+        return reasonColors[reason] || 'bg-gray-100 text-gray-700';
+    };
+
     const getEntityName = (entry: any) => {
         // Special case for Location Change
         if (entry.reason === 'Alteração de Local' && entry.previousLocation && entry.newLocation) {
@@ -276,7 +282,7 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
                         <tr key={entry.id} className="bg-surface border-b border-border">
                             <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(entry.timestamp)}</td>
                             <td className="px-4 py-3">
-                                <span className={`px-2 py-1 rounded-xl text-xs font-semibold whitespace-nowrap ${reasonColors[entry.reason] || 'bg-gray-100 text-gray-700'}`}>
+                                <span className={`px-2 py-1 rounded-xl text-xs font-semibold whitespace-nowrap ${getReasonColor(entry.reason)}`}>
                                     {entry.reason}
                                 </span>
                             </td>
@@ -350,6 +356,71 @@ const AuditHistoryTab: React.FC<{ logs: AuditLog[]; typeFilter?: AuditActionType
     );
 };
 
+// Component for Inventory Movements (from inventory_movements table)
+const MovementHistoryTab: React.FC<{ productId: string, movements: InventoryMovement[] }> = ({ productId, movements }) => {
+    const [page, setPage] = useState(1);
+    const PER_PAGE = 8;
+
+    if (movements.length === 0) {
+        return <div className="text-center text-muted py-8">Nenhuma movimentação registrada para este produto.</div>;
+    }
+
+    const totalPages = Math.ceil(movements.length / PER_PAGE);
+    const paginated = movements.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+    return (
+        <div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-muted">
+                    <thead className="text-xs text-secondary uppercase bg-surface-secondary">
+                        <tr>
+                            <th scope="col" className="px-4 py-3">Data/Hora</th>
+                            <th scope="col" className="px-4 py-3">Tipo</th>
+                            <th scope="col" className="px-4 py-3 text-center">Quantidade</th>
+                            <th scope="col" className="px-4 py-3">Motivo</th>
+                            <th scope="col" className="px-4 py-3">IMEI / Serial</th>
+                            <th scope="col" className="px-4 py-3">Usuário</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {paginated.map(m => (
+                            <tr key={m.id} className="bg-surface border-b border-border hover:bg-surface-secondary/50 transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(m.created_at)}</td>
+                                <td className="px-4 py-3">
+                                    <span className={`px-2 py-1 rounded-xl text-xs font-semibold whitespace-nowrap ${m.movement_type === 'saida'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-green-100 text-green-700'
+                                        }`}>
+                                        {m.movement_type === 'saida' ? '↓ Saída' : '↑ Entrada'}
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 text-center font-bold text-primary">{m.quantity}</td>
+                                <td className="px-4 py-3">{m.reason}</td>
+                                <td className="px-4 py-3 text-xs font-mono text-muted">{m.imei || m.serial_number || '—'}</td>
+                                <td className="px-4 py-3 whitespace-nowrap">{m.user_name}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                    <p className="text-xs font-semibold text-muted">{movements.length} registro{movements.length !== 1 ? 's' : ''}</p>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <ChevronLeftIcon className="h-4 w-4" />
+                        </button>
+                        <span className="text-xs font-bold text-gray-600 min-w-[50px] text-center">{page} de {totalPages}</span>
+                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <ChevronRightIcon className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 // --- Main Modal Component ---
 
@@ -362,13 +433,14 @@ interface ProductHistoryModalProps {
     onClose: () => void;
 }
 
-type ActiveTab = 'sales' | 'prices' | 'stock';
+type ActiveTab = 'sales' | 'prices' | 'stock' | 'movements';
 
 const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, salesHistory, customers, users, productMap, onClose }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('sales');
     const [saleToView, setSaleToView] = useState<Sale | null>(null);
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [productMovements, setProductMovements] = useState<InventoryMovement[]>([]);
     const [loading, setLoading] = useState(true);
     const [freshProduct, setFreshProduct] = useState<Product>(product);
 
@@ -396,6 +468,12 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
                 // Fetch suppliers to have them ready for matching
                 const fetchedSuppliers = await getSuppliers();
                 setSuppliers(fetchedSuppliers);
+
+                // Fetch inventory movements for this product
+                try {
+                    const movs = await getProductMovements(product.id);
+                    setProductMovements(movs);
+                } catch { /* ignore if table doesn't exist yet */ }
             } catch (error) {
                 console.error("Failed to fetch data", error);
             } finally {
@@ -417,6 +495,7 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
                             <button onClick={() => setActiveTab('sales')} className={`py-2 px-1 border-b-2 text-sm font-medium ${activeTab === 'sales' ? 'border-success text-success' : 'border-transparent text-muted hover:text-primary'}`}>Histórico de Vendas</button>
                             <button onClick={() => setActiveTab('prices')} className={`py-2 px-1 border-b-2 text-sm font-medium ${activeTab === 'prices' ? 'border-success text-success' : 'border-transparent text-muted hover:text-primary'}`}>Histórico de Preços</button>
                             <button onClick={() => setActiveTab('stock')} className={`py-2 px-1 border-b-2 text-sm font-medium ${activeTab === 'stock' ? 'border-success text-success' : 'border-transparent text-muted hover:text-primary'}`}>Histórico de Estoque</button>
+                            <button onClick={() => setActiveTab('movements')} className={`py-2 px-1 border-b-2 text-sm font-medium ${activeTab === 'movements' ? 'border-orange-500 text-orange-600' : 'border-transparent text-muted hover:text-primary'}`}>Movimentações</button>
                         </nav>
                     </div>
 
@@ -426,6 +505,7 @@ const ProductHistoryModal: React.FC<ProductHistoryModalProps> = ({ product, sale
                                 {activeTab === 'sales' && <SalesHistoryTab product={freshProduct} sales={salesHistory} customers={customers} users={users} onRowClick={setSaleToView} />}
                                 {activeTab === 'prices' && <PriceHistoryTab product={freshProduct} />}
                                 {activeTab === 'stock' && <StockHistoryTab product={freshProduct} auditLogs={auditLogs} sales={salesHistory} customers={customers} suppliers={suppliers} />}
+                                {activeTab === 'movements' && <MovementHistoryTab productId={product.id} movements={productMovements} />}
                             </>
                         )}
                     </div>

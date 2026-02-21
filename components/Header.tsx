@@ -10,18 +10,20 @@ import ChatBadge from './chat/ChatBadge.tsx';
 const Logo: React.FC = () => (
     <Link to="/" className="flex items-center h-full overflow-hidden">
         <img
-            src="/Design sem nome-4.png"
+            src="/logo_header.png"
             alt="iStorePro"
             className="h-10 w-auto object-contain"
         />
     </Link>
 );
 
+
 interface HeaderProps {
-    onMenuClick: () => void;
+    // onMenuClick removed as it was unused and sidebar is lg:only
 }
 
 const Header: React.FC<HeaderProps> = () => {
+
     const { user, logout } = useUser();
     const navigate = useNavigate();
     const [companyInfo, setCompanyInfo] = React.useState<CompanyInfo | null>(null);

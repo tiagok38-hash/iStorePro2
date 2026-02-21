@@ -1,8 +1,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export const SUPABASE_URL = 'https://bgwfyumunybbdthgykoh.supabase.co';
-export const SUPABASE_ANON_KEY = 'sb_publishable_5gPLseUzMLc6U2kyxyzg7g_gcY7edNS';
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
@@ -15,3 +15,4 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         headers: { 'x-client-info': 'istore-erp' }
     }
 });
+

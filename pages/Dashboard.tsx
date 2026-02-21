@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices } from '../services/mockApi.ts';
-import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service } from '../types.ts';
+import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices, getSuppliers } from '../services/mockApi.ts';
+import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service, Supplier } from '../types.ts';
 import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
@@ -170,9 +170,11 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
             case 'week':
                 startDate = new Date(now);
                 startDate.setDate(now.getDate() - 7);
+                startDate.setHours(0, 0, 0, 0);
                 break;
             case 'month':
                 startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                startDate.setHours(0, 0, 0, 0);
                 break;
         }
 
@@ -185,26 +187,67 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
         const serviceMap = services.reduce((acc, s) => { acc[s.id] = s; return acc; }, {} as Record<string, Service>);
         const productMap = products.reduce((acc, p) => { acc[p.id] = p; return acc; }, {} as Record<string, Product>);
 
+        // Generate Labels for chart
+        let labels: string[] = [];
+        const isHourly = ['today', 'yesterday', 'day_before'].includes(period);
+
+        if (isHourly) {
+            labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
+        } else {
+            const days = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            const startD = new Date(startDate);
+            labels = Array.from({ length: days + 1 }, (_, i) => {
+                const d = new Date(startD);
+                d.setDate(d.getDate() + i);
+                return `${d.getDate()}`;
+            });
+        }
+
+        const profitByPoint: Record<string, number> = {};
+        labels.forEach(l => profitByPoint[l] = 0);
+
+        const getKey = (date: Date) => {
+            if (isHourly) return `${date.getHours()}h`;
+            return `${date.getDate()}`;
+        };
+
         let totalRevenue = 0;
         let totalCost = 0;
 
         validOS.forEach(os => {
-            totalRevenue += (os.total || (os.subtotal - os.discount));
+            const osRevenue = (os.total || (os.subtotal - os.discount));
+            let osCost = 0;
+
             os.items.forEach(item => {
                 const refId = (item as any).catalogItemId || item.id;
                 if (item.type === 'service') {
                     const s = serviceMap[refId];
-                    totalCost += (s?.cost || 0) * item.quantity;
+                    osCost += (s?.cost || 0) * item.quantity;
                 } else {
                     const p = productMap[refId];
                     if (p) {
-                        totalCost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
+                        osCost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
                     }
                 }
             });
+
+            const osProfit = osRevenue - osCost;
+            totalRevenue += osRevenue;
+            totalCost += osCost;
+
+            const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
+            const key = getKey(date);
+            if (profitByPoint[key] !== undefined) profitByPoint[key] += osProfit;
         });
 
-        return { profit: totalRevenue - totalCost, revenue: totalRevenue, count: validOS.length };
+        const chartData = labels.map(l => ({ name: l, value: profitByPoint[l] }));
+
+        return {
+            profit: totalRevenue - totalCost,
+            revenue: totalRevenue,
+            count: validOS.length,
+            chartData
+        };
     }, [serviceOrders, services, products, period]);
 
     return (
@@ -236,7 +279,33 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                 </select>
             </div>
 
-            <div className="mt-auto pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+            <div className="flex-1 min-h-[100px] -mx-2">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={metrics.chartData}>
+                        <defs>
+                            <linearGradient id="colorOSProfit" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <Tooltip
+                            cursor={false}
+                            content={<ProfitTooltip period={period === 'today' ? 'day' : period === 'yesterday' ? 'yesterday' : period} />}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#10b981"
+                            fillOpacity={1}
+                            fill="url(#colorOSProfit)"
+                            strokeWidth={2}
+                            animationDuration={1500}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
                 <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Faturamento</p>
                     <p className="text-xs font-black text-gray-700">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.revenue)}</p>
@@ -254,8 +323,29 @@ const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: 
     const navigate = useNavigate();
 
     const lowStockBulk = useMemo(() => {
-        return products.filter(p => !p.hasIMEI && p.stock <= (p.minimumStock || 0))
-            .sort((a, b) => (a.stock / (a.minimumStock || 1)) - (b.stock / (b.minimumStock || 1)));
+        const groupedMap = new Map<string, Product>();
+        const finalResults: Product[] = [];
+
+        products.forEach(p => {
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
+            const hasVariations = p.variations && p.variations.length > 0;
+
+            if (isUnique || hasVariations) {
+                finalResults.push(p);
+            } else {
+                const key = `${p.model}|${p.brand}|${p.color}|${p.storage}|${p.condition}|${p.warranty}|${p.price}-${p.costPrice || 0}-${p.wholesalePrice || 0}|${p.supplierId}|${p.storageLocation}`;
+                const existing = groupedMap.get(key);
+                if (!existing) groupedMap.set(key, { ...p });
+                else existing.stock += p.stock;
+            }
+        });
+
+        const combinedList = [...finalResults, ...Array.from(groupedMap.values())];
+
+        return combinedList.filter(p => {
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
+            return !isUnique && p.stock <= (p.minimumStock || 0);
+        }).sort((a, b) => (a.stock / (a.minimumStock || 1)) - (b.stock / (b.minimumStock || 1)));
     }, [products]);
 
     const recentItems = useMemo(() => lowStockBulk.slice(0, 5), [lowStockBulk]);
@@ -308,14 +398,19 @@ const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: 
 });
 
 
-const ProfitTooltip: React.FC<any> = ({ active, payload, label }) => {
+const ProfitTooltip: React.FC<any> = ({ active, payload, label, period }) => {
     if (active && payload && payload.length) {
         const formattedLabel = (() => {
             if (!label) return '';
-            if (label.toString().endsWith('h')) return `Hora: ${label}`;
-            if (['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'].includes(label)) return `Mês: ${label}`;
-            if (/^\d{1,2}$/.test(label)) return `Dia: ${label}`;
-            return label;
+            const labelStr = label.toString();
+
+            if (labelStr.endsWith('h')) return `Hora: ${labelStr}`;
+            if (period === 'day' || period === 'yesterday') return `Hora: ${labelStr}h`;
+
+            if (['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'].includes(labelStr)) return `Mês: ${labelStr}`;
+
+            if (/^\d{1,2}$/.test(labelStr)) return `Dia: ${labelStr}`;
+            return labelStr;
         })();
 
         return (
@@ -466,7 +561,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                         </defs>
                         <Tooltip
                             cursor={false}
-                            content={<ProfitTooltip />}
+                            content={<ProfitTooltip period={period} />}
                         />
                         <Area type="monotone" dataKey="value" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={2} />
                     </AreaChart>
@@ -711,8 +806,8 @@ const BillingChart: React.FC<{
                     )}
                 </div>
             </div>
-            <div className="flex-1">
-                <ResponsiveContainer width="100%" height={240}>
+            <div className="flex-1 min-h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} barGap={1} barCategoryGap="20%">
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
@@ -961,7 +1056,12 @@ const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: 
     );
 });
 
-const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
+const RecentAddedProductsCard: React.FC<{ products: Product[]; suppliers: Supplier[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, suppliers, className, isPrivacyMode }) => {
+    const getSupplierName = (id: string) => {
+        const supplier = suppliers.find(s => s.id === id);
+        return supplier ? supplier.name : 'COMPRA';
+    };
+
     return (
 
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
@@ -997,8 +1097,12 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; className?: strin
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                {product.origin === 'Troca' ? (
-                                                    <span className="text-[6px] px-1 py-0.5 rounded bg-orange-100 text-orange-700 font-black uppercase tracking-wide shadow-sm shrink-0">TROCA</span>
+                                                {product.origin === 'Compra' ? (
+                                                    <span className="text-[7px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold uppercase tracking-tight shadow-sm shrink-0 border border-orange-200/50">
+                                                        {getSupplierName(product.supplierId || '')}
+                                                    </span>
+                                                ) : product.origin === 'Troca' ? (
+                                                    <span className="text-[6px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-black uppercase tracking-wide shadow-sm shrink-0">TROCA</span>
                                                 ) : (
                                                     <span className="text-[6px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 font-black uppercase tracking-wide shadow-sm shrink-0">CLIENTE</span>
                                                 )}
@@ -1028,7 +1132,7 @@ const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: str
 
         <div className={`p-6 bg-surface rounded-3xl border border-border shadow-sm flex flex-col h-full group hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
+                <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
                     <DeviceExchangeIcon className="h-6 w-6" />
                 </div>
                 <div>
@@ -1059,7 +1163,7 @@ const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: str
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[6px] px-1 py-0.5 rounded bg-orange-100 text-orange-700 font-black uppercase tracking-wide shadow-sm shrink-0">TROCA</span>
+                                                <span className="text-[6px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-black uppercase tracking-wide shadow-sm shrink-0">TROCA</span>
                                                 <div className="flex items-center gap-1 text-[8px] text-gray-400 font-bold">
                                                     <span>{new Date(product.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
                                                     <span>•</span>
@@ -1398,6 +1502,7 @@ const Dashboard: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
     const [services, setServices] = useState<Service[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
@@ -1453,12 +1558,13 @@ const Dashboard: React.FC = () => {
             oneYearAgo.setDate(oneYearAgo.getDate() - 365);
             const startDate = oneYearAgo.toISOString().split('T')[0];
 
-            const [salesData, productsData, customersData, serviceOrdersData, servicesData] = await Promise.all([
+            const [salesData, productsData, customersData, serviceOrdersData, servicesData, suppliersData] = await Promise.all([
                 fetchItem('Sales', () => getSales(undefined, undefined, startDate), []),
                 fetchItem('Products', () => getProducts(), []),
                 fetchItem('Customers', () => getCustomers(false), []),
                 fetchItem('ServiceOrders', () => getServiceOrders(), []),
-                fetchItem('Services', () => getServices(), [])
+                fetchItem('Services', () => getServices(), []),
+                fetchItem('Suppliers', () => getSuppliers(), [])
             ]);
 
             setSales(salesData);
@@ -1466,6 +1572,7 @@ const Dashboard: React.FC = () => {
             setCustomers(customersData);
             setServiceOrders(serviceOrdersData);
             setServices(servicesData);
+            setSuppliers(suppliersData);
 
             // Priority 2: Configs
             fetchItem('ActiveMethods', getPaymentMethods, []).then(setPaymentMethods);
@@ -1651,9 +1758,31 @@ const Dashboard: React.FC = () => {
         return { recentSales, recentSoldItems, recentAddedProducts, recentTradeInProducts };
     }, [sales, products]);
 
-    const lowStockCount = useMemo(() =>
-        products.filter(p => p.stock > 0 && p.minimumStock && p.stock <= p.minimumStock).length
-        , [products]);
+    const lowStockCount = useMemo(() => {
+        const groupedMap = new Map<string, Product>();
+        const finalResults: Product[] = [];
+
+        products.forEach(p => {
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
+            const hasVariations = p.variations && p.variations.length > 0;
+
+            if (isUnique || hasVariations) {
+                finalResults.push(p);
+            } else {
+                const key = `${p.model}|${p.brand}|${p.color}|${p.storage}|${p.condition}|${p.warranty}|${p.price}-${p.costPrice || 0}-${p.wholesalePrice || 0}|${p.supplierId}|${p.storageLocation}`;
+                const existing = groupedMap.get(key);
+                if (!existing) groupedMap.set(key, { ...p });
+                else existing.stock += p.stock;
+            }
+        });
+
+        const combinedList = [...finalResults, ...Array.from(groupedMap.values())];
+
+        return combinedList.filter(p => {
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
+            return !isUnique && p.stock > 0 && p.minimumStock !== undefined && p.stock <= p.minimumStock;
+        }).length;
+    }, [products]);
 
     const financialDiscrepancyCount = React.useMemo(() => {
         return sales.filter(s => s.status === 'Finalizada').filter(s => {
@@ -1736,7 +1865,9 @@ const Dashboard: React.FC = () => {
                     />
                 </div>
                 <OpenServiceOrdersCard serviceOrders={serviceOrders} isPrivacyMode={isPrivacyMode} to="/service-orders/list" />
-                <LowStockBulkProductsCard products={products} isPrivacyMode={isPrivacyMode} to="/products?filter=low_stock" />
+                <ProtectedLink to="/products?filter=low_stock" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}>
+                    <LowStockBulkProductsCard products={products} isPrivacyMode={isPrivacyMode} to="/products?filter=low_stock" />
+                </ProtectedLink>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1758,7 +1889,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentAddedProductsCard products={recentAddedProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
+                <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentAddedProductsCard products={recentAddedProducts} suppliers={suppliers} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <ProtectedLink to="/products?type=troca" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentTradeInProductsCard products={recentTradeInProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateVendas} />
                 <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentSoldProductsCard soldItems={recentSoldItems} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
