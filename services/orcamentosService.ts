@@ -35,11 +35,20 @@ export const createOrcamento = async (
     userId: string,
     userName: string
 ): Promise<Orcamento> => {
+    // 1. Buscar último número para sequencial
+    const { count } = await supabase
+        .from('orcamentos')
+        .select('*', { count: 'exact', head: true });
+
+    const nextNumber = (count || 0) + 1;
+    const formattedNumero = `#${nextNumber}`;
+
     // 1. Inserir Orçamento
     const { data: orcamento, error: orcErr } = await supabase
         .from('orcamentos')
         .insert([{
             ...orcamentoData,
+            numero: orcamentoData.numero || formattedNumero,
             vendedor_id: userId,
             created_at: getNowISO(),
             updated_at: getNowISO()

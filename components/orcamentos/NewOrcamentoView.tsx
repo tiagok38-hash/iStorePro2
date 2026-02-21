@@ -121,7 +121,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
             }));
 
             const payload = {
-                numero: orcamentoToEdit?.numero || `ORC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+                numero: orcamentoToEdit?.numero,
                 cliente_id: selectedCustomer?.id || undefined,
                 status: 'finalizado' as const,
                 subtotal: summary.subtotal,

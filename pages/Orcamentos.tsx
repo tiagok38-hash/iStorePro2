@@ -292,11 +292,16 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                             <div className="space-y-2">
                                 {orcamento.itens?.map((item: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                        <div>
-                                            <p className="font-bold text-gray-800 text-sm leading-tight">{item.nome_produto_snapshot}</p>
-                                            <p className="text-[10px] text-gray-500">{item.quantidade}x {formatCurrency(item.preco_unitario_snapshot)}</p>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-800 text-sm leading-tight">
+                                                {item.nome_produto_snapshot || `Produto #${item.sku_snapshot || item.produto_id}`}
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">
+                                                {item.quantidade}x {formatCurrency(item.preco_unitario_snapshot)}
+                                                {item.sku_snapshot && <span className="ml-2 border-l pl-2">REF: {item.sku_snapshot}</span>}
+                                            </p>
                                         </div>
-                                        <div className="font-black text-gray-900 text-sm">
+                                        <div className="font-black text-gray-900 text-sm ml-4">
                                             {formatCurrency(item.total_snapshot || (item.quantidade * item.preco_unitario_snapshot))}
                                         </div>
                                     </div>
@@ -318,20 +323,23 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                         </div>
 
                         {/* Totais */}
-                        <div className="bg-gray-900 rounded-2xl p-5 text-white">
-                            <div className="flex justify-between text-xs text-gray-400 mb-1">
-                                <span>Subtotal</span>
-                                <span>{formatCurrency(orcamento.subtotal)}</span>
-                            </div>
-                            {orcamento.desconto_total > 0 && (
-                                <div className="flex justify-between text-xs text-green-400 mb-1">
-                                    <span>Desconto</span>
-                                    <span>-{formatCurrency(orcamento.desconto_total)}</span>
+                        <div className="bg-white rounded-3xl p-6 border-2 border-orange-100 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+                            <div className="relative space-y-3">
+                                <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                    <span>Subtotal</span>
+                                    <span>{formatCurrency(orcamento.subtotal)}</span>
                                 </div>
-                            )}
-                            <div className="flex justify-between text-lg font-black pt-2 border-t border-white/10 mt-2">
-                                <span>TOTAL</span>
-                                <span className="text-orange-400">{formatCurrency(orcamento.total_final)}</span>
+                                {orcamento.desconto_total > 0 && (
+                                    <div className="flex justify-between text-xs font-bold text-green-600 uppercase tracking-widest">
+                                        <span>Desconto</span>
+                                        <span>-{formatCurrency(orcamento.desconto_total)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-end pt-4 border-t border-gray-100 mt-2">
+                                    <span className="font-black text-gray-400 text-[10px] uppercase tracking-widest pb-1">Total Final</span>
+                                    <span className="text-3xl font-black text-orange-600 tracking-tighter">{formatCurrency(orcamento.total_final)}</span>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -60,7 +60,7 @@ const A4LayoutOrcamento: React.FC<{
                     </tr>
                 </thead>
                 <tbody>
-                    {orcamento.items.map((item: any, idx: number) => (
+                    {(orcamento.itens || orcamento.items || []).map((item: any, idx: number) => (
                         <tr key={idx} className="border-b border-gray-100">
                             <td className="px-2 py-3">
                                 <p className="font-bold leading-tight">{item.nome_produto_snapshot}</p>
@@ -156,7 +156,7 @@ const ThermalLayoutOrcamento: React.FC<{
             </div>
             <div className="border-t border-dashed border-black my-2"></div>
             <div className="space-y-1">
-                {orcamento.items.map((item: any, idx: number) => (
+                {(orcamento.itens || orcamento.items || []).map((item: any, idx: number) => (
                     <div key={idx} className="mb-2">
                         <p className="font-bold uppercase">{item.nome_produto_snapshot}</p>
                         <div className="flex justify-between text-[10px]">
