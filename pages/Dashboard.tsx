@@ -262,7 +262,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro em OS</h3>
-                        <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight mt-0.5 break-all line-clamp-2">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}</p>
+                        <p className="text-base sm:text-lg lg:text-xl font-black text-emerald-600 tracking-tight mt-0.5 whitespace-nowrap">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}</p>
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
@@ -534,7 +534,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro Estimado</h3>
-                        <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight mt-0.5 break-all line-clamp-2">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
+                        <p className="text-base sm:text-lg lg:text-xl font-black text-emerald-600 tracking-tight mt-0.5 whitespace-nowrap">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
