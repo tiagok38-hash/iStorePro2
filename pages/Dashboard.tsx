@@ -70,7 +70,7 @@ const FinancialDiscrepancyBanner: React.FC<{ count: number; isPrivacyMode?: bool
 
 const StatCard: React.FC<{ title: string; value: string | number; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode; isPrivacyMode?: boolean; to?: string }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon, isPrivacyMode, to }) => {
     const content = (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     {icon && <div className="text-secondary">{icon}</div>}
@@ -104,7 +104,7 @@ const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacy
 
     return (
         <div
-            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
             <div className="flex justify-between items-center mb-6">
@@ -252,7 +252,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
     return (
         <div
-            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
             <div className="flex justify-between items-center mb-6">
@@ -352,7 +352,7 @@ const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: 
 
     return (
         <div
-            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
             <div className="flex justify-between items-center mb-6">
@@ -519,7 +519,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
@@ -635,7 +635,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products:
     return (
         <>
             <div
-                className={`p-6 glass-card h-full flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}
+                className={`p-6 glass-card h-full flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}
                 onClick={handleNavigate}
             >
                 <div className="flex justify-between items-center mb-6">
@@ -935,7 +935,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
     }, [paymentTotals]);
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
@@ -1009,7 +1009,7 @@ interface SoldItemInfo {
 const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ soldItems, className, isPrivacyMode }) => {
     return (
 
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
                     <TagIcon className="h-6 w-6" />
@@ -1064,7 +1064,7 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; suppliers: Suppli
 
     return (
 
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                     <PlusIcon className="h-6 w-6" />
@@ -1130,7 +1130,7 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; suppliers: Suppli
 const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     return (
 
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
                     <DeviceExchangeIcon className="h-6 w-6" />
@@ -1212,7 +1212,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     }, [products]);
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] group hover:shadow-[0_16px_40px_rgba(123,97,255,0.14)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
@@ -1231,7 +1231,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
 
             <div className="grid grid-cols-2 gap-4">
                 {/* Apple Column */}
-                <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200/60 shadow-sm relative overflow-hidden group">
+                <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-300/80 shadow-sm relative overflow-hidden group">
 
                     <div className="flex items-center gap-2 mb-3 relative z-10">
                         <div className="w-6 h-6 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-white">
@@ -1255,7 +1255,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                                 <span className="text-gray-500 font-medium">Venda:</span>
                                 <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.apple.value)}</span>
                             </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-gray-200/60">
+                            <div className="flex justify-between items-center pt-2 border-t border-gray-300/80">
                                 <span className="text-[10px] font-black text-gray-500 uppercase">Markup</span>
                                 <span className="bg-white text-green-700 px-2 py-0.5 rounded-full shadow-sm border border-gray-100 text-[10px] font-black">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
                             </div>
@@ -1420,7 +1420,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200/60 shadow-[0_8px_30px_rgba(123,97,255,0.08)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shadow-sm">
