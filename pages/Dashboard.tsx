@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices, getSuppliers } from '../services/mockApi.ts';
 import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service, Supplier } from '../types.ts';
-import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, AppleIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon } from '../components/icons.tsx';
+import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
@@ -68,28 +68,6 @@ const FinancialDiscrepancyBanner: React.FC<{ count: number; isPrivacyMode?: bool
 ));
 
 
-const StatCard: React.FC<{ title: string; value: string | number; subValue1?: string; subValue2?: string; subValue3?: string; className?: string; icon?: React.ReactNode; isPrivacyMode?: boolean; to?: string }> = React.memo(({ title, value, subValue1, subValue2, subValue3, className, icon, isPrivacyMode, to }) => {
-    const content = (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}>
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    {icon && <div className="text-secondary">{icon}</div>}
-                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">{title}</h3>
-                </div>
-                {!to && <button className="text-[10px] font-black tracking-widest text-muted bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-all">ATUALIZAR</button>}
-            </div>
-            <p className="text-3xl font-bold text-primary mt-2">{isPrivacyMode ? '****' : value}</p>
-            {subValue1 && <p className="text-sm text-blue-600 font-semibold mt-1">{isPrivacyMode ? '****' : subValue1}</p>}
-            {subValue2 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue2}</p>}
-            {subValue3 && <p className="text-base text-success font-semibold">{isPrivacyMode ? '****' : subValue3}</p>}
-        </div>
-    );
-
-    if (to) {
-        return <Link to={to} className="block h-full">{content}</Link>;
-    }
-    return content;
-});
 
 const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacyMode?: boolean; to?: string }> = React.memo(({ serviceOrders, isPrivacyMode, to }) => {
     const navigate = useNavigate();
