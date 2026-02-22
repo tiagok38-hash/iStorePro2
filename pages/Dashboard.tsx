@@ -252,7 +252,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
     return (
         <div
-            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
             <div className="flex flex-row justify-between items-start mb-4 gap-4">
@@ -290,7 +290,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={metrics.chartData}>
                         <defs>
-                            <linearGradient id="colorOSProfit" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="colorProfitOS" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                             </linearGradient>
@@ -304,7 +304,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                             dataKey="value"
                             stroke="#10b981"
                             fillOpacity={1}
-                            fill="url(#colorOSProfit)"
+                            fill="url(#colorProfitOS)"
                             strokeWidth={2}
                             animationDuration={1500}
                         />
@@ -526,7 +526,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 ${className || ''}`}>
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full justify-between transition-all duration-300 ${className || ''}`}>
             <div className="flex flex-row justify-between items-start mb-4 gap-4">
                 <div className="flex items-center gap-4 w-full xl:w-auto">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
@@ -561,7 +561,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
                         <defs>
-                            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id="colorProfitEstimated" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                             </linearGradient>
@@ -570,7 +570,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                             cursor={false}
                             content={<ProfitTooltip period={period} />}
                         />
-                        <Area type="monotone" dataKey="value" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="value" stroke="#10b981" fillOpacity={1} fill="url(#colorProfitEstimated)" strokeWidth={2} />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
@@ -1219,70 +1219,60 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     }, [products]);
 
     return (
-        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] group transition-all duration-300 cursor-pointer ${className || ''}`}>
-            <div className="flex justify-between items-center mb-4">
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 cursor-pointer ${className || ''}`}>
+            <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shadow-sm shrink-0">
-                        <ArchiveBoxIcon className="h-5 w-5" />
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shadow-sm shrink-0">
+                        <ArchiveBoxIcon className="h-4 w-4" />
                     </div>
                     <div>
-                        <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Estoque</h3>
-                        <p className="text-lg font-black text-gray-800 tracking-tight leading-none mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
+                        <h3 className="text-[10px] font-black text-secondary uppercase tracking-wider">Estoque</h3>
+                        <p className="text-base font-black text-gray-800 tracking-tight leading-none mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
                     </div>
                 </div>
-                <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-wide border border-blue-100 flex items-center gap-1">
+                <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wide border border-blue-100 flex items-center gap-1">
                     <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></span>
-                    Tempo Real
+                    Real
                 </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
-                {/* Compact Apple */}
-                <div className="p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-300/80 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <img src="/AppleLog.png" alt="Apple" className="w-4 h-4 object-contain" />
-                        <span className="font-bold text-[10px] text-gray-800 uppercase">Apple</span>
-                        <span className="ml-auto font-black text-xs text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+                {/* Ultra Compact Apple */}
+                <div className="p-2 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-300/80 shadow-sm">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                        <img src="/AppleLog.png" alt="Apple" className="w-3 h-3 object-contain" />
+                        <span className="font-bold text-[9px] text-gray-800">APPLE</span>
+                        <span className="ml-auto font-black text-[10px] text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
                     </div>
-                    <div className="space-y-1 text-[9px]">
-                        <div className="flex justify-between text-gray-500">
-                            <span>Venda:</span>
-                            <span className="font-bold text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
-                        </div>
-                        <div className="flex justify-between text-gray-500">
-                            <span>Markup:</span>
-                            <span className="font-bold text-green-700">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
-                        </div>
+                    <div className="flex justify-between text-[8px] font-bold">
+                        <span className="text-gray-500">VALOR:</span>
+                        <span className="text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
                     </div>
                 </div>
 
-                {/* Compact Others */}
-                <div className="p-3 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <CubeIcon className="w-4 h-4 text-gray-400" />
-                        <span className="font-bold text-[10px] text-gray-800 uppercase">Outros</span>
-                        <span className="ml-auto font-black text-xs text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
+                {/* Ultra Compact Others */}
+                <div className="p-2 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                        <CubeIcon className="w-3 h-3 text-gray-400" />
+                        <span className="font-bold text-[9px] text-gray-800">OUTROS</span>
+                        <span className="ml-auto font-black text-[10px] text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
                     </div>
-                    <div className="space-y-1 text-[9px]">
-                        <div className="flex justify-between text-gray-500">
-                            <span>Venda:</span>
-                            <span className="font-bold text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
-                        </div>
-                        <div className="flex justify-between text-gray-500">
-                            <span>Markup:</span>
-                            <span className="font-bold text-green-700">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
-                        </div>
+                    <div className="flex justify-between text-[8px] font-bold">
+                        <span className="text-gray-500">VALOR:</span>
+                        <span className="text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="pt-3 border-t border-border flex items-center justify-between">
-                <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Valor de Venda</span>
-                    <span className="text-base font-black text-primary tracking-tight leading-none mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</span>
-                </div>
-                <div className="bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
-                    <span className="text-[9px] font-bold text-emerald-700">{isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`} markup</span>
+            <div className="mt-auto pt-2 border-t border-border">
+                <div className="flex items-center justify-between gap-1">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Valor de Venda</span>
+                        <span className="text-sm font-black text-primary tracking-tight leading-none mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</span>
+                    </div>
+                    <div className="bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 shrink-0">
+                        <span className="text-[8px] font-bold text-emerald-700 whitespace-nowrap">{isPrivacyMode ? '**' : stats.total.markup.toFixed(1)}% MKP</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1806,7 +1796,7 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] items-start">
+            <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
                 <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
                 <ServiceOrderProfitCard
                     serviceOrders={serviceOrders}
