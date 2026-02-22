@@ -286,7 +286,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                 </div>
             </div>
 
-            <div className="flex-1 min-h-[75px] -mx-2">
+            <div className="flex-1 min-h-[80px] -mx-2">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={metrics.chartData}>
                         <defs>
@@ -557,7 +557,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                 </div>
             </div>
 
-            <div className="flex-1 mt-4" style={{ minHeight: '75px' }}>
+            <div className="flex-1 mt-4" style={{ minHeight: '80px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
                         <defs>
@@ -1219,110 +1219,70 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     }, [products]);
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer h-full ${className || ''}`}>
-            <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
-                        <ArchiveBoxIcon className="h-6 w-6" />
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] group transition-all duration-300 cursor-pointer ${className || ''}`}>
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shadow-sm shrink-0">
+                        <ArchiveBoxIcon className="h-5 w-5" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Estoque</h3>
-                        <p className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
+                        <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Estoque</h3>
+                        <p className="text-lg font-black text-gray-800 tracking-tight leading-none mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
                     </div>
                 </div>
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wide border border-blue-100 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                    Em Tempo Real
+                <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-wide border border-blue-100 flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></span>
+                    Tempo Real
                 </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                {/* Apple Column */}
-                <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-300/80 shadow-sm relative overflow-hidden group">
-
-                    <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <div className="w-6 h-6 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-white">
-                            <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-cover" />
-                        </div>
-                        <p className="font-bold text-sm text-gray-800">Apple</p>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+                {/* Compact Apple */}
+                <div className="p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-300/80 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                        <img src="/AppleLog.png" alt="Apple" className="w-4 h-4 object-contain" />
+                        <span className="font-bold text-[10px] text-gray-800 uppercase">Apple</span>
+                        <span className="ml-auto font-black text-xs text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
                     </div>
-
-                    <div className="relative z-10 flex flex-col flex-1">
-                        <div className="text-center mb-4">
-                            <p className="text-3xl font-black text-primary tracking-tight leading-none">{isPrivacyMode ? '***' : stats.apple.count}</p>
-                            <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Itens em Estoque</p>
+                    <div className="space-y-1 text-[9px]">
+                        <div className="flex justify-between text-gray-500">
+                            <span>Venda:</span>
+                            <span className="font-bold text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
                         </div>
-
-                        <div className="space-y-2 text-xs mt-auto">
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-500 font-medium">Custo:</span>
-                                <span className="font-bold text-gray-800">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.apple.cost)}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-500 font-medium">Venda:</span>
-                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.apple.value)}</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-gray-300/80">
-                                <span className="text-[10px] font-black text-gray-500 uppercase">Markup</span>
-                                <span className="bg-white text-green-700 px-2 py-0.5 rounded-full shadow-sm border border-gray-100 text-[10px] font-black">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
-                            </div>
+                        <div className="flex justify-between text-gray-500">
+                            <span>Markup:</span>
+                            <span className="font-bold text-green-700">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Others Column */}
-                <div className="flex flex-col p-4 bg-white rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded-full border border-gray-200 text-gray-400">
-                            <CubeIcon className="w-3.5 h-3.5" />
-                        </div>
-                        <p className="font-bold text-sm text-gray-800">Outros</p>
+                {/* Compact Others */}
+                <div className="p-3 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                        <CubeIcon className="w-4 h-4 text-gray-400" />
+                        <span className="font-bold text-[10px] text-gray-800 uppercase">Outros</span>
+                        <span className="ml-auto font-black text-xs text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
                     </div>
-
-                    <div className="flex flex-col flex-1">
-                        <div className="text-center mb-4">
-                            <p className="text-3xl font-black text-primary tracking-tight leading-none">{isPrivacyMode ? '***' : stats.others.count}</p>
-                            <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Itens em Estoque</p>
+                    <div className="space-y-1 text-[9px]">
+                        <div className="flex justify-between text-gray-500">
+                            <span>Venda:</span>
+                            <span className="font-bold text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
                         </div>
-
-                        <div className="space-y-2 text-xs mt-auto">
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-500 font-medium">Custo:</span>
-                                <span className="font-bold text-gray-800">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.others.cost)}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-500 font-medium">Venda:</span>
-                                <span className="font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.others.value)}</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                                <span className="text-[10px] font-black text-gray-500 uppercase">Markup</span>
-                                <span className="bg-gray-50 text-green-700 px-2 py-0.5 rounded-full border border-gray-100 text-[10px] font-black">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
-                            </div>
+                        <div className="flex justify-between text-gray-500">
+                            <span>Markup:</span>
+                            <span className="font-bold text-green-700">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Total Footer */}
-            <div className="mt-5 pt-4 border-t border-border">
-                <div className="flex items-end justify-between">
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-muted uppercase tracking-wider flex items-center gap-1">
-                            <ChartBarIcon className="w-3 h-3" /> Total Geral Estimado
-                        </p>
-                        <div className="flex gap-3 text-xs text-gray-500">
-                            <span>Custo: <strong className="text-gray-700">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.cost)}</strong></span>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-2xl font-bold text-primary leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
-                        <div className="flex justify-end mt-1">
-                            <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                {isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`} Markup Médio
-                            </span>
-                        </div>
-                    </div>
+            <div className="pt-3 border-t border-border flex items-center justify-between">
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Valor de Venda</span>
+                    <span className="text-base font-black text-primary tracking-tight leading-none mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</span>
+                </div>
+                <div className="bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
+                    <span className="text-[9px] font-bold text-emerald-700">{isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`} markup</span>
                 </div>
             </div>
         </div>
