@@ -1242,8 +1242,8 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                 {/* Apple Section */}
                 <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-300/80 shadow-sm relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <div className="w-6 h-6 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-white">
-                            <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-contain" />
+                        <div className="w-8 h-8 flex items-center justify-center rounded-xl overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-black">
+                            <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-contain p-0.5" />
                         </div>
                         <p className="font-bold text-sm text-secondary uppercase tracking-wider">Apple</p>
                         <span className="ml-auto font-black text-lg text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
@@ -1268,8 +1268,8 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                 {/* Others Section */}
                 <div className="flex flex-col p-4 bg-white rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <div className="w-6 h-6 flex items-center justify-center bg-gray-50 rounded-full border border-gray-100 text-gray-400 shrink-0">
-                            <CubeIcon className="w-3.5 h-3.5" />
+                        <div className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100 text-gray-400 shrink-0">
+                            <CubeIcon className="w-5 h-5" />
                         </div>
                         <p className="font-bold text-sm text-secondary uppercase tracking-wider">Outros</p>
                         <span className="ml-auto font-black text-lg text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
