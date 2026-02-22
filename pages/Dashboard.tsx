@@ -286,7 +286,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                 </div>
             </div>
 
-            <div className="flex-1 min-h-[85px] -mx-2">
+            <div className="flex-1 min-h-[75px] -mx-2">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={metrics.chartData}>
                         <defs>
@@ -557,7 +557,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                 </div>
             </div>
 
-            <div className="flex-1 mt-4" style={{ minHeight: '85px' }}>
+            <div className="flex-1 mt-4" style={{ minHeight: '75px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
                         <defs>
