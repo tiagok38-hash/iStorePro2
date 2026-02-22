@@ -1306,7 +1306,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                     </div>
                     <div className="text-right">
                         <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">Valor Total Venda</span>
-                        <div className="text-2xl font-black text-primary tracking-tighter leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
+                        <div className="text-2xl font-black text-emerald-600 tracking-tighter leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
                     </div>
                 </div>
             </div>
