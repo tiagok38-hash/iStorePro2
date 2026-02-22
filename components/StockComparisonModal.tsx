@@ -219,8 +219,8 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
         return grouped;
     };
 
-    const stockA = useMemo(() => getGroupedStock(locationA), [products, locationA]);
-    const stockB = useMemo(() => getGroupedStock(locationB), [products, locationB]);
+    const stockA = useMemo(() => getGroupedStock(locationA), [products, locationA, typeFilter]);
+    const stockB = useMemo(() => getGroupedStock(locationB), [products, locationB, typeFilter]);
 
     // Comparison Logic: Find what's in A but NOT in B (at all)
     const diffAtoB = useMemo(() => {
