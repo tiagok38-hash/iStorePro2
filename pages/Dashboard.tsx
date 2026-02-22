@@ -104,10 +104,10 @@ const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacy
 
     return (
         <div
-            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-amber-50 text-amber-600 rounded-xl shadow-sm">
                         <WrenchIcon className="h-6 w-6" />
@@ -122,7 +122,7 @@ const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacy
                 )}
             </div>
 
-            <div className="space-y-3 flex-1 overflow-y-auto max-h-[220px] pr-1 custom-scrollbar">
+            <div className="space-y-2 flex-1 overflow-y-auto max-h-[120px] pr-1 custom-scrollbar" style={{ minHeight: "75px" }}>
                 {recentOrders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                         <WrenchIcon className="w-8 h-8 text-gray-300 mb-2" />
@@ -359,10 +359,10 @@ const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: 
 
     return (
         <div
-            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-red-50 text-red-600 rounded-xl shadow-sm">
                         <PackageIcon className="h-6 w-6" />
@@ -377,7 +377,7 @@ const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: 
                 )}
             </div>
 
-            <div className="space-y-3 flex-1 overflow-y-auto max-h-[220px] pr-1 custom-scrollbar">
+            <div className="space-y-2 flex-1 overflow-y-auto max-h-[120px] pr-1 custom-scrollbar" style={{ minHeight: "75px" }}>
                 {recentItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                         <PackageIcon className="w-8 h-8 text-gray-300 mb-2" />
@@ -1427,8 +1427,8 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex justify-between items-center mb-6">
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 ${className || ''}`}>
+            <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shadow-sm">
                         <UsersIcon className="h-6 w-6" />
@@ -1466,7 +1466,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
             <div className="flex-1 flex flex-col justify-end">
 
-                <div className="h-16 w-full mt-2">
+                <div className="h-[75px] w-full mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={chartData}>
                             <defs>
