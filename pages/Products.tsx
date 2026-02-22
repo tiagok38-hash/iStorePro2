@@ -10,7 +10,7 @@ import {
     cancelPurchaseOrder,
     getBrands, getCategories, getProductModels, getGrades, getGradeValues, revertPurchaseLaunch,
     formatCurrency, findOrCreateSupplierFromCustomer,
-    getSales, getStorageLocations
+    getSales, getStorageLocations, getProductsByPurchaseForLabels
 } from '../services/mockApi.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -28,7 +28,7 @@ import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
     TicketIcon, DocumentArrowUpIcon, PlayCircleIcon, AppleIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
     BanknotesIcon, DocumentTextIcon, CalendarDaysIcon, ArrowsUpDownIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon,
-    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon, ClockIcon
+    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon, ClockIcon, PrinterIcon
 } from '../components/icons.tsx';
 
 // Lazy load heavy modal components for better performance
@@ -212,6 +212,7 @@ const Products: React.FC = () => {
     const [isBulkLocationUpdateModalOpen, setIsBulkLocationUpdateModalOpen] = useState(false);
     const [isUpdateStockModalOpen, setIsUpdateStockModalOpen] = useState(false);
     const [isLabelGeneratorModalOpen, setIsLabelGeneratorModalOpen] = useState(false);
+    const [labelGeneratorPreSelected, setLabelGeneratorPreSelected] = useState<Product[]>([]);
     const [isStockMovementModalOpen, setIsStockMovementModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -664,6 +665,30 @@ const Products: React.FC = () => {
     useEffect(() => {
         setCurrentPurchasePage(1);
     }, [purchaseSearchTerm, statusFilter, purchaseSortOrder, startDate, endDate]);
+
+    const handlePrintPurchaseLabels = async (purchase: PurchaseOrder) => {
+        if (!permissions?.canAccessEstoque && !permissions?.canViewPurchases) {
+            showToast('Você não tem permissão para imprimir etiquetas.', 'error');
+            return;
+        }
+
+        if (purchase.status === 'Cancelada' || purchase.stockStatus === 'Cancelada') {
+            showToast('Não é possível imprimir etiquetas de uma compra cancelada.', 'warning');
+            return;
+        }
+
+        try {
+            const productsForLabels = await getProductsByPurchaseForLabels(purchase.id);
+            if (productsForLabels.length === 0) {
+                showToast('Nenhum produto encontrado nesta compra.', 'warning');
+                return;
+            }
+            setLabelGeneratorPreSelected(productsForLabels);
+            setIsLabelGeneratorModalOpen(true);
+        } catch (error) {
+            showToast('Erro ao buscar produtos para impressão de etiquetas.', 'error');
+        }
+    };
 
     const handleOpenEditPurchaseModal = (purchase: PurchaseOrder) => { setPurchaseToEdit(purchase); setIsNewPurchaseModalOpen(true); };
 
@@ -1320,6 +1345,14 @@ const Products: React.FC = () => {
                                                 <td className="px-4 py-3"><StatusTag text={p.financialStatus} type={getFinancialStatusType(p.financialStatus)} /></td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-2.5">
+                                                        <button
+                                                            onClick={() => handlePrintPurchaseLabels(p)}
+                                                            title="Imprimir etiquetas desta compra"
+                                                            disabled={p.status === 'Cancelada'}
+                                                            className={`transition-colors ${p.status === 'Cancelada' ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                        >
+                                                            <PrinterIcon className={`h-5 w-5 ${p.status === 'Cancelada' ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'}`} />
+                                                        </button>
                                                         <button onClick={() => setPurchaseToView(p)} title="Visualizar"><EyeIcon className="h-5 w-5 text-blue-500 hover:text-blue-700" /></button>
                                                         {(permissions?.canLaunchPurchase && p.stockStatus === 'Lançado') ? (
                                                             <button
@@ -1448,7 +1481,7 @@ const Products: React.FC = () => {
                 <ProductModal isOpen={isProductModalOpen} product={editingProduct} suppliers={suppliers} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onClose={handleCloseProductModal} onSave={handleSaveProduct} customers={customers} onAddNewSupplier={handleAddNewSupplier} />
                 {isPriceListModalOpen && <PriceListModal isOpen={isPriceListModalOpen} onClose={() => setIsPriceListModalOpen(false)} products={products} hideSummary={true} />}
                 {isStockComparisonModalOpen && <StockComparisonModal products={products} locations={storageLocations} onClose={() => setIsStockComparisonModalOpen(false)} />}
-                {isLabelGeneratorModalOpen && <LabelGeneratorModal isOpen={isLabelGeneratorModalOpen} onClose={() => setIsLabelGeneratorModalOpen(false)} availableProducts={products} purchases={purchases} />}
+                {isLabelGeneratorModalOpen && <LabelGeneratorModal isOpen={isLabelGeneratorModalOpen} onClose={() => { setIsLabelGeneratorModalOpen(false); setLabelGeneratorPreSelected([]); }} availableProducts={products} purchases={purchases} preSelectedProducts={labelGeneratorPreSelected} />}
                 {isStockMovementModalOpen && <StockMovementModal isOpen={isStockMovementModalOpen} onClose={() => setIsStockMovementModalOpen(false)} products={products} users={users} currentUserId={user?.id} currentUserName={user?.name} onMovementCreated={() => fetchData(true)} showToast={showToast} />}
                 {isNewPurchaseModalOpen && <PurchaseOrderModal suppliers={suppliers} customers={customers} products={products} onClose={handleCloseNewPurchaseModal} purchaseOrderToEdit={purchaseToEdit} brands={brands} categories={categories} productModels={productModels} grades={grades} gradeValues={gradeValues} onAddNewSupplier={handleAddNewSupplier} />}
                 {stockInPurchase && <StockInModal purchaseOrder={stockInPurchase} onClose={handleCloseStockInModal} allProducts={products} grades={grades} gradeValues={gradeValues} />}

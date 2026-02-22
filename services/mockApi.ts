@@ -799,6 +799,29 @@ export const searchProducts = async (term: string): Promise<Product[]> => {
     });
 };
 
+export const getProductsByPurchaseForLabels = async (purchaseId: string): Promise<Product[]> => {
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase
+            .from('products')
+            .select('id, model, brand, sku, serialNumber, imei1, imei2, barcodes, price, createdAt, condition, color, storage, warranty, purchaseOrderId')
+            .eq('purchaseOrderId', purchaseId)
+            .order('createdAt', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching products by purchase for labels:', error);
+            throw error;
+        }
+
+        // Map camelCase
+        return (data || []).map((p: any) => ({
+            ...p,
+            serialNumber: p.serial_number || p.serialNumber,
+            purchaseOrderId: p.purchase_order_id || p.purchaseOrderId || p.purchaseId,
+            createdAt: p.created_at || p.createdAt,
+        }));
+    });
+};
+
 export const addProduct = async (data: any, userId: string = 'system', userName: string = 'Sistema'): Promise<Product> => {
     const { markup, selectedCustomerId, stockHistory, priceHistory, createdByName, ...rest } = data;
     const now = getNowISO();

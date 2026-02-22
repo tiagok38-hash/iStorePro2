@@ -341,19 +341,18 @@ const ServiceOrderFinancial: React.FC = () => {
 
                     <div className="flex items-center gap-3">
                         <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
-                            <CalendarDays className="h-4 w-4 text-gray-400 mr-3" />
                             <input
                                 type="date"
                                 value={filterStartDate}
                                 onChange={e => setFilterStartDate(e.target.value)}
-                                className="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 text-gray-500 outline-none uppercase tracking-wider"
+                                className="bg-transparent !border-none text-xs font-bold focus:ring-0 p-0 text-gray-500 outline-none uppercase tracking-wider"
                             />
                             <span className="text-gray-400 mx-3 font-black text-xs">ATÉ</span>
                             <input
                                 type="date"
                                 value={filterEndDate}
                                 onChange={e => setFilterEndDate(e.target.value)}
-                                className="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 text-gray-500 outline-none uppercase tracking-wider"
+                                className="bg-transparent !border-none text-xs font-bold focus:ring-0 p-0 text-gray-500 outline-none uppercase tracking-wider"
                             />
                         </div>
                     </div>

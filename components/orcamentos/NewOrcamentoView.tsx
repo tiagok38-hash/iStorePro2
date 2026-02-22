@@ -219,7 +219,7 @@ const NewOrcamentoView: React.FC<NewOrcamentoViewProps> = ({ onCancel, onSaved, 
         ).join('\n');
 
         const message = [
-            `*🏷️ ORÇAMENTO #${lastSavedOrcamento.numero}*`,
+            `*🏷️ ORÇAMENTO ${lastSavedOrcamento.numero}*`,
             `----------------------------------------------`,
             `Olá, *${customerName}*! Segue abaixo a simulação dos itens do seu interesse:`,
             ``,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { PurchaseOrder, PurchaseItem, Product } from '../types.ts';
 import { XCircleIcon } from './icons.tsx';
 import { formatCurrency } from '../services/mockApi.ts';
@@ -139,25 +140,22 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
 
 
 const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () => void; associatedProducts?: Product[] }> = ({ purchase, onClose, associatedProducts = [] }) => {
-    const supplierId = purchase.supplierId.split('-')[1] || purchase.supplierId;
-
-    // Calculate total items count
     const totalItems = (purchase.stockStatus === 'Lançado' || purchase.stockStatus === 'Parcialmente Lançado') && associatedProducts.length > 0
         ? associatedProducts.length
         : purchase.items.reduce((sum, item) => sum + item.quantity, 0);
 
-    // Lock body scroll on mount
     React.useEffect(() => {
+        const originalOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         return () => {
-            document.body.style.overflow = 'auto';
+            document.body.style.overflow = originalOverflow;
         };
     }, []);
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-            <div className="bg-surface rounded-3xl shadow-2xl p-4 md:p-8 w-full max-w-5xl mx-4 max-h-[95vh] flex flex-col animate-scale-in border border-gray-100 overflow-hidden">
-                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-50">
+    return createPortal(
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-[9999] p-4">
+            <div className="bg-surface rounded-3xl shadow-2xl p-4 md:p-8 w-full max-w-5xl max-h-[95vh] flex flex-col animate-scale-in border border-gray-100 overflow-hidden">
+                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-50 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="bg-gray-900 text-white p-3 rounded-2xl transform -rotate-3 shadow-lg">
                             <span className="text-xl font-black">#{purchase.displayId}</span>
@@ -174,7 +172,7 @@ const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () 
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-2">
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {(purchase.stockStatus === 'Lançado' || purchase.stockStatus === 'Parcialmente Lançado') && associatedProducts.length > 0 ? (
                         <LaunchedProductsTable products={associatedProducts} />
                     ) : (
@@ -193,7 +191,7 @@ const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () 
                     )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-50 flex justify-end items-center gap-10 text-right">
+                <div className="mt-6 pt-4 border-t border-gray-50 flex flex-wrap justify-end items-center gap-6 md:gap-10 text-right shrink-0">
                     <div className="flex flex-col gap-0.5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total de Itens</p>
                         <p className="font-bold text-gray-600">{totalItems}</p>
@@ -212,13 +210,14 @@ const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () 
                     </div>
                 </div>
 
-                <div className="flex justify-end mt-8">
-                    <button onClick={onClose} className="px-10 py-3 bg-gray-900 text-white rounded-2xl font-black hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200">
+                <div className="flex justify-end mt-8 shrink-0">
+                    <button onClick={onClose} className="w-full md:w-auto px-10 py-3 bg-gray-900 text-white rounded-2xl font-black hover:bg-black transition-all active:scale-95 shadow-xl shadow-gray-200">
                         Fechar Visualização
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

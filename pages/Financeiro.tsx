@@ -912,19 +912,18 @@ const Financeiro: React.FC = () => {
 
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center bg-gray-50 border border-border rounded-xl px-3 h-11">
-                                    <CalendarDaysIcon className="h-4 w-4 text-muted mr-3" />
                                     <input
                                         type="date"
                                         value={filterStartDate}
                                         onChange={e => setFilterStartDate(e.target.value)}
-                                        className="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 text-secondary"
+                                        className="bg-transparent !border-none text-xs font-bold focus:ring-0 p-0 text-secondary outline-none"
                                     />
                                     <span className="text-muted mx-3 font-black text-xs">ATÉ</span>
                                     <input
                                         type="date"
                                         value={filterEndDate}
                                         onChange={e => setFilterEndDate(e.target.value)}
-                                        className="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 text-secondary"
+                                        className="bg-transparent !border-none text-xs font-bold focus:ring-0 p-0 text-secondary outline-none"
                                     />
                                 </div>
                             </div>

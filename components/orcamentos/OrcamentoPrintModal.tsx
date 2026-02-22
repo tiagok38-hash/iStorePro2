@@ -30,7 +30,7 @@ const A4LayoutOrcamento: React.FC<{
                 </div>
                 <div className="text-right">
                     <h2 className="font-black text-2xl text-gray-800">ORÇAMENTO</h2>
-                    <p className="font-bold text-lg">#{orcamento.numero}</p>
+                    <p className="font-bold text-lg">{orcamento.numero}</p>
                     <p className="text-xs text-gray-500">{formatDateTime()}</p>
                 </div>
             </header>
@@ -149,7 +149,7 @@ const ThermalLayoutOrcamento: React.FC<{
                 <p className="text-[10px]">CNPJ: {companyInfo?.cnpj}</p>
             </div>
             <div className="border-t border-dashed border-black my-2"></div>
-            <p className="text-center font-bold text-sm">ORÇAMENTO #{orcamento.numero}</p>
+            <p className="text-center font-bold text-sm">ORÇAMENTO {orcamento.numero}</p>
             <div className="border-t border-dashed border-black my-2 text-[10px]">
                 <p>DATA: {formatDateTime()}</p>
                 <p>CLIENTE: {customer?.name || 'CONSUMIDOR'}</p>
@@ -310,7 +310,7 @@ const OrcamentoPrintModal: React.FC<{
                         </div>
                         <div>
                             <h2 className="font-black text-gray-800 uppercase tracking-tight">Recibo de Orçamento</h2>
-                            <p className="text-xs text-gray-500 font-medium">#{orcamento.numero}</p>
+                            <p className="text-xs text-gray-500 font-medium">{orcamento.numero}</p>
                         </div>
                     </div>
 

@@ -41,6 +41,14 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [sellerId, setSellerId] = useState('todos');
 
+    // Pagination for Model Analysis
+    const [modelCurrentPage, setModelCurrentPage] = useState(1);
+    const [modelItemsPerPage, setModelItemsPerPage] = useState(15);
+
+    // Pagination for Cancelled Sales
+    const [cancelCurrentPage, setCancelCurrentPage] = useState(1);
+    const [cancelItemsPerPage, setCancelItemsPerPage] = useState(15);
+
     // Helper: Product Map
     const productMap = useMemo(() => {
         return products.reduce((acc, p) => {
@@ -156,12 +164,17 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
         // It's hard to attribute global discount to specific items without pro-rating.
         // For "Type" reports, gross revenue is often acceptable to see volume.
 
-        const categoryList = Object.entries(categories).map(([name, data]) => ({
-            name,
-            revenue: data.revenue,
-            count: data.count,
-            margin: data.revenue > 0 ? ((data.revenue - data.cost) / data.revenue) * 100 : 0
-        })).sort((a, b) => b.revenue - a.revenue);
+        const categoryList = Object.entries(categories)
+            .filter(([name]) => {
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(name);
+                return name !== 'Sem Categoria' && !isUuid;
+            })
+            .map(([name, data]) => ({
+                name,
+                revenue: data.revenue,
+                count: data.count,
+                margin: data.revenue > 0 ? ((data.revenue - data.cost) / data.revenue) * 100 : 0
+            })).sort((a, b) => b.revenue - a.revenue);
 
         return { apple, other, categoryList };
     }, [filteredSales, productMap]);
@@ -230,6 +243,8 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             model: string,
             storage: string,
             condition: string,
+            brand: string,
+            category: string,
             totalUnits: number,
             totalCost: number,
             totalWholesale: number,
@@ -261,13 +276,19 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             }
 
             const condition = String(p.condition || 'N/A').trim();
-            const key = `${baseModel}-${storage}-${condition}`;
+            const brand = String(p.brand || '').trim();
+            const category = String(p.category || '').trim();
+
+            // Key now includes brand and category to separate "Bateria iPhone XR" from "iPhone XR" or "Tela iPhone XR"
+            const key = `${brand}-${category}-${baseModel}-${storage}-${condition}`;
 
             if (!groups[key]) {
                 groups[key] = {
                     model: baseModel,
                     storage,
                     condition,
+                    brand,
+                    category,
                     totalUnits: 0,
                     totalCost: 0,
                     totalWholesale: 0,
@@ -308,7 +329,9 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                 }
 
                 const condition = p.condition || 'N/A';
-                const key = `${baseModel}-${storage}-${condition}`;
+                const brand = String(p.brand || '').trim();
+                const category = String(p.category || '').trim();
+                const key = `${brand}-${category}-${baseModel}-${storage}-${condition}`;
 
                 if (groups[key]) {
                     groups[key].soldCount += item.quantity;
@@ -322,15 +345,12 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             const avgWholesale = g.totalUnits > 0 ? g.totalWholesale / g.totalUnits : 0;
             const avgListPrice = g.totalUnits > 0 ? g.totalSaleList / g.totalUnits : 0;
 
-            // Total volume = Stock + Sold
-            const displayTotalUnits = g.totalUnits + g.soldCount;
-
             const margin = avgListPrice > 0 ? ((avgListPrice - avgCost) / avgListPrice) * 100 : 0;
 
             return {
                 ...g,
                 stockUnits: g.totalUnits,
-                totalUnits: displayTotalUnits,
+                totalUnits: g.totalUnits, // Agora foca apenas no estoque atual
                 avgCost,
                 avgWholesale,
                 avgListPrice,
@@ -338,7 +358,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             };
         })
             .filter(g => g.stockUnits > 0)
-            .sort((a, b) => b.totalUnits - a.totalUnits);
+            .sort((a, b) => b.stockUnits - a.stockUnits);
     }, [products, filteredSales, productMap, productModels]);
 
     const filteredModelStats = useMemo(() => {
@@ -351,21 +371,44 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
         );
     }, [modelStats, searchTerm]);
 
+    const displayedModelStats = useMemo(() => {
+        const start = (modelCurrentPage - 1) * modelItemsPerPage;
+        return filteredModelStats.slice(start, start + modelItemsPerPage);
+    }, [filteredModelStats, modelCurrentPage, modelItemsPerPage]);
+
+    const totalModelPages = Math.ceil(filteredModelStats.length / modelItemsPerPage);
+
+    const displayedCancelledSales = useMemo(() => {
+        const start = (cancelCurrentPage - 1) * cancelItemsPerPage;
+        return cancelledSales.slice(start, start + cancelItemsPerPage);
+    }, [cancelledSales, cancelCurrentPage, cancelItemsPerPage]);
+
+    const totalCancelPages = Math.ceil(cancelledSales.length / cancelItemsPerPage);
+
+    // Reset pages on filter changes
+    React.useEffect(() => { setModelCurrentPage(1); }, [searchTerm, modelItemsPerPage]);
+    React.useEffect(() => { setCancelCurrentPage(1); }, [startDate, endDate, cancelItemsPerPage]);
+
     // 7. Salesperson Ranking
     const sellerStats = useMemo(() => {
-        const stats: Record<string, { name: string, sales: number, count: number }> = {};
+        const stats: Record<string, { id: string, name: string, sales: number, count: number }> = {};
 
         filteredSales.forEach(s => {
             const sid = s.salespersonId || 'unknown';
             if (!stats[sid]) {
                 const u = users.find(u => u.id === sid);
-                stats[sid] = { name: u ? u.name : 'Desconhecido', sales: 0, count: 0 };
+                stats[sid] = { id: sid, name: u ? u.name : 'Desconhecido', sales: 0, count: 0 };
             }
             stats[sid].sales += s.total;
             stats[sid].count += 1;
         });
 
         return Object.values(stats)
+            .filter(s => {
+                if (s.id === 'unknown') return false;
+                const u = users.find(user => user.id === s.id);
+                return u?.active !== false;
+            })
             .map(s => ({
                 ...s,
                 avgTicket: s.count > 0 ? s.sales / s.count : 0,
@@ -412,7 +455,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                         className="h-10 pl-3 pr-8 rounded-xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                     >
                         <option value="todos">Todos</option>
-                        {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        {users.filter(u => u.active !== false).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                 </div>
                 <button
@@ -422,43 +465,76 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                     Limpar
                 </button>
                 <div className="flex-1 text-right">
-                    <button onClick={handleExport} className="h-10 px-4 bg-primary text-white rounded-xl font-bold text-sm shadow hover:bg-primary/90 flex items-center gap-2 ml-auto">
-                        <DocumentArrowUpIcon className="w-4 h-4 transform rotate-180" />
+                    <button onClick={handleExport} className="h-12 px-6 bg-gradient-to-br from-[#10b981] to-[#059669] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-emerald-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap ml-auto">
+                        <DocumentArrowUpIcon className="w-6 h-6 transform rotate-180" />
                         Exportar CSV
                     </button>
                 </div>
             </div>
 
             {/* 2. Financial Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-blue-50 border border-blue-100 p-4 rounded-3xl">
-                    <h3 className="text-sm font-medium text-blue-800">Faturamento</h3>
-                    <p className="text-2xl font-bold text-blue-900 mt-1">{formatCurrency(financials.totalSales)}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Faturamento */}
+                <div className="relative overflow-hidden group rounded-[2rem]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-blue-600/5 group-hover:scale-110 transition-transform duration-500"></div>
+                    <div className="relative bg-white/40 backdrop-blur-md border border-blue-100 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all h-full">
+                        <div className="bg-blue-600 w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+                            <span className="text-white font-bold">$</span>
+                        </div>
+                        <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">Faturamento</h3>
+                        <p className="text-2xl font-black text-gray-900 mt-1 tracking-tight">{formatCurrency(financials.totalSales)}</p>
+                    </div>
                 </div>
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-3xl">
-                    <h3 className="text-sm font-medium text-emerald-800">Lucro Bruto</h3>
-                    <p className="text-2xl font-bold text-emerald-900 mt-1">{formatCurrency(financials.profit)}</p>
-                    <p className="text-xs font-semibold text-emerald-700 mt-1">Margem: {financials.margin.toFixed(1)}%</p>
+
+                {/* Lucro Bruto */}
+                <div className="relative overflow-hidden group rounded-[2rem]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-emerald-600/5 group-hover:scale-110 transition-transform duration-500"></div>
+                    <div className="relative bg-white/40 backdrop-blur-md border border-emerald-100 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all h-full">
+                        <div className="bg-emerald-600 w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20">
+                            <span className="text-white font-bold">↑</span>
+                        </div>
+                        <h3 className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Lucro Bruto</h3>
+                        <p className="text-2xl font-black text-gray-900 mt-1 tracking-tight">{formatCurrency(financials.profit)}</p>
+                        <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold mt-2">
+                            Mg: {financials.margin.toFixed(1)}%
+                        </div>
+                    </div>
                 </div>
-                <div className="bg-purple-50 border border-purple-100 p-4 rounded-3xl">
-                    <h3 className="text-sm font-medium text-purple-800">Ticket Médio</h3>
-                    <p className="text-2xl font-bold text-purple-900 mt-1">{formatCurrency(financials.avgTicket)}</p>
+
+                {/* Ticket Médio */}
+                <div className="relative overflow-hidden group rounded-[2rem]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-purple-600/5 group-hover:scale-110 transition-transform duration-500"></div>
+                    <div className="relative bg-white/40 backdrop-blur-md border border-purple-100 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all h-full">
+                        <div className="bg-purple-600 w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-purple-500/20">
+                            <span className="text-white font-bold">~</span>
+                        </div>
+                        <h3 className="text-xs font-bold text-purple-600 uppercase tracking-wider">Ticket Médio</h3>
+                        <p className="text-2xl font-black text-gray-900 mt-1 tracking-tight">{formatCurrency(financials.avgTicket)}</p>
+                    </div>
                 </div>
-                <div className="bg-orange-50 border border-orange-100 p-4 rounded-3xl">
-                    <h3 className="text-sm font-medium text-orange-800">Descontos</h3>
-                    <p className="text-2xl font-bold text-orange-900 mt-1">{formatCurrency(financials.totalDiscounts)}</p>
+
+                {/* Descontos */}
+                <div className="relative overflow-hidden group rounded-[2rem]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-orange-600/5 group-hover:scale-110 transition-transform duration-500"></div>
+                    <div className="relative bg-white/40 backdrop-blur-md border border-orange-100 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all h-full">
+                        <div className="bg-orange-600 w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-orange-500/20">
+                            <span className="text-white font-bold">-</span>
+                        </div>
+                        <h3 className="text-xs font-bold text-orange-600 uppercase tracking-wider">Descontos</h3>
+                        <p className="text-2xl font-black text-gray-900 mt-1 tracking-tight">{formatCurrency(financials.totalDiscounts)}</p>
+                    </div>
                 </div>
             </div>
 
             {/* 3. Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Payment Methods */}
-                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm flex flex-col">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-purple-500 rounded-full"></span>
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full"></span>
                         Formas de Pagamento
                     </h3>
-                    <div className="flex-1 min-h-[300px]">
+                    <div className="flex-1 min-h-[300px] relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -466,40 +542,71 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                     dataKey="value"
                                     nameKey="name"
                                     cx="50%" cy="50%"
-                                    innerRadius={60}
+                                    innerRadius={70}
                                     outerRadius={100}
-                                    paddingAngle={2}
+                                    paddingAngle={8}
+                                    cornerRadius={6}
                                 >
-                                    {paymentStats.map((_, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
+                                    {paymentStats.map((_, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={PIE_COLORS[index % PIE_COLORS.length]}
+                                            stroke="none"
+                                            className="hover:opacity-80 transition-opacity cursor-pointer"
+                                        />
+                                    ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                                <Legend layout="vertical" verticalAlign="middle" align="right" />
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: '1.5rem',
+                                        border: 'none',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                                        padding: '1rem'
+                                    }}
+                                    itemStyle={{ fontWeight: '900', color: '#111827' }}
+                                    formatter={(value: number) => formatCurrency(value)}
+                                />
+                                <Legend
+                                    layout="vertical"
+                                    verticalAlign="middle"
+                                    align="right"
+                                    formatter={(value) => <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">{value}</span>}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
                 {/* Salesperson Rankings */}
-                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm flex flex-col">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></span>
                         Ranking de Vendedores
                     </h3>
-                    <div className="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[300px]">
+                    <div className="flex-1 flex flex-col gap-4 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
                         {sellerStats.map((s, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-xl bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-600 text-xs">
+                            <div key={idx} className="group relative flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-orange-50 transition-all border border-transparent hover:border-orange-100">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-sm
+                                        ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-orange-200' :
+                                            idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-gray-200' :
+                                                idx === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-700 text-white shadow-orange-100' :
+                                                    'bg-white text-gray-400 border border-gray-200'}`}>
                                         {idx + 1}º
                                     </div>
                                     <div>
-                                        <p className="font-bold text-gray-900 text-sm">{s.name}</p>
-                                        <p className="text-xs text-gray-500">{s.count} vendas</p>
+                                        <p className="font-black text-gray-900 text-sm group-hover:text-orange-900 transition-colors uppercase tracking-tight">{s.name}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="inline-block w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{s.count} vendas concretizadas</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-primary">{formatCurrency(s.sales)}</p>
-                                    <p className="text-xs text-gray-500">{s.percent.toFixed(1)}% do total</p>
+                                    <p className="font-black text-emerald-500 text-base tracking-tight">{formatCurrency(s.sales)}</p>
+                                    <div className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 group-hover:text-orange-600 transition-colors uppercase tracking-widest">
+                                        {s.percent.toFixed(1)}% <span className="opacity-50">do total</span>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -509,36 +616,41 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
 
             {/* 4. Product Analysis (Apple vs Other & Categories) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
-                    <h3 className="font-bold text-gray-800 mb-4">Apple vs Outros</h3>
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm">
+                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full"></span>
+                        Apple vs Outros
+                    </h3>
                     <div className="space-y-4">
                         {(() => {
                             const totalGross = typeStats.apple.revenue + typeStats.other.revenue;
                             return (
                                 <>
-                                    <div className="p-4 bg-gray-50 rounded-xl flex justify-between items-center">
+                                    <div className="p-6 bg-gray-50/50 rounded-2xl flex justify-between items-center border border-gray-50 group hover:bg-blue-50 hover:border-blue-100 transition-all">
                                         <div>
-                                            <p className="font-bold text-gray-900">Apple</p>
-                                            <div className="flex gap-2">
-                                                <p className="text-xs text-gray-500">{typeStats.apple.count} itens</p>
-                                                <p className="text-xs font-bold text-blue-600">
-                                                    ({totalGross > 0 ? ((typeStats.apple.revenue / totalGross) * 100).toFixed(1) : '0.0'}%)
+                                            <p className="font-black text-gray-900 uppercase text-xs tracking-widest group-hover:text-blue-900">Apple Inc.</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{typeStats.apple.count} produtos</span>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                <p className="text-xs font-black text-blue-600">
+                                                    {totalGross > 0 ? ((typeStats.apple.revenue / totalGross) * 100).toFixed(1) : '0.0'}%
                                                 </p>
                                             </div>
                                         </div>
-                                        <p className="font-bold text-lg">{formatCurrency(typeStats.apple.revenue)}</p>
+                                        <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.apple.revenue)}</p>
                                     </div>
-                                    <div className="p-4 bg-gray-50 rounded-xl flex justify-between items-center">
+                                    <div className="p-6 bg-gray-50/50 rounded-2xl flex justify-between items-center border border-gray-50 group hover:bg-gray-100 hover:border-gray-200 transition-all">
                                         <div>
-                                            <p className="font-bold text-gray-900">Não Apple</p>
-                                            <div className="flex gap-2">
-                                                <p className="text-xs text-gray-500">{typeStats.other.count} itens</p>
-                                                <p className="text-xs font-bold text-blue-600">
-                                                    ({totalGross > 0 ? ((typeStats.other.revenue / totalGross) * 100).toFixed(1) : '0.0'}%)
+                                            <p className="font-black text-gray-900 uppercase text-xs tracking-widest group-hover:text-gray-900">Multimarcas</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{typeStats.other.count} produtos</span>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                <p className="text-xs font-black text-gray-500">
+                                                    {totalGross > 0 ? ((typeStats.other.revenue / totalGross) * 100).toFixed(1) : '0.0'}%
                                                 </p>
                                             </div>
                                         </div>
-                                        <p className="font-bold text-lg">{formatCurrency(typeStats.other.revenue)}</p>
+                                        <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.other.revenue)}</p>
                                     </div>
                                 </>
                             );
@@ -546,15 +658,23 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                     </div>
                 </div>
 
-                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
-                    <h3 className="font-bold text-gray-800 mb-4">Top Categorias</h3>
-                    <div className="overflow-y-auto max-h-[200px] space-y-2">
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm">
+                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-full"></span>
+                        Top Categorias
+                    </h3>
+                    <div className="overflow-y-auto max-h-[220px] space-y-3 pr-2 custom-scrollbar">
                         {typeStats.categoryList.map((cat, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-sm border-b border-gray-100 pb-2 last:border-0">
-                                <span className="font-medium text-gray-700">{cat.name}</span>
+                            <div key={idx} className="flex justify-between items-center p-3 rounded-xl hover:bg-emerald-50/50 transition-colors border-b border-gray-50 last:border-0">
+                                <div>
+                                    <span className="font-black text-gray-900 uppercase text-[11px] tracking-tight">{cat.name}</span>
+                                    <span className="inline-flex items-center ml-3 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase">
+                                        {cat.margin.toFixed(0)}% Mg
+                                    </span>
+                                </div>
                                 <div className="text-right">
-                                    <span className="font-bold block">{formatCurrency(cat.revenue)}</span>
-                                    <span className="text-[10px] text-emerald-600 block">Mg: {cat.margin.toFixed(0)}%</span>
+                                    <span className="font-black text-gray-900 text-sm tracking-tight block">{formatCurrency(cat.revenue)}</span>
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{cat.count} unidades</span>
                                 </div>
                             </div>
                         ))}
@@ -563,97 +683,202 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             </div>
 
             {/* 5. Critical: Report by Model */}
-            <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                    <h3 className="font-bold text-xl text-gray-800 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-indigo-600 rounded-full"></span>
-                        Média de Preços por Modelo (Estoque + Vendas)
-                    </h3>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Buscar modelo..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border rounded-xl text-sm w-full sm:w-96 focus:ring-2 focus:ring-primary/20 outline-none"
-                        />
-                        <SearchIcon className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
+            <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm overflow-hidden">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between flex-1 gap-6">
+                        <div>
+                            <h3 className="font-black text-2xl text-gray-900 flex items-center gap-3 tracking-tight">
+                                <span className="w-2 h-10 bg-gradient-to-b from-indigo-400 to-indigo-700 rounded-full"></span>
+                                Estoque e Preços Médios
+                            </h3>
+                            <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1 ml-5">ANÁLISE DE PRECO MÉDIO AGRUPADOS POR MODELO E CONDICAO IGUAIS</p>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Exibir:</span>
+                                <select
+                                    value={modelItemsPerPage}
+                                    onChange={(e) => setModelItemsPerPage(Number(e.target.value))}
+                                    className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-black outline-none focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                                >
+                                    <option value={15}>15</option>
+                                    <option value={30}>30</option>
+                                    <option value={45}>45</option>
+                                </select>
+                            </div>
+
+                            <div className="relative group">
+                                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Pesquisar modelo..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="block w-full lg:w-96 pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-gray-300"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left border-separate border-spacing-y-2">
+                        <thead className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
                             <tr>
-                                <th className="px-4 py-3">Modelo</th>
-                                <th className="px-4 py-3">Condição</th>
-                                <th className="px-4 py-3 text-center">Unidades Totais</th>
-                                <th className="px-4 py-3 text-right">Custo Médio</th>
-                                <th className="px-4 py-3 text-right text-orange-600">Atacado Médio</th>
-                                <th className="px-4 py-3 text-right">Venda Média (Tabela)</th>
-                                <th className="px-4 py-3 text-right">Margem Média</th>
+                                <th className="px-6 py-4">Produto</th>
+                                <th className="px-6 py-4">Condição</th>
+                                <th className="px-6 py-4 text-center">Qtde</th>
+                                <th className="px-6 py-4 text-right">Custo Médio</th>
+                                <th className="px-6 py-4 text-right text-orange-600">Atacado</th>
+                                <th className="px-6 py-4 text-right">Venda (Tabela)</th>
+                                <th className="px-6 py-4 text-right">Margem</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {filteredModelStats.slice(0, 50).map((m, idx) => (
-                                <tr key={idx} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-medium text-gray-900">
-                                        {m.model} <span className="text-gray-500 text-xs ml-1">{m.storage !== 'N/A' ? m.storage : ''}</span>
+                        <tbody className="text-sm">
+                            {displayedModelStats.map((m, idx) => (
+                                <tr key={idx} className="group hover:bg-gray-50/80 transition-all">
+                                    <td className="px-6 py-4 bg-gray-50/30 rounded-l-2xl border-y border-l border-transparent group-hover:border-gray-100">
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-gray-900 text-sm tracking-tight capitalize">{m.model}</span>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-0.5">
+                                                {m.brand} • {m.storage !== 'N/A' ? m.storage : 'STD'}
+                                            </span>
+                                        </div>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 rounded-xl text-xs font-bold ${m.condition === 'Novo' ? 'bg-green-100 text-green-700' :
-                                            m.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
-                                                m.condition === 'Seminovo' ? 'bg-blue-100 text-blue-700' :
-                                                    m.condition === 'CPO' ? 'bg-orange-100 text-orange-700' :
-                                                        m.condition === 'Vitrine' ? 'bg-purple-100 text-purple-700' :
-                                                            'bg-gray-100 text-gray-700'
-                                            }`}>
+                                    <td className="px-6 py-4 bg-gray-50/30 border-y border-transparent group-hover:border-gray-100">
+                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest
+                                            ${m.condition === 'Novo' ? 'bg-emerald-100 text-emerald-700' :
+                                                m.condition === 'Seminovo' ? 'bg-indigo-100 text-indigo-700' :
+                                                    'bg-gray-100 text-gray-600'}`}>
                                             {m.condition}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 text-center font-bold">{m.totalUnits}</td>
-                                    <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(m.avgCost)}</td>
-                                    <td className="px-4 py-3 text-right font-bold text-orange-600">{formatCurrency(m.avgWholesale)}</td>
-                                    <td className="px-4 py-3 text-right font-bold text-primary">{formatCurrency(m.avgListPrice)}</td>
-                                    <td className={`px-4 py-3 text-right font-bold ${m.margin >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                        {m.margin.toFixed(1)}%
+                                    <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100">
+                                        <span className="font-black text-gray-900">{m.totalUnits}</span>
+                                    </td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-right font-bold text-gray-400 border-y border-transparent group-hover:border-gray-100">
+                                        {formatCurrency(m.avgCost)}
+                                    </td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-right font-black text-orange-600 border-y border-transparent group-hover:border-gray-100">
+                                        {formatCurrency(m.avgWholesale)}
+                                    </td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-right font-black text-gray-900 border-y border-transparent group-hover:border-gray-100">
+                                        {formatCurrency(m.avgListPrice)}
+                                    </td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-right rounded-r-2xl border-y border-r border-transparent group-hover:border-gray-100">
+                                        <span className="font-black tracking-tighter text-emerald-500">
+                                            {m.margin.toFixed(1)}%
+                                        </span>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                    <p className="text-xs text-gray-400 mt-2 text-center">
-                        {filteredModelStats.length > 50 ? `Exibindo top 50 de ${filteredModelStats.length} resultados` : `${filteredModelStats.length} resultados encontrados`}
-                    </p>
                 </div>
-            </div>
 
+                {totalModelPages > 1 && (
+                    <div className="flex items-center justify-between mt-8 border-t border-gray-100 pt-6">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            Mostrando {Math.min(filteredModelStats.length, modelItemsPerPage)} de {filteredModelStats.length} resultados
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setModelCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={modelCurrentPage === 1}
+                                className="h-10 px-6 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                                Anterior
+                            </button>
+                            <button
+                                onClick={() => setModelCurrentPage(p => Math.min(totalModelPages, p + 1))}
+                                disabled={modelCurrentPage === totalModelPages}
+                                className="h-10 px-6 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
             {/* 6. Cancelled Sales */}
             {cancelledSales.length > 0 && (
-                <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
-                    <h3 className="font-bold text-red-600 mb-4">Vendas Canceladas ({cancelledSales.length})</h3>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-500 uppercase bg-red-50">
+                <div className="bg-red-50/30 border border-red-100 rounded-[2rem] p-8 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                        <div className="flex items-center gap-4">
+                            <span className="w-2 h-10 bg-gradient-to-b from-red-400 to-red-600 rounded-full"></span>
+                            <div>
+                                <h3 className="font-black text-2xl text-red-600 tracking-tight leading-none uppercase">Vendas Canceladas</h3>
+                                <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mt-1.5">{cancelledSales.length} registros encontrados</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Exibir:</span>
+                            <select
+                                value={cancelItemsPerPage}
+                                onChange={(e) => setCancelItemsPerPage(Number(e.target.value))}
+                                className="bg-white border border-red-100 rounded-xl px-3 py-2 text-xs font-black outline-none focus:ring-4 focus:ring-red-500/10 transition-all cursor-pointer text-red-600"
+                            >
+                                <option value={15}>15</option>
+                                <option value={30}>30</option>
+                                <option value={45}>45</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left border-separate border-spacing-y-2">
+                            <thead className="text-[10px] text-red-300 font-black uppercase tracking-[0.2em]">
                                 <tr>
-                                    <th className="px-4 py-2">Data</th>
-                                    <th className="px-4 py-2">Vendedor</th>
-                                    <th className="px-4 py-2">Total Estornado</th>
-                                    <th className="px-4 py-2">Motivo</th>
+                                    <th className="px-6 py-4">Data</th>
+                                    <th className="px-6 py-4">Vendedor</th>
+                                    <th className="px-6 py-4 text-right">Total Estornado</th>
+                                    <th className="px-6 py-4">Observações</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {cancelledSales.map(c => (
-                                    <tr key={c.id} className="border-b border-gray-100">
-                                        <td className="px-4 py-2">{new Date(c.date).toLocaleDateString()}</td>
-                                        <td className="px-4 py-2">{users.find(u => u.id === c.salespersonId)?.name || 'N/A'}</td>
-                                        <td className="px-4 py-2 font-bold text-red-600">{formatCurrency(c.total)}</td>
-                                        <td className="px-4 py-2 italic text-gray-500 max-w-xs truncate">{c.observations || '-'}</td>
+                            <tbody className="text-sm">
+                                {displayedCancelledSales.map(c => (
+                                    <tr key={c.id} className="group">
+                                        <td className="px-6 py-4 bg-white/50 rounded-l-2xl border-y border-l border-red-50 group-hover:bg-white transition-colors">
+                                            <span className="font-bold text-gray-600">{new Date(c.date).toLocaleDateString()}</span>
+                                        </td>
+                                        <td className="px-6 py-4 bg-white/50 border-y border-red-50 group-hover:bg-white transition-colors">
+                                            <span className="font-black text-gray-900 uppercase text-xs">{users.find(u => u.id === c.salespersonId)?.name || 'N/A'}</span>
+                                        </td>
+                                        <td className="px-6 py-4 bg-white/50 border-y border-red-50 group-hover:bg-white transition-colors text-right">
+                                            <span className="font-black text-red-600">{formatCurrency(c.total)}</span>
+                                        </td>
+                                        <td className="px-6 py-4 bg-white/50 rounded-r-2xl border-y border-r border-red-50 group-hover:bg-white transition-colors max-w-xs truncate italic text-gray-400 font-medium">
+                                            {c.observations || 'Nenhum motivo detalhado'}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
+
+                    {totalCancelPages > 1 && (
+                        <div className="flex items-center justify-between mt-8 border-t border-red-100/50 pt-6">
+                            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
+                                Página {cancelCurrentPage} de {totalCancelPages}
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setCancelCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={cancelCurrentPage === 1}
+                                    className="h-10 px-6 border border-red-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-red-600"
+                                >
+                                    Anterior
+                                </button>
+                                <button
+                                    onClick={() => setCancelCurrentPage(p => Math.min(totalCancelPages, p + 1))}
+                                    disabled={cancelCurrentPage === totalCancelPages}
+                                    className="h-10 px-6 border border-red-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-red-600"
+                                >
+                                    Próxima
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

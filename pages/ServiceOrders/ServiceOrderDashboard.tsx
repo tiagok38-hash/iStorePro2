@@ -292,7 +292,6 @@ const ServiceOrderDashboard: React.FC = () => {
                 </button>
                 <div className="flex items-center gap-2 ml-auto">
                     <div className={`flex items-center gap-2 p-1 rounded-xl transition-all ${periodFilter === 'custom' ? 'bg-white shadow-sm border border-gray-100' : ''}`}>
-                        <Calendar size={14} className="text-secondary ml-2" />
                         <input
                             type="date"
                             value={customStartDate}
@@ -300,7 +299,7 @@ const ServiceOrderDashboard: React.FC = () => {
                                 setCustomStartDate(e.target.value);
                                 setPeriodFilter('custom');
                             }}
-                            className="bg-transparent text-[10px] font-bold outline-none border-none p-1 focus:ring-0"
+                            className="bg-transparent text-[10px] font-bold outline-none !border-none p-1 focus:ring-0"
                         />
                         <span className="text-gray-300">|</span>
                         <input
@@ -310,7 +309,7 @@ const ServiceOrderDashboard: React.FC = () => {
                                 setCustomEndDate(e.target.value);
                                 setPeriodFilter('custom');
                             }}
-                            className="bg-transparent text-[10px] font-bold outline-none border-none p-1 focus:ring-0"
+                            className="bg-transparent text-[10px] font-bold outline-none !border-none p-1 focus:ring-0"
                         />
                     </div>
                 </div>

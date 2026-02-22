@@ -3,18 +3,47 @@ import { useSearchParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { Sale, Product, Customer, User, ProductModel } from '../types.ts';
 import { getSales, getProducts, getCustomers, getUsers, formatCurrency, getProductModels } from '../services/mockApi.ts';
-import { SpinnerIcon, CalendarDaysIcon, TrophyIcon, SearchIcon, ClockIcon } from '../components/icons.tsx';
+import { SpinnerIcon, CalendarDaysIcon, TrophyIcon, SearchIcon, ClockIcon, DocumentTextIcon, CurrencyDollarIcon, TrendingUpIcon, ShoppingCartIcon, BanknotesIcon, PackageIcon, WalletIcon, AppleIcon, Squares2x2Icon } from '../components/icons.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import PriceListModal from '../components/PriceListModal.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 import SalesReports from '../components/SalesReports.tsx';
 
-const KpiCard: React.FC<{ title: string; value: string; className?: string }> = ({ title, value, className }) => (
-    <div className={`p-4 rounded-3xl border shadow-sm backdrop-blur-md ${className || 'bg-surface border-border'}`}>
-        <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-    </div>
-);
+const PremiumKpiCard: React.FC<{
+    title: string;
+    value: string | number;
+    icon: React.ReactNode;
+    color: 'blue' | 'emerald' | 'purple' | 'orange' | 'indigo' | 'red';
+    subtitle?: React.ReactNode;
+    onClick?: () => void;
+}> = ({ title, value, icon, color, subtitle, onClick }) => {
+    const colorConfigs = {
+        blue: { bg: 'from-blue-600/10 to-blue-600/5', border: 'border-blue-100', text: 'text-blue-600', iconBg: 'bg-blue-600', shadow: 'shadow-blue-500/20' },
+        emerald: { bg: 'from-emerald-600/10 to-emerald-600/5', border: 'border-emerald-100', text: 'text-emerald-600', iconBg: 'bg-emerald-600', shadow: 'shadow-emerald-500/20' },
+        purple: { bg: 'from-purple-600/10 to-purple-600/5', border: 'border-purple-100', text: 'text-purple-600', iconBg: 'bg-purple-600', shadow: 'shadow-purple-500/20' },
+        orange: { bg: 'from-orange-600/10 to-orange-600/5', border: 'border-orange-100', text: 'text-orange-600', iconBg: 'bg-orange-600', shadow: 'shadow-orange-500/20' },
+        indigo: { bg: 'from-indigo-600/10 to-indigo-600/5', border: 'border-indigo-100', text: 'text-indigo-600', iconBg: 'bg-indigo-600', shadow: 'shadow-indigo-500/20' },
+        red: { bg: 'from-red-600/10 to-red-600/5', border: 'border-red-100', text: 'text-red-600', iconBg: 'bg-red-600', shadow: 'shadow-red-500/20' },
+    };
+
+    const config = colorConfigs[color];
+
+    return (
+        <div className={`relative overflow-hidden group rounded-[2rem] h-full ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
+            <div className={`absolute inset-0 bg-gradient-to-br ${config.bg} group-hover:scale-110 transition-transform duration-500`}></div>
+            <div className={`relative bg-white/40 backdrop-blur-md border ${config.border} p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all h-full`}>
+                <div className={`${config.iconBg} w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg ${config.shadow}`}>
+                    <div className="text-white">
+                        {React.cloneElement(icon as React.ReactElement, { size: 20 })}
+                    </div>
+                </div>
+                <h3 className={`text-xs font-bold ${config.text} uppercase tracking-wider`}>{title}</h3>
+                <p className="text-2xl font-black text-gray-900 mt-1 tracking-tight">{value}</p>
+                {subtitle && <div className="mt-2">{subtitle}</div>}
+            </div>
+        </div>
+    );
+};
 
 // Enhanced Custom Tooltip
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -60,6 +89,8 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     });
     const [endDate, setEndDate] = useState(toDateValue());
     const [sellerFilter, setSellerFilter] = useState('todos');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(15);
 
     const userMap = useMemo(() => users.reduce((acc, user) => ({ ...acc, [user.id]: user.name }), {} as Record<string, string>), [users]);
     const customerMap = useMemo(() => customers.reduce((acc, customer) => ({ ...acc, [customer.id]: customer.name }), {} as Record<string, string>), [customers]);
@@ -201,73 +232,98 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
         return Object.values(productSales).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 10);
     }, [filteredSales, productMap]);
 
+    const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
+    const displayedSales = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredSales.slice(start, start + itemsPerPage);
+    }, [filteredSales, currentPage, itemsPerPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [startDate, endDate, sellerFilter, itemsPerPage]);
+
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <KpiCard
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                <PremiumKpiCard
                     title="Faturamento Total"
                     value={formatCurrency(totalSales)}
-                    className="bg-blue-50/50 border-blue-100/50"
+                    icon={<CurrencyDollarIcon />}
+                    color="blue"
                 />
-                <KpiCard
+                <PremiumKpiCard
                     title="Lucro Líquido"
                     value={formatCurrency(totalProfit)}
-                    className={totalProfit >= 0 ? "bg-emerald-50/50 border-emerald-100/50" : "bg-red-50/50 border-red-100/50"}
+                    icon={<TrendingUpIcon />}
+                    color={totalProfit >= 0 ? "emerald" : "red"}
                 />
-                <KpiCard
+                <PremiumKpiCard
                     title="Vendas Realizadas"
-                    value={salesCount.toString()}
-                    className="bg-purple-50/50 border-purple-100/50"
+                    value={salesCount}
+                    icon={<ShoppingCartIcon />}
+                    color="purple"
                 />
-                <KpiCard
+                <PremiumKpiCard
                     title="Ticket Médio"
                     value={formatCurrency(avgTicket)}
-                    className="bg-orange-50/50 border-orange-100/50"
+                    icon={<BanknotesIcon />}
+                    color="orange"
                 />
-                <div className="p-4 rounded-3xl border shadow-sm bg-indigo-50/50 border-indigo-100/50 backdrop-blur-md">
-                    <h3 className="text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1 flex items-center gap-1">
-                        Categoria Vencedora
-                        <TrophyIcon className="w-3 h-3" />
-                    </h3>
-                    <p className="text-xl font-black text-indigo-900 leading-none">{winnerCategory.name}</p>
-                    <div className="mt-2 space-y-0.5">
-                        <div className="flex justify-between text-[10px]">
-                            <span className="text-indigo-600 font-bold uppercase">Faturamento</span>
-                            <span className="text-indigo-900 font-black">{formatCurrency(winnerCategory.faturamento)}</span>
+                <PremiumKpiCard
+                    title="Categoria Vencedora"
+                    value={winnerCategory.name}
+                    icon={<TrophyIcon />}
+                    color="indigo"
+                    subtitle={
+                        <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px]">
+                                <span className="text-indigo-600 font-bold uppercase">Faturamento</span>
+                                <span className="text-indigo-900 font-black">{formatCurrency(winnerCategory.faturamento)}</span>
+                            </div>
+                            <div className="flex justify-between text-[10px]">
+                                <span className="text-indigo-600 font-bold uppercase">Lucro</span>
+                                <span className="text-emerald-700 font-black">{formatCurrency(winnerCategory.lucro)}</span>
+                            </div>
                         </div>
-                        <div className="flex justify-between text-[10px]">
-                            <span className="text-indigo-600 font-bold uppercase">Lucro</span>
-                            <span className="text-emerald-700 font-black">{formatCurrency(winnerCategory.lucro)}</span>
-                        </div>
-                    </div>
-                </div>
+                    }
+                />
             </div>
 
-            <div className="bg-surface rounded-3xl p-4 flex flex-wrap items-end gap-6 shadow-sm border border-border">
-                <CustomDatePicker
-                    label="Data Inicial"
-                    value={startDate}
-                    onChange={setStartDate}
-                    max={toDateValue()}
-                />
-                <CustomDatePicker
-                    label="Data Final"
-                    value={endDate}
-                    onChange={setEndDate}
-                    max={toDateValue()}
-                />
-                <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-muted mb-1 block pl-1">Vendedor</label>
-                    <select value={sellerFilter} onChange={e => setSellerFilter(e.target.value)} className="px-3 border rounded-xl bg-white border-gray-200 h-10 w-48 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-shadow">
-                        <option value="todos">Todos os vendedores</option>
-                        {users.filter(u => u.active !== false).map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+            <div className="bg-white border border-gray-100 rounded-[2rem] p-4 flex flex-wrap items-end gap-6 shadow-sm">
+                <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">De</label>
+                    <CustomDatePicker
+                        value={startDate}
+                        onChange={setStartDate}
+                        max={toDateValue()}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Até</label>
+                    <CustomDatePicker
+                        value={endDate}
+                        onChange={setEndDate}
+                        max={toDateValue()}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vendedor</label>
+                    <select
+                        value={sellerFilter}
+                        onChange={(e) => setSellerFilter(e.target.value)}
+                        className="h-11 px-6 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                    >
+                        <option value="todos">Todos os Vendedores</option>
+                        {users.filter(u => u.active !== false).map(user => (
+                            <option key={user.id} value={user.id}>{user.name}</option>
+                        ))}
                     </select>
                 </div>
             </div>
 
-            <div className="bg-surface rounded-3xl p-6 shadow-sm border border-border">
-                <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-primary rounded-full"></span>
+            <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
+                    <span className="w-2 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full"></span>
                     Evolução Diária
                 </h3>
                 <ResponsiveContainer width="100%" height={350}>
@@ -295,9 +351,9 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="glass-card p-6 rounded-3xl shadow-sm flex flex-col">
-                    <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-purple-500 rounded-full"></span>
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full"></span>
                         Formas de Pagamento
                     </h3>
                     <div className="flex-1 w-full min-h-[300px]">
@@ -305,10 +361,10 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                             <PieChart>
                                 <Pie
                                     data={salesByPaymentMethodData}
-                                    cx="50%"
+                                    cx="40%"
                                     cy="50%"
-                                    innerRadius={80}
-                                    outerRadius={110}
+                                    innerRadius={90}
+                                    outerRadius={130}
                                     paddingAngle={3}
                                     dataKey="value"
                                     nameKey="name"
@@ -324,7 +380,10 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                                     align="right"
                                     iconType="circle"
                                     formatter={(value, entry: any) => (
-                                        <span className="text-sm font-medium text-gray-600 ml-1">{value}</span>
+                                        <div className="inline-flex items-baseline gap-2 ml-1 mb-3">
+                                            <span className="text-sm font-black text-gray-900">{formatCurrency(entry.payload.value)}</span>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{value}</span>
+                                        </div>
                                     )}
                                 />
                             </PieChart>
@@ -332,60 +391,76 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                     </div>
                 </div>
 
-                <div className="bg-surface p-6 rounded-3xl shadow-sm flex flex-col border border-border">
-                    <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-orange-500 rounded-full"></span>
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></span>
                         Top 10 Produtos
                     </h3>
-                    <div className="flex-1 w-full min-h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={topSellingProducts}
-                                layout="vertical"
-                                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-                                barSize={20}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
-                                <XAxis type="number" hide />
-                                <YAxis
-                                    type="category"
-                                    dataKey="name"
-                                    width={140}
-                                    tick={{ fontSize: 11, fill: '#64748b' }}
-                                    axisLine={false}
-                                    tickLine={false}
-                                />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                                <Bar
-                                    dataKey="revenue"
-                                    fill={COLORS.purple}
-                                    name="Faturamento"
-                                    radius={[0, 4, 4, 0]}
-                                    background={{ fill: '#f8fafc' }}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="space-y-4 mt-2">
+                        {(() => {
+                            const maxRevenue = Math.max(...topSellingProducts.map(p => p.revenue), 1);
+                            return topSellingProducts.map((product, index) => (
+                                <div key={index} className="flex items-center gap-3 group">
+                                    <div className="w-[180px] shrink-0">
+                                        <p className="text-[11px] font-bold text-gray-900 leading-tight group-hover:text-primary transition-colors">
+                                            {product.name}
+                                        </p>
+                                    </div>
+                                    <div className="flex-1 flex items-center gap-3">
+                                        <div className="relative flex-1 h-6 bg-gray-50 rounded-lg overflow-hidden border border-gray-100/50">
+                                            <div
+                                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-purple-600 rounded-r-md shadow-sm group-hover:from-purple-600 group-hover:to-purple-700 transition-all duration-500"
+                                                style={{ width: `${(product.revenue / maxRevenue) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className="text-xs font-black text-gray-900 shrink-0 min-w-[90px] text-right">
+                                            {formatCurrency(product.revenue)}
+                                        </span>
+                                    </div>
+                                </div>
+                            ));
+                        })()}
                     </div>
                 </div>
             </div>
 
-            <div className="bg-surface rounded-3xl p-6 border border-border shadow-sm">
-                <h2 className="text-xl font-semibold text-primary mb-4">Relatório Detalhado de Vendas</h2>
+            <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div className="flex items-center gap-4">
+                        <span className="w-2 h-10 bg-gradient-to-b from-indigo-400 to-indigo-700 rounded-full"></span>
+                        <div>
+                            <h3 className="font-black text-2xl text-gray-900 tracking-tight leading-none">Relatório Detalhado de Vendas</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{filteredSales.length} vendas encontradas</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Exibir:</span>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                            className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-black outline-none focus:ring-4 focus:ring-primary/10 transition-all font-sans"
+                        >
+                            <option value={15}>15</option>
+                            <option value={30}>30</option>
+                            <option value={45}>45</option>
+                        </select>
+                    </div>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-muted">
-                        <thead className="text-xs text-secondary uppercase bg-gray-50/50 border-b border-white/20">
+                        <thead className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
                             <tr>
-                                <th className="px-4 py-3">ID Venda</th>
-                                <th className="px-4 py-3">Data</th>
-                                <th className="px-4 py-3">Cliente</th>
-                                <th className="px-4 py-3">Vendedor</th>
-                                <th className="px-4 py-3">Itens</th>
-                                <th className="px-4 py-3 text-right">Total</th>
-                                <th className="px-4 py-3 text-right">Lucro</th>
+                                <th className="px-6 py-4">ID Venda</th>
+                                <th className="px-6 py-4">Data</th>
+                                <th className="px-6 py-4">Cliente</th>
+                                <th className="px-6 py-4">Vendedor</th>
+                                <th className="px-6 py-4">Itens</th>
+                                <th className="px-6 py-4 text-right">Total</th>
+                                <th className="px-6 py-4 text-right">Lucro</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredSales.map(sale => {
+                            {displayedSales.map(sale => {
                                 const saleCost = sale.items.reduce((cost, item) => {
                                     const product = productMap[item.productId];
                                     return cost + ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
@@ -393,20 +468,44 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                                 const revenue = sale.subtotal - sale.discount;
                                 const profit = revenue - saleCost;
                                 return (
-                                    <tr key={sale.id} className="border-b border-white/10 hover:bg-white/30 transition-colors">
-                                        <td className="px-4 py-3 font-medium text-primary">#{sale.id}</td>
-                                        <td className="px-4 py-3">{new Date(sale.date).toLocaleDateString('pt-BR')}</td>
-                                        <td className="px-4 py-3">{customerMap[sale.customerId] || 'N/A'}</td>
-                                        <td className="px-4 py-3">{userMap[sale.salespersonId] || 'N/A'}</td>
-                                        <td className="px-4 py-3">{sale.items.length}</td>
-                                        <td className="px-4 py-3 text-right font-semibold text-primary">{formatCurrency(sale.total)}</td>
-                                        <td className={`px-4 py-3 text-right font-semibold ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
+                                    <tr key={sale.id} className="group hover:bg-gray-50/80 transition-all">
+                                        <td className="px-6 py-4 bg-gray-50/30 rounded-l-2xl border-y border-l border-transparent group-hover:border-gray-100 font-bold text-primary">#{sale.id}</td>
+                                        <td className="px-6 py-4 bg-gray-50/30 border-y border-transparent group-hover:border-gray-100">{new Date(sale.date).toLocaleDateString('pt-BR')}</td>
+                                        <td className="px-6 py-4 bg-gray-50/30 border-y border-transparent group-hover:border-gray-100 font-medium text-gray-900">{customerMap[sale.customerId] || 'N/A'}</td>
+                                        <td className="px-6 py-4 bg-gray-50/30 border-y border-transparent group-hover:border-gray-100 font-black text-gray-400 uppercase text-[10px] tracking-widest">{userMap[sale.salespersonId] || 'N/A'}</td>
+                                        <td className="px-6 py-4 bg-gray-50/30 border-y border-transparent group-hover:border-gray-100 font-bold text-gray-700">{sale.items.length}</td>
+                                        <td className="px-6 py-4 bg-gray-50/30 border-y border-transparent group-hover:border-gray-100 text-right font-black text-primary">{formatCurrency(sale.total)}</td>
+                                        <td className={`px-6 py-4 bg-gray-50/30 rounded-r-2xl border-y border-r border-transparent group-hover:border-gray-100 text-right font-black ${profit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>{formatCurrency(profit)}</td>
                                     </tr>
                                 );
                             })}
                         </tbody>
                     </table>
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-8 border-t border-gray-100 pt-6">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="h-10 px-6 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                                Anterior
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="h-10 px-6 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div >
     );
@@ -602,91 +701,74 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                <KpiCard title="Total de Itens" value={kpis.totalItems.toLocaleString('pt-BR')} className="bg-blue-50/50 border-blue-100/50" />
-                <KpiCard title="Custo Estoque" value={formatCurrency(kpis.totalCost)} className="bg-orange-50/50 border-orange-100/50" />
-                <KpiCard title="Venda Estoque" value={formatCurrency(kpis.totalSaleValue)} className="bg-emerald-50/50 border-emerald-100/50" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+                <PremiumKpiCard title="Total de Itens" value={kpis.totalItems.toLocaleString('pt-BR')} icon={<PackageIcon />} color="blue" />
+                <PremiumKpiCard title="Custo Estoque" value={formatCurrency(kpis.totalCost)} icon={<WalletIcon />} color="orange" />
+                <PremiumKpiCard title="Venda Estoque" value={formatCurrency(kpis.totalSaleValue)} icon={<BanknotesIcon />} color="emerald" />
 
-                <div
+                <PremiumKpiCard
+                    title="Estoque Parado"
+                    value={kpis.idleCount}
+                    icon={<ClockIcon />}
+                    color="red"
                     onClick={() => setStockFilter('parado')}
-                    className="p-4 rounded-3xl border shadow-sm bg-red-50/50 border-red-100/50 backdrop-blur-md cursor-pointer hover:shadow-md transition-shadow group relative overflow-hidden"
-                >
-                    <div className="flex justify-between items-start relative z-10">
-                        <h3 className="text-sm font-medium text-red-800">Estoque Parado</h3>
-                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                            <select
-                                value={idleDays}
-                                onChange={(e) => setIdleDays(Number(e.target.value))}
-                                className="bg-white border border-red-200 text-[10px] font-black rounded-xl px-3 py-1 focus:ring-2 focus:ring-red-200 outline-none cursor-pointer text-red-700 shadow-sm hover:border-red-300 transition-colors"
-                            >
-                                <option value={15}>15 dias</option>
-                                <option value={30}>30 dias</option>
-                                <option value={60}>60 dias</option>
-                                <option value={90}>90 dias</option>
-                            </select>
-                        </div>
-                    </div>
-                    <p className="text-2xl font-bold text-red-900 mt-1 relative z-10">{kpis.idleCount}</p>
-                    <div className="absolute -right-2 -bottom-2 opacity-[0.03] transform rotate-12 transition-transform group-hover:scale-110">
-                        <ClockIcon className="w-20 h-20 text-red-900" />
-                    </div>
-                </div>
+                    subtitle={
+                        <select
+                            value={idleDays}
+                            onChange={(e) => { e.stopPropagation(); setIdleDays(Number(e.target.value)); }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-red-600/20 border border-red-200/20 text-[10px] font-black rounded-lg px-2 py-0.5 outline-none cursor-pointer text-red-700 shadow-sm"
+                        >
+                            <option value={15}>15 d</option>
+                            <option value={30}>30 d</option>
+                            <option value={60}>60 d</option>
+                        </select>
+                    }
+                />
 
-                <div className="p-4 rounded-3xl border shadow-sm bg-indigo-50/50 border-indigo-100/50 backdrop-blur-md">
-                    <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-[10px] font-black uppercase tracking-wider text-indigo-800">Estoque Apple</h3>
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-xl bg-indigo-100 text-indigo-700">
-                            {kpis.appleCount} {kpis.appleCount === 1 ? 'item' : 'itens'}
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-end">
-                            <span className="text-[9px] font-bold text-indigo-500 uppercase">Custo</span>
-                            <span className="text-xs font-bold text-indigo-900">{formatCurrency(kpis.appleCost)}</span>
+                <PremiumKpiCard
+                    title="Estoque Apple"
+                    value={kpis.appleCount}
+                    icon={<AppleIcon className="w-5 h-5 brightness-0 invert" />}
+                    color="indigo"
+                    subtitle={
+                        <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px]">
+                                <span className="text-indigo-600 font-bold uppercase">Custo</span>
+                                <span className="text-indigo-900 font-black">{formatCurrency(kpis.appleCost)}</span>
+                            </div>
+                            <div className="flex justify-between text-[10px]">
+                                <span className="text-indigo-600 font-bold uppercase">Mg</span>
+                                <span className="text-emerald-700 font-black">{kpis.appleMarkup.toFixed(1)}%</span>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-end">
-                            <span className="text-[9px] font-bold text-indigo-500 uppercase">Venda</span>
-                            <span className="text-xs font-black text-indigo-900">{formatCurrency(kpis.appleSaleValue)}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-indigo-200/50 mt-1">
-                            <span className="text-[9px] font-bold text-indigo-500 uppercase">Markup</span>
-                            <span className={`text-[10px] font-black ${kpis.appleMarkup >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                {kpis.appleMarkup.toFixed(1)}%
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                    }
+                />
 
-                <div className="p-4 rounded-3xl border shadow-sm bg-purple-50/50 border-purple-100/50 backdrop-blur-md">
-                    <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-[10px] font-black uppercase tracking-wider text-purple-800">Estoque Outros</h3>
-                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-xl bg-purple-100 text-purple-700">
-                            {kpis.otherCount} {kpis.otherCount === 1 ? 'item' : 'itens'}
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-end">
-                            <span className="text-[9px] font-bold text-purple-500 uppercase">Custo</span>
-                            <span className="text-xs font-bold text-purple-900">{formatCurrency(kpis.otherCost)}</span>
+                <PremiumKpiCard
+                    title="Estoque Outros"
+                    value={kpis.otherCount}
+                    icon={<Squares2x2Icon />}
+                    color="purple"
+                    subtitle={
+                        <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px]">
+                                <span className="text-purple-600 font-bold uppercase">Custo</span>
+                                <span className="text-purple-900 font-black">{formatCurrency(kpis.otherCost)}</span>
+                            </div>
+                            <div className="flex justify-between text-[10px]">
+                                <span className="text-purple-600 font-bold uppercase">Mg</span>
+                                <span className="text-emerald-700 font-black">{kpis.otherMarkup.toFixed(1)}%</span>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-end">
-                            <span className="text-[9px] font-bold text-purple-500 uppercase">Venda</span>
-                            <span className="text-xs font-black text-purple-900">{formatCurrency(kpis.otherSaleValue)}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-purple-200/50 mt-1">
-                            <span className="text-[9px] font-bold text-purple-500 uppercase">Markup</span>
-                            <span className={`text-[10px] font-black ${kpis.otherMarkup >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                {kpis.otherMarkup.toFixed(1)}%
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                    }
+                />
             </div>
 
-            <div className="bg-surface rounded-3xl border border-border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-[2rem] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-4 flex-1">
-                    <div className="relative flex-1 max-w-md">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <div className="relative flex-1 max-w-md group">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
                             <SearchIcon className="w-5 h-5" />
                         </span>
                         <input
@@ -694,7 +776,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                             placeholder="Buscar produto..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-xl bg-white border-gray-200 focus:ring-2 focus:ring-primary/20 outline-none h-10"
+                            className="w-full pl-10 pr-4 py-2 border rounded-xl bg-gray-50 border-gray-100 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all outline-none h-11 text-sm font-bold"
                         />
                     </div>
 
@@ -702,24 +784,24 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                         <select
                             value={brandFilter}
                             onChange={(e) => setBrandFilter(e.target.value)}
-                            className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-primary/20"
+                            className="h-11 px-4 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
                         >
-                            <option value="todos">Todos</option>
+                            <option value="todos">Todos Marcas</option>
                             <option value="apple">Apple</option>
-                            <option value="outros">Produtos (Não Apple)</option>
-                            <option value="non_unique">Produtos não únicos</option>
+                            <option value="outros">Outros</option>
+                            <option value="non_unique">Lotes</option>
                         </select>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-3xl border border-gray-200 shadow-sm self-start lg:self-center">
+                <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-2xl border border-gray-100 self-start lg:self-center">
                     {['todos', 'baixo', 'zerado', 'parado'].map((filter) => (
                         <button
                             key={filter}
                             onClick={() => setStockFilter(filter)}
-                            className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${stockFilter === filter
-                                ? 'bg-primary text-white shadow-lg shadow-gray-900/10'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${stockFilter === filter
+                                ? 'bg-primary text-white shadow-lg shadow-blue-500/20'
+                                : 'text-gray-400 hover:text-gray-900 hover:bg-white'
                                 }`}
                         >
                             {filter}
@@ -728,18 +810,21 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                 </div>
             </div>
 
-            <div className="bg-surface border border-border rounded-3xl p-6 shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-bold text-gray-800">Inventário Detalhado</h2>
-                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-xl">{filteredProducts.length}</span>
+            <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div className="flex items-center gap-4">
+                        <span className="w-2 h-10 bg-gradient-to-b from-indigo-400 to-indigo-700 rounded-full"></span>
+                        <div>
+                            <h2 className="text-2xl font-black text-gray-900 tracking-tight leading-none">Inventário Detalhado</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{filteredProducts.length} itens encontrados</p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span>Exibir:</span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Exibir:</span>
                         <select
                             value={itemsPerPage}
                             onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                            className="border border-gray-300 rounded px-3 py-1 bg-white focus:ring-2 focus:ring-primary/20 outline-none"
+                            className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs font-black outline-none focus:ring-4 focus:ring-primary/10 transition-all"
                         >
                             <option value={15}>15</option>
                             <option value={30}>30</option>
@@ -750,40 +835,40 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-gray-600">
-                        <thead className="text-xs text-secondary uppercase bg-gray-50/50 border-b border-white/20">
+                        <thead className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
                             <tr>
-                                <th className="px-4 py-3 font-semibold">Produto</th>
-                                <th className="px-4 py-3 text-center font-semibold">Estoque Atual</th>
-                                {stockFilter === 'parado' && <th className="px-4 py-3 text-center font-semibold">Tempo em Estoque</th>}
-                                <th className="px-4 py-3 text-center font-semibold">Mínimo</th>
-                                <th className="px-4 py-3 text-center font-semibold">Status</th>
-                                <th className="px-4 py-3 text-right font-semibold">Custo Total</th>
-                                <th className="px-4 py-3 text-right font-semibold">Venda Total</th>
+                                <th className="px-6 py-4">Produto</th>
+                                <th className="px-6 py-4 text-center">Unidades</th>
+                                {stockFilter === 'parado' && <th className="px-6 py-4 text-center">Tempo em Estoque</th>}
+                                <th className="px-6 py-4 text-center">Mínimo</th>
+                                <th className="px-6 py-4 text-center">Status</th>
+                                <th className="px-6 py-4 text-right">Custo Total</th>
+                                <th className="px-6 py-4 text-right">Venda Total</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/10">
                             {displayedProducts.map(product => (
-                                <tr key={product.id} className="hover:bg-white/30 transition-colors border-b border-white/10">
-                                    <td className="px-4 py-3 font-medium text-gray-900">
-                                        <div className="flex flex-col gap-1">
-                                            <span>{product.model}</span>
-                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                <tr key={product.id} className="group hover:bg-gray-50/80 transition-all">
+                                    <td className="px-6 py-4 bg-gray-50/30 rounded-l-2xl border-y border-l border-transparent group-hover:border-gray-100">
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className="font-black text-gray-900 text-sm tracking-tight">{product.model}</span>
+                                            <div className="flex flex-wrap gap-1.5">
                                                 {product.origin === 'Troca' && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase">Troca</span>
+                                                    <span className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-purple-100 text-purple-700 uppercase tracking-widest">Troca</span>
                                                 )}
                                                 {product.batteryHealth !== undefined && product.batteryHealth > 0 && (product.brand || '').toLowerCase().includes('apple') && (
-                                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${product.batteryHealth < 80 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
-                                                        SAÚDE: {product.batteryHealth}%
+                                                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black tracking-widest ${product.batteryHealth < 80 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                        {product.batteryHealth}% SAÚDE
                                                     </span>
                                                 )}
                                                 {product.imei1 && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                                    <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold bg-white text-gray-400 border border-gray-100 uppercase tracking-tighter">
                                                         IMEI: {product.imei1}
                                                     </span>
                                                 )}
                                                 {product.serialNumber && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                                                        S/N: {product.serialNumber}
+                                                    <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold bg-white text-gray-400 border border-gray-100 uppercase tracking-tighter">
+                                                        SN: {product.serialNumber}
                                                     </span>
                                                 )}
                                                 {product.variations && product.variations.length > 0 && (
@@ -794,9 +879,9 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-center font-bold text-lg text-gray-700">{product.stock}</td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100 font-black text-gray-900 text-lg">{product.stock}</td>
                                     {stockFilter === 'parado' && (
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100">
                                             <div className="flex flex-col items-center">
                                                 <span className="text-[10px] text-gray-500 font-medium">
                                                     {product.createdAt ? new Date(product.createdAt).toLocaleDateString('pt-BR') : '-'}
@@ -807,10 +892,10 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                                             </div>
                                         </td>
                                     )}
-                                    <td className="px-4 py-3 text-center text-gray-500">{product.minimumStock || '-'}</td>
-                                    <td className="px-4 py-3 text-center">{getStatus(product)}</td>
-                                    <td className="px-4 py-3 text-right">{formatCurrency(((product.costPrice || 0) + (product.additionalCostPrice || 0)) * product.stock)}</td>
-                                    <td className="px-4 py-3 text-right font-semibold text-primary">{formatCurrency(product.price * product.stock)}</td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100 font-bold text-gray-400">{product.minimumStock || '-'}</td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100">{getStatus(product)}</td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-right border-y border-transparent group-hover:border-gray-100 font-bold text-gray-400">{formatCurrency(((product.costPrice || 0) + (product.additionalCostPrice || 0)) * product.stock)}</td>
+                                    <td className="px-6 py-4 bg-gray-50/30 text-right rounded-r-2xl border-y border-r border-transparent group-hover:border-gray-100 font-black text-gray-900">{formatCurrency(product.price * product.stock)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -848,37 +933,37 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col">
-                    <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-indigo-500 rounded-full"></span>
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                    <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-3 uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-full"></span>
                         Produtos Mais Vendidos (Qtd)
                     </h3>
-                    <div className="flex-1 w-full min-h-[300px]">
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={topSellingData} layout="vertical" margin={{ top: 5, right: 40, left: 10, bottom: 5 }} barSize={20}>
+                    <div className="flex-1 w-full min-h-[450px]">
+                        <ResponsiveContainer width="100%" height={450}>
+                            <BarChart data={topSellingData} layout="vertical" margin={{ top: 5, right: 40, left: 30, bottom: 5 }} barSize={24}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
                                 <XAxis type="number" hide />
-                                <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <YAxis type="category" dataKey="name" width={260} tick={{ fontSize: 11, fontWeight: 700, fill: '#1f2937' }} axisLine={false} tickLine={false} />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                                 <Bar dataKey="value" fill={COLORS.purple} name="Quantidade" radius={[0, 4, 4, 0]} background={{ fill: '#f8fafc' }}>
-                                    <LabelList dataKey="value" position="right" fontSize={11} fill="#64748b" />
+                                    <LabelList dataKey="value" position="right" fontSize={12} fontWeight={800} fill="#111827" />
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                <div className="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col">
-                    <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-teal-500 rounded-full"></span>
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                    <h3 className="font-bold text-lg mb-6 text-gray-800 flex items-center gap-3 uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-teal-400 to-teal-600 rounded-full"></span>
                         Maiores Margens de Lucro (%)
                     </h3>
-                    <div className="flex-1 w-full min-h-[300px]">
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={highMarginData} layout="vertical" margin={{ top: 5, right: 45, left: 10, bottom: 5 }} barSize={20}>
+                    <div className="flex-1 w-full min-h-[450px]">
+                        <ResponsiveContainer width="100%" height={450}>
+                            <BarChart data={highMarginData} layout="vertical" margin={{ top: 5, right: 45, left: 30, bottom: 5 }} barSize={24}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
                                 <XAxis type="number" hide />
-                                <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <YAxis type="category" dataKey="name" width={260} tick={{ fontSize: 11, fontWeight: 700, fill: '#1f2937' }} axisLine={false} tickLine={false} />
                                 <Tooltip
                                     content={({ active, payload, label }: any) => {
                                         if (active && payload && payload.length) {
@@ -898,8 +983,9 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                                         dataKey="value"
                                         position="right"
                                         formatter={(val: number) => `${val.toFixed(1)}%`}
-                                        fontSize={11}
-                                        fill="#64748b"
+                                        fontSize={12}
+                                        fontWeight={800}
+                                        fill="#065f46"
                                     />
                                 </Bar>
                             </BarChart>
@@ -972,16 +1058,13 @@ const Reports: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h1 className="text-3xl font-bold text-primary">Relatórios</h1>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Relatórios</h1>
                 {activeTab === 'estoque' && (
                     <button
                         onClick={() => setIsPriceListModalOpen(true)}
-                        className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold text-sm uppercase tracking-wide shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95"
+                        className="h-12 px-6 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                        </svg>
-                        GERAR RELATÓRIO DE ESTOQUE E PREÇOS
+                        <DocumentTextIcon className="h-6 w-6" /> Gerar Relatório
                     </button>
                 )}
             </div>
@@ -991,7 +1074,7 @@ const Reports: React.FC = () => {
                     <button
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id); setSearchParams({ tab: tab.id }); }}
-                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === tab.id ? 'bg-primary text-white shadow-lg shadow-blue-500/20' : 'text-gray-400 hover:text-gray-900 hover:bg-white'}`}
                     >
                         {tab.label}
                     </button>

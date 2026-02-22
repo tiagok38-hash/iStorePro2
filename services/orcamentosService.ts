@@ -41,7 +41,7 @@ export const createOrcamento = async (
         .select('*', { count: 'exact', head: true });
 
     const nextNumber = (count || 0) + 1;
-    const formattedNumero = `#${nextNumber}`;
+    const formattedNumero = `#ORC-${nextNumber}`;
 
     // 1. Inserir Orçamento
     const { data: orcamento, error: orcErr } = await supabase
@@ -59,11 +59,14 @@ export const createOrcamento = async (
     if (orcErr) throw orcErr;
 
     // 2. Transforma e insere Itens vinculados ao ID do novo Orçamento
-    const itensToInsert = itensData.map(item => ({
-        ...item,
-        orcamento_id: orcamento.id,
-        created_at: getNowISO()
-    }));
+    const itensToInsert = itensData.map(item => {
+        const { id: _id, ...rest } = item as any;
+        return {
+            ...rest,
+            orcamento_id: orcamento.id,
+            created_at: getNowISO()
+        };
+    });
 
     if (itensToInsert.length > 0) {
         const { error: itensErr } = await supabase
@@ -120,12 +123,14 @@ export const updateOrcamento = async (
 
     if (delErr) throw delErr;
 
-    const itensToInsert = itensData.map(item => ({
-        ...item,
-        id: undefined, // Remove if exists so Postgres assigns a new UUID
-        orcamento_id: id,
-        created_at: getNowISO() // Ideally restore original date, but simplified for now
-    }));
+    const itensToInsert = itensData.map(item => {
+        const { id: _id, ...rest } = item as any;
+        return {
+            ...rest,
+            orcamento_id: id,
+            created_at: getNowISO()
+        };
+    });
 
     if (itensToInsert.length > 0) {
         const { error: insErr } = await supabase

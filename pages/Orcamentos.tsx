@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext.tsx';
-import { PlusIcon, DocumentTextIcon, SuccessIcon, XCircleIcon, ArrowPathIcon, TrashIcon, WhatsAppIcon, PrinterIcon } from '../components/icons.tsx';
+import { PlusIcon, DocumentTextIcon, SuccessIcon, XCircleIcon, ArrowPathIcon, TrashIcon, WhatsAppIcon, PrinterIcon, CalendarDaysIcon, TrendingUpIcon, ChartBarIcon } from '../components/icons.tsx';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import OrcamentoPrintModal from '../components/orcamentos/OrcamentoPrintModal.tsx';
 import { Orcamento } from '../types.ts';
 import { getOrcamentos, convertOrcamentoToSale } from '../services/orcamentosService.ts';
@@ -9,7 +10,6 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import { formatDateTimeBR } from '../utils/dateUtils.ts';
 import { formatCurrency } from '../services/mockApi.ts';
-// Import NewOrcamentoView (To be created)
 import NewOrcamentoView from '../components/orcamentos/NewOrcamentoView.tsx';
 
 type TabType = 'list' | 'new';
@@ -25,6 +25,36 @@ const Orcamentos: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [selectedOrcamento, setSelectedOrcamento] = useState<Orcamento | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+
+    // Filtros de Data
+    const [dateStart, setDateStart] = useState<string>(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d.toISOString().split('T')[0];
+    });
+    const [dateEnd, setDateEnd] = useState<string>(() => {
+        return new Date().toISOString().split('T')[0];
+    });
+
+    // Gráfico e Estatísticas
+    const stats = React.useMemo(() => {
+        const filtered = orcamentosList.filter(orc => {
+            const orcDate = orc.created_at ? orc.created_at.split('T')[0] : '';
+            return orcDate >= dateStart && orcDate <= dateEnd;
+        });
+
+        const total = filtered.length;
+        const converted = filtered.filter(orc => orc.status === 'convertido').length;
+        const remaining = total - converted;
+        const rate = total > 0 ? (converted / total) * 100 : 0;
+
+        const chartData = [
+            { name: 'Convertidos', value: converted, color: '#10b981' },
+            { name: 'Pendentes/Outros', value: remaining, color: '#fbbf24' }
+        ];
+
+        return { total, converted, remaining, rate, chartData, filteredList: filtered };
+    }, [orcamentosList, dateStart, dateEnd]);
 
     const loadOrcamentos = async () => {
         setLoading(true);
@@ -128,7 +158,23 @@ const Orcamentos: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200">
+                        <input
+                            type="date"
+                            value={dateStart}
+                            onChange={(e) => setDateStart(e.target.value)}
+                            className="text-xs font-bold text-gray-700 outline-none bg-transparent w-[110px] !border-none focus:ring-0 p-0"
+                        />
+                        <span className="text-[10px] font-black text-gray-300 uppercase px-1">até</span>
+                        <input
+                            type="date"
+                            value={dateEnd}
+                            onChange={(e) => setDateEnd(e.target.value)}
+                            className="text-xs font-bold text-gray-700 outline-none bg-transparent w-[110px] !border-none focus:ring-0 p-0"
+                        />
+                    </div>
+
                     <button
                         onClick={loadOrcamentos}
                         className="flex items-center justify-center p-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
@@ -148,65 +194,163 @@ const Orcamentos: React.FC = () => {
             <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6 custom-scrollbar">
                 {loading ? (
                     <SuspenseFallback />
-                ) : orcamentosList.length === 0 ? (
-                    <div className="bg-white rounded-[24px] border border-gray-100 p-12 text-center shadow-glass-sm max-w-2xl mx-auto mt-10">
-                        <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <DocumentTextIcon className="h-10 w-10 text-orange-400" />
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">Nenhum orçamento encontrado</h3>
-                        <p className="text-gray-500 mb-6">Comece a cadastrar orçamentos simulados para seus clientes.</p>
-                        <button
-                            onClick={() => setActiveTab('new')}
-                            className="bg-orange-300 hover:bg-orange-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-orange-300/20"
-                        >
-                            Criar Primeiro Orçamento
-                        </button>
-                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {orcamentosList.map(orc => (
-                            <div
-                                key={orc.id}
-                                onClick={() => setSelectedOrcamento(orc)}
-                                className="bg-white rounded-2xl border border-gray-100 p-5 shadow-glass-sm hover:shadow-glass hover:-translate-y-1 transition-all flex flex-col cursor-pointer group"
-                            >
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg mb-2 group-hover:bg-orange-100 group-hover:text-orange-700 transition-colors">
-                                            #{orc.numero}
-                                        </span>
-                                        <h4 className="font-black text-orange-400 text-xl tracking-tighter">
-                                            {formatCurrency(orc.total_final)}
-                                        </h4>
+                    <div className="flex flex-col gap-6">
+                        {/* Dashboard KPIs */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Total */}
+                            <div className="relative p-5 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
+                                <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
+                                <div className="relative">
+                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl w-fit mb-3">
+                                        <DocumentTextIcon className="w-5 h-5" />
                                     </div>
-                                    <StatusBadge status={orc.status} />
-                                </div>
-
-                                <div className="space-y-2 mb-4 flex-1">
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <div className="w-24 text-gray-400">Criado:</div>
-                                        <div className="font-medium text-gray-800">{formatDateTimeBR(orc.created_at)}</div>
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-600">
-                                        <div className="w-24 text-gray-400">Fechamento:</div>
-                                        <div className="font-bold text-orange-500">{orc.probabilidade_fechamento_percentual || 0}%</div>
-                                    </div>
-                                </div>
-
-                                <div className="border-t border-gray-100 pt-4 flex gap-2">
-                                    {orc.status !== 'convertido' && (
-                                        <button
-                                            onClick={(e) => handleConvert(orc, e)}
-                                            className="flex-1 py-2.5 bg-orange-400 text-white hover:bg-orange-500 rounded-xl font-bold transition-all text-sm shadow-sm shadow-orange-400/10">
-                                            Converter Venda
-                                        </button>
-                                    )}
-                                    <button className="flex-1 py-2.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-all text-sm">
-                                        Detalhes
-                                    </button>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total no Período</p>
+                                    <p className="text-3xl font-black text-gray-800 tracking-tighter leading-none">{stats.total}</p>
+                                    <p className="text-[11px] text-gray-400 font-medium mt-1.5">Orçamentos gerados</p>
                                 </div>
                             </div>
-                        ))}
+
+                            {/* Convertidos */}
+                            <div className="relative p-5 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
+                                <div className="absolute -top-4 -right-4 w-20 h-20 bg-emerald-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
+                                <div className="relative">
+                                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl w-fit mb-3">
+                                        <TrendingUpIcon className="w-5 h-5" />
+                                    </div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Convertidos</p>
+                                    <p className="text-3xl font-black text-emerald-600 tracking-tighter leading-none">{stats.converted}</p>
+                                    <p className="text-[11px] text-gray-400 font-medium mt-1.5">Viraram vendas</p>
+                                </div>
+                            </div>
+
+                            {/* Taxa de Conversão */}
+                            <div className="relative p-5 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
+                                <div className="absolute -top-4 -right-4 w-20 h-20 bg-orange-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
+                                <div className="relative">
+                                    <div className="p-2 bg-orange-50 text-orange-600 rounded-xl w-fit mb-3">
+                                        <SuccessIcon className="w-5 h-5" />
+                                    </div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Taxa de Conversão</p>
+                                    <p className="text-3xl font-black text-orange-500 tracking-tighter leading-none">{stats.rate.toFixed(1)}%</p>
+                                    <div className="mt-2.5 w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                        <div className="bg-gradient-to-r from-orange-300 to-orange-500 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.max(stats.rate, 2)}%` }}></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mini Gráfico Donut inline */}
+                            <div className="relative p-5 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow flex flex-col">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Funil de Conversão</p>
+                                {stats.total === 0 ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center">
+                                        <div className="w-[100px] h-[100px] rounded-full border-[8px] border-gray-100 flex items-center justify-center">
+                                            <span className="text-xs font-bold text-gray-300">Sem dados</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 flex items-center justify-center min-h-[120px]">
+                                        <ResponsiveContainer width="100%" height={140}>
+                                            <PieChart>
+                                                <Pie
+                                                    data={stats.chartData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={38}
+                                                    outerRadius={55}
+                                                    paddingAngle={3}
+                                                    dataKey="value"
+                                                    strokeWidth={0}
+                                                >
+                                                    {stats.chartData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: '12px', fontWeight: 'bold', padding: '8px 14px' }}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-center gap-3 mt-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                        <span className="text-[10px] font-bold text-gray-400">Vendas</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                                        <span className="text-[10px] font-bold text-gray-400">Pendentes</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tabela de Resultados */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between px-2">
+                                <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter">Últimos Orçamentos</h2>
+                                <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                                    {stats.filteredList.length} encontrados
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {stats.filteredList.length === 0 ? (
+                                    <div className="col-span-full bg-white rounded-[24px] border border-gray-100 p-12 text-center shadow-glass-sm mt-10">
+                                        <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <DocumentTextIcon className="h-10 w-10 text-orange-400" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-800 mb-2">Nenhum orçamento neste período</h3>
+                                        <p className="text-gray-500">Tente ajustar as datas do filtro.</p>
+                                    </div>
+                                ) : (
+                                    stats.filteredList.map((orc) => (
+                                        <div
+                                            key={orc.id}
+                                            onClick={() => setSelectedOrcamento(orc)}
+                                            className="bg-white rounded-2xl border border-gray-100 p-5 shadow-glass-sm hover:shadow-glass hover:-translate-y-1 transition-all flex flex-col cursor-pointer group"
+                                        >
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg mb-2 group-hover:bg-orange-100 group-hover:text-orange-700 transition-colors">
+                                                        {orc.numero}
+                                                    </span>
+                                                    <h4 className="font-black text-orange-400 text-xl tracking-tighter">
+                                                        {formatCurrency(orc.total_final)}
+                                                    </h4>
+                                                </div>
+                                                <StatusBadge status={orc.status} />
+                                            </div>
+
+                                            <div className="space-y-2 mb-4 flex-1">
+                                                <div className="flex items-center text-sm text-gray-600">
+                                                    <div className="w-24 text-gray-400">Criado:</div>
+                                                    <div className="font-medium text-gray-800">{formatDateTimeBR(orc.created_at)}</div>
+                                                </div>
+                                                <div className="flex items-center text-sm text-gray-600">
+                                                    <div className="w-24 text-gray-400">Fechamento:</div>
+                                                    <div className="font-bold text-orange-500">{orc.probabilidade_fechamento_percentual || 0}%</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="border-t border-gray-100 pt-4 flex gap-2">
+                                                {orc.status !== 'convertido' && (
+                                                    <button
+                                                        onClick={(e) => handleConvert(orc, e)}
+                                                        className="flex-1 py-2.5 bg-orange-400 text-white hover:bg-orange-500 rounded-xl font-bold transition-all text-sm shadow-sm shadow-orange-400/10">
+                                                        Converter Venda
+                                                    </button>
+                                                )}
+                                                <button className="flex-1 py-2.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-all text-sm">
+                                                    Detalhes
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </main>
@@ -233,11 +377,11 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
 
     const handleWhatsApp = () => {
         const itemsText = orcamento.itens?.map((item: any) =>
-            `• ${item.quantidade}x ${item.nome_produto_snapshot}: ${formatCurrency(item.total_snapshot)}`
+            `• ${item.quantidade}x ${item.nome_produto_snapshot}: ${formatCurrency(item.total_snapshot || (item.quantidade * item.preco_unitario_snapshot))}`
         ).join('\n') || '';
 
         const message = [
-            `*🏷️ ORÇAMENTO #${orcamento.numero}*`,
+            `*🏷️ ORÇAMENTO ${orcamento.numero}*`,
             `----------------------------------------------`,
             `Olá! Segue abaixo o resumo do seu orçamento:`,
             ``,
@@ -270,7 +414,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                         </div>
                         <div>
                             <h3 className="font-black text-gray-800 uppercase tracking-tight">Detalhes do Orçamento</h3>
-                            <p className="text-xs text-gray-500 font-bold">#{orcamento.numero}</p>
+                            <p className="text-xs text-gray-500 font-bold">{orcamento.numero}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
