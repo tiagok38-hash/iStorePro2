@@ -140,17 +140,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
                     </Link>
                 </div>
 
-                {/* Expanded Content: Toggle Button */}
-                {!effectiveIsCollapsed && (
-                    <div className="flex items-center ml-auto pr-4 animate-fade-in translate-y-[6px]">
-                        <button
-                            onClick={toggleCollapse}
-                            className="hidden lg:flex p-2 rounded-full bg-white/20 text-white hover:bg-white hover:text-accent transition-all shadow-sm"
-                        >
-                            <ChevronLeftIcon className={`h-5 w-5 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
-                        </button>
-                    </div>
-                )}
+                {/* Toggle Button - Now always visible and properly positioned */}
+                <div className={`flex items-center ml-auto pr-4 translate-y-[6px] transition-opacity duration-300 ${effectiveIsCollapsed ? 'opacity-0 lg:opacity-100' : 'opacity-100'}`}>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCollapse();
+                        }}
+                        className="flex p-2 rounded-full bg-white/20 text-white hover:bg-white hover:text-accent transition-all shadow-sm active:scale-90"
+                        title={isCollapsed ? "Expandir Menu" : "Recolher Menu"}
+                    >
+                        <ChevronLeftIcon className={`h-5 w-5 transition-transform duration-500 ${isCollapsed ? 'rotate-180' : ''}`} />
+                    </button>
+                </div>
             </div>
             <nav className="flex-1 px-3 py-6 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 <div className="space-y-1">
