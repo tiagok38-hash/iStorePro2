@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, StorageLocationParameter } from '../types.ts';
 import { XCircleIcon, ArrowsUpDownIcon, SearchIcon, CubeIcon, MapPinIcon, DocumentDuplicateIcon } from './icons.tsx';
-import { formatCurrency } from '../services/mockApi.ts';
+
 
 interface StockComparisonModalProps {
     products: Product[];
@@ -300,7 +300,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                             <select
                                 value={locationA}
                                 onChange={(e) => setLocationA(e.target.value)}
-                                className="w-full h-12 px-4 rounded-2xl border-2 border-border bg-white text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                className="w-full h-12 px-4 rounded-2xl border-2 border-gray-300 bg-white text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
                             >
                                 {locations.map(loc => (
                                     <option key={loc.id} value={loc.name}>{loc.name}</option>
@@ -315,7 +315,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                             <select
                                 value={locationB}
                                 onChange={(e) => setLocationB(e.target.value)}
-                                className="w-full h-12 px-4 rounded-2xl border-2 border-border bg-white text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                className="w-full h-12 px-4 rounded-2xl border-2 border-gray-300 bg-white text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
                             >
                                 {locations.map(loc => (
                                     <option key={loc.id} value={loc.name}>{loc.name}</option>
@@ -332,7 +332,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder="Filtrar por nome..."
-                                className="w-full h-12 pl-12 pr-4 rounded-2xl border-2 border-border bg-white text-sm font-medium focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-gray-400"
+                                className="w-full h-12 pl-12 pr-4 rounded-2xl border-2 border-gray-300 bg-white text-sm font-medium focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-gray-400"
                             />
                         </div>
 
