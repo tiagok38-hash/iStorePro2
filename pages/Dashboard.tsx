@@ -1192,7 +1192,7 @@ const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: str
     );
 });
 
-const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
+const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ products, className, isPrivacyMode, onNavigate }) => {
     const stats = useMemo(() => {
         // Status field does not strictly exist on Product type, use stock > 0
         const appleProducts = products.filter(p => p.stock > 0 && p.brand?.toLowerCase().includes('apple'));
@@ -1219,59 +1219,94 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     }, [products]);
 
     return (
-        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 cursor-pointer ${className || ''}`}>
-            <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shadow-sm shrink-0">
-                        <ArchiveBoxIcon className="h-4 w-4" />
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 cursor-pointer ${className || ''}`}
+            onClick={() => onNavigate?.()}
+        >
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm shrink-0">
+                        <ArchiveBoxIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-[10px] font-black text-secondary uppercase tracking-wider">Estoque</h3>
-                        <p className="text-base font-black text-gray-800 tracking-tight leading-none mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
+                        <h3 className="text-xs font-black text-secondary uppercase tracking-wider">Estoque</h3>
+                        <p className="text-2xl font-black text-gray-800 tracking-tight leading-none mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
                     </div>
                 </div>
-                <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wide border border-blue-100 flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></span>
-                    Real
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wide border border-blue-100 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                    Em Tempo Real
                 </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-3">
-                {/* Ultra Compact Apple */}
-                <div className="p-2 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-300/80 shadow-sm">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                        <img src="/AppleLog.png" alt="Apple" className="w-3 h-3 object-contain" />
-                        <span className="font-bold text-[9px] text-gray-800">APPLE</span>
-                        <span className="ml-auto font-black text-[10px] text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
+            <div className="grid grid-cols-2 gap-4 flex-1">
+                {/* Apple Section */}
+                <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-300/80 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center gap-2 mb-3 relative z-10">
+                        <div className="w-6 h-6 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-white">
+                            <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-contain" />
+                        </div>
+                        <p className="font-bold text-xs text-secondary uppercase tracking-wider">Apple</p>
+                        <span className="ml-auto font-black text-sm text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
                     </div>
-                    <div className="flex justify-between text-[8px] font-bold">
-                        <span className="text-gray-500">VALOR:</span>
-                        <span className="text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
+
+                    <div className="space-y-2 mt-auto relative z-10">
+                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                            <span className="text-gray-500 font-bold uppercase">Custo</span>
+                            <span className="font-black text-gray-700">{isPrivacyMode ? '***' : formatCurrency(stats.apple.cost)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                            <span className="text-gray-500 font-bold uppercase">Venda</span>
+                            <span className="font-black text-green-700">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
+                        </div>
+                        <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Markup</span>
+                            <span className="text-[10px] font-black text-emerald-600">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Ultra Compact Others */}
-                <div className="p-2 bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                        <CubeIcon className="w-3 h-3 text-gray-400" />
-                        <span className="font-bold text-[9px] text-gray-800">OUTROS</span>
-                        <span className="ml-auto font-black text-[10px] text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
+                {/* Others Section */}
+                <div className="flex flex-col p-4 bg-white rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center gap-2 mb-3 relative z-10">
+                        <div className="w-6 h-6 flex items-center justify-center bg-gray-50 rounded-full border border-gray-100 text-gray-400 shrink-0">
+                            <CubeIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <p className="font-bold text-xs text-secondary uppercase tracking-wider">Outros</p>
+                        <span className="ml-auto font-black text-sm text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
                     </div>
-                    <div className="flex justify-between text-[8px] font-bold">
-                        <span className="text-gray-500">VALOR:</span>
-                        <span className="text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
+
+                    <div className="space-y-2 mt-auto relative z-10">
+                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                            <span className="text-gray-500 font-bold uppercase">Custo</span>
+                            <span className="font-black text-gray-700">{isPrivacyMode ? '***' : formatCurrency(stats.others.cost)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                            <span className="text-gray-500 font-bold uppercase">Venda</span>
+                            <span className="font-black text-green-700">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
+                        </div>
+                        <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Markup</span>
+                            <span className="text-[10px] font-black text-emerald-600">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-auto pt-2 border-t border-border">
-                <div className="flex items-center justify-between gap-1">
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Valor de Venda</span>
-                        <span className="text-sm font-black text-primary tracking-tight leading-none mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</span>
+            {/* Total Footer */}
+            <div className="mt-5 pt-4 border-t border-border">
+                <div className="flex items-end justify-between">
+                    <div className="space-y-1.5">
+                        <p className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-1.5">
+                            <ChartBarIcon className="w-3.5 h-3.5" /> Total Geral Estimado
+                        </p>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[11px] text-gray-500 font-medium">Custo: <strong className="text-gray-700 font-black">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.cost)}</strong></span>
+                            <span className="text-[11px] text-gray-500 font-medium">Markup Médio: <strong className="text-emerald-600 font-black">{isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`}</strong></span>
+                        </div>
                     </div>
-                    <div className="bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 shrink-0">
-                        <span className="text-[8px] font-bold text-emerald-700 whitespace-nowrap">{isPrivacyMode ? '**' : stats.total.markup.toFixed(1)}% MKP</span>
+                    <div className="text-right">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Valor Total Venda</span>
+                        <div className="text-2xl font-black text-primary tracking-tighter leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
                     </div>
                 </div>
             </div>
