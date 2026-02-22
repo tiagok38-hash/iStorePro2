@@ -1245,22 +1245,22 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                         <div className="w-6 h-6 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-white">
                             <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-contain" />
                         </div>
-                        <p className="font-bold text-xs text-secondary uppercase tracking-wider">Apple</p>
-                        <span className="ml-auto font-black text-sm text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
+                        <p className="font-bold text-sm text-secondary uppercase tracking-wider">Apple</p>
+                        <span className="ml-auto font-black text-lg text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
                     </div>
 
-                    <div className="space-y-2 mt-auto relative z-10">
-                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                    <div className="space-y-3 mt-auto relative z-10">
+                        <div className="flex justify-between items-center text-xs leading-tight">
                             <span className="text-gray-500 font-bold uppercase">Custo</span>
-                            <span className="font-black text-gray-700">{isPrivacyMode ? '***' : formatCurrency(stats.apple.cost)}</span>
+                            <span className="font-black text-gray-800 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.apple.cost)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                        <div className="flex justify-between items-center text-xs leading-tight">
                             <span className="text-gray-500 font-bold uppercase">Venda</span>
-                            <span className="font-black text-green-700">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
+                            <span className="font-black text-green-700 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
                         </div>
                         <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
-                            <span className="text-[9px] font-black text-gray-400 uppercase">Markup</span>
-                            <span className="text-[10px] font-black text-emerald-600">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase">Markup</span>
+                            <span className="text-xs font-black text-emerald-600">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
                         </div>
                     </div>
                 </div>
@@ -1271,22 +1271,22 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                         <div className="w-6 h-6 flex items-center justify-center bg-gray-50 rounded-full border border-gray-100 text-gray-400 shrink-0">
                             <CubeIcon className="w-3.5 h-3.5" />
                         </div>
-                        <p className="font-bold text-xs text-secondary uppercase tracking-wider">Outros</p>
-                        <span className="ml-auto font-black text-sm text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
+                        <p className="font-bold text-sm text-secondary uppercase tracking-wider">Outros</p>
+                        <span className="ml-auto font-black text-lg text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
                     </div>
 
-                    <div className="space-y-2 mt-auto relative z-10">
-                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                    <div className="space-y-3 mt-auto relative z-10">
+                        <div className="flex justify-between items-center text-xs leading-tight">
                             <span className="text-gray-500 font-bold uppercase">Custo</span>
-                            <span className="font-black text-gray-700">{isPrivacyMode ? '***' : formatCurrency(stats.others.cost)}</span>
+                            <span className="font-black text-gray-800 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.others.cost)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] leading-tight">
+                        <div className="flex justify-between items-center text-xs leading-tight">
                             <span className="text-gray-500 font-bold uppercase">Venda</span>
-                            <span className="font-black text-green-700">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
+                            <span className="font-black text-green-700 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
                         </div>
                         <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
-                            <span className="text-[9px] font-black text-gray-400 uppercase">Markup</span>
-                            <span className="text-[10px] font-black text-emerald-600">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase">Markup</span>
+                            <span className="text-xs font-black text-emerald-600">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
                         </div>
                     </div>
                 </div>
@@ -1300,12 +1300,12 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
                             <ChartBarIcon className="w-3.5 h-3.5" /> Total Geral Estimado
                         </p>
                         <div className="flex flex-col gap-0.5">
-                            <span className="text-[11px] text-gray-500 font-medium">Custo: <strong className="text-gray-700 font-black">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.cost)}</strong></span>
-                            <span className="text-[11px] text-gray-500 font-medium">Markup Médio: <strong className="text-emerald-600 font-black">{isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`}</strong></span>
+                            <span className="text-xs text-gray-500 font-medium">Custo: <strong className="text-gray-700 font-black">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.cost)}</strong></span>
+                            <span className="text-xs text-gray-500 font-medium">Markup Médio: <strong className="text-emerald-600 font-black">{isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`}</strong></span>
                         </div>
                     </div>
                     <div className="text-right">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Valor Total Venda</span>
+                        <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">Valor Total Venda</span>
                         <div className="text-2xl font-black text-primary tracking-tighter leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
                     </div>
                 </div>
