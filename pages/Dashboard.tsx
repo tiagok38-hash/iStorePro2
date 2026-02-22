@@ -255,8 +255,8 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
             className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
-                <div className="flex items-center gap-4 w-full xl:w-auto">
+            <div className="flex flex-row justify-between items-start mb-6 gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
                         <TrendingUpIcon className="h-6 w-6" />
                     </div>
@@ -265,7 +265,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                         <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight mt-0.5 break-all line-clamp-2">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 self-end xl:self-auto shrink-0">
+                <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
                     <select
                         value={period}
                         onChange={(e) => { e.stopPropagation(); setPeriod(e.target.value as any); }}
@@ -278,6 +278,11 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                         <option value="week">Semana</option>
                         <option value="month">Mês</option>
                     </select>
+                    {to && (
+                        <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 shadow-sm" title="Ver detalhes">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -522,7 +527,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
     return (
         <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
+            <div className="flex flex-row justify-between items-start mb-6 gap-4">
                 <div className="flex items-center gap-4 w-full xl:w-auto">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
                         <CurrencyDollarIcon className="h-6 w-6" />
@@ -532,7 +537,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                         <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight mt-0.5 break-all line-clamp-2">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 self-end xl:self-auto shrink-0">
+                <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value as any)}
@@ -545,7 +550,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                         <option value="year">Ano</option>
                     </select>
                     {to && (
-                        <button onClick={handleNavigate} className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all active:scale-95" title="Ver vendas">
+                        <button onClick={handleNavigate} className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all active:scale-95 shadow-sm" title="Ver vendas">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                         </button>
                     )}
