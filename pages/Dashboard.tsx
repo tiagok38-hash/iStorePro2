@@ -255,17 +255,17 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
             className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
                         <TrendingUpIcon className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider truncate">Lucro em OS</h3>
-                        <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight mt-0.5 truncate">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}</p>
+                        <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro em OS</h3>
+                        <p className="text-lg sm:text-xl xl:text-2xl font-black text-emerald-600 tracking-tight mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
                     <select
                         value={period}
                         onChange={(e) => { e.stopPropagation(); setPeriod(e.target.value as any); }}
@@ -522,17 +522,17 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
     return (
         <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
                         <CurrencyDollarIcon className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider truncate">Lucro Estimado</h3>
-                        <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight mt-0.5 truncate">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
+                        <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro Estimado</h3>
+                        <p className="text-lg sm:text-xl xl:text-2xl font-black text-emerald-600 tracking-tight mt-0.5">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 self-end xl:self-auto shrink-0">
+                <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value as any)}
