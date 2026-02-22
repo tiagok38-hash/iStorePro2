@@ -252,10 +252,10 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
     return (
         <div
-            className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
-            <div className="flex flex-row justify-between items-start mb-6 gap-4">
+            <div className="flex flex-row justify-between items-start mb-4 gap-4">
                 <div className="flex items-center gap-4 min-w-0">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
                         <TrendingUpIcon className="h-6 w-6" />
@@ -286,7 +286,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                 </div>
             </div>
 
-            <div className="flex-1 min-h-[100px] -mx-2">
+            <div className="flex-1 min-h-[85px] -mx-2">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={metrics.chartData}>
                         <defs>
@@ -526,8 +526,8 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
-            <div className="flex flex-row justify-between items-start mb-6 gap-4">
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col justify-between transition-all duration-300 h-full ${className || ''}`}>
+            <div className="flex flex-row justify-between items-start mb-4 gap-4">
                 <div className="flex items-center gap-4 w-full xl:w-auto">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
                         <CurrencyDollarIcon className="h-6 w-6" />
@@ -557,7 +557,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                 </div>
             </div>
 
-            <div className="flex-1 mt-4" style={{ minHeight: '100px' }}>
+            <div className="flex-1 mt-4" style={{ minHeight: '85px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
                         <defs>
