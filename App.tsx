@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Outlet, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar.tsx';
 import Header from './components/Header.tsx';
@@ -13,6 +13,7 @@ import { OnlineStatusIndicator, SuspenseFallback } from './components/GlobalLoad
 import BottomNav from './components/BottomNav.tsx';
 import ChatLayout from './components/chat/ChatLayout.tsx';
 import { useUser } from './contexts/UserContext.tsx';
+import { lazyWithRetry } from './utils/lazyWithRetry.ts';
 
 // Sincroniza o userId do usuário logado com o ChatContext (para cálculo de não lidas)
 const ChatUserSync: React.FC = () => {
@@ -24,29 +25,29 @@ const ChatUserSync: React.FC = () => {
     return null;
 };
 
-const Dashboard = lazy(() => import('./pages/Dashboard.tsx'));
-const Products = lazy(() => import('./pages/Products.tsx'));
-const Customers = lazy(() => import('./pages/Customers.tsx'));
-const POS = lazy(() => import('./pages/POS.tsx'));
-const Reports = lazy(() => import('./pages/Reports.tsx'));
-const Company = lazy(() => import('./pages/Company.tsx'));
-const Vendas = lazy(() => import('./pages/Vendas.tsx'));
-const Orcamentos = lazy(() => import('./pages/Orcamentos.tsx'));
-const Login = lazy(() => import('./pages/Login.tsx'));
-const ServiceOrderLayout = lazy(() => import('./pages/ServiceOrders/ServiceOrderLayout.tsx'));
-const ServiceOrderDashboard = lazy(() => import('./pages/ServiceOrders/ServiceOrderDashboard.tsx'));
-const ServiceOrderList = lazy(() => import('./pages/ServiceOrders/ServiceOrderList.tsx'));
-const ServiceOrderForm = lazy(() => import('./pages/ServiceOrders/ServiceOrderForm.tsx'));
-const ServiceOrderProducts = lazy(() => import('./pages/ServiceOrders/ServiceOrderProducts.tsx'));
-const ServiceOrderCustomers = lazy(() => import('./pages/ServiceOrders/ServiceOrderCustomers.tsx'));
-const ServiceOrderSettings = lazy(() => import('./pages/ServiceOrders/ServiceOrderSettings.tsx'));
-const ServiceOrderFinancial = lazy(() => import('./pages/ServiceOrders/ServiceOrderFinancial.tsx'));
-const ServiceOrderReports = lazy(() => import('./pages/ServiceOrders/ServiceOrderReports.tsx'));
-const CatalogLayout = lazy(() => import('./pages/Catalog/CatalogLayout.tsx'));
-const CatalogAdmin = lazy(() => import('./pages/Catalog/CatalogAdmin.tsx'));
-const CatalogSettings = lazy(() => import('./pages/Catalog/CatalogSettings.tsx'));
-const CatalogPublic = lazy(() => import('./pages/Catalog/CatalogPublic.tsx'));
-const Financeiro = lazy(() => import('./pages/Financeiro.tsx'));
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard.tsx'), 'Dashboard');
+const Products = lazyWithRetry(() => import('./pages/Products.tsx'), 'Products');
+const Customers = lazyWithRetry(() => import('./pages/Customers.tsx'), 'Customers');
+const POS = lazyWithRetry(() => import('./pages/POS.tsx'), 'POS');
+const Reports = lazyWithRetry(() => import('./pages/Reports.tsx'), 'Reports');
+const Company = lazyWithRetry(() => import('./pages/Company.tsx'), 'Company');
+const Vendas = lazyWithRetry(() => import('./pages/Vendas.tsx'), 'Vendas');
+const Orcamentos = lazyWithRetry(() => import('./pages/Orcamentos.tsx'), 'Orcamentos');
+const Login = lazyWithRetry(() => import('./pages/Login.tsx'), 'Login');
+const ServiceOrderLayout = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderLayout.tsx'), 'SOLayout');
+const ServiceOrderDashboard = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderDashboard.tsx'), 'SODashboard');
+const ServiceOrderList = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderList.tsx'), 'SOList');
+const ServiceOrderForm = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderForm.tsx'), 'SOForm');
+const ServiceOrderProducts = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderProducts.tsx'), 'SOProducts');
+const ServiceOrderCustomers = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderCustomers.tsx'), 'SOCustomers');
+const ServiceOrderSettings = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderSettings.tsx'), 'SOSettings');
+const ServiceOrderFinancial = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderFinancial.tsx'), 'SOFinancial');
+const ServiceOrderReports = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderReports.tsx'), 'SOReports');
+const CatalogLayout = lazyWithRetry(() => import('./pages/Catalog/CatalogLayout.tsx'), 'CatalogLayout');
+const CatalogAdmin = lazyWithRetry(() => import('./pages/Catalog/CatalogAdmin.tsx'), 'CatalogAdmin');
+const CatalogSettings = lazyWithRetry(() => import('./pages/Catalog/CatalogSettings.tsx'), 'CatalogSettings');
+const CatalogPublic = lazyWithRetry(() => import('./pages/Catalog/CatalogPublic.tsx'), 'CatalogPublic');
+const Financeiro = lazyWithRetry(() => import('./pages/Financeiro.tsx'), 'Financeiro');
 
 const GlobalChat = () => {
     const { isChatOpen, closeChat } = useChat();

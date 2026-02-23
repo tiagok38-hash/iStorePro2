@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Sale, Product, Customer, User, SaleItem, PermissionProfile, Brand, Category, ProductModel, Grade, GradeValue, Supplier, ReceiptTermParameter, PermissionSet } from '../types.ts';
@@ -15,8 +15,10 @@ import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 
-// Lazy load heavy modal component
-const NewSaleModal = lazy(() => import('../components/NewSaleModal.tsx'));
+import { lazyWithRetry } from '../utils/lazyWithRetry.ts';
+
+// Lazy load heavy modal component (with auto-retry on chunk fail)
+const NewSaleModal = lazyWithRetry(() => import('../components/NewSaleModal.tsx'), 'NewSaleModal');
 
 
 // --- Helper Functions ---

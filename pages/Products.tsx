@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { Product, Sale, Customer, User, ProductCondition, PurchaseOrder, Supplier, StockStatus, Brand, Category, ProductModel, Grade, GradeValue, FinancialStatus, PermissionSet, StorageLocationParameter } from '../types.ts';
@@ -31,14 +31,16 @@ import {
     ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon, ClockIcon, PrinterIcon
 } from '../components/icons.tsx';
 
-// Lazy load heavy modal components for better performance
-const ProductModal = lazy(() => import('../components/ProductModal.tsx'));
-const PurchaseOrderModal = lazy(() => import('../components/PurchaseOrderModal.tsx').then(m => ({ default: m.PurchaseOrderModal })));
-const StockInModal = lazy(() => import('../components/StockInModal.tsx'));
-const PriceListModal = lazy(() => import('../components/PriceListModal.tsx'));
-const StockComparisonModal = lazy(() => import('../components/StockComparisonModal.tsx'));
-const LabelGeneratorModal = lazy(() => import('../components/LabelGenerator/LabelGeneratorModal.tsx'));
-const StockMovementModal = lazy(() => import('../components/StockMovementModal.tsx'));
+import { lazyWithRetry, lazyWithRetryNamed } from '../utils/lazyWithRetry.ts';
+
+// Lazy load heavy modal components for better performance (with auto-retry on chunk fail)
+const ProductModal = lazyWithRetry(() => import('../components/ProductModal.tsx'), 'ProductModal');
+const PurchaseOrderModal = lazyWithRetryNamed(() => import('../components/PurchaseOrderModal.tsx'), 'PurchaseOrderModal', 'PurchaseOrderModal');
+const StockInModal = lazyWithRetry(() => import('../components/StockInModal.tsx'), 'StockInModal');
+const PriceListModal = lazyWithRetry(() => import('../components/PriceListModal.tsx'), 'PriceListModal');
+const StockComparisonModal = lazyWithRetry(() => import('../components/StockComparisonModal.tsx'), 'StockComparisonModal');
+const LabelGeneratorModal = lazyWithRetry(() => import('../components/LabelGenerator/LabelGeneratorModal.tsx'), 'LabelGeneratorModal');
+const StockMovementModal = lazyWithRetry(() => import('../components/StockMovementModal.tsx'), 'StockMovementModal');
 
 
 const ProductActionsDropdown: React.FC<{ onHistory: () => void, onUpdateStock: () => void, onEdit: () => void, onDelete: () => void, permissions: PermissionSet | null }> = ({ onHistory, onUpdateStock, onEdit, onDelete, permissions }) => {
