@@ -11,6 +11,7 @@ import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import { formatDateTimeBR } from '../utils/dateUtils.ts';
 import { formatCurrency } from '../services/mockApi.ts';
 import NewOrcamentoView from '../components/orcamentos/NewOrcamentoView.tsx';
+import ConfirmationModal from '../components/ConfirmationModal.tsx';
 
 type TabType = 'list' | 'new';
 
@@ -35,6 +36,9 @@ const Orcamentos: React.FC = () => {
     const [dateEnd, setDateEnd] = useState<string>(() => {
         return new Date().toISOString().split('T')[0];
     });
+
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [orcamentoToConvert, setOrcamentoToConvert] = useState<Orcamento | null>(null);
 
     // Gráfico e Estatísticas
     const stats = React.useMemo(() => {
@@ -110,14 +114,38 @@ const Orcamentos: React.FC = () => {
                 return;
             }
 
-            // Confirmação via prompt simples ou alert personalizado (usando window.confirm para simplificar)
-            if (!window.confirm(`Deseja converter o orçamento #${orcamento.numero} em Venda? Os itens serão baixados do estoque.`)) {
+            if (!orcamento.cliente_id) {
+                showToast('Este orçamento não possui um cliente vinculado. Vincule um cliente antes de converter em venda.', 'warning');
                 return;
             }
 
-            await convertOrcamentoToSale(orcamento, user.id, user.name, openSession.id, openSession.displayId);
+            setOrcamentoToConvert(orcamento);
+            setIsConfirmModalOpen(true);
+        } catch (e: any) {
+            showToast(e.message || 'Falha ao iniciar conversão.', 'error');
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmConvert = async () => {
+        if (!user || !orcamentoToConvert) return;
+        try {
+            setLoading(true);
+            const sessions = await getCashSessions(user.id);
+            const openSession = sessions.find(s => s.userId === user.id && s.status === 'aberto');
+
+            if (!openSession) {
+                showToast('Caixa fechado. Não é possível converter.', 'error');
+                return;
+            }
+
+            await convertOrcamentoToSale(orcamentoToConvert, user.id, user.name, openSession.id, openSession.displayId);
             showToast('Orçamento convertido em venda com sucesso!', 'success');
             setSelectedOrcamento(null);
+            setIsConfirmModalOpen(false);
+            setOrcamentoToConvert(null);
             loadOrcamentos();
         } catch (e: any) {
             showToast(e.message || 'Falha ao converter o orçamento.', 'error');
@@ -342,8 +370,23 @@ const Orcamentos: React.FC = () => {
                                                         Converter Venda
                                                     </button>
                                                 )}
-                                                <button className="flex-1 py-2.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-all text-sm">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedOrcamento(orc);
+                                                    }}
+                                                    className="flex-1 py-2.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-all text-sm">
                                                     Detalhes
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(orc.id);
+                                                    }}
+                                                    className="p-2.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl transition-all shadow-sm shadow-red-500/5 group/del"
+                                                    title="Excluir Orçamento"
+                                                >
+                                                    <TrashIcon className="h-5 w-5 group-hover/del:scale-110 transition-transform" />
                                                 </button>
                                             </div>
                                         </div>
@@ -355,7 +398,6 @@ const Orcamentos: React.FC = () => {
                 )}
             </main>
 
-            {/* Modal de Detalhes do Orçamento */}
             {selectedOrcamento && (
                 <OrcamentoDetailsModal
                     orcamento={selectedOrcamento}
@@ -366,6 +408,18 @@ const Orcamentos: React.FC = () => {
                     user={user}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={isConfirmModalOpen}
+                title="Converter em Venda"
+                message={`Deseja converter o orçamento #${orcamentoToConvert?.numero} em Venda? Os items serão baixados do estoque e a venda será registrada no seu caixa atual.`}
+                variant="success"
+                onConfirm={confirmConvert}
+                onClose={() => {
+                    setIsConfirmModalOpen(false);
+                    setOrcamentoToConvert(null);
+                }}
+            />
         </div>
     );
 };
@@ -442,15 +496,16 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                                 {orcamento.itens?.map((item: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
                                         <div className="flex-1">
-                                            <div className="flex items-baseline gap-2 mb-1">
-                                                <p className="font-bold text-gray-900 text-base leading-tight">
+                                            <div className="flex flex-col mb-1">
+                                                <p className="font-bold text-gray-900 text-base leading-tight mb-1">
                                                     {item.nome_produto_snapshot}
                                                 </p>
-                                                {item.sku_snapshot && (
-                                                    <p className="text-[11px] text-gray-400 font-bold uppercase">
-                                                        {item.sku_snapshot}
-                                                    </p>
-                                                )}
+                                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-gray-500 uppercase font-black">
+                                                    {item.sku_snapshot && <span>SKU: {item.sku_snapshot}</span>}
+                                                    {item.metadata_snapshot?.imei1 && <span>IMEI: {item.metadata_snapshot.imei1}</span>}
+                                                    {item.metadata_snapshot?.serialNumber && <span>SN: {item.metadata_snapshot.serialNumber}</span>}
+                                                    {item.metadata_snapshot?.barcodes && item.metadata_snapshot.barcodes[0] && <span>EAN: {item.metadata_snapshot.barcodes[0]}</span>}
+                                                </div>
                                             </div>
                                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                                                 {item.quantidade}x {formatCurrency(item.preco_unitario_snapshot)}

@@ -1202,6 +1202,90 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     </div>
                                 </div>
                             </div>
+
+                            {/* ─── COMMISSION CONFIGURATION ─── */}
+                            {!isTradeInMode && (
+                                <div className="mt-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-[24px] border border-violet-100 p-5 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest">🏷️ Comissão</span>
+                                        </div>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <span className="text-[10px] font-bold text-gray-500">{formData.commission_enabled ? 'Ativa' : 'Desativada'}</span>
+                                            <div
+                                                className={`w-10 h-5 rounded-full p-0.5 transition-colors relative ${formData.commission_enabled ? 'bg-violet-600 shadow-[0_0_10px_rgba(109,40,217,0.3)]' : 'bg-gray-300'}`}
+                                                onClick={() => setFormData(p => ({ ...p, commission_enabled: !p.commission_enabled }))}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${formData.commission_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    {formData.commission_enabled && (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-[10px] font-black text-violet-500 uppercase tracking-widest px-1 mb-1 block">Tipo</label>
+                                                    <select
+                                                        value={formData.commission_type || 'percentage'}
+                                                        onChange={(e) => setFormData(p => ({ ...p, commission_type: e.target.value as any }))}
+                                                        className={inputClasses}
+                                                    >
+                                                        <option value="percentage">Percentual (%)</option>
+                                                        <option value="fixed">Valor Fixo (R$)</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-black text-violet-500 uppercase tracking-widest px-1 mb-1 block">
+                                                        Valor {formData.commission_type === 'fixed' ? '(R$)' : '(%)'}
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={formData.commission_value ?? ''}
+                                                        onChange={(e) => setFormData(p => ({ ...p, commission_value: e.target.value === '' ? 0 : parseFloat(e.target.value) }))}
+                                                        className={inputClasses}
+                                                        placeholder="0"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="border-t border-violet-200/50 pt-3">
+                                                <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest block mb-2">🔒 Limite de Desconto (perde comissão)</span>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-gray-500 px-1 mb-1 block">Tipo</label>
+                                                        <select
+                                                            value={formData.discount_limit_type || 'percentage'}
+                                                            onChange={(e) => setFormData(p => ({ ...p, discount_limit_type: e.target.value as any }))}
+                                                            className={inputClasses}
+                                                        >
+                                                            <option value="percentage">Percentual (%)</option>
+                                                            <option value="fixed">Valor Fixo (R$)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-gray-500 px-1 mb-1 block">
+                                                            Máx. {formData.discount_limit_type === 'fixed' ? '(R$)' : '(%)'}
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            value={formData.discount_limit_value ?? ''}
+                                                            onChange={(e) => setFormData(p => ({ ...p, discount_limit_value: e.target.value === '' ? 0 : parseFloat(e.target.value) }))}
+                                                            className={inputClasses}
+                                                            placeholder="0"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                         </div>
                     )}
 

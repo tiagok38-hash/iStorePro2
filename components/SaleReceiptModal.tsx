@@ -206,7 +206,9 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                     {/* Totals Section - 40% width */}
                     <div className="bg-white p-1.5 rounded-xl border border-black text-[9px]" style={{ width: '40%' }}>
                         <div className="flex justify-between"><span className="font-semibold">SUBTOTAL</span><span>{formatCurrency(sale.subtotal)}</span></div>
-                        <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.discount)}</span></div>
+                        {sale.subtotal - sale.total > 0 && (
+                            <div className="flex justify-between"><span className="font-semibold">DESCONTO</span><span>{formatCurrency(sale.subtotal - sale.total)}</span></div>
+                        )}
                         {/* Taxes line hidden as per request */}
                         <div className="flex justify-between border-t border-black pt-0.5 mt-0.5 font-bold text-[10px] font-black uppercase tracking-tight"><span>TOTAL</span><span>{formatCurrency(sale.total + totalFees)}</span></div>
                         {/* Highlighted PAGO section */}
@@ -314,7 +316,9 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
             <div className="border-t border-dashed border-black my-2"></div>
             <div className="space-y-0.5 text-right">
                 <div className="flex justify-between"><span className="text-left">Subtotal:</span><span>{formatCurrency(sale.subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-left">Desconto:</span><span>{formatCurrency(sale.discount)}</span></div>
+                {sale.subtotal - sale.total > 0 && (
+                    <div className="flex justify-between"><span className="text-left">Desconto:</span><span>{formatCurrency(sale.subtotal - sale.total)}</span></div>
+                )}
                 {/* Taxes line hidden as per request */}
                 <div className="flex justify-between font-bold text-sm"><span className="text-left">TOTAL:</span><span>{formatCurrency(sale.total)}</span></div>
             </div>

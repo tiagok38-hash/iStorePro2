@@ -89,7 +89,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
 
         filteredSales.forEach(s => {
             totalSales += s.total;
-            totalDiscounts += (s.discount || 0);
+            totalDiscounts += (s.subtotal - s.total);
 
             s.items.forEach(item => {
                 totalItems += item.quantity;

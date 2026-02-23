@@ -36,6 +36,11 @@ const AuditSettings: React.FC = () => {
             [AuditActionType.CASH_CLOSE]: 'Fechamento de Caixa',
             [AuditActionType.CASH_WITHDRAWAL]: 'Sangria',
             [AuditActionType.CASH_SUPPLY]: 'Suprimento',
+            [AuditActionType.COMMISSION_CREATE]: 'Gerar Comissão',
+            [AuditActionType.COMMISSION_CANCEL]: 'Cancelar Comissão',
+            [AuditActionType.COMMISSION_CLOSE]: 'Fechar Comissão',
+            [AuditActionType.COMMISSION_PAY]: 'Pagar Comissão',
+            [AuditActionType.COMMISSION_RECALCULATE]: 'Recalcular Comissão',
         };
         return translations[action] || action;
     };
@@ -63,6 +68,7 @@ const AuditSettings: React.FC = () => {
             [AuditEntityType.CASH_SESSION]: 'Caixa',
             [AuditEntityType.SERVICE]: 'Serviço',
             [AuditEntityType.SERVICE_ORDER]: 'Ordem de Serviço',
+            [AuditEntityType.COMMISSION]: 'Comissão',
         };
         return translations[entity] || entity;
     };

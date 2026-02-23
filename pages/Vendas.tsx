@@ -267,7 +267,16 @@ const Vendas: React.FC = () => {
                 fetchItem('PaymentMethods', getPaymentMethods, [])
             ]);
 
-            // Stage 2: Core Data (Heavy)
+            setPermissionProfiles(profilesData);
+            setBrands(brandsData);
+            setCategories(categoriesData);
+            setProductModels(modelsData);
+            setGrades(gradesData || []);
+            setGradeValues(gradeValuesData);
+            setReceiptTerms(receiptTermsData);
+            setPaymentMethods((paymentMethodsData || []).filter((m: any) => m.name && !m.name.toLowerCase().includes('pagseguro')));
+
+            // Stage 2: Core Data (Sales)
             // Sales is CRITICAL and should respect permission to see all or only own sales
             let salesData: Sale[] = [];
             try {
@@ -282,15 +291,6 @@ const Vendas: React.FC = () => {
                 throw new Error('Falha ao carregar lista de vendas.');
             }
 
-            // Products, Customers, Users, Suppliers - Fetch resiliently
-            const [productsData, customersData, usersData, suppliersData] = await Promise.all([
-                fetchItem('Products', () => getProducts(), []),
-                fetchItem('Customers', () => getCustomers(false), []),
-                fetchItem('Users', getUsers, []),
-                fetchItem('Suppliers', getSuppliers, [])
-            ]);
-
-
             // API already sorts by created_at DESC, but we keep this for extra safety with display dates
             const sortedSales = [...salesData].sort((a, b) => {
                 const dateA = a.date ? new Date(a.date).getTime() : 0;
@@ -298,82 +298,76 @@ const Vendas: React.FC = () => {
                 return dateB - dateA;
             });
             setSales(sortedSales);
-            setProducts(productsData);
-            setCustomers(customersData);
-            setUsers(usersData);
-            setPermissionProfiles(profilesData);
-            setBrands(brandsData);
-            setCategories(categoriesData);
-            setProductModels(modelsData);
-            setGrades(gradesData || []);
-            setGradeValues(gradeValuesData);
-            setSuppliers(suppliersData);
-            setReceiptTerms(receiptTermsData);
-            setPaymentMethods((paymentMethodsData || []).filter((m: any) => m.name && !m.name.toLowerCase().includes('pagseguro')));
 
-            const pMap: Record<string, Product> = {};
-            productsData.forEach((p: Product) => { pMap[p.id] = p; });
-            setProductMap(pMap);
+            // Once Sales & Metadata are ready, clear initial loading spinner
+            if (!silent) setLoading(false);
 
-            const cMap: Record<string, Customer> = {};
-            customersData.forEach((c: Customer) => { cMap[c.id] = c; });
-            setCustomerMap(cMap);
+            // Stage 3: Background Data (Support Entities)
+            // OPTIMIZATION: We exclude heavy JSONB columns for Products in the list view.
+            const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value';
 
-            const uMap: Record<string, User> = {};
-            usersData.forEach((u: User) => { uMap[u.id] = u; });
-            setUserMap(uMap);
+            fetchItem('Products', () => getProducts({ select: productSelect }), []).then(productsData => {
+                setProducts(productsData);
+                const pMap: Record<string, Product> = {};
+                productsData.forEach((p: Product) => { pMap[p.id] = p; });
+                setProductMap(pMap);
+            });
 
+            fetchItem('Customers', () => getCustomers(false), []).then(customersData => {
+                setCustomers(customersData);
+                const cMap: Record<string, Customer> = {};
+                customersData.forEach((c: Customer) => { cMap[c.id] = c; });
+                setCustomerMap(cMap);
+            });
+
+            fetchItem('Users', getUsers, []).then(usersData => {
+                setUsers(usersData);
+                const uMap: Record<string, User> = {};
+                usersData.forEach((u: User) => { uMap[u.id] = u; });
+                setUserMap(uMap);
+            });
+
+            fetchItem('Suppliers', getSuppliers, []).then(setSuppliers);
 
         } catch (error: any) {
-            console.error('Vendas: Erro ao carregar dados:', error);
+            const isAbort = error?.name === 'AbortError' || error?.message?.includes('aborted');
+            if (isAbort) {
+                console.warn('Vendas: Fetch aborted.');
+            } else {
+                console.error('Vendas: Error fetching data:', error);
 
-            // Auto-retry once after short delay (handles reconnection issues after idle)
-            if (retryCount < 1) {
-                isFetchingRef.current = false; // Allow retry
-                setTimeout(() => fetchData(silent, retryCount + 1), 2000);
-                return;
+                // Auto-retry once after short delay (handles reconnection issues after idle)
+                if (retryCount < 1) {
+                    setTimeout(() => fetchData(silent, retryCount + 1), 2000);
+                    return;
+                }
+
+                if (!silent) showToast('Erro ao carregar lista de vendas.', 'error');
             }
-
-            const msg = error.message || 'Erro ao carregar dados de vendas.';
-            setError(msg);
-            if (!silent) showToastRef.current(msg, 'error');
         } finally {
             isFetchingRef.current = false;
             if (!silent) setLoading(false);
         }
-    }, [user?.id, startDate, endDate, permissions]); // Dependencies to prevent stale closures
+    }, [user?.id, permissions, startDate, endDate, showToast]);
 
     useEffect(() => {
         fetchData();
 
-        // Smart Reload Listener
+        const handleCompanyUpdate = () => {
+            if (document.visibilityState !== 'visible') return;
+            fetchData(true);
+        };
+        window.addEventListener('company-data-updated', handleCompanyUpdate);
+
         const handleSmartReload = () => {
+            if (document.visibilityState !== 'visible') return;
             fetchData(true);
         };
         window.addEventListener('app-reloadData', handleSmartReload);
 
-        const channel = new BroadcastChannel('app_cache_sync');
-        channel.onmessage = (event) => {
-            if (event.data && event.data.type === 'CLEAR_CACHE') {
-                const keys = event.data.keys || event.data.prefixes;
-                if (keys && Array.isArray(keys) && keys.some((k: string) => ['sales', 'products', 'customers'].some(type => k.includes(type)))) {
-                    // Debounce to prevent rapid-fire reloads
-                    if (debounceTimeoutRef.current) {
-                        clearTimeout(debounceTimeoutRef.current);
-                    }
-                    debounceTimeoutRef.current = setTimeout(() => {
-                        fetchData(true);
-                    }, 500);
-                }
-            }
-        };
-
         return () => {
+            window.removeEventListener('company-data-updated', handleCompanyUpdate);
             window.removeEventListener('app-reloadData', handleSmartReload);
-            channel.close();
-            if (debounceTimeoutRef.current) {
-                clearTimeout(debounceTimeoutRef.current);
-            }
         };
     }, [fetchData]);
 
@@ -505,7 +499,7 @@ const Vendas: React.FC = () => {
                 const productCost = (product?.costPrice || 0) + (product?.additionalCostPrice || 0);
                 return itemSum + productCost * item.quantity;
             }, 0);
-            const revenue = sale.subtotal - sale.discount;
+            const revenue = sale.total;
             return sum + (revenue - cost);
         }, 0);
         const taxas = filteredSales.reduce((sum, sale) => {
@@ -741,7 +735,7 @@ const Vendas: React.FC = () => {
                                         </tr>
                                     ) : currentSales.map(sale => {
                                         const cost = (sale.items || []).reduce((acc, item) => acc + ((productMap[item.productId]?.costPrice || 0) + (productMap[item.productId]?.additionalCostPrice || 0)) * item.quantity, 0);
-                                        const revenue = sale.subtotal - sale.discount;
+                                        const revenue = sale.total;
                                         const profit = revenue - cost;
                                         return (
                                             <tr key={sale.id} className="border-b border-white/10 hover:bg-white/30 text-xs sm:text-sm transition-colors duration-150">

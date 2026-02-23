@@ -1,5 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
-import { HashRouter as Router, Routes, Route, Outlet, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Outlet, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar.tsx';
 import Header from './components/Header.tsx';
 import TopBar from './components/TopBar.tsx';
@@ -47,7 +47,6 @@ const CatalogAdmin = lazy(() => import('./pages/Catalog/CatalogAdmin.tsx'));
 const CatalogSettings = lazy(() => import('./pages/Catalog/CatalogSettings.tsx'));
 const CatalogPublic = lazy(() => import('./pages/Catalog/CatalogPublic.tsx'));
 const Financeiro = lazy(() => import('./pages/Financeiro.tsx'));
-
 
 const GlobalChat = () => {
     const { isChatOpen, closeChat } = useChat();
@@ -132,6 +131,9 @@ const App: React.FC = () => {
                                         </Route>
                                         <Route element={<ProtectedRoute permissionKey="canAccessFinanceiro" />}>
                                             <Route path="/financeiro" element={<Financeiro />} />
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canViewOwnCommission" />}>
+                                            <Route path="/comissoes" element={<Navigate to="/company?tab=comissoes" replace />} />
                                         </Route>
                                     </Route>
                                     <Route element={<ProtectedRoute permissionKey="canAccessPOS" />}>

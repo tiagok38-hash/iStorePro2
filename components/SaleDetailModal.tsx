@@ -294,10 +294,12 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                     <span className="text-muted">Subtotal:</span>
                                     <span className="font-medium">{formatCurrency(sale.subtotal)}</span>
                                 </div>
-                                <div className="flex justify-between p-2 bg-surface-secondary rounded-xl">
-                                    <span className="text-muted">Desconto:</span>
-                                    <span className="font-medium text-danger">-{formatCurrency(sale.discount)}</span>
-                                </div>
+                                {sale.subtotal - sale.total > 0 && (
+                                    <div className="flex justify-between p-2 bg-surface-secondary rounded-xl">
+                                        <span className="text-muted">Descontos:</span>
+                                        <span className="font-medium text-danger">-{formatCurrency(sale.subtotal - sale.total)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between mt-2 pt-2 border-t border-border p-2">
                                     <span className="font-semibold text-base text-primary">Total da Venda:</span>
                                     <span className="font-bold text-xl text-primary">{formatCurrency(sale.total)}</span>

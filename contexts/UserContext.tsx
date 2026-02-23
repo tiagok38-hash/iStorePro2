@@ -15,8 +15,8 @@ import { useToast } from './ToastContext.tsx';
 // =====================================================
 // CONFIGURAÇÕES DE SESSÃO E TIMEOUTS
 // =====================================================
-const KEEP_ALIVE_INTERVAL = 30 * 1000; // 30 segundos - Checagem mais agressiva para política de sessão única
-const BACKGROUND_REFRESH_THRESHOLD = 60 * 1000; // 1 minuto em background força reload de dados críticos
+const KEEP_ALIVE_INTERVAL = 30 * 1000;
+const BACKGROUND_REFRESH_THRESHOLD = 60 * 1000;
 
 interface UserContextData {
   user: User | null;
@@ -25,7 +25,7 @@ interface UserContextData {
   permissions: PermissionSet | null;
   isOnline: boolean;
   session: any | null;
-  openCashSession: CashSession | null; // Nível 9: Contexto de Caixa
+  openCashSession: CashSession | null;
   login: (email: string, password_param: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password_param: string) => Promise<void>;
@@ -35,8 +35,41 @@ interface UserContextData {
 
 const UserContext = createContext<UserContextData | undefined>(undefined);
 
+// Permissões padrão (Segurança: Deny by Default para novos recursos)
+const defaultPermissions: PermissionSet = {
+  canAccessDashboard: true, canAccessEstoque: true, canAccessVendas: true,
+  canAccessPOS: true, canAccessClientes: true, canAccessFornecedores: true,
+  canAccessRelatorios: true, canAccessEmpresa: true, canAccessOrcamentos: true,
+  canCreateProduct: true, canEditProduct: true, canDeleteProduct: true,
+  canEditStock: true,
+  canViewPurchases: true, canCreatePurchase: true, canEditPurchase: true,
+  canDeletePurchase: true, canLaunchPurchase: true,
+  canViewPurchaseKPIs: false,
+  canCreateSale: true, canCancelSale: true,
+  canViewSalesKPIs: true, canEditSale: true,
+  canManageCompanyData: true, canManageUsers: true,
+  canManagePermissions: true, canViewAudit: true,
+  canEditOwnProfile: true, canManageMarcasECategorias: true,
+  canCreateCustomer: true, canEditCustomer: true, canViewCustomerHistory: true,
+  canInactivateCustomer: true, canDeleteCustomer: true,
+  canCreateSupplier: true, canEditSupplier: true, canViewSupplierHistory: true,
+  canDeleteSupplier: true,
+  canManagePaymentMethods: true, canManageBackups: true, canManageParameters: true,
+  canAccessFinanceiro: true, canCreateTransaction: true, canEditTransaction: true,
+  canDeleteTransaction: true, canViewFinancialKPIs: true,
+  canAccessServiceOrders: true, canCreateServiceOrder: true, canEditServiceOrder: true,
+  canDeleteServiceOrder: true, canManageServiceOrderStatus: true,
+  canAccessCrm: true, canCreateCrmDeal: true, canEditCrmDeal: true,
+  canDeleteCrmDeal: true, canMoveCrmDeal: true, canViewAllCrmDeals: true,
+  canAccessCatalog: true, canCreateCatalogItem: true, canEditCatalogItem: true, canDeleteCatalogItem: true,
+  canViewOwnCommission: true,
+  canViewAllCommissions: true,
+  canCloseCommissionPeriod: true,
+  canMarkCommissionPaid: true,
+  canEditProductCommissionSettings: true,
+};
+
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Estado Persistente (LocalStorage como backup, mas Supabase é a verdade)
   const [user, setUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem('user');
@@ -56,105 +89,47 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isMountedRef = useRef(true);
   const lastActiveRef = useRef<number>(Date.now());
 
-  // =====================================================
-  // GERENCIAMENTO DE DADOS CRÍTICOS (Nível 6)
-  // =====================================================
   const reloadCriticalData = useCallback(async (userId: string) => {
-
-    // 1. Limpar cache local (mockApi) para forçar fetch fresco do Supabase
     clearCache(['products', 'sales', 'permissions_profiles', 'cash_sessions', 'cash_sessions_' + userId]);
-
-    // 2. Disparar evento para componentes atualizarem
     window.dispatchEvent(new CustomEvent('app-reloadData'));
-
-    // 3. Restaurar contexto do caixa (Nível 9)
     try {
       const sessions = await getCashSessions(userId);
       const active = sessions.find(s => s.status === 'aberto');
-      if (isMountedRef.current) {
-        setOpenCashSession(active || null);
-      }
+      if (isMountedRef.current) setOpenCashSession(active || null);
     } catch (e) {
       console.warn('UserContext: Erro ao restaurar caixa:', e);
     }
   }, []);
 
-  // =====================================================
-  // ATUALIZAÇÃO DE ESTADO DO USUÁRIO
-  // =====================================================
   const updateUserAndPermissions = useCallback(async (userData: User | null, sessionData: any = null) => {
     if (!isMountedRef.current) return;
 
     if (userData) {
+      // 1. Parallelize fetching of permissions and cash session context
+      let currentPermissions = defaultPermissions;
+      let activeSession = null;
+
+      try {
+        const [profiles, sessions] = await Promise.all([
+          getPermissionProfiles(),
+          getCashSessions(userData.id)
+        ]);
+        const profile = profiles.find(p => p.id === userData.permissionProfileId);
+        if (profile) currentPermissions = { ...defaultPermissions, ...profile.permissions };
+        activeSession = sessions.find(s => s.status === 'aberto') || null;
+      } catch (e) {
+        console.error("UserContext: Falha no carregamento de dados críticos", e);
+      }
+
+      // 2. Batch State Update (Atomic-ish)
       setUser(userData);
+      setPermissions(currentPermissions);
+      setOpenCashSession(activeSession);
       setIsAuthenticated(true);
       if (sessionData) setSession(sessionData);
 
-      // Persistência local segura
       localStorage.setItem('user', JSON.stringify(userData));
-      if (userData.lastSessionId) {
-        localStorage.setItem('local_session_id', userData.lastSessionId);
-      }
-
-      // Permissões padrão (Segurança: Deny by Default para novos recursos)
-      const defaultPermissions: PermissionSet = {
-        canAccessDashboard: true, canAccessEstoque: true, canAccessVendas: true,
-        canAccessPOS: true, canAccessClientes: true, canAccessFornecedores: true,
-        canAccessRelatorios: true, canAccessEmpresa: true, canAccessOrcamentos: true,
-        canCreateProduct: true, canEditProduct: true, canDeleteProduct: true,
-        canEditStock: true,
-        canViewPurchases: true, canCreatePurchase: true, canEditPurchase: true,
-        canDeletePurchase: true, canLaunchPurchase: true,
-        canViewPurchaseKPIs: false, // Novo recurso: Desativado por padrão
-        canCreateSale: true, canCancelSale: true,
-        canViewSalesKPIs: true, canEditSale: true,
-        canManageCompanyData: true, canManageUsers: true,
-        canManagePermissions: true, canViewAudit: true,
-        canEditOwnProfile: true, canManageMarcasECategorias: true,
-        canCreateCustomer: true, canEditCustomer: true, canViewCustomerHistory: true,
-        canInactivateCustomer: true, canDeleteCustomer: true,
-        canCreateSupplier: true, canEditSupplier: true, canViewSupplierHistory: true,
-        canDeleteSupplier: true,
-        canManagePaymentMethods: true, canManageBackups: true, canManageParameters: true,
-        canAccessFinanceiro: true, canCreateTransaction: true, canEditTransaction: true,
-        canDeleteTransaction: true, canViewFinancialKPIs: true,
-
-        canAccessServiceOrders: true, canCreateServiceOrder: true, canEditServiceOrder: true,
-        canDeleteServiceOrder: true, canManageServiceOrderStatus: true,
-
-        canAccessCrm: true, canCreateCrmDeal: true, canEditCrmDeal: true,
-        canDeleteCrmDeal: true, canMoveCrmDeal: true, canViewAllCrmDeals: true,
-
-        canAccessCatalog: true,
-        canCreateCatalogItem: true,
-        canEditCatalogItem: true,
-        canDeleteCatalogItem: true,
-      };
-
-      try {
-        const profiles = await getPermissionProfiles();
-        const profile = profiles.find(p => p.id === userData.permissionProfileId);
-
-        if (profile) {
-          // Garante que todas as chaves existam fundindo com o padrão
-          setPermissions({ ...defaultPermissions, ...profile.permissions });
-        } else {
-
-          setPermissions(defaultPermissions);
-        }
-      } catch (e) {
-        console.error("UserContext: Falha ao carregar permissões", e);
-        setPermissions(defaultPermissions);
-      }
-
-      // Restaurar Caixa Aberto se necessário
-      if (!openCashSession) {
-        try {
-          const sessions = await getCashSessions(userData.id);
-          const active = sessions.find(s => s.status === 'aberto');
-          setOpenCashSession(active || null);
-        } catch (e) { console.error('Erro silent caixa', e) }
-      }
+      if (userData.lastSessionId) localStorage.setItem('local_session_id', userData.lastSessionId);
 
     } else {
       setUser(null);
@@ -165,17 +140,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('user');
       localStorage.removeItem('local_session_id');
     }
-  }, [openCashSession]);
+  }, []);
 
-  // =====================================================
-  // VERIFICAÇÃO DE SESSÃO (Core Logic)
-  // =====================================================
   const checkSession = useCallback(async (forceRefreshData = false) => {
-    // Evita check redundante muito rápido (debounce 2s)
     const now = Date.now();
     const lastCheck = parseInt(sessionStorage.getItem('last_auth_check') || '0');
     if (!forceRefreshData && (now - lastCheck < 2000)) return;
-
     sessionStorage.setItem('last_auth_check', now.toString());
 
     if (!navigator.onLine) {
@@ -185,18 +155,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     setIsOnline(true);
 
-    // Safety timeout to ensure loading never stays true forever
     const loadingTimeout = setTimeout(() => {
-      if (loading) setLoading(false);
-    }, 15000);
+      if (loading && isMountedRef.current) {
+        console.warn('UserContext: CheckSession loading timeout hit.');
+        setLoading(false);
+      }
+    }, 8000);
 
     try {
-      // 1. Tenta obter sessão atual (usa refresh token se necessário automaticamente)
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-
       if (error) {
-
-        // Se erro crítico (ex: refresh token revogado), logout
         if (error.message.includes('invalid_grant') || error.message.includes('refresh_token_not_found')) {
           await updateUserAndPermissions(null);
         }
@@ -204,23 +172,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (currentSession?.user) {
-        // Sessão válida!
         setSession(currentSession);
-
-        // Verifica se usuário mudou ou se precisamos recarregar perfil
         if (!user || user.id !== currentSession.user.id || forceRefreshData) {
           const profile = await getProfile(currentSession.user.id);
-
           const userData = profile || {
             id: currentSession.user.id,
             email: currentSession.user.email || '',
             name: currentSession.user.user_metadata?.name || 'Usuário',
-            permissionProfileId: 'profile-admin', // Fallback temporário
+            permissionProfileId: 'profile-admin',
             phone: '',
             createdAt: currentSession.user.created_at
           } as User;
 
-          // Segurança: Política de Sessão Única
           if (profile && profile.permissionProfileId !== 'profile-admin') {
             const localSessionId = localStorage.getItem('local_session_id');
             if (profile.lastSessionId && profile.lastSessionId !== localSessionId) {
@@ -231,18 +194,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
 
           await updateUserAndPermissions(userData, currentSession);
-
-          // SE for um 'hard refresh' ou retorno de background, recarrega dados
-          if (forceRefreshData) {
-            await reloadCriticalData(userData.id);
-          }
+          if (forceRefreshData) await reloadCriticalData(userData.id);
         } else {
-          // Apenas atualiza token se mudou
-          if (session?.access_token !== currentSession.access_token) {
-            setSession(currentSession);
-          }
-
-          // Checagem periódica da sessão (mesmo que o user não tenha mudado)
+          if (session?.access_token !== currentSession.access_token) setSession(currentSession);
           if (user && user.permissionProfileId !== 'profile-admin') {
             const latestProfile = await getProfile(user.id);
             const localSessionId = localStorage.getItem('local_session_id');
@@ -252,12 +206,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
           }
         }
-      } else {
-        // Nenhuma sessão ativa no Supabase
-        // Se tínhamos usuário logado localmente, agora é hora de fazer o logout real
-        if (user) {
-          await updateUserAndPermissions(null);
-        }
+      } else if (user) {
+        await updateUserAndPermissions(null);
       }
     } catch (err) {
       console.error('UserContext: Erro crítico no checkSession:', err);
@@ -267,34 +217,22 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user, session, updateUserAndPermissions, reloadCriticalData, loading]);
 
-  // =====================================================
-  // ESCUTA DE EVENTOS DE AUTENTICAÇÃO E JANELA
-  // =====================================================
   useEffect(() => {
     isMountedRef.current = true;
+    checkSession(true);
 
-    // 1. Inicialização
-    checkSession(true); // Force load on mount
-
-    // 2. Supabase Auth Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-
       switch (event) {
         case 'SIGNED_IN':
         case 'TOKEN_REFRESHED':
           if (newSession) {
-            // Atualiza sessão sem necessariamente recarregar tudo se o user for o mesmo
             setSession(newSession);
-            if (!user) { // Se não tinha user, carrega completo
-              checkSession(true);
-            } else if (user.id !== newSession.user.id) { // Mudou user
-              checkSession(true);
-            }
+            if (!user || user.id !== newSession.user.id) checkSession(true);
           }
           break;
         case 'SIGNED_OUT':
           await updateUserAndPermissions(null);
-          clearCache(['products', 'sales', 'users', 'cash_sessions']); // Limpa dados sensíveis
+          clearCache(['products', 'sales', 'users', 'cash_sessions']);
           break;
         case 'USER_UPDATED':
           checkSession(false);
@@ -302,50 +240,33 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    // 3. Visibilidade e Foco (Restaurar Sessão e Dados)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const now = Date.now();
         const timeAway = now - lastActiveRef.current;
-
-        // Se ficou fora por mais que o threshold, força refresh de dados
-        const shouldRefreshData = timeAway > BACKGROUND_REFRESH_THRESHOLD;
-
-        checkSession(shouldRefreshData);
+        checkSession(timeAway > BACKGROUND_REFRESH_THRESHOLD);
         lastActiveRef.current = now;
       } else {
         lastActiveRef.current = Date.now();
       }
     };
 
-    // 4. Online/Offline Listeners
-    const handleOnline = () => {
-      setIsOnline(true);
-      checkSession(true); // Voltando online sempre é bom checar
-    };
+    const handleOnline = () => { setIsOnline(true); checkSession(true); };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange); // Extra guarantee
+    window.addEventListener('focus', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // 5. Keep Alive Interval (Refresca token preventivamente e valida sessão única)
     keepAliveRef.current = setInterval(async () => {
       if (user && isOnline) {
-        // Apenas chama getUser para validar/refresh token silenciosamente
         const { error } = await supabase.auth.getUser();
-        if (error) {
-          checkSession(false);
-        } else {
-          // PROATIVO: Mesmo com token OK, verifica se o lastSessionId no Banco mudou
-          // (Significa que logou em outro lugar)
-          checkSession(false);
-        }
+        if (error) checkSession(false);
+        else checkSession(false);
       }
     }, KEEP_ALIVE_INTERVAL);
 
-    // Cleanup
     return () => {
       isMountedRef.current = false;
       subscription.unsubscribe();
@@ -355,16 +276,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       window.removeEventListener('offline', handleOffline);
       if (keepAliveRef.current) clearInterval(keepAliveRef.current);
     };
-  }, []); // Empty dependecy array intended for singleton-like behavior
+  }, []);
 
-  // =====================================================
-  // AÇÕES PÚBLICAS
-  // =====================================================
   const login = async (email: string, password_param: string) => {
-    // await apiLogout(); // Garante limpeza anterior
     const userData = await apiLogin(email, password_param);
     if (userData) {
-      // Force session refresh to get the pure Supabase session object
       const { data: { session: newSession } } = await supabase.auth.getSession();
       await updateUserAndPermissions(userData, newSession);
       await reloadCriticalData(userData.id);
@@ -380,45 +296,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    const currentId = user?.id;
+    const currentName = user?.name;
     await updateUserAndPermissions(null);
     try {
-      if (user) await apiLogout(user.id, user.name);
-    } catch (e) { console.warn("Erro no logout API", e); }
-    // Limpeza final
+      if (currentId) await apiLogout(currentId, currentName || '');
+    } catch (e) { console.warn("Erro logout API", e); }
     setOpenCashSession(null);
-    clearCache(Object.keys({})); // Clear all
+    clearCache(Object.keys({}));
   };
 
-  const refreshPermissions = async () => {
-    if (user) await checkSession(true);
-  };
+  const refreshPermissions = async () => { if (user) await checkSession(true); };
 
   const contextValue = React.useMemo(() => ({
-    user,
-    isAuthenticated,
-    loading,
-    permissions,
-    isOnline,
-    session,
-    openCashSession,
-    login,
-    logout,
-    register,
-    refreshPermissions,
-    checkSession
-  }), [user, isAuthenticated, loading, permissions, isOnline, session, openCashSession]);
+    user, isAuthenticated, loading, permissions, isOnline, session, openCashSession,
+    login, logout, register, refreshPermissions, checkSession
+  }), [user, isAuthenticated, loading, permissions, isOnline, session, openCashSession, checkSession, updateUserAndPermissions, reloadCriticalData]);
 
-  return (
-    <UserContext.Provider value={contextValue}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
+  if (context === undefined) throw new Error('useUser must be used within a UserProvider');
   return context;
 };

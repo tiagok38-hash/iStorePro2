@@ -1,19 +1,21 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
-    Product, Customer, User, Sale, Payment, PaymentMethodType,
+    Product, Customer, User, Orcamento, Payment, PaymentMethodType,
     Supplier, CartItem, PaymentMethodParameter, CardConfigData,
     AuditActionType, AuditEntityType
 } from '../types.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import {
-    findOrCreateSupplierFromCustomer, addSale, updateSale, updateProduct, addAuditLog,
-    getNextSaleId, cancelSaleReservation
+    findOrCreateSupplierFromCustomer, updateProduct, addAuditLog
 } from '../services/mockApi.ts';
+import {
+    createOrcamento, updateOrcamento
+} from '../services/orcamentosService.ts';
 import { useUser } from '../contexts/UserContext.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 
-interface UseSaleFormProps {
+interface UseOrcamentoFormProps {
     customers: Customer[];
     users: User[];
     products: Product[];
@@ -22,24 +24,24 @@ interface UseSaleFormProps {
     paymentMethods: PaymentMethodParameter[];
     onAddNewCustomer: (data: any) => Promise<Customer | null>;
     onAddProduct: (data: any) => Promise<Product | null>;
-    onSaleSaved: (sale: Sale) => void;
-    saleToEdit?: Sale | null;
+    onOrcamentoSaved: (sale: Orcamento) => void;
+    orcamentoToEdit?: Orcamento | null;
     openCashSessionId?: string | null;
     openCashSessionDisplayId?: number;
 }
 
-export const useSaleForm = ({
+export const useOrcamentoForm = ({
     customers, users, products, suppliers, receiptTerms, paymentMethods,
-    onAddNewCustomer, onAddProduct, onSaleSaved, saleToEdit,
+    onAddNewCustomer, onAddProduct, onOrcamentoSaved, orcamentoToEdit,
     openCashSessionId, openCashSessionDisplayId
-}: UseSaleFormProps) => {
+}: UseOrcamentoFormProps) => {
     const { showToast } = useToast();
     const { user } = useUser();
     const productSearchRef = useRef<HTMLInputElement>(null);
     const initializedRef = useRef(false);
 
     // Form State
-    const [saleDate, setSaleDate] = useState(toDateValue());
+    const [orcamentoDate, setOrcamentoDate] = useState(toDateValue());
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
     const [selectedSalespersonId, setSelectedSalespersonId] = useState<string>('');
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -63,7 +65,6 @@ export const useSaleForm = ({
     const [cardTransactionType, setCardTransactionType] = useState<'credit' | 'debit'>('credit');
     const [cardMethodId, setCardMethodId] = useState<string>('');
     const [selectedPriceType, setSelectedPriceType] = useState<'sale' | 'cost' | 'wholesale'>('sale');
-    const [reservedId, setReservedId] = useState<string | null>(null);
 
     const [paymentInput, setPaymentInput] = useState<{
         method: PaymentMethodType | 'Cartão',
@@ -74,7 +75,7 @@ export const useSaleForm = ({
     } | null>(null);
 
     const resetState = useCallback(() => {
-        setSaleDate(toDateValue());
+        setOrcamentoDate(toDateValue());
         setSelectedCustomerId(localStorage.getItem('pos_default_customer_id') || null);
         setSelectedSalespersonId(user?.id || '');
         setCart([]);
@@ -90,49 +91,38 @@ export const useSaleForm = ({
         setProductForTradeIn(null);
         setPendingTradeInProduct(null);
         setSelectedPriceType('sale');
-        setReservedId(null);
     }, []);
 
     useEffect(() => {
         if (!initializedRef.current) {
-            if (saleToEdit) {
-                setSaleDate(saleToEdit.date.split('T')[0]);
-                setSelectedCustomerId(saleToEdit.customerId);
-                setSelectedSalespersonId(saleToEdit.salespersonId);
-                const reconstructedCart = saleToEdit.items.map(item => {
-                    const product = products.find(p => p.id === item.productId);
+            if (orcamentoToEdit) {
+                setOrcamentoDate(orcamentoToEdit.created_at.split('T')[0]);
+                setSelectedCustomerId(orcamentoToEdit.cliente_id || null);
+                setSelectedSalespersonId(orcamentoToEdit.vendedor_id);
+                const reconstructedCart = (orcamentoToEdit.itens || []).map((item: any) => {
+                    const product = products.find(p => p.id === item.produto_id);
                     if (!product) return null;
-                    return { ...product, quantity: item.quantity, salePrice: item.unitPrice, discountType: 'R$', discountValue: 0 } as CartItem;
+                    return { ...product, quantity: item.quantidade, salePrice: item.preco_unitario_snapshot, discountType: 'R$', discountValue: item.desconto || 0 } as CartItem;
                 }).filter((item): item is CartItem => item !== null);
                 setCart(reconstructedCart as CartItem[]);
-                setPayments(saleToEdit.payments.map(p => ({ ...p })));
-                setWarrantyTerm(saleToEdit.warrantyTerm || '');
-                setObservations(saleToEdit.observations || '');
-                setInternalObservations(saleToEdit.internalObservations || '');
+                const orcPayments = orcamentoToEdit.forma_pagamento_snapshot?.pagamentos || [];
+                setPayments(orcPayments.map((p: any) => ({ ...p })));
+                setWarrantyTerm('');
+                setObservations(orcamentoToEdit.observacoes || '');
+                setInternalObservations('');
             } else {
                 resetState();
-                // Fetch next ID and reserve it
-                getNextSaleId(user?.id).then(setReservedId).catch(err => console.error("Error reserving ID:", err));
             }
             initializedRef.current = true;
         }
-    }, [saleToEdit, resetState, products, user?.id]);
+    }, [orcamentoToEdit, resetState, products, user?.id]);
 
     const handleCancelReservation = useCallback(async () => {
-        if (reservedId && !saleToEdit) {
-            await cancelSaleReservation(reservedId);
-            setReservedId(null);
-        }
-    }, [reservedId, saleToEdit]);
+    }, [orcamentoToEdit]);
 
     // Cleanup on unmount
     useEffect(() => {
-        return () => {
-            if (reservedId && !saleToEdit) {
-                cancelSaleReservation(reservedId);
-            }
-        };
-    }, [reservedId, saleToEdit]);
+    }, [orcamentoToEdit]);
 
     useEffect(() => { setLocalSuppliers(suppliers); }, [suppliers]);
 
@@ -199,12 +189,12 @@ export const useSaleForm = ({
 
     const handleRemoveFromCart = useCallback((productId: string) => {
         const itemToRemove = cart.find(item => item.id === productId);
-        if (itemToRemove && saleToEdit && (saleToEdit.status === 'Finalizada' || saleToEdit.status === 'Editada')) {
+        if (itemToRemove && orcamentoToEdit && (orcamentoToEdit.status === 'finalizado' || orcamentoToEdit.status === 'draft')) {
             showToast(`O produto "${itemToRemove.model}" foi removido e será devolvido ao estoque ao salvar a venda.`, 'warning');
         }
         setCart(prev => prev.filter(item => item.id !== productId));
         setPayments([]); // Clear payments when an item is removed
-    }, [cart, saleToEdit, showToast]);
+    }, [cart, orcamentoToEdit, showToast]);
 
     const handleCartItemUpdate = useCallback((productId: string, field: keyof CartItem, value: any) => {
         setCart(currentCart => {
@@ -249,11 +239,11 @@ export const useSaleForm = ({
             setProductForTradeIn({ origin: 'Troca', supplierId: supplier.id });
             setIsTradeInProductModalOpen(true);
         } catch (error: any) {
-            console.error('[useSaleForm] Error in handleOpenTradeInModal:', error);
+            console.error('[useOrcamentoForm] Error in handleOpenTradeInModal:', error);
 
             // Fallback: Always try to open modal with temporary supplier if API fails
             // This ensures the user is not blocked from adding a trade-in item
-            console.warn('[useSaleForm] Using fallback temporary supplier due to error.');
+            console.warn('[useOrcamentoForm] Using fallback temporary supplier due to error.');
 
             const fallbackSupplier = {
                 id: `temp-supplier-${customer.id}`,
@@ -324,7 +314,7 @@ export const useSaleForm = ({
         setPaymentInput(null);
     }, [paymentInput, paymentMethods]);
 
-    const handleConfirmCardPayment = useCallback(({ payment, feeToAddToSale }: { payment: Payment; feeToAddToSale: number }) => {
+    const handleConfirmCardPayment = useCallback(({ payment, feeToAddToOrcamento }: { payment: Payment; feeToAddToOrcamento: number }) => {
         setPayments(prev => [...prev, payment]);
         setIsCardPaymentModalOpen(false);
     }, []);
@@ -369,7 +359,7 @@ export const useSaleForm = ({
 
         try {
             // DEFER CREATION: Do not call onAddProduct here. 
-            // Store payload to be created upon Sale Finalization.
+            // Store payload to be created upon Orcamento Finalization.
             const tempId = `temp-trade-${Date.now()}`;
 
             setPendingTradeInProduct({ ...fullProductPayload, id: tempId } as Product);
@@ -425,136 +415,90 @@ export const useSaleForm = ({
             return;
         }
 
-        const baseSaleData = {
-            customerId: selectedCustomerId,
-            salespersonId: selectedSalespersonId,
-            items: cart.map(item => {
-                const itemGross = item.salePrice * item.quantity;
-                const itemDiscount = item.discountType === 'R$' ? item.discountValue : itemGross * (item.discountValue / 100);
-                return {
-                    productId: item.id,
-                    quantity: item.quantity,
-                    unitPrice: item.salePrice,
-                    costPrice: item.costPrice || 0,
-                    productName: item.model || item.name || '',
-                    model: item.model || '',
-                    priceType: item.priceType,
-                    discountType: item.discountType,
-                    discountValue: item.discountValue,
-                    netTotal: itemGross - itemDiscount
-                };
-            }),
-            subtotal, total, payments,
-            posTerminal: saleToEdit?.posTerminal || 'Caixa 1',
-            status: isPending ? 'Pendente' : (saleToEdit ? 'Editada' : 'Finalizada'),
-            origin: saleToEdit?.origin || (openCashSessionId ? 'PDV' : 'Balcão'), warrantyTerm, observations, internalObservations,
-            cashSessionId: saleToEdit?.cashSessionId || openCashSessionId || undefined,
-            cashSessionDisplayId: saleToEdit?.cashSessionDisplayId || openCashSessionDisplayId || undefined,
-            id: saleToEdit?.id || reservedId || undefined
+        const itemsData = cart.map(item => {
+            const itemGross = item.salePrice * item.quantity;
+            const itemDiscount = item.discountType === 'R$' ? item.discountValue : itemGross * (item.discountValue / 100);
+            return {
+                produto_id: item.id,
+                quantidade: item.quantity,
+                preco_unitario_snapshot: item.salePrice,
+                custo_snapshot: item.costPrice || 0,
+                nome_produto_snapshot: item.model || item.name || '',
+                sku_snapshot: item.model || '',
+                desconto: itemDiscount,
+                subtotal: itemGross - itemDiscount,
+                metadata_snapshot: {
+                    imei1: item.imei1,
+                    serialNumber: item.serialNumber,
+                    barcodes: item.barcodes
+                }
+            };
+        });
+
+        const formaPagamentoSnapshot = {
+            pagamentos: payments,
+            juros_aplicados: payments.reduce((acc, p) => p.method === 'Cartão Crédito' && p.installments > 1 ? acc + p.value * 0.02 * p.installments : acc, 0)
+        };
+
+        const baseOrcamentoData = {
+            cliente_id: selectedCustomerId,
+            vendedor_id: selectedSalespersonId,
+            subtotal,
+            total_final: total,
+            desconto_total: totalItemDiscounts,
+            juros_total: formaPagamentoSnapshot.juros_aplicados,
+            observacoes: observations,
+            status: isPending ? 'draft' : (orcamentoToEdit && orcamentoToEdit.status !== 'draft' ? 'finalizado' : 'finalizado'),
+            forma_pagamento_snapshot: formaPagamentoSnapshot
         };
 
         setIsSaving(true);
         try {
-            // PROCESS DEFERRED TRADE-INS
-            // Filter payments that have newProductPayload
-            const processedPayments = await Promise.all(payments.map(async (p) => {
-                if (p.method === 'Aparelho na Troca' && p.tradeInDetails?.newProductPayload) {
-                    try {
-                        const created = await onAddProduct(p.tradeInDetails.newProductPayload);
-                        if (created) {
-                            // Update payment with real ID and remove payload to avoid cluttering DB
-                            const { newProductPayload, ...restDetails } = p.tradeInDetails;
-                            return {
-                                ...p,
-                                tradeInDetails: {
-                                    ...restDetails,
-                                    productId: created.id
-                                }
-                            };
-                        }
-                    } catch (err) {
-                        console.error('Error creating deferred trade-in product:', err);
-                        throw new Error(`Erro ao criar produto de troca: ${p.tradeInDetails.model}`);
-                    }
-                }
-                return p;
-            }));
-
-            // Update baseSaleData with processed payments
-            baseSaleData.payments = processedPayments;
-
-            let savedSale: Sale;
-            if (saleToEdit) {
-                savedSale = await updateSale(
-                    { ...saleToEdit, ...baseSaleData, status: baseSaleData.status as any, oldStatus: saleToEdit.status },
-                    user?.id,
-                    user?.name
+            let savedOrcamento: Orcamento;
+            if (orcamentoToEdit) {
+                savedOrcamento = await updateOrcamento(
+                    orcamentoToEdit.id,
+                    baseOrcamentoData as any,
+                    itemsData as any
                 );
             } else {
-                savedSale = await addSale(baseSaleData as any, user?.id, user?.name);
+                savedOrcamento = await createOrcamento(baseOrcamentoData as any, itemsData as any, user?.id, user?.name);
             }
 
-            if (savedSale) {
-                const salesperson = users.find(u => u.id === selectedSalespersonId);
-                // Log all trade-in products linked to this sale
-                for (const p of savedSale.payments) {
-                    if (p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId) {
-                        // Skip if it was already a real ID (not created just now)?
-                        // Actually, logging it again as "Linked" is fine, or we can assume if it's in this sale it's relevant.
-                        // Ideally we only log for NEWly created ones, but 'Produto vinculado' implies connection.
-
-                        // If we want only the ones we just created, we'd need to track them.
-                        // But since we are finalizing the sale, logging the link is appropriate for all trade-ins in this sale.
-                        await addAuditLog(
-                            AuditActionType.STOCK_LAUNCH,
-                            AuditEntityType.PRODUCT,
-                            p.tradeInDetails.productId,
-                            `Produto vinculado à venda de origem #${savedSale.id}. Usuário resp.: ${user?.name || salesperson?.name || 'Sistema'}`,
-                            user?.id || salesperson?.id || 'system',
-                            user?.name || salesperson?.name || 'Sistema'
-                        );
-                    }
-                }
-            }
-
-            // Show success notification with appropriate color based on status
-            if (savedSale.status === 'Pendente') {
-                showToast(`Venda #${savedSale.id} salva como pendente.`, 'warning');
-            } else if (savedSale.status === 'Editada') {
-                showToast(`Venda #${savedSale.id} atualizada com sucesso!`, 'success');
+            if (isPending) {
+                showToast(`Orçamento #${savedOrcamento.numero} salvo como rascunho.`, 'warning');
             } else {
-                showToast(`Venda #${savedSale.id} finalizada com sucesso!`, 'success');
+                showToast(`Orçamento #${savedOrcamento.numero} finalizado com sucesso!`, 'success');
             }
 
-            setReservedId(null);
-            onSaleSaved(savedSale);
+            onOrcamentoSaved(savedOrcamento);
 
         } catch (error: any) {
-            console.error('useSaleForm: Error in handleSave:', error);
-            showToast(error.message || 'Erro ao salvar a venda.', 'error');
+            console.error('useOrcamentoForm: Error in handleSave:', error);
+            showToast(error.message || 'Erro ao salvar o orçamento.', 'error');
         } finally {
             setIsSaving(false);
         }
     }, [
         selectedCustomerId, selectedSalespersonId, cart, balance, subtotal,
-        totalItemDiscounts, total, payments, saleToEdit,
+        totalItemDiscounts, total, payments, orcamentoToEdit,
         warrantyTerm, observations, internalObservations, openCashSessionId,
-        openCashSessionDisplayId, pendingTradeInProduct, users, onSaleSaved, showToast
+        openCashSessionDisplayId, pendingTradeInProduct, users, onOrcamentoSaved, showToast
     ]);
 
     return {
         state: {
-            saleDate, selectedCustomerId, selectedSalespersonId, cart, productSearch,
+            orcamentoDate, selectedCustomerId, selectedSalespersonId, cart, productSearch,
             productToConfirm, searchQuantity,
             cardFees, payments, warrantyTerm, observations, internalObservations,
             isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
             pendingTradeInProduct, localSuppliers, isCardPaymentModalOpen,
             cardTransactionType, cardMethodId, paymentInput,
             subtotal, totalItemDiscounts, total, totalPaid, balance,
-            isSaving, selectedPriceType, reservedId
+            isSaving, selectedPriceType
         },
         actions: {
-            setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setCart, setProductSearch,
+            setOrcamentoDate, setSelectedCustomerId, setSelectedSalespersonId, setCart, setProductSearch,
             setProductToConfirm, setSearchQuantity,
             setWarrantyTerm, setObservations, setInternalObservations,
             setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput, setProductForTradeIn,

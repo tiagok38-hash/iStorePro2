@@ -41,6 +41,7 @@ import { compressImage } from '../utils/imageUtils.ts';
 import ImageCropperModal from '../components/ImageCropperModal.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import LoadingOverlay from '../components/LoadingOverlay.tsx';
+import Comissoes from './Comissoes.tsx';
 
 type ModalType = 'brand' | 'category' | 'model' | 'grade' | 'gradeValue';
 type Item = Brand | Category | ProductModel | Grade | GradeValue;
@@ -599,6 +600,11 @@ const AuditoriaTab: React.FC = () => {
             [AuditActionType.CASH_CLOSE]: 'Fechamento de Caixa',
             [AuditActionType.CASH_WITHDRAWAL]: 'Sangria',
             [AuditActionType.CASH_SUPPLY]: 'Suprimento',
+            [AuditActionType.COMMISSION_CREATE]: 'Gerar Comissão',
+            [AuditActionType.COMMISSION_CANCEL]: 'Cancelar Comissão',
+            [AuditActionType.COMMISSION_CLOSE]: 'Fechar Comissão',
+            [AuditActionType.COMMISSION_PAY]: 'Pagar Comissão',
+            [AuditActionType.COMMISSION_RECALCULATE]: 'Recalcular Comissão',
         };
         return translations[action] || action;
     };
@@ -626,6 +632,7 @@ const AuditoriaTab: React.FC = () => {
             [AuditEntityType.CASH_SESSION]: 'Caixa',
             [AuditEntityType.SERVICE]: 'Serviço',
             [AuditEntityType.SERVICE_ORDER]: 'Ordem de Serviço',
+            [AuditEntityType.COMMISSION]: 'Comissão',
         };
         return translations[entity] || entity;
     };
@@ -1835,6 +1842,7 @@ const Company: React.FC = () => {
         { id: 'usuarios', label: 'Usuários e Permissões', permission: 'canManageUsers' },
         { id: 'marcas', label: 'Marcas e Categorias', permission: 'canManageMarcasECategorias' },
         { id: 'perfil', label: 'Perfil', permission: 'canEditOwnProfile' },
+        { id: 'comissoes', label: 'Comissões', permission: 'canViewOwnCommission' },
         { id: 'parametros', label: 'Parâmetros', permission: 'canManageParameters' },
         { id: 'meios_pagamento', label: 'Meios de Pagamento', permission: 'canManagePaymentMethods' },
         { id: 'auditoria', label: 'Auditoria', permission: 'canViewAudit' },
@@ -1871,6 +1879,7 @@ const Company: React.FC = () => {
             case 'auditoria': content = <AuditoriaTab />; break;
             case 'backup': content = <BackupRestauracaoTab />; break;
             case 'perfil': content = <PerfilTab />; break;
+            case 'comissoes': content = <Comissoes />; break;
             default: content = <DadosEmpresaTab />; break;
         }
 
@@ -1880,6 +1889,10 @@ const Company: React.FC = () => {
 
         if (activeTab === 'marcas') {
             return <div className="max-w-7xl">{content}</div>;
+        }
+
+        if (activeTab === 'comissoes') {
+            return <div className="w-full">{content}</div>;
         }
 
         return <div className="max-w-5xl">{content}</div>;

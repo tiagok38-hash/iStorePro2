@@ -286,8 +286,8 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                                     <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-orange-100 text-orange-600">Pendente</span>
                                                 ) : (
                                                     <>
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-600">Finalizada</span>
                                                         {sale.status === 'Editada' && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-600">Editada</span>}
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-600">Finalizada</span>
                                                         {hasPromissoria && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Promissória</span>}
                                                     </>
                                                 )}
@@ -346,8 +346,8 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                                     <span className="text-[7px] font-black px-1 rounded uppercase border bg-orange-50 text-orange-600 border-orange-100 py-0.5 leading-none">PENDENTE</span>
                                                 ) : (
                                                     <>
-                                                        <span className="text-[7px] font-black px-1 rounded uppercase border bg-green-50 text-green-600 border-green-100 py-0.5 leading-none">FINALIZADA</span>
                                                         {sale.status === 'Editada' && <span className="text-[7px] font-black px-1 rounded uppercase border bg-purple-50 text-purple-600 border-purple-100 py-0.5 leading-none">EDITADA</span>}
+                                                        <span className="text-[7px] font-black px-1 rounded uppercase border bg-green-50 text-green-600 border-green-100 py-0.5 leading-none">FINALIZADA</span>
                                                         {hasPromissoria && <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none text-center">PROMISSÓRIA</span>}
                                                     </>
                                                 )}

@@ -69,6 +69,16 @@ const permissionGroups: { title: string; requiredSection?: keyof PermissionSet; 
         ],
     },
     {
+        title: 'Comissões',
+        permissions: [
+            { key: 'canViewOwnCommission', label: 'Ver Próprias Comissões' },
+            { key: 'canViewAllCommissions', label: 'Ver Comissões de Todos' },
+            { key: 'canCloseCommissionPeriod', label: 'Fechar Período de Comissão' },
+            { key: 'canMarkCommissionPaid', label: 'Marcar Comissão como Paga' },
+            { key: 'canEditProductCommissionSettings', label: 'Editar Config. de Comissão nos Produtos' },
+        ],
+    },
+    {
         title: 'Produtos e Estoque',
         requiredSection: 'canAccessEstoque',
         permissions: [

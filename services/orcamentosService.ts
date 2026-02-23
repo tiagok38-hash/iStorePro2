@@ -213,8 +213,11 @@ export const convertOrcamentoToSale = async (
         return {
             productId: orcItem.produto_id || 'unknown',
             quantity: orcItem.quantidade,
-            salePrice: orcItem.preco_unitario_snapshot,
-            discount: orcItem.desconto,
+            unitPrice: orcItem.preco_unitario_snapshot,
+            costPrice: orcItem.custo_snapshot || 0,
+            discountValue: orcItem.desconto,
+            discountType: 'R$',
+            netTotal: orcItem.subtotal,
             // Detalhes estáticos salvos no momento do orçamento para não depender do banco atual:
             name: orcItem.nome_produto_snapshot,
             model: orcItem.sku_snapshot,

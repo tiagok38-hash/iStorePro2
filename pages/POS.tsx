@@ -124,7 +124,8 @@ const POS: React.FC = () => {
             if (!silent) setLoading(false);
 
             // TIER 2: BACKGROUND DATA (LOADING WHILE USER VIEWS SUMMARY)
-            fetchItem('Products', getProducts, []).then(setProducts);
+            const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value';
+            fetchItem('Products', () => getProducts({ select: productSelect }), []).then(setProducts);
             fetchItem('Customers', () => getCustomers(false), []).then(setCustomers);
             fetchItem('Suppliers', getSuppliers, []).then(setSuppliers);
             fetchItem('ReceiptTerms', getReceiptTerms, []).then(setReceiptTerms);
@@ -170,6 +171,7 @@ const POS: React.FC = () => {
 
         const channel = new BroadcastChannel('app_cache_sync');
         channel.onmessage = (event) => {
+            if (document.visibilityState !== 'visible') return;
             if (event.data && event.data.type === 'CLEAR_CACHE') {
                 // If anything related to POS changes (sales, sessions, products), reload
                 fetchData(true);

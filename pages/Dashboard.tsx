@@ -489,7 +489,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                 const p = productMap[item.productId];
                 return sum + ((p?.costPrice || 0) + (p?.additionalCostPrice || 0)) * item.quantity;
             }, 0);
-            const profit = (sale.subtotal - sale.discount) - itemsCost;
+            const profit = sale.total - itemsCost;
             totalProfit += profit;
             totalRevenue += sale.total;
 
@@ -1522,29 +1522,32 @@ const Dashboard: React.FC = () => {
         };
 
         try {
-            // Priority 1: Sales, Products & Customers (Core KPIs)
+            // TIER 1: CRITICAL KPI DATA (SALES & PRODUCTS)
             // ROBUSTNESS: Only fetch last 365 days of sales for dashboard to keep it fast
             const oneYearAgo = new Date();
             oneYearAgo.setDate(oneYearAgo.getDate() - 365);
             const startDate = oneYearAgo.toISOString().split('T')[0];
 
-            const [salesData, productsData, customersData, serviceOrdersData, servicesData, suppliersData] = await Promise.all([
+            // OPTIMIZATION: We exclude heavy JSONB columns like 'stockHistory', 'priceHistory', 'checklist', 'observations'
+            // for the dashboard view to save massive bandwidth and memory.
+            const productSelect = 'id,sku,brand,category,model,price,costPrice,additionalCostPrice,stock,minimumStock,createdAt,origin,supplierId,serialNumber,imei1,imei2,color,storage,condition';
+
+            const [salesData, productsData] = await Promise.all([
                 fetchItem('Sales', () => getSales(undefined, undefined, startDate), []),
-                fetchItem('Products', () => getProducts(), []),
-                fetchItem('Customers', () => getCustomers(false), []),
-                fetchItem('ServiceOrders', () => getServiceOrders(), []),
-                fetchItem('Services', () => getServices(), []),
-                fetchItem('Suppliers', () => getSuppliers(), [])
+                fetchItem('Products', () => getProducts({ select: productSelect }), []),
             ]);
 
             setSales(salesData);
             setProducts(productsData);
-            setCustomers(customersData);
-            setServiceOrders(serviceOrdersData);
-            setServices(servicesData);
-            setSuppliers(suppliersData);
 
-            // Priority 2: Configs
+            // Once priority data is ready, clear global loader to show main KPIs
+            if (!silent) setLoading(false);
+
+            // TIER 2: BACKGROUND DATA (SECONDARY METRICS)
+            fetchItem('Customers', () => getCustomers(false), []).then(setCustomers);
+            fetchItem('ServiceOrders', () => getServiceOrders(), []).then(setServiceOrders);
+            fetchItem('Services', () => getServices(), []).then(setServices);
+            fetchItem('Suppliers', () => getSuppliers(), []).then(setSuppliers);
             fetchItem('ActiveMethods', getPaymentMethods, []).then(setPaymentMethods);
             fetchItem('Users', getUsers, []).then(setUsers);
 
@@ -1558,7 +1561,7 @@ const Dashboard: React.FC = () => {
         } finally {
             if (!silent) setLoading(false);
         }
-    }, [user]);
+    }, [user?.id]);
 
     useEffect(() => {
         if (canViewDashboard) {
@@ -1573,6 +1576,7 @@ const Dashboard: React.FC = () => {
 
         const channel = new BroadcastChannel('app_cache_sync');
         channel.onmessage = (event) => {
+            if (document.visibilityState !== 'visible') return;
             if (event.data && event.data.type === 'CLEAR_CACHE') {
                 const keys = event.data.keys || event.data.prefixes;
                 if (keys && Array.isArray(keys) && keys.some((k: string) => ['sales', 'products', 'customers'].some(type => k.includes(type)))) {
@@ -1610,7 +1614,7 @@ const Dashboard: React.FC = () => {
                 const p = productMapData[item.productId];
                 return sum + ((p?.costPrice || 0) + (p?.additionalCostPrice || 0)) * item.quantity;
             }, 0);
-            return (sale.subtotal - sale.discount) - cost;
+            return sale.total - cost;
         };
 
         if (billingPeriod === 'year') {

@@ -255,7 +255,7 @@ const Products: React.FC = () => {
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
         if (!silent) setLoading(true);
         try {
-            // 1. Fetch metadata (lighter requests)
+            // 1. Fetch metadata (lighter requests) - Tier 1
             const [
                 usersData, suppliersData, brandsData, categoriesData,
                 modelsData, gradesData, gradeValuesData, storageLocationsData
@@ -273,10 +273,13 @@ const Products: React.FC = () => {
             setGradeValues(gradeValuesData);
             setStorageLocations(storageLocationsData || []);
 
-            // 2. Fetch main data (heavier requests)
-            // ROBUSTNESS: Apply safety limits and date filters where appropriate
+            // 2. Fetch main data (heavier requests) - Tier 2
+            // OPTIMIZATION: We exclude heavy JSONB history columns here as they are only needed
+            // in the History Modal (which can fetch them on demand or via a specific call).
+            const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value';
+
             const [productsData, customersData, purchasesData, salesData] = await Promise.all([
-                getProducts(),
+                getProducts({ select: productSelect }),
                 getCustomers(false),
                 getPurchaseOrders(),
                 getSales(undefined, undefined, getInitialMonthStart()) // Only fetch recent sales for general context
@@ -286,6 +289,10 @@ const Products: React.FC = () => {
             setCustomers(customersData);
             setPurchases(purchasesData);
             setSales(salesData);
+
+            // Once main data is ready, clear loader
+            if (!silent) setLoading(false);
+
         } catch (error: any) {
             const isAbort = error?.name === 'AbortError' || error?.message?.includes('aborted');
             if (isAbort) {
@@ -309,11 +316,14 @@ const Products: React.FC = () => {
     useEffect(() => {
         fetchData();
 
-        const handleCompanyUpdate = () => fetchData(true);
+        const handleCompanyUpdate = () => {
+            if (document.visibilityState !== 'visible') return;
+            fetchData(true);
+        };
         window.addEventListener('company-data-updated', handleCompanyUpdate);
 
-        // Nível 6: Evento de recarregamento inteligente
         const handleSmartReload = () => {
+            if (document.visibilityState !== 'visible') return;
             fetchData(true);
         };
         window.addEventListener('app-reloadData', handleSmartReload);
@@ -379,6 +389,8 @@ const Products: React.FC = () => {
                 } else if (filters.type === 'Estoque baixo') {
                     // Mover a lógica de filtro de estoque baixo para depois do agrupamento
                     typeMatch = true;
+                } else if (filters.type === 'Com Comissão') {
+                    typeMatch = p.commission_enabled === true;
                 }
 
                 return stockMatch && conditionMatch && locationMatch && typeMatch;
@@ -417,6 +429,8 @@ const Products: React.FC = () => {
             } else if (filters.type === 'Estoque baixo') {
                 // Mover a lógica de filtro de estoque baixo para depois do agrupamento
                 typeMatch = true;
+            } else if (filters.type === 'Com Comissão') {
+                typeMatch = p.commission_enabled === true;
             }
 
             return searchMatch && stockMatch && conditionMatch && locationMatch && typeMatch;
@@ -531,7 +545,7 @@ const Products: React.FC = () => {
             setProductSalesHistory(sales); setIsHistoryModalOpen(true);
         } catch (error) { showToast('Erro ao carregar histórico de vendas.', 'error'); }
     };
-    const handleBulkUpdate = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number }[]) => {
+    const handleBulkUpdate = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; commission_enabled?: boolean; commission_type?: 'fixed' | 'percentage'; commission_value?: number; discount_limit_type?: 'fixed' | 'percentage'; discount_limit_value?: number }[]) => {
         try {
             await updateMultipleProducts(updates, user?.id, user?.name);
             showToast(`${updates.length} produtos atualizados com sucesso!`, 'success');
@@ -948,6 +962,7 @@ const Products: React.FC = () => {
                                 <option value="Produtos Variados">Produtos Variados</option>
                                 <option value="Produtos de troca">Produtos de troca</option>
                                 <option value="Estoque baixo">Estoque baixo</option>
+                                <option value="Com Comissão">Com Comissão</option>
                             </select>
                         </div>
                         <div className="relative flex-grow min-w-[250px]">

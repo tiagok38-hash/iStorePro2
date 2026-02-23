@@ -41,6 +41,10 @@ export const clearCache = (keys: string[]) => {
     });
     // Sync with other tabs by sending prefixes
     cacheChannel.postMessage({ type: 'CLEAR_CACHE', keys, prefixes: keys });
+
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app-reloadData'));
+    }
 };
 
 cacheChannel.onmessage = (event) => {
@@ -53,6 +57,10 @@ cacheChannel.onmessage = (event) => {
                 }
             });
         });
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('app-reloadData'));
+        }
     }
 };
 
@@ -455,7 +463,7 @@ export const deletePermissionProfile = async (id: string) => {
 export const getCashSessions = async (currentUserId?: string): Promise<CashSession[]> => {
     return fetchWithCache(`cash_sessions_${currentUserId || 'all'}`, async () => {
         return fetchWithRetry(async () => {
-            let query = supabase.from('cash_sessions').select('*').order('open_time', { ascending: false });
+            let query = supabase.from('cash_sessions').select('*').order('open_time', { ascending: false }).limit(400);
 
             // RULE 7: User only sees its own cash sessions.
             if (currentUserId) {
@@ -730,11 +738,11 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
 
 // --- PRODUCTS ---
 
-export const getProducts = async (filters: { model?: string, categoryId?: string, brandId?: string, onlyInStock?: boolean } = {}): Promise<Product[]> => {
+export const getProducts = async (filters: { model?: string, categoryId?: string, brandId?: string, onlyInStock?: boolean, select?: string } = {}): Promise<Product[]> => {
     const cacheKey = `products_${JSON.stringify(filters)}`;
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
-            let query = supabase.from('products').select('*');
+            let query = supabase.from('products').select(filters.select || '*');
 
             if (filters.model) query = query.ilike('model', `%${filters.model}%`);
             if (filters.categoryId) query = query.eq('category', filters.categoryId); // Prop is categoryId but col is category
@@ -1341,7 +1349,7 @@ export const updateProductStock = async (id: string, newStock: number, reason: s
     return data;
 };
 
-export const updateMultipleProducts = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; storageLocation?: string }[], userId?: string, userName?: string) => {
+export const updateMultipleProducts = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; storageLocation?: string; commission_enabled?: boolean; commission_type?: 'fixed' | 'percentage'; commission_value?: number; discount_limit_type?: 'fixed' | 'percentage'; discount_limit_value?: number }[], userId?: string, userName?: string) => {
     const now = getNowISO();
 
     for (const u of updates) {
@@ -1469,6 +1477,50 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
             }
         }
 
+        // Handle commission fields update
+        if (u.commission_enabled !== undefined) {
+            payload.commission_enabled = u.commission_enabled;
+        }
+        if (u.commission_type !== undefined) {
+            payload.commission_type = u.commission_type;
+        }
+        if (u.commission_value !== undefined) {
+            payload.commission_value = u.commission_value;
+        }
+        if (u.discount_limit_type !== undefined) {
+            payload.discount_limit_type = u.discount_limit_type;
+        }
+        if (u.discount_limit_value !== undefined) {
+            payload.discount_limit_value = u.discount_limit_value;
+        }
+
+        // Log commission changes
+        const commissionChanged = (
+            (u.commission_enabled !== undefined && currentProduct.commission_enabled !== u.commission_enabled) ||
+            (u.commission_type !== undefined && currentProduct.commission_type !== u.commission_type) ||
+            (u.commission_value !== undefined && currentProduct.commission_value !== u.commission_value) ||
+            (u.discount_limit_type !== undefined && currentProduct.discount_limit_type !== u.discount_limit_type) ||
+            (u.discount_limit_value !== undefined && currentProduct.discount_limit_value !== u.discount_limit_value)
+        );
+
+        if (commissionChanged) {
+            const parts = [];
+            if (u.commission_enabled !== undefined) parts.push(`Comissão: ${u.commission_enabled ? 'Ativada' : 'Desativada'}`);
+            if (u.commission_type !== undefined) parts.push(`Tipo: ${u.commission_type === 'fixed' ? 'Fixo' : 'Percentual'}`);
+            if (u.commission_value !== undefined) parts.push(`Valor: ${u.commission_value}`);
+            if (u.discount_limit_type !== undefined) parts.push(`Limite Desc. Tipo: ${u.discount_limit_type === 'fixed' ? 'Fixo' : 'Percentual'}`);
+            if (u.discount_limit_value !== undefined) parts.push(`Limite Desc. Valor: ${u.discount_limit_value}`);
+
+            await addAuditLog(
+                AuditActionType.UPDATE,
+                AuditEntityType.PRODUCT,
+                u.id,
+                `Atualização em Massa (Comissão): ${parts.join(', ')}`,
+                userId || 'system',
+                userName || 'Atualização em Massa'
+            );
+        }
+
         if (priceHistoryUpdated) {
             payload.priceHistory = existingPriceHistory;
         }
@@ -1550,18 +1602,17 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
 
             // RULE 4: Strict filtering by User and Cash Session
             if (currentUserId) {
-                // Fetch user's cash session IDs to allow seeing sales from own sessions
+                // Fetch ONLY the necessary session IDs (limit to recent ones for salesperson check)
                 const { data: userSessions } = await supabase
                     .from('cash_sessions')
                     .select('id')
-                    .eq('user_id', currentUserId);
+                    .eq('user_id', currentUserId)
+                    .order('open_time', { ascending: false })
+                    .limit(200);
 
                 const sessionIds = (userSessions || []).map((s: any) => s.id);
 
                 if (sessionIds.length > 0) {
-                    // OR condition: salesperson_id = me OR cash_session_id IN my_sessions
-                    // Supabase 'or' syntax with nested logic is tricky, so we use string syntax carefully
-                    // "salesperson_id.eq.UID,cash_session_id.in.(SID1,SID2)"
                     query = query.or(`salesperson_id.eq.${currentUserId},cash_session_id.in.(${sessionIds.join(',')})`);
                 } else {
                     query = query.eq('salesperson_id', currentUserId);
@@ -1765,7 +1816,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         salesperson_id: data.salespersonId,
         items: data.items,
         subtotal: data.subtotal,
-        discount: data.discount,
+
         total: data.total,
         payments: data.payments,
         pos_terminal: data.posTerminal || 'Caixa 1',
@@ -1873,6 +1924,34 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         }
         // Wait for all audit logs to complete (they were started in background)
         await Promise.allSettled(auditLogs).catch(err => console.warn('mockApi: Audit logs partial failure', err));
+    }
+
+    // COMMISSION GENERATION: Generate commissions for finalized or pending sales
+    if (['Finalizada', 'Pendente'].includes(saleData.status) && data.items && Array.isArray(data.items)) {
+        try {
+            const { generateCommissionsForSale } = await import('./commissionService.ts');
+            const commissionItems = data.items.map((item: any) => ({
+                productId: item.productId,
+                unitPrice: item.unitPrice || 0,
+                quantity: item.quantity || 1,
+                discountType: item.discountType || 'R$',
+                discountValue: item.discountValue || 0,
+                netTotal: item.netTotal || ((item.unitPrice || 0) * (item.quantity || 1)),
+                productName: item.productName || item.model || 'Produto',
+                costPrice: item.costPrice || 0,
+            }));
+            await generateCommissionsForSale(
+                newSale.id,
+                data.salespersonId || userId,
+                commissionItems,
+                userId,
+                userName,
+                newSale.date,
+                saleData.status
+            );
+        } catch (commErr) {
+            console.warn('[addSale] Commission generation failed (non-blocking):', commErr);
+        }
     }
 
     // TRADE-IN STOCK MANAGEMENT: Add trade-in products to stock only when sale is Finalizada
@@ -1991,7 +2070,8 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 (productDetails || []).forEach((p: any) => productMap.set(p.id, p));
 
                 for (const item of data.items) {
-                    const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                    const itemNetRevenue = item.netTotal ?? ((item.unitPrice || 0) * (item.quantity || 1));
+                    const itemProfit = itemNetRevenue - ((item.costPrice || 0) * (item.quantity || 1));
                     totalProfit += itemProfit;
 
                     // Build product description: Category Name + Brand Name + Model
@@ -2015,9 +2095,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     }
                 }
             }
-            if (data.discount) {
-                totalProfit -= Number(data.discount);
-            }
+
 
             // Get product description (first item or combined)
             let productDescription = productDescriptions.length > 0
@@ -2030,7 +2108,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 const today = new Date().toISOString().split('T')[0];
                 const { data: todaySales } = await supabase
                     .from('sales')
-                    .select('items, discount')
+                    .select('items')
                     .gte('date', today)
                     .neq('id', newSale.id)
                     .in('status', ['Finalizada', 'Editada']);
@@ -2040,11 +2118,10 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     for (const sale of todaySales) {
                         const items = sale.items || [];
                         for (const item of items) {
-                            dailyProfit += ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                            const itemNetRevenue = item.netTotal ?? ((item.unitPrice || 0) * (item.quantity || 1));
+                            dailyProfit += itemNetRevenue - ((item.costPrice || 0) * (item.quantity || 1));
                         }
-                        if (sale.discount) {
-                            dailyProfit -= Number(sale.discount);
-                        }
+
                     }
                     // Add current sale profit (manually added since we excluded it or in case of delay)
                     dailyProfit += totalProfit;
@@ -2261,17 +2338,24 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     const updatePayload: any = {};
     if (dbObservations !== undefined) updatePayload.observations = dbObservations;
 
+    // RULE: If updating a sale and status moves to Finalizada, it should be 'Editada' 
+    // to show both badges, unless it's already Editada.
+    let finalStatus = data.status;
+    if (finalStatus === 'Finalizada' && oldStatus && oldStatus !== 'Finalizada') {
+        finalStatus = 'Editada';
+    }
+
     // Explicitly map known fields to snake_case
     if (data.customerId) updatePayload.customer_id = data.customerId;
     if (data.salespersonId) updatePayload.salesperson_id = data.salespersonId;
-    if (data.status) updatePayload.status = data.status;
+    if (finalStatus) updatePayload.status = finalStatus;
     if (data.posTerminal) updatePayload.pos_terminal = data.posTerminal;
     if (data.warrantyTerm) updatePayload.warranty_term = data.warrantyTerm;
     if (data.cashSessionId) updatePayload.cash_session_id = data.cashSessionId;
     if (data.leadOrigin) updatePayload.lead_origin = data.leadOrigin;
     if (data.items) updatePayload.items = data.items;
     if (data.subtotal !== undefined) updatePayload.subtotal = data.subtotal;
-    if (data.discount !== undefined) updatePayload.discount = data.discount;
+
     if (data.total !== undefined) updatePayload.total = data.total;
     if (data.payments) updatePayload.payments = data.payments;
 
@@ -2419,7 +2503,8 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             (productDetails || []).forEach((p: any) => productMap.set(p.id, p));
 
             for (const item of updated.items || []) {
-                const itemProfit = ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                const itemNetRevenue = item.netTotal ?? ((item.unitPrice || 0) * (item.quantity || 1));
+                const itemProfit = itemNetRevenue - ((item.costPrice || 0) * (item.quantity || 1));
                 totalProfit += itemProfit;
 
                 // Build product description: Category Name + Brand Name + Model
@@ -2462,7 +2547,8 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                     for (const sale of todaySales) {
                         const items = sale.items || [];
                         for (const item of items) {
-                            dailyProfit += ((item.unitPrice || 0) - (item.costPrice || 0)) * (item.quantity || 1);
+                            const itemNetRevenue = item.netTotal ?? ((item.unitPrice || 0) * (item.quantity || 1));
+                            dailyProfit += itemNetRevenue - ((item.costPrice || 0) * (item.quantity || 1));
                         }
                     }
                 }
@@ -2703,6 +2789,40 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
     }
 
+    // COMMISSION CANCELLATION/RECALCULATION: Update commissions on sale edit
+    try {
+        const { recalculateCommissionsForSale, cancelCommissionsForSale } = await import('./commissionService.ts');
+
+        if (newStatus === 'Cancelada') {
+            await cancelCommissionsForSale(updated.id, userId, userName, 'Venda cancelada durante edição');
+        } else if (['Finalizada', 'Editada', 'Pendente'].includes(newStatus)) {
+            const currentItems = data.items || updated.items || [];
+            if (currentItems && Array.isArray(currentItems) && currentItems.length > 0) {
+                const commissionItems = currentItems.map((item: any) => ({
+                    productId: item.productId,
+                    unitPrice: item.unitPrice || 0,
+                    quantity: item.quantity || 1,
+                    discountType: item.discountType || 'R$',
+                    discountValue: item.discountValue || 0,
+                    netTotal: item.netTotal || ((item.unitPrice || 0) * (item.quantity || 1)),
+                    productName: item.productName || item.model || 'Produto',
+                    costPrice: item.costPrice || 0,
+                }));
+                await recalculateCommissionsForSale(
+                    updated.id,
+                    updated.salesperson_id || userId,
+                    commissionItems,
+                    userId,
+                    userName,
+                    updated.date,
+                    newStatus
+                );
+            }
+        }
+    } catch (commErr) {
+        console.warn('[updateSale] Commission recalculation failed (non-blocking):', commErr);
+    }
+
     clearCache(['sales', 'products', 'cash_sessions']);
 
     return {
@@ -2808,6 +2928,14 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                 }).eq('id', item.productId);
             }
         }
+    }
+
+    // COMMISSION CANCELLATION: Cancel pending commissions for this sale
+    try {
+        const { cancelCommissionsForSale } = await import('./commissionService.ts');
+        await cancelCommissionsForSale(id, userId, userName, `Venda cancelada: ${reason}`);
+    } catch (commErr) {
+        console.warn('[cancelSale] Commission cancellation failed (non-blocking):', commErr);
     }
 
     // TRADE-IN STOCK MANAGEMENT: Remove trade-in products from stock when sale is cancelled

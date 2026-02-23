@@ -64,6 +64,13 @@ export interface PermissionSet {
     canDeleteTransaction: boolean;
     canViewFinancialKPIs: boolean;
 
+    // Commission permissions
+    canViewOwnCommission: boolean;
+    canViewAllCommissions: boolean;
+    canCloseCommissionPeriod: boolean;
+    canMarkCommissionPaid: boolean;
+    canEditProductCommissionSettings: boolean;
+
     // Service Order permissions
     canAccessServiceOrders: boolean;
     canCreateServiceOrder: boolean;
@@ -230,6 +237,13 @@ export interface Product {
     observations?: string;
     photos?: string[];
     accessories?: string[];
+
+    // Commission configuration
+    commission_enabled?: boolean;
+    commission_type?: 'fixed' | 'percentage';
+    commission_value?: number;
+    discount_limit_type?: 'fixed' | 'percentage';
+    discount_limit_value?: number;
 }
 
 export interface Service {
@@ -302,6 +316,7 @@ export interface CartItem extends Product {
     discountType: '%' | 'R$';
     discountValue: number;
     priceType?: 'sale' | 'cost' | 'wholesale';
+    netTotal?: number;
 }
 
 export interface SaleItem {
@@ -309,6 +324,9 @@ export interface SaleItem {
     quantity: number;
     unitPrice: number;
     priceType?: 'sale' | 'cost' | 'wholesale';
+    discountType: '%' | 'R$';
+    discountValue: number;
+    netTotal: number;
 }
 
 export type PaymentMethodType = 'Pix' | 'Dinheiro' | 'Crédito' | 'Débito' | 'Aparelho na Troca' | 'Crediário' | string;
@@ -363,7 +381,6 @@ export interface Sale {
     salespersonId: string;
     items: SaleItem[];
     subtotal: number;
-    discount: number;
     total: number;
     payments: Payment[];
     date: string;
@@ -561,6 +578,11 @@ export enum AuditActionType {
     CASH_CLOSE = 'CASH_CLOSE',
     CASH_WITHDRAWAL = 'CASH_WITHDRAWAL',
     CASH_SUPPLY = 'CASH_SUPPLY',
+    COMMISSION_CREATE = 'COMMISSION_CREATE',
+    COMMISSION_CANCEL = 'COMMISSION_CANCEL',
+    COMMISSION_CLOSE = 'COMMISSION_CLOSE',
+    COMMISSION_PAY = 'COMMISSION_PAY',
+    COMMISSION_RECALCULATE = 'COMMISSION_RECALCULATE',
 }
 
 export enum AuditEntityType {
@@ -584,6 +606,7 @@ export enum AuditEntityType {
     CASH_SESSION = 'CASH_SESSION',
     SERVICE = 'SERVICE',
     SERVICE_ORDER = 'SERVICE_ORDER',
+    COMMISSION = 'COMMISSION',
 }
 
 export interface AuditLog {
@@ -824,4 +847,49 @@ export interface Orcamento {
     created_at: string;
     updated_at: string;
     itens?: OrcamentoItem[];
+}
+
+// Commission Module
+export type CommissionStatus = 'on_hold' | 'pending' | 'cancelled' | 'closed' | 'paid';
+
+export interface Commission {
+    id: string;
+    sale_id: string;
+    sale_item_index: number;
+    seller_id: string;
+    product_id: string;
+    product_name?: string;
+    unit_price: number;
+    quantity: number;
+    discount_value: number;
+    discount_type: string;
+    net_total: number;
+    commission_type: 'fixed' | 'percentage';
+    commission_rate: number;
+    commission_amount: number;
+    status: CommissionStatus;
+    period_reference?: string;
+    payment_date?: string;
+    payment_method?: string;
+    payment_notes?: string;
+    created_at: string;
+    updated_at: string;
+    // Joined fields for UI
+    seller_name?: string;
+    sale_display_id?: string;
+    customer_name?: string;
+}
+
+export interface CommissionAuditLog {
+    id: string;
+    commission_id: string;
+    action_type: 'created' | 'recalculated' | 'cancelled' | 'closed' | 'paid' | 'status_change';
+    old_value?: number;
+    new_value?: number;
+    old_status?: string;
+    new_status?: string;
+    reason?: string;
+    user_id?: string;
+    user_name?: string;
+    created_at: string;
 }

@@ -68,17 +68,17 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
     const {
         saleDate, selectedCustomerId, selectedSalespersonId, cart, productSearch,
-        productToConfirm, searchQuantity, globalDiscountType, globalDiscountValue,
+        productToConfirm, searchQuantity,
         payments, warrantyTerm, observations, internalObservations,
         isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
         localSuppliers, isCardPaymentModalOpen, cardTransactionType, cardMethodId,
-        paymentInput, subtotal, totalItemDiscounts, globalDiscountAmount, total,
+        paymentInput, subtotal, totalItemDiscounts, total,
         totalPaid, balance, isSaving, selectedPriceType, reservedId
     } = state;
 
     const {
         setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setProductSearch,
-        setSearchQuantity, setGlobalDiscountType, setGlobalDiscountValue,
+        setSearchQuantity,
         setWarrantyTerm, setObservations, setInternalObservations,
         setIsCustomerModalOpen, setIsCardPaymentModalOpen, setIsTradeInProductModalOpen, setPaymentInput, setProductForTradeIn,
         handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
@@ -395,6 +395,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             <th className="px-4 py-3 w-[40%]">ITEM / DESCRIÇÃO</th>
                                             <th className="px-4 py-3 text-center w-24">QTD.</th>
                                             <th className="px-4 py-3 text-center w-[180px]">PREÇO UNITÁRIO</th>
+                                            <th className="px-4 py-3 text-center w-[140px]">DESCONTO</th>
                                             <th className="px-4 py-3 text-right w-40">SUBTOTAL</th>
                                             <th className="px-4 py-3 text-center w-20">AÇÃO</th>
                                         </tr>
@@ -463,6 +464,26 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                 className="text-left font-black"
                                                             />
                                                         </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex justify-center items-center h-10">
+                                                        <select
+                                                            value={item.discountType}
+                                                            onChange={e => handleCartItemUpdate(item.id, 'discountType', e.target.value)}
+                                                            className="bg-gray-50 text-gray-700 text-xs px-2 h-full rounded-l-xl border border-gray-300 focus:ring-0 outline-none font-bold"
+                                                        >
+                                                            <option>R$</option>
+                                                            <option>%</option>
+                                                        </select>
+                                                        <input
+                                                            type="number"
+                                                            value={item.discountValue || ''}
+                                                            onChange={e => handleCartItemUpdate(item.id, 'discountValue', Number(e.target.value) || 0)}
+                                                            className="w-[80px] h-full text-center outline-none font-black text-gray-900 text-sm border border-l-0 border-gray-300 rounded-r-xl"
+                                                            min="0"
+                                                            placeholder="0"
+                                                        />
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-black text-gray-900 tabular-nums text-base">
@@ -585,22 +606,16 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-2 pb-1 border-b border-gray-100 uppercase text-[10px] sm:text-xs tracking-widest"><CalculatorIcon className="h-4 w-4 text-success" /> Financeiro</h3>
 
                                 <div className="glass-panel bg-white/40 rounded-3xl p-3 sm:p-4 space-y-2 sm:space-y-3 shadow-sm border border-white/20">
-                                    <div className="flex justify-between items-center text-gray-600">
+                                    <div className="flex justify-between items-center text-gray-600 border-b border-gray-50 pb-2 sm:pb-3">
                                         <span className="text-xs sm:text-sm font-bold">Subtotal</span>
                                         <span className="text-sm sm:text-base font-bold text-gray-800">{formatCurrency(subtotal)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-red-500 border-b border-gray-50 pb-2 sm:pb-3">
-                                        <div className="flex items-center gap-2 sm:gap-3">
-                                            <span className="text-xs sm:text-sm font-bold">Desconto</span>
-                                            <div className="flex h-9">
-                                                <select value={globalDiscountType} onChange={e => setGlobalDiscountType(e.target.value as any)} className="bg-gray-50 text-gray-700 text-xs px-2 rounded-l border border-gray-200 focus:ring-0 outline-none font-bold">
-                                                    <option>R$</option><option>%</option>
-                                                </select>
-                                                <input type="number" value={globalDiscountValue} onChange={e => setGlobalDiscountValue(Number(e.target.value))} className="bg-gray-50 text-gray-700 w-20 text-xs px-2 rounded-r border border-l-0 border-gray-200 focus:ring-0 text-right font-bold outline-none" />
-                                            </div>
+                                    {subtotal - total > 0 && (
+                                        <div className="flex justify-between items-center text-red-500 border-b border-gray-50 pb-2 sm:pb-3">
+                                            <span className="text-xs sm:text-sm font-bold">Descontos (Itens)</span>
+                                            <span className="text-sm sm:text-base font-bold text-red-600">-{formatCurrency(subtotal - total)}</span>
                                         </div>
-                                        <span className="text-sm sm:text-base font-bold">-{formatCurrency(totalItemDiscounts + globalDiscountAmount)}</span>
-                                    </div>
+                                    )}
                                     {totalFees > 0 && (
                                         <div className="flex justify-between items-center text-blue-500 text-[10px] sm:text-xs">
                                             <span className="font-bold uppercase tracking-wider">Juros (Maquininha)</span>

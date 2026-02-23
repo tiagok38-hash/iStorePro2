@@ -129,7 +129,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
         filteredSales.forEach(sale => {
             totalFaturamento += sale.total;
-            totalRevenueForProfit += (sale.subtotal - sale.discount);
+            totalRevenueForProfit += sale.total;
 
             let saleCost = 0;
             const saleSubtotal = sale.subtotal || 1;
@@ -139,9 +139,8 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 const itemCost = ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
                 const itemGrossRevenue = item.unitPrice * item.quantity;
 
-                // Pro-rate discount for accurate category profit
-                const itemDiscount = (itemGrossRevenue / saleSubtotal) * (sale.discount || 0);
-                const itemNetRevenue = itemGrossRevenue - itemDiscount;
+                // Calculate item net revenue
+                const itemNetRevenue = item.netTotal ?? itemGrossRevenue;
                 const itemProfit = itemNetRevenue - itemCost;
 
                 if ((product?.brand || '').toLowerCase().includes('apple')) {
@@ -188,7 +187,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 const product = productMap[item.productId];
                 return cost + ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
             }, 0);
-            const revenue = sale.subtotal - sale.discount;
+            const revenue = sale.total;
 
             acc[day].faturamento += sale.total;
             acc[day].lucro += revenue - saleCost;
@@ -465,7 +464,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                                     const product = productMap[item.productId];
                                     return cost + ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
                                 }, 0);
-                                const revenue = sale.subtotal - sale.discount;
+                                const revenue = sale.total;
                                 const profit = revenue - saleCost;
                                 return (
                                     <tr key={sale.id} className="group hover:bg-gray-50/80 transition-all">
