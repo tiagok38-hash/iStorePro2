@@ -42,10 +42,10 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
 
     const handleSearch = () => {
         setIsSearching(true);
-        const lowerSearchTerm = searchTerm.toLowerCase();
+        const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
         const results = allProducts.filter(p => {
-            const description = `${p.brand} ${p.model} ${p.color || ''}`.toLowerCase();
-            const searchMatch = description.includes(lowerSearchTerm);
+            const description = `${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''}`.toLowerCase();
+            const searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
             const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
             const stockMatch = p.stock > 0;
             return searchMatch && conditionMatch && stockMatch;

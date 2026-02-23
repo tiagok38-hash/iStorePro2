@@ -428,18 +428,32 @@ const Products: React.FC = () => {
             const searchableText = [
                 p.model || '',
                 p.brand || '',
-                p.serialNumber || '',
-                p.imei1 || '',
-                p.imei2 || '',
                 p.color || '',
                 p.storage || '',
                 p.condition || '',
                 p.description || '',
-                purchaseLocator,
-                (p.barcodes || []).join(' ')
             ].join(' ').toLowerCase();
 
-            const searchMatch = terms.every(term => searchableText.includes(term));
+            const codeFields = [
+                { type: 'sku', value: String(p.sku || '').toLowerCase() },
+                { type: 'imei', value: String(p.imei1 || '').toLowerCase() },
+                { type: 'imei', value: String(p.imei2 || '').toLowerCase() },
+                { type: 'sn', value: String(p.serialNumber || '').toLowerCase() },
+                { type: 'locator', value: purchaseLocator.toLowerCase() },
+                ...((p.barcodes || []).map(b => ({ type: 'barcode', value: String(b).toLowerCase() })))
+            ].filter(c => c.value);
+
+            const searchMatch = terms.every(term => {
+                if (searchableText.includes(term)) return true;
+
+                return codeFields.some(code => {
+                    const isShortNumeric = term.length < 5 && /^\d+$/.test(term);
+                    if (isShortNumeric && ['imei', 'barcode', 'sn'].includes(code.type)) {
+                        return code.value === term || code.value.endsWith(term) || code.value.startsWith(term);
+                    }
+                    return code.value.includes(term);
+                });
+            });
 
             const stockMatch = filters.stock === 'Todos' ? true : filters.stock === 'Em estoque' ? p.stock > 0 : p.stock === 0;
             const conditionMatch = filters.condition === 'Todos' ? true : p.condition === filters.condition;
