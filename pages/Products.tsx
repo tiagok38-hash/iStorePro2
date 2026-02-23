@@ -520,23 +520,44 @@ const Products: React.FC = () => {
                 const modelText = String(p.model || '').toLowerCase();
                 const storageText = String(p.storage || '').toLowerCase();
                 const colorText = String(p.color || '').toLowerCase();
+                const brandText = String(p.brand || '').toLowerCase();
+                const fullDesc = `${brandText} ${modelText}`.trim();
 
                 terms.forEach(term => {
-                    const isNumeric = /^\d+$/.test(term);
-                    if (isNumeric && new RegExp(`(?:^|\\D)${term}(?:$|\\D)`).test(modelText)) {
-                        score += 50; // Exact model number match (e.g. "15" in "iPhone 15")
+                    // --- Model scoring ---
+                    // Check if term appears as an EXACT whole word in model/description
+                    // e.g. "15" matches "iPhone 15 128GB" but NOT "Redmi 15C"
+                    const exactWordRegex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                    const exactWordInModel = exactWordRegex.test(modelText);
+                    const exactWordInDesc = exactWordRegex.test(fullDesc);
+
+                    if (exactWordInModel) {
+                        score += 50; // Exact word match in model (e.g. "15" as standalone word)
+                    } else if (exactWordInDesc) {
+                        score += 40; // Exact word match in brand+model
                     } else if (modelText.includes(term)) {
-                        score += 10;
+                        score += 5;  // Substring match only (e.g. "15" inside "15C")
+                    } else if (fullDesc.includes(term)) {
+                        score += 3;
                     }
-                    if (storageText.includes(term)) score += 30; // Storage match is very important if specified
+
+                    // --- Storage scoring (very important for capacity searches) ---
+                    if (exactWordRegex.test(storageText)) {
+                        score += 40; // Exact storage match (e.g. "128gb" as whole word)
+                    } else if (storageText.includes(term)) {
+                        score += 15;
+                    }
+
+                    // --- Color scoring ---
                     if (colorText.includes(term)) score += 10;
-                    if (String(p.sku).toLowerCase() === term) score += 100; // Exact SKU wins
-                    if (String(p.imei1).includes(term) || String(p.imei2).includes(term) || String(p.serialNumber).toLowerCase().includes(term)) score += 30;
+
+                    // --- Code fields scoring ---
+                    if (String(p.sku).toLowerCase() === term) score += 100;
+                    if (String(p.imei1 || '').includes(term) || String(p.imei2 || '').includes(term) || String(p.serialNumber || '').toLowerCase().includes(term)) score += 20;
                 });
                 return { p, score };
             }).sort((a, b) => {
                 if (a.score !== b.score) return b.score - a.score;
-                // fallback to date sorting if scores are equal
                 if (inventorySortOrder === 'newest') return new Date(b.p.createdAt).getTime() - new Date(a.p.createdAt).getTime();
                 return new Date(a.p.createdAt).getTime() - new Date(b.p.createdAt).getTime();
             }).map(item => item.p);
