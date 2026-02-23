@@ -26,8 +26,8 @@ import GlobalLoading from '../components/GlobalLoading.tsx';
 import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
 import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
-    TicketIcon, DocumentArrowUpIcon, PlayCircleIcon, AppleIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
-    BanknotesIcon, DocumentTextIcon, CalendarDaysIcon, ArrowsUpDownIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon,
+    TicketIcon, DocumentArrowUpIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
+    BanknotesIcon, DocumentTextIcon, ArrowsUpDownIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon,
     ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon, ClockIcon, PrinterIcon
 } from '../components/icons.tsx';
 
@@ -136,6 +136,28 @@ const StatusTag: React.FC<{ text: string; type: 'success' | 'warning' | 'danger'
     };
     return <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${colors[type]}`}>{text}</span>;
 };
+
+// --- Loading States ---
+const SkeletonRow: React.FC<{ columns: number }> = ({ columns }) => (
+    <tr className="animate-pulse border-b border-border">
+        {Array.from({ length: columns }).map((_, i) => (
+            <td key={i} className="px-4 py-3">
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+            </td>
+        ))}
+    </tr>
+);
+
+const SkeletonKPI: React.FC = () => (
+    <div className="animate-pulse bg-white p-6 rounded-3xl border border-border">
+        <div className="flex justify-between items-start mb-4">
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+            <div className="h-10 w-10 bg-gray-200 rounded-xl"></div>
+        </div>
+        <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-40"></div>
+    </div>
+);
 
 // --- Supplier Label Logic ---
 const getSupplierColorClass = (supplier: Supplier | undefined) => {
@@ -273,25 +295,30 @@ const Products: React.FC = () => {
             setGradeValues(gradeValuesData);
             setStorageLocations(storageLocationsData || []);
 
-            // 2. Fetch main data (heavier requests) - Tier 2
+            // 2. Fetch main data (CRITICAL) - Tier 2A
             // OPTIMIZATION: We exclude heavy JSONB history columns here as they are only needed
             // in the History Modal (which can fetch them on demand or via a specific call).
             const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value';
 
-            const [productsData, customersData, purchasesData, salesData] = await Promise.all([
-                getProducts({ select: productSelect }),
+            const productsData = await getProducts({ select: productSelect });
+            setProducts(productsData);
+
+            // Once main data (Products) is ready, clear primary loader to show the UI
+            if (!silent) setLoading(false);
+
+            // 3. Fetch auxiliary background data - Tier 2B (Does not block initial view)
+            Promise.all([
                 getCustomers(false),
                 getPurchaseOrders(),
-                getSales(undefined, undefined, getInitialMonthStart()) // Only fetch recent sales for general context
-            ]);
+                getSales(undefined, undefined, getInitialMonthStart())
+            ]).then(([customersData, purchasesData, salesData]) => {
+                setCustomers(customersData);
+                setPurchases(purchasesData);
+                setSales(salesData);
+            }).catch(err => {
+                console.warn('Products: Background data fetch failed:', err);
+            });
 
-            setProducts(productsData);
-            setCustomers(customersData);
-            setPurchases(purchasesData);
-            setSales(salesData);
-
-            // Once main data is ready, clear loader
-            if (!silent) setLoading(false);
 
         } catch (error: any) {
             const isAbort = error?.name === 'AbortError' || error?.message?.includes('aborted');
@@ -879,7 +906,7 @@ const Products: React.FC = () => {
                             <PlusIcon className="h-5 w-5" /> Nova compra
                         </button>
                     )}
-                    {permissions?.canEditProduct && (
+                    {permissions?.canBulkUpdatePrices && (
                         <button
                             onClick={() => setIsBulkUpdateModalOpen(true)}
                             className="h-10 px-4 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-blue-100 uppercase tracking-wider group"
@@ -887,7 +914,7 @@ const Products: React.FC = () => {
                             <TagIcon className="h-5 w-5 text-blue-500 group-hover:text-blue-600 transition-colors" /> Atualização de preço
                         </button>
                     )}
-                    {permissions?.canEditProduct && (
+                    {permissions?.canBulkUpdateLocations && (
                         <button
                             onClick={() => setIsBulkLocationUpdateModalOpen(true)}
                             className="h-10 px-4 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-emerald-100 uppercase tracking-wider group"
@@ -895,20 +922,24 @@ const Products: React.FC = () => {
                             <MapPinIcon className="h-5 w-5 text-emerald-600 group-hover:text-emerald-700 transition-colors" /> Atualização de local
                         </button>
                     )}
-                    <button
-                        onClick={() => setIsStockComparisonModalOpen(true)}
-                        className="h-10 px-4 bg-yellow-50 text-yellow-700 rounded-xl hover:bg-yellow-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-yellow-200 uppercase tracking-wider group"
-                    >
-                        <ArrowsUpDownIcon className="h-5 w-5 text-yellow-500 group-hover:text-yellow-600 transition-colors" />
-                        Comparar Estoques
-                    </button>
-                    <button
-                        onClick={() => setIsStockMovementModalOpen(true)}
-                        className="h-10 px-4 bg-orange-50 text-orange-700 rounded-xl hover:bg-orange-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-orange-200 uppercase tracking-wider group"
-                    >
-                        <ClockIcon className="h-5 w-5 text-orange-500 group-hover:text-orange-600 transition-colors" />
-                        Movimentação de estoque
-                    </button>
+                    {permissions?.canCompareStock && (
+                        <button
+                            onClick={() => setIsStockComparisonModalOpen(true)}
+                            className="h-10 px-4 bg-yellow-50 text-yellow-700 rounded-xl hover:bg-yellow-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-yellow-200 uppercase tracking-wider group"
+                        >
+                            <ArrowsUpDownIcon className="h-5 w-5 text-yellow-500 group-hover:text-yellow-600 transition-colors" />
+                            Comparar Estoques
+                        </button>
+                    )}
+                    {permissions?.canAccessStockMovement && (
+                        <button
+                            onClick={() => setIsStockMovementModalOpen(true)}
+                            className="h-10 px-4 bg-orange-50 text-orange-700 rounded-xl hover:bg-orange-100/80 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-orange-200 uppercase tracking-wider group"
+                        >
+                            <ClockIcon className="h-5 w-5 text-orange-500 group-hover:text-orange-600 transition-colors" />
+                            Movimentação de estoque
+                        </button>
+                    )}
                     {permissions?.canManageParameters && (
                         <Link
                             to="/company?tab=parametros"
@@ -917,12 +948,14 @@ const Products: React.FC = () => {
                             <Cog6ToothIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700 transition-colors" /> Parâmetros
                         </Link>
                     )}
-                    <button
-                        onClick={() => setIsLabelGeneratorModalOpen(true)}
-                        className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
-                    >
-                        <TicketIcon className="h-5 w-5 text-gray-500" /> Etiquetas
-                    </button>
+                    {permissions?.canGenerateLabels && (
+                        <button
+                            onClick={() => setIsLabelGeneratorModalOpen(true)}
+                            className="h-10 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-[11px] font-bold flex items-center gap-2 transition-all active:scale-95 border border-gray-200 uppercase tracking-wider"
+                        >
+                            <TicketIcon className="h-5 w-5 text-gray-500" /> Etiquetas
+                        </button>
+                    )}
                     <div className="flex-grow"></div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-70">Total: {filteredProducts.length}</p>
                 </div>
@@ -995,44 +1028,50 @@ const Products: React.FC = () => {
                 </div>
             </div>
             <div className="bg-surface rounded-3xl border border-border shadow-sm">
-                {loading ? <div className="flex justify-center py-8"><SpinnerIcon /></div> : (
-                    filteredProducts.length === 0 ? <p className="text-center text-muted p-6">Nenhum produto encontrado.</p> : (
-                        <div className="overflow-x-auto custom-scrollbar">
-                            <table className="w-full text-sm text-left text-muted whitespace-nowrap">
-                                <thead className="text-[10px] font-bold text-secondary uppercase bg-gray-50/50 border-b border-white/20">
-                                    <tr>
-                                        <th scope="col" className="px-2 py-2 text-center font-bold">ESTOQUE</th>
-                                        <th scope="col" className="px-2 py-2 font-bold">DESCRIÇÃO</th>
-                                        <th scope="col" className="px-2 py-2 font-bold">LOCAL</th>
-                                        <th scope="col" className="px-2 py-2 font-bold">FORNECEDOR</th>
-                                        <th scope="col" className="px-2 py-2 font-bold">VENDA</th>
-                                        <th scope="col" className="px-2 py-2 font-bold">ATACADO</th>
-                                        <th scope="col" className="px-2 py-2 font-bold">CUSTO</th>
-                                        <th scope="col" className="px-2 py-2 font-bold">MARKUP</th>
-                                        <th scope="col" className="px-2 py-2 text-center font-bold">GARANTIA</th>
-                                        <th scope="col" className="px-2 py-2 text-center font-bold">CONDIÇÃO</th>
-                                        <th scope="col" className="px-2 py-2 text-center font-bold">CADASTRO</th>
-                                        <th scope="col" className="px-2 py-2 text-center font-bold">AÇÕES</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {paginatedProducts.map(product => {
-                                        // Calculate total cost including additional repair costs
-                                        const totalCost = (product.costPrice || 0) + (product.additionalCostPrice || 0);
-                                        const markup = (totalCost && totalCost > 0) ? ((product.price - totalCost) / totalCost) * 100 : 0;
-                                        const supplier = suppliers.find(s => s.id === product.supplierId);
-                                        const supplierLabelColor = getSupplierColorClass(supplier);
+                <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-sm text-left text-muted whitespace-nowrap">
+                        <thead className="text-[10px] font-bold text-secondary uppercase bg-gray-50/50 border-b border-white/20">
+                            <tr>
+                                <th scope="col" className="px-2 py-2 text-center font-bold">ESTOQUE</th>
+                                <th scope="col" className="px-2 py-2 font-bold">DESCRIÇÃO</th>
+                                <th scope="col" className="px-2 py-2 font-bold">LOCAL</th>
+                                <th scope="col" className="px-2 py-2 font-bold">FORNECEDOR</th>
+                                <th scope="col" className="px-2 py-2 font-bold">VENDA</th>
+                                <th scope="col" className="px-2 py-2 font-bold">ATACADO</th>
+                                <th scope="col" className="px-2 py-2 font-bold">CUSTO</th>
+                                <th scope="col" className="px-2 py-2 font-bold">MARKUP</th>
+                                <th scope="col" className="px-2 py-2 text-center font-bold">GARANTIA</th>
+                                <th scope="col" className="px-2 py-2 text-center font-bold">CONDIÇÃO</th>
+                                <th scope="col" className="px-2 py-2 text-center font-bold">CADASTRO</th>
+                                <th scope="col" className="px-2 py-2 text-center font-bold">AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} columns={12} />)
+                            ) : filteredProducts.length === 0 ? (
+                                <tr>
+                                    <td colSpan={12} className="text-center text-muted p-6">Nenhum produto encontrado.</td>
+                                </tr>
+                            ) : (
+                                paginatedProducts.map(product => {
+                                    // Calculate total cost including additional repair costs
+                                    const totalCost = (product.costPrice || 0) + (product.additionalCostPrice || 0);
+                                    const markup = (totalCost && totalCost > 0) ? ((product.price - totalCost) / totalCost) * 100 : 0;
+                                    const supplier = suppliers.find(s => s.id === product.supplierId);
+                                    const supplierLabelColor = getSupplierColorClass(supplier);
 
-                                        let stockColorClass = 'bg-gray-100 text-gray-700 border-gray-200';
-                                        const isUnique = !!((product.serialNumber || '').trim() || (product.imei1 || '').trim() || (product.imei2 || '').trim());
-                                        const isLowStock = !isUnique && product.stock > 0 && product.minimumStock !== undefined && product.stock <= product.minimumStock;
+                                    let stockColorClass = 'bg-gray-100 text-gray-700 border-gray-200';
+                                    const isUnique = !!((product.serialNumber || '').trim() || (product.imei1 || '').trim() || (product.imei2 || '').trim());
+                                    const isLowStock = !isUnique && product.stock > 0 && product.minimumStock !== undefined && product.stock <= product.minimumStock;
 
-                                        if (product.stock === 0) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
-                                        else if (isLowStock) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
-                                        else if (product.condition === 'Reservado') stockColorClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
-                                        else if (product.stock >= 1) stockColorClass = 'bg-green-100 text-green-700 border-green-200';
+                                    if (product.stock === 0) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
+                                    else if (isLowStock) stockColorClass = 'bg-red-100 text-red-700 border-red-200';
+                                    else if (product.condition === 'Reservado') stockColorClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                                    else if (product.stock >= 1) stockColorClass = 'bg-green-100 text-green-700 border-green-200';
 
-                                        return (<tr key={product.id} className="bg-surface border-b border-border last:border-0 hover:bg-surface-secondary">
+                                    return (
+                                        <tr key={product.id} className="bg-surface border-b border-border last:border-0 hover:bg-surface-secondary">
                                             <td className="px-2 py-2 text-center">
                                                 <span className={`px-2 py-0.5 text-sm font-bold rounded-xl border ${stockColorClass}`}>{product.stock}</span>
                                             </td>
@@ -1133,13 +1172,13 @@ const Products: React.FC = () => {
                                                     />
                                                 </div>
                                             </td>
-                                        </tr>);
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )
-                )}
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
                 {/* Pagination controls */}
                 {filteredProducts.length > 0 && (
                     <div className="p-4 flex justify-between items-center border-t border-border">

@@ -18,6 +18,12 @@ export interface PermissionSet {
     canEditProduct: boolean;
     canDeleteProduct: boolean;
 
+    canCompareStock: boolean;
+    canAccessStockMovement: boolean;
+    canGenerateLabels: boolean;
+    canBulkUpdatePrices: boolean;
+    canBulkUpdateLocations: boolean;
+
     canEditStock: boolean;
 
     // Purchase permissions
@@ -33,6 +39,7 @@ export interface PermissionSet {
     canCancelSale: boolean;
     canViewSalesKPIs: boolean;
     canEditSale: boolean;
+    canViewAllSales: boolean;
 
     // Company permissions
     canManageCompanyData: boolean;
@@ -91,6 +98,8 @@ export interface PermissionSet {
     canCreateCatalogItem: boolean;
     canEditCatalogItem: boolean;
     canDeleteCatalogItem: boolean;
+    canAccessComissoes: boolean;
+    canViewSaleProfit: boolean;
 }
 
 export interface PermissionProfile {

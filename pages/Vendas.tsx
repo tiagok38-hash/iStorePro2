@@ -281,8 +281,8 @@ const Vendas: React.FC = () => {
             let salesData: Sale[] = [];
             try {
                 // IMPORTANT: Admins or users with management permissions should see ALL sales.
-                // Sellers should only see their own sales.
-                const canSeeAllSales = permissions?.canManageUsers || permissions?.canManagePermissions || permissions?.canViewAudit;
+                // Sellers should only see their own sales unless they have canViewAllSales.
+                const canSeeAllSales = permissions?.canViewAllSales || permissions?.canManageUsers || permissions?.canManagePermissions || permissions?.canViewAudit;
                 const userIdToFilter = canSeeAllSales ? undefined : user?.id;
 
                 salesData = await getSales(userIdToFilter, undefined, startDate, endDate);
@@ -606,12 +606,14 @@ const Vendas: React.FC = () => {
                         <KpiCard title="Faturamento" value={formatCurrency(kpi.faturamento)} bgColor="bg-blue-100" />
                         <KpiCard title="Ticket Médio" value={formatCurrency(kpi.ticketMedio)} bgColor="bg-purple-100" />
                         <KpiCard title="Taxas" value={formatCurrency(kpi.taxas)} bgColor="bg-red-100" />
-                        <KpiCard
-                            title="Lucro"
-                            value={formatCurrency(kpi.lucro)}
-                            bgColor={kpi.lucro >= 0 ? "bg-green-100" : "bg-red-100"}
-                            textColor={kpi.lucro >= 0 ? "text-green-700" : "text-red-700"}
-                        />
+                        {permissions?.canViewSaleProfit && (
+                            <KpiCard
+                                title="Lucro"
+                                value={formatCurrency(kpi.lucro)}
+                                bgColor={kpi.lucro >= 0 ? "bg-green-100" : "bg-red-100"}
+                                textColor={kpi.lucro >= 0 ? "text-green-700" : "text-red-700"}
+                            />
+                        )}
                     </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -722,14 +724,14 @@ const Vendas: React.FC = () => {
                                         <th className="px-6 py-4 hidden md:table-cell">Origem</th>
                                         <th className="px-6 py-4">Total</th>
                                         <th className="px-6 py-4 hidden lg:table-cell">Taxas</th>
-                                        <th className="px-6 py-4">Lucro</th>
+                                        {permissions?.canViewSaleProfit && <th className="px-6 py-4">Lucro</th>}
                                         <th className="px-6 py-4 text-center">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {currentSales.length === 0 ? (
                                         <tr>
-                                            <td colSpan={10} className="px-6 py-12 text-center text-muted italic">
+                                            <td colSpan={permissions?.canViewSaleProfit ? 10 : 9} className="px-6 py-12 text-center text-muted italic">
                                                 Nenhuma venda encontrada para os filtros selecionados.
                                             </td>
                                         </tr>
@@ -780,7 +782,9 @@ const Vendas: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-primary">{formatCurrency(sale.total)}</td>
                                                 <td className="px-6 py-4 text-muted hidden lg:table-cell">{formatCurrency(sale.payments.reduce((acc, p) => acc + (p.fees || 0), 0))}</td>
-                                                <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
+                                                {permissions?.canViewSaleProfit && (
+                                                    <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
+                                                )}
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center">
                                                         <SaleActionsDropdown

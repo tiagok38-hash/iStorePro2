@@ -988,21 +988,21 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                         <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">Estoque mínimo</span>
                                     </div>
 
-                                    <div className="flex items-center gap-2 ml-auto bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-[9px]">Qtd:</span>
+                                    <div className="flex items-center gap-2 ml-auto bg-white px-3 h-11 rounded-lg border border-gray-300 transition-all focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Qtd:</span>
                                         <input
                                             type="number"
                                             min="1"
                                             value={currentItem.minimumStock ?? 1}
                                             onChange={(e) => handleCurrentItemChange('minimumStock', parseInt(e.target.value) || 1)}
-                                            className="w-10 bg-transparent text-center font-black text-sm outline-none border-b-2 border-transparent focus:border-blue-600 transition-colors"
+                                            className="w-10 bg-transparent text-center font-black text-sm outline-none transition-colors border-none"
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex-1 min-w-[200px] flex items-end">
-                                <div className="flex items-center gap-3 px-3 border rounded-lg bg-gray-100/50 border-gray-200 h-11 transition-all focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent w-full shadow-inner">
+                                <div className="flex items-center gap-3 px-3 border rounded-lg bg-white border-gray-300 h-11 transition-all focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary w-full">
                                     <BarcodeIcon className="h-4 w-4 text-muted shrink-0" />
                                     <input
                                         type="text"

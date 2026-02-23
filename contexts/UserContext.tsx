@@ -41,12 +41,15 @@ const defaultPermissions: PermissionSet = {
   canAccessPOS: true, canAccessClientes: true, canAccessFornecedores: true,
   canAccessRelatorios: true, canAccessEmpresa: true, canAccessOrcamentos: true,
   canCreateProduct: true, canEditProduct: true, canDeleteProduct: true,
+  canCompareStock: true, canAccessStockMovement: true, canGenerateLabels: true,
+  canBulkUpdatePrices: true, canBulkUpdateLocations: true,
   canEditStock: true,
   canViewPurchases: true, canCreatePurchase: true, canEditPurchase: true,
   canDeletePurchase: true, canLaunchPurchase: true,
   canViewPurchaseKPIs: false,
   canCreateSale: true, canCancelSale: true,
   canViewSalesKPIs: true, canEditSale: true,
+  canViewAllSales: true,
   canManageCompanyData: true, canManageUsers: true,
   canManagePermissions: true, canViewAudit: true,
   canEditOwnProfile: true, canManageMarcasECategorias: true,
@@ -67,6 +70,8 @@ const defaultPermissions: PermissionSet = {
   canCloseCommissionPeriod: true,
   canMarkCommissionPaid: true,
   canEditProductCommissionSettings: true,
+  canAccessComissoes: true,
+  canViewSaleProfit: true,
 };
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

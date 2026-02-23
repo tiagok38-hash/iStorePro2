@@ -2881,6 +2881,31 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
     }).eq('id', id).select().single();
     if (updateError) throw updateError;
 
+    // REVERT ORCAMENTO STATUS IF APPLICABLE
+    try {
+        const { data: orcamento } = await supabase
+            .from('orcamentos')
+            .select('id')
+            .eq('venda_id', id)
+            .maybeSingle();
+
+        if (orcamento) {
+            await supabase
+                .from('orcamentos')
+                .update({
+                    status: 'finalizado',
+                    venda_id: null,
+                    convertido_em: null,
+                    updated_at: getNowISO()
+                })
+                .eq('id', orcamento.id);
+
+            clearCache(['orcamentos']);
+        }
+    } catch (err) {
+        console.warn('cancelSale: Error reverting orcamento status:', err);
+    }
+
     // Add main sale cancel audit log
     await addAuditLog(
         AuditActionType.SALE_CANCEL,

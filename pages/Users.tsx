@@ -86,6 +86,11 @@ const permissionGroups: { title: string; requiredSection?: keyof PermissionSet; 
             { key: 'canEditProduct', label: 'Editar Produtos' },
             { key: 'canDeleteProduct', label: 'Excluir Produtos' },
             { key: 'canEditStock', label: 'Fazer Ajustes Manuais de Estoque' },
+            { key: 'canCompareStock', label: 'Comparar Estoques (Conferência)' },
+            { key: 'canAccessStockMovement', label: 'Visualizar Movimentação de estoque' },
+            { key: 'canGenerateLabels', label: 'Gerar Etiquetas' },
+            { key: 'canBulkUpdatePrices', label: 'Atualizar Preços em Massa' },
+            { key: 'canBulkUpdateLocations', label: 'Atualizar Locais (Prateleiras) em Massa' },
         ],
     },
     {
@@ -96,6 +101,8 @@ const permissionGroups: { title: string; requiredSection?: keyof PermissionSet; 
             { key: 'canEditSale', label: 'Editar venda' },
             { key: 'canCancelSale', label: 'Cancelar Vendas' },
             { key: 'canViewSalesKPIs', label: 'Visualizar Cards de Indicadores (KPIs)' },
+            { key: 'canViewSaleProfit', label: 'Visualizar Lucro no Histórico' },
+            { key: 'canViewAllSales', label: 'Visualizar Todas as Vendas (Desativado = Só as Minhas)' },
         ],
     },
     {
@@ -142,6 +149,7 @@ const permissionGroups: { title: string; requiredSection?: keyof PermissionSet; 
             { key: 'canManagePaymentMethods', label: 'Gerenciar Meios de Pagamento' },
             { key: 'canManageBackups', label: 'Realizar Backup e Restauração' },
             { key: 'canViewAudit', label: 'Visualizar Log de Auditoria' },
+            { key: 'canAccessComissoes', label: 'Visualizar Aba de Comissões' },
             { key: 'canEditOwnProfile', label: 'Acessar e Editar Próprio Perfil' },
         ],
     },
@@ -473,7 +481,7 @@ const Users: React.FC = () => {
                                 />
                             </button>
                         </div>
-                        <button onClick={handleAddUser} className="flex items-center gap-2 px-3 py-2 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-opacity-90">
+                        <button onClick={handleAddUser} className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-opacity-90">
                             <UserPlusIcon className="h-5 w-5" />
                             Novo Usuário
                         </button>
@@ -520,7 +528,7 @@ const Users: React.FC = () => {
                             <h2 className="text-lg font-bold text-primary">Perfil de permissões para usuários</h2>
                             <p className="text-sm text-muted">Crie perfis de permissões para seus colaboradores e defina quais permissões cada perfil terá acesso.</p>
                         </div>
-                        <button onClick={handleAddProfile} className="flex items-center gap-2 px-4 py-2 bg-secondary text-on-primary rounded-xl font-semibold text-sm hover:bg-opacity-90">
+                        <button onClick={handleAddProfile} className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-opacity-90">
                             <UserGroupIcon className="h-5 w-5" />
                             Criar perfil
                         </button>

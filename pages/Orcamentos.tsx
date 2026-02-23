@@ -39,6 +39,8 @@ const Orcamentos: React.FC = () => {
 
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [orcamentoToConvert, setOrcamentoToConvert] = useState<Orcamento | null>(null);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [orcamentoToDelete, setOrcamentoToDelete] = useState<string | null>(null);
 
     // Gráfico e Estatísticas
     const stats = React.useMemo(() => {
@@ -78,17 +80,32 @@ const Orcamentos: React.FC = () => {
         }
     }, [activeTab, isAdmin, user?.id]);
 
+    useEffect(() => {
+        const handleReload = () => {
+            if (document.visibilityState === 'visible') {
+                loadOrcamentos();
+            }
+        };
+        window.addEventListener('app-reloadData', handleReload);
+        return () => window.removeEventListener('app-reloadData', handleReload);
+    }, []);
+
     const handleSaveOrcamento = () => {
         setActiveTab('list');
         loadOrcamentos();
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Deseja realmente excluir este orçamento?')) return;
+    const handleDelete = (id: string) => {
+        setOrcamentoToDelete(id);
+        setIsDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!orcamentoToDelete) return;
         try {
             setLoading(true);
             const { deleteOrcamento } = await import('../services/orcamentosService.ts');
-            await deleteOrcamento(id);
+            await deleteOrcamento(orcamentoToDelete);
             showToast('Orçamento excluído.', 'success');
             setSelectedOrcamento(null);
             loadOrcamentos();
@@ -96,6 +113,8 @@ const Orcamentos: React.FC = () => {
             showToast('Erro ao excluir.', 'error');
         } finally {
             setLoading(false);
+            setIsDeleteConfirmOpen(false);
+            setOrcamentoToDelete(null);
         }
     };
 
@@ -418,6 +437,18 @@ const Orcamentos: React.FC = () => {
                 onClose={() => {
                     setIsConfirmModalOpen(false);
                     setOrcamentoToConvert(null);
+                }}
+            />
+
+            <ConfirmationModal
+                isOpen={isDeleteConfirmOpen}
+                title="Excluir Orçamento"
+                message="Deseja realmente excluir este orçamento? Esta ação não pode ser desfeita."
+                variant="danger"
+                onConfirm={confirmDelete}
+                onClose={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setOrcamentoToDelete(null);
                 }}
             />
         </div>

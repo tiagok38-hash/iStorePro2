@@ -1842,7 +1842,7 @@ const Company: React.FC = () => {
         { id: 'usuarios', label: 'Usuários e Permissões', permission: 'canManageUsers' },
         { id: 'marcas', label: 'Marcas e Categorias', permission: 'canManageMarcasECategorias' },
         { id: 'perfil', label: 'Perfil', permission: 'canEditOwnProfile' },
-        { id: 'comissoes', label: 'Comissões', permission: 'canViewOwnCommission' },
+        { id: 'comissoes', label: 'Comissões', permission: 'canAccessComissoes' },
         { id: 'parametros', label: 'Parâmetros', permission: 'canManageParameters' },
         { id: 'meios_pagamento', label: 'Meios de Pagamento', permission: 'canManagePaymentMethods' },
         { id: 'auditoria', label: 'Auditoria', permission: 'canViewAudit' },
