@@ -43,6 +43,8 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
     const handleSearch = () => {
         setIsSearching(true);
         const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+        const searchPhrase = terms.join(' ');
+
         const results = allProducts.filter(p => {
             const description = `${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''}`.toLowerCase();
             const searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
@@ -50,6 +52,30 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
             const stockMatch = p.stock > 0;
             return searchMatch && conditionMatch && stockMatch;
         });
+
+        // Sort by relevance: phrase match first, then word-boundary match
+        if (terms.length > 1) {
+            results.sort((a, b) => {
+                const modelA = String(a.model || '').toLowerCase();
+                const modelB = String(b.model || '').toLowerCase();
+                const phraseInA = modelA.includes(searchPhrase) ? 200 : 0;
+                const phraseInB = modelB.includes(searchPhrase) ? 200 : 0;
+
+                let scoreA = phraseInA;
+                let scoreB = phraseInB;
+
+                terms.forEach(term => {
+                    const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                    if (regex.test(modelA)) scoreA += 50;
+                    else if (modelA.includes(term)) scoreA += 5;
+                    if (regex.test(modelB)) scoreB += 50;
+                    else if (modelB.includes(term)) scoreB += 5;
+                });
+
+                return scoreB - scoreA;
+            });
+        }
+
         setTimeout(() => {
             setSearchedProducts(results);
             setIsSearching(false);

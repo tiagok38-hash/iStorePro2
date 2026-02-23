@@ -517,6 +517,8 @@ const Products: React.FC = () => {
 
         // Apply scoring for relevance if searching
         if (terms.length > 0) {
+            const searchPhrase = terms.join(' ');
+
             return combinedList.map(p => {
                 let score = 0;
                 const modelText = String(p.model || '').toLowerCase();
@@ -525,27 +527,36 @@ const Products: React.FC = () => {
                 const brandText = String(p.brand || '').toLowerCase();
                 const fullDesc = `${brandText} ${modelText}`.trim();
 
+                // --- PHRASE BONUS: All terms appear as contiguous sequence ---
+                // "17 256gb" matches "iPhone 17 256GB Preto" but NOT "iPhone 17 Pro Max 256GB"
+                if (terms.length > 1) {
+                    if (modelText.includes(searchPhrase)) {
+                        score += 200; // Exact phrase in model name
+                    } else if (fullDesc.includes(searchPhrase)) {
+                        score += 150; // Exact phrase in brand+model
+                    }
+                }
+
                 terms.forEach(term => {
                     // --- Model scoring ---
-                    // Check if term appears as an EXACT whole word in model/description
-                    // e.g. "15" matches "iPhone 15 128GB" but NOT "Redmi 15C"
-                    const exactWordRegex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const exactWordRegex = new RegExp(`\\b${escapedTerm}\\b`, 'i');
                     const exactWordInModel = exactWordRegex.test(modelText);
                     const exactWordInDesc = exactWordRegex.test(fullDesc);
 
                     if (exactWordInModel) {
-                        score += 50; // Exact word match in model (e.g. "15" as standalone word)
+                        score += 50;
                     } else if (exactWordInDesc) {
-                        score += 40; // Exact word match in brand+model
+                        score += 40;
                     } else if (modelText.includes(term)) {
-                        score += 5;  // Substring match only (e.g. "15" inside "15C")
+                        score += 5;
                     } else if (fullDesc.includes(term)) {
                         score += 3;
                     }
 
-                    // --- Storage scoring (very important for capacity searches) ---
+                    // --- Storage scoring ---
                     if (exactWordRegex.test(storageText)) {
-                        score += 40; // Exact storage match (e.g. "128gb" as whole word)
+                        score += 40;
                     } else if (storageText.includes(term)) {
                         score += 15;
                     }
