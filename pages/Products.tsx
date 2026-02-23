@@ -513,6 +513,35 @@ const Products: React.FC = () => {
             });
         }
 
+        // Apply scoring for relevance if searching
+        if (terms.length > 0) {
+            return combinedList.map(p => {
+                let score = 0;
+                const modelText = String(p.model || '').toLowerCase();
+                const storageText = String(p.storage || '').toLowerCase();
+                const colorText = String(p.color || '').toLowerCase();
+
+                terms.forEach(term => {
+                    const isNumeric = /^\d+$/.test(term);
+                    if (isNumeric && new RegExp(`(?:^|\\D)${term}(?:$|\\D)`).test(modelText)) {
+                        score += 50; // Exact model number match (e.g. "15" in "iPhone 15")
+                    } else if (modelText.includes(term)) {
+                        score += 10;
+                    }
+                    if (storageText.includes(term)) score += 30; // Storage match is very important if specified
+                    if (colorText.includes(term)) score += 10;
+                    if (String(p.sku).toLowerCase() === term) score += 100; // Exact SKU wins
+                    if (String(p.imei1).includes(term) || String(p.imei2).includes(term) || String(p.serialNumber).toLowerCase().includes(term)) score += 30;
+                });
+                return { p, score };
+            }).sort((a, b) => {
+                if (a.score !== b.score) return b.score - a.score;
+                // fallback to date sorting if scores are equal
+                if (inventorySortOrder === 'newest') return new Date(b.p.createdAt).getTime() - new Date(a.p.createdAt).getTime();
+                return new Date(a.p.createdAt).getTime() - new Date(b.p.createdAt).getTime();
+            }).map(item => item.p);
+        }
+
         return combinedList.sort((a, b) => {
             if (inventorySortOrder === 'newest') {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
