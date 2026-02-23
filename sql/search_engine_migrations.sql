@@ -1,71 +1,106 @@
 -- =====================================================
--- SERVER-SIDE SEARCH ENGINE FOR PRODUCTS
--- Applied to Supabase project: bgwfyumunybbdthgykoh
+-- ENTERPRISE SEARCH ENGINE v2 - DOCUMENTATION
+-- Applied to: Supabase project bgwfyumunybbdthgykoh
+-- Last updated: 2026-02-23
 -- =====================================================
 
--- MIGRATION 1: add_search_vector_and_indexes
--- Adds tsvector column, trigger, and indexes
+-- ARCHITECTURE:
+-- Two-phase, server-side, deterministic-ranking search engine
+-- Implemented as PostgreSQL RPC function
+-- Frontend calls via supabase.rpc('search_products', ...)
 
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS unaccent;
+-- EXTENSIONS USED:
+-- pg_trgm (trigram similarity for fallback LIKE matching)
+-- unaccent (future accent-insensitive support)
 
-ALTER TABLE products ADD COLUMN IF NOT EXISTS search_vector tsvector;
+-- SCHEMA ADDITIONS:
+-- products.search_vector (tsvector) - auto-maintained via trigger
+-- products.normalized_description (text) - auto-maintained via trigger (lower(brand + model))
 
-UPDATE products SET search_vector = 
-    setweight(to_tsvector('simple', coalesce(model, '')), 'A') ||
-    setweight(to_tsvector('simple', coalesce(sku, '')), 'B') ||
-    setweight(to_tsvector('simple', coalesce(brand, '')), 'C') ||
-    setweight(to_tsvector('simple', coalesce(color, '')), 'D');
+-- INDEXES CREATED:
+-- idx_products_search_vector         GIN(search_vector)
+-- idx_products_imei1                 B-tree(imei1) WHERE NOT NULL
+-- idx_products_imei2                 B-tree(imei2) WHERE NOT NULL
+-- idx_products_serial                B-tree("serialNumber") WHERE NOT NULL
+-- idx_products_model_trgm            GIN(model gin_trgm_ops)
+-- idx_products_stock                 B-tree(stock)
+-- idx_products_created_at            B-tree("createdAt" DESC)
+-- idx_products_normalized_desc       B-tree(normalized_description)
+-- idx_products_normalized_desc_trgm  GIN(normalized_description gin_trgm_ops)
+-- idx_products_created_stock         B-tree("createdAt" DESC, stock)
 
-CREATE OR REPLACE FUNCTION products_search_vector_trigger() RETURNS trigger AS $$
-BEGIN
-    NEW.search_vector :=
-        setweight(to_tsvector('simple', coalesce(NEW.model, '')), 'A') ||
-        setweight(to_tsvector('simple', coalesce(NEW.sku, '')), 'B') ||
-        setweight(to_tsvector('simple', coalesce(NEW.brand, '')), 'C') ||
-        setweight(to_tsvector('simple', coalesce(NEW.color, '')), 'D');
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_products_search_vector ON products;
-CREATE TRIGGER trg_products_search_vector
-    BEFORE INSERT OR UPDATE OF model, sku, brand, color
-    ON products
-    FOR EACH ROW
-    EXECUTE FUNCTION products_search_vector_trigger();
-
-CREATE INDEX IF NOT EXISTS idx_products_search_vector ON products USING GIN(search_vector);
-CREATE INDEX IF NOT EXISTS idx_products_imei1 ON products(imei1) WHERE imei1 IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_products_imei2 ON products(imei2) WHERE imei2 IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_products_serial ON products("serialNumber") WHERE "serialNumber" IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_products_model_trgm ON products USING GIN(model gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_products_stock ON products(stock);
-CREATE INDEX IF NOT EXISTS idx_products_created_at ON products("createdAt" DESC);
-
-
--- MIGRATION 2: create_search_products_rpc
--- RPC function with relevance scoring, Pro/Max penalties, phrase matching
-
--- See search_products function in Supabase for full implementation.
--- Function signature:
+-- FUNCTION SIGNATURE:
 -- search_products(
---   p_query text,
---   p_stock_filter text DEFAULT 'in_stock',
---   p_condition_filter text DEFAULT 'Todos',
---   p_location_filter text DEFAULT 'Todos',
---   p_type_filter text DEFAULT 'Todos',
---   p_sort_order text DEFAULT 'relevance',
---   p_limit int DEFAULT 15,
---   p_offset int DEFAULT 0
+--   p_query text,              -- search query (can be empty for browsing)
+--   p_stock_filter text,       -- 'in_stock', 'out_of_stock', 'all'
+--   p_condition_filter text,   -- 'Todos', 'Novo', 'Seminovo', etc.
+--   p_location_filter text,    -- 'Todos' or specific location
+--   p_type_filter text,        -- 'Todos', 'Produtos Apple', 'Produtos Variados', etc.
+--   p_sort_order text,         -- 'relevance', 'newest', 'oldest'
+--   p_limit int,               -- pagination limit (default 15)  
+--   p_offset int               -- pagination offset (default 0)
 -- )
+
+-- EXECUTION PHASES:
 --
--- SCORING RULES:
---   +200 = IMEI/Serial exact match (only for 5+ digit numeric input)
---   +100 = Exact phrase match in model (e.g. "17 256gb" adjacent in "iPhone 17 256GB")
---    +50 = All tokens present as whole words in model
---    +50 * ts_rank_cd = Full-text search rank
---    -40 = Product has 'pro' but user didn't search for 'pro'
---    -20 = Product has 'max' but user didn't search for 'max'
---    -30 = Per unmatched search token
---     -5 = Per extra model word beyond search terms + 2
+-- PHASE 0: Input Normalization
+--   - lower(), trim(), collapse spaces
+--   - Tokenize into array
+--   - Build tsquery with AND logic
+--   - Detect IMEI/serial searches (5+ digit numeric)
+--
+-- PHASE 1: IMEI Fast Path (sub-15ms via B-tree)
+--   - If input is 5+ numeric digits
+--   - Direct indexed lookup on imei1, imei2, serialNumber
+--   - Returns immediately with score=500 if found
+--   - Skips Phase 2 entirely
+--
+-- PHASE 2: Ranked Full-Text Search (7-layer scoring)
+--   Uses CTE: candidates → scored → total → paginated output
+
+-- SCORING MODEL (7 LAYERS):
+--
+-- L1: PHRASE BOOST
+--   +200 = Exact phrase in normalized_description
+--   +120 = First token appears within first 20 chars
+--
+-- L2: FULL-TEXT RANK
+--   +(ts_rank_cd * 80) = PostgreSQL full-text ranking
+--
+-- L3: TOKEN COVERAGE (inline, no subquery, up to 8 tokens)
+--   +60  = All search tokens present as whole words
+--   +20  = SKU exact token match
+--
+-- L4: CATEGORY INTELLIGENCE
+--   +100 = Device categories (iPhone, iPad, Mac, Watch, AirPods, Smartphone, Console)
+--   +70  = Unknown/other categories
+--   +50  = Accessory categories (Acessórios, Cabo, Fontes, Película, etc.)
+--   +40  = Repair parts (Tela, Bateria, LCD, OLED in description)
+--
+-- L5: STRICT PRO/MAX/ULTRA/PLUS CONTROL
+--   -60  = Product has 'pro' but user didn't search 'pro'
+--   -25  = Product has 'max' but user didn't search 'max'
+--   -20  = Product has 'ultra' but user didn't search 'ultra'
+--   -15  = Product has 'plus' but user didn't search 'plus'
+--
+-- L6: EXTRA TOKEN PENALTY
+--   -25/word = For each word in description beyond (search_tokens + 3)
+--
+-- L7: PREFIX FAILURE PENALTY
+--   -40  = First search token not found in description
+
+-- COMMERCIAL BEHAVIOR EXAMPLES:
+--
+-- Search "17 256gb":
+--   1st: iPhone 17 256GB (score ~520) ← exact phrase + device + all tokens
+--   2nd: iPhone 17 Pro 256GB (score ~197) ← pro penalty applied (-60)
+--   3rd: iPhone 17 Pro Max 256GB (score ~165) ← pro + max penalty (-85 total)
+--
+-- Search "iphone 14":
+--   1st: iPhone 14 128GB devices (score ~520)
+--   2nd: Tela LCD iPhone 14 (score ~435) ← accessory category penalty
+--   3rd: iPhone 14 Pro 128GB (score ~435) ← pro penalty
+--   4th: Bateria Foxconn iPhone 14 (score ~380) ← repair part + extra tokens
+--
+-- ORDER BY: relevance_score DESC, "createdAt" DESC, id DESC
+-- (Fully deterministic. No random ordering. Safe for pagination.)
