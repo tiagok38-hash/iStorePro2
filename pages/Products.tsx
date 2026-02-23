@@ -10,7 +10,8 @@ import {
     cancelPurchaseOrder,
     getBrands, getCategories, getProductModels, getGrades, getGradeValues, revertPurchaseLaunch,
     formatCurrency, findOrCreateSupplierFromCustomer,
-    getSales, getStorageLocations, getProductsByPurchaseForLabels
+    getSales, getStorageLocations, getProductsByPurchaseForLabels,
+    searchProductsRPC
 } from '../services/mockApi.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -249,13 +250,60 @@ const Products: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
+    // Server-side search state
+    const [serverSearchResults, setServerSearchResults] = useState<Product[]>([]);
+    const [serverSearchTotal, setServerSearchTotal] = useState(0);
+    const [serverSearching, setServerSearching] = useState(false);
+    const serverSearchAbort = useRef<AbortController | null>(null);
+
     // Debounce search term
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearchTerm(searchTerm);
-        }, 300);
+        }, 400);
         return () => clearTimeout(timer);
     }, [searchTerm]);
+
+    // Server-side search effect
+    const useServerSearch = debouncedSearchTerm.trim().length > 0;
+
+    useEffect(() => {
+        if (!useServerSearch) {
+            setServerSearchResults([]);
+            setServerSearchTotal(0);
+            return;
+        }
+
+        // Cancel previous request
+        if (serverSearchAbort.current) serverSearchAbort.current.abort();
+        const abortController = new AbortController();
+        serverSearchAbort.current = abortController;
+
+        const stockMap: Record<string, string> = { 'Em estoque': 'in_stock', 'Sem estoque': 'out_of_stock', 'Todos': 'all' };
+
+        setServerSearching(true);
+        searchProductsRPC({
+            query: debouncedSearchTerm.trim(),
+            stockFilter: (stockMap[filters.stock] || 'in_stock') as any,
+            conditionFilter: filters.condition,
+            locationFilter: filters.location,
+            typeFilter: filters.type,
+            sortOrder: 'relevance',
+            limit: itemsPerPage,
+            offset: (currentPage - 1) * itemsPerPage
+        }).then(result => {
+            if (abortController.signal.aborted) return;
+            setServerSearchResults(result.products);
+            setServerSearchTotal(result.totalCount);
+        }).catch(err => {
+            if (abortController.signal.aborted) return;
+            console.warn('Server search failed, keeping client-side:', err);
+        }).finally(() => {
+            if (!abortController.signal.aborted) setServerSearching(false);
+        });
+
+        return () => { abortController.abort(); };
+    }, [debouncedSearchTerm, filters, currentPage, itemsPerPage]);
 
 
     const [isNewPurchaseModalOpen, setIsNewPurchaseModalOpen] = useState(false);
@@ -391,77 +439,15 @@ const Products: React.FC = () => {
         return new Set(sales.filter(s => s.status !== 'Cancelada').flatMap(s => s.items).map(i => String(i.productId)));
     }, [sales]);
 
-    const filteredProducts = useMemo(() => {
-        const terms = debouncedSearchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
-
-        // Optimizar lookup de localizador da compra
-        const purchaseLocatorMap = new Map<string, string>();
-        purchases.forEach(po => {
-            if (po.locatorId) purchaseLocatorMap.set(po.id, po.locatorId.toLowerCase());
-        });
+    // Client-side filter (used when NO search term is active)
+    const filteredProductsLocal = useMemo(() => {
+        if (useServerSearch) return []; // Skip heavy computation when server handles it
 
         const filtered = products.filter(p => {
-            if (terms.length === 0) {
-                // Fallback filters when no search
-                const stockMatch = filters.stock === 'Todos' ? true : filters.stock === 'Em estoque' ? p.stock > 0 : p.stock === 0;
-                const conditionMatch = filters.condition === 'Todos' ? true : p.condition === filters.condition;
-                const locationMatch = filters.location === 'Todos' ? true : p.storageLocation === filters.location;
-
-                // Tipo de Produto Filter
-                let typeMatch = true;
-                if (filters.type === 'Produtos Apple') {
-                    typeMatch = (p.brand || '').toLowerCase() === 'apple';
-                } else if (filters.type === 'Produtos Variados') {
-                    typeMatch = (p.brand || '').toLowerCase() !== 'apple';
-                } else if (filters.type === 'Produtos de troca') {
-                    typeMatch = p.origin === 'Troca' || p.origin === 'Comprado de Cliente';
-                } else if (filters.type === 'Estoque baixo') {
-                    // Mover a lógica de filtro de estoque baixo para depois do agrupamento
-                    typeMatch = true;
-                } else if (filters.type === 'Com Comissão') {
-                    typeMatch = p.commission_enabled === true;
-                }
-
-                return stockMatch && conditionMatch && locationMatch && typeMatch;
-            }
-
-            const purchaseLocator = p.purchaseOrderId ? (purchaseLocatorMap.get(p.purchaseOrderId) || '') : '';
-
-            const searchableText = [
-                p.model || '',
-                p.brand || '',
-                p.color || '',
-                p.storage || '',
-                p.condition || '',
-                p.description || '',
-            ].join(' ').toLowerCase();
-
-            const codeFields = [
-                { type: 'sku', value: String(p.sku || '').toLowerCase() },
-                { type: 'imei', value: String(p.imei1 || '').toLowerCase() },
-                { type: 'imei', value: String(p.imei2 || '').toLowerCase() },
-                { type: 'sn', value: String(p.serialNumber || '').toLowerCase() },
-                { type: 'locator', value: purchaseLocator.toLowerCase() },
-                ...((p.barcodes || []).map(b => ({ type: 'barcode', value: String(b).toLowerCase() })))
-            ].filter(c => c.value);
-
-            const searchMatch = terms.every(term => {
-                if (searchableText.includes(term)) return true;
-
-                return codeFields.some(code => {
-                    const isShortNumeric = term.length < 5 && /^\d+$/.test(term);
-                    if (isShortNumeric && ['imei', 'barcode', 'sn'].includes(code.type)) {
-                        return code.value === term || code.value.endsWith(term) || code.value.startsWith(term);
-                    }
-                    return code.value.includes(term);
-                });
-            });
-
             const stockMatch = filters.stock === 'Todos' ? true : filters.stock === 'Em estoque' ? p.stock > 0 : p.stock === 0;
             const conditionMatch = filters.condition === 'Todos' ? true : p.condition === filters.condition;
             const locationMatch = filters.location === 'Todos' ? true : p.storageLocation === filters.location;
 
-            // Tipo de Produto Filter
             let typeMatch = true;
             if (filters.type === 'Produtos Apple') {
                 typeMatch = (p.brand || '').toLowerCase() === 'apple';
@@ -470,13 +456,12 @@ const Products: React.FC = () => {
             } else if (filters.type === 'Produtos de troca') {
                 typeMatch = p.origin === 'Troca' || p.origin === 'Comprado de Cliente';
             } else if (filters.type === 'Estoque baixo') {
-                // Mover a lógica de filtro de estoque baixo para depois do agrupamento
                 typeMatch = true;
             } else if (filters.type === 'Com Comissão') {
                 typeMatch = p.commission_enabled === true;
             }
 
-            return searchMatch && stockMatch && conditionMatch && locationMatch && typeMatch;
+            return stockMatch && conditionMatch && locationMatch && typeMatch;
         });
 
         // Grouping Logic for Non-Unique Products
@@ -485,16 +470,13 @@ const Products: React.FC = () => {
 
         for (let i = 0; i < filtered.length; i++) {
             const p = filtered[i];
-            // Check if product is unique (has identifiers)
             const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
             const hasVariations = p.variations && p.variations.length > 0;
 
             if (isUnique || hasVariations) {
                 finalResults.push(p);
             } else {
-                // Cache trims if they really hurt, but let's at least one-line the key
                 const key = `${p.model}|${p.brand}|${p.color}|${p.storage}|${p.condition}|${p.warranty}|${p.price}-${p.costPrice || 0}-${p.wholesalePrice || 0}|${p.supplierId}|${p.storageLocation}`;
-
                 const existing = groupedMap.get(key);
                 if (!existing) {
                     groupedMap.set(key, { ...p });
@@ -506,7 +488,6 @@ const Products: React.FC = () => {
 
         let combinedList = [...finalResults, ...Array.from(groupedMap.values())];
 
-        // Aplicar filtro de Estoque Baixo após agrupamento se selecionado
         if (filters.type === 'Estoque baixo') {
             combinedList = combinedList.filter(p => {
                 const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
@@ -515,82 +496,28 @@ const Products: React.FC = () => {
             });
         }
 
-        // Apply scoring for relevance if searching
-        if (terms.length > 0) {
-            const searchPhrase = terms.join(' ');
-
-            return combinedList.map(p => {
-                let score = 0;
-                const modelText = String(p.model || '').toLowerCase();
-                const storageText = String(p.storage || '').toLowerCase();
-                const colorText = String(p.color || '').toLowerCase();
-                const brandText = String(p.brand || '').toLowerCase();
-                const fullDesc = `${brandText} ${modelText}`.trim();
-
-                // --- PHRASE BONUS: All terms appear as contiguous sequence ---
-                // "17 256gb" matches "iPhone 17 256GB Preto" but NOT "iPhone 17 Pro Max 256GB"
-                if (terms.length > 1) {
-                    if (modelText.includes(searchPhrase)) {
-                        score += 200; // Exact phrase in model name
-                    } else if (fullDesc.includes(searchPhrase)) {
-                        score += 150; // Exact phrase in brand+model
-                    }
-                }
-
-                terms.forEach(term => {
-                    // --- Model scoring ---
-                    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const exactWordRegex = new RegExp(`\\b${escapedTerm}\\b`, 'i');
-                    const exactWordInModel = exactWordRegex.test(modelText);
-                    const exactWordInDesc = exactWordRegex.test(fullDesc);
-
-                    if (exactWordInModel) {
-                        score += 50;
-                    } else if (exactWordInDesc) {
-                        score += 40;
-                    } else if (modelText.includes(term)) {
-                        score += 5;
-                    } else if (fullDesc.includes(term)) {
-                        score += 3;
-                    }
-
-                    // --- Storage scoring ---
-                    if (exactWordRegex.test(storageText)) {
-                        score += 40;
-                    } else if (storageText.includes(term)) {
-                        score += 15;
-                    }
-
-                    // --- Color scoring ---
-                    if (colorText.includes(term)) score += 10;
-
-                    // --- Code fields scoring ---
-                    if (String(p.sku).toLowerCase() === term) score += 100;
-                    if (String(p.imei1 || '').includes(term) || String(p.imei2 || '').includes(term) || String(p.serialNumber || '').toLowerCase().includes(term)) score += 20;
-                });
-                return { p, score };
-            }).sort((a, b) => {
-                if (a.score !== b.score) return b.score - a.score;
-                if (inventorySortOrder === 'newest') return new Date(b.p.createdAt).getTime() - new Date(a.p.createdAt).getTime();
-                return new Date(a.p.createdAt).getTime() - new Date(b.p.createdAt).getTime();
-            }).map(item => item.p);
-        }
-
         return combinedList.sort((a, b) => {
             if (inventorySortOrder === 'newest') {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             }
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
+    }, [products, filters, inventorySortOrder, useServerSearch]);
 
-    }, [products, debouncedSearchTerm, filters, inventorySortOrder, purchases]);
+    // Unified: use server results when searching, client results otherwise
+    const filteredProducts = useServerSearch ? serverSearchResults : filteredProductsLocal;
 
-    // Pagination logic
-    const totalPages = useMemo(() => Math.ceil(filteredProducts.length / itemsPerPage), [filteredProducts.length, itemsPerPage]);
+    // Pagination: server handles pagination when searching
+    const totalPages = useMemo(() => {
+        if (useServerSearch) return Math.ceil(serverSearchTotal / itemsPerPage);
+        return Math.ceil(filteredProductsLocal.length / itemsPerPage);
+    }, [useServerSearch, serverSearchTotal, filteredProductsLocal.length, itemsPerPage]);
+
     const paginatedProducts = useMemo(() => {
+        if (useServerSearch) return serverSearchResults; // Already paginated by server
         const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredProducts, currentPage, itemsPerPage]);
+        return filteredProductsLocal.slice(startIndex, startIndex + itemsPerPage);
+    }, [useServerSearch, serverSearchResults, filteredProductsLocal, currentPage, itemsPerPage]);
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -1034,7 +961,7 @@ const Products: React.FC = () => {
                         </button>
                     )}
                     <div className="flex-grow"></div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-70">Total: {filteredProducts.length}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-70">TOTAL: {useServerSearch ? serverSearchTotal : filteredProductsLocal.length}{serverSearching ? '...' : ''}</p>
                 </div>
                 <div className="flex flex-wrap items-end gap-4 justify-between">
                     <div className="flex flex-wrap items-end gap-4 flex-grow">
@@ -1124,9 +1051,9 @@ const Products: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
+                            {(loading || serverSearching) ? (
                                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} columns={12} />)
-                            ) : filteredProducts.length === 0 ? (
+                            ) : paginatedProducts.length === 0 ? (
                                 <tr>
                                     <td colSpan={12} className="text-center text-muted p-6">Nenhum produto encontrado.</td>
                                 </tr>
@@ -1257,10 +1184,10 @@ const Products: React.FC = () => {
                     </table>
                 </div>
                 {/* Pagination controls */}
-                {filteredProducts.length > 0 && (
+                {(useServerSearch ? serverSearchTotal : filteredProductsLocal.length) > 0 && (
                     <div className="p-4 flex justify-between items-center border-t border-border">
                         <p className="text-sm text-muted">
-                            Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredProducts.length)} de {filteredProducts.length} produtos
+                            Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, useServerSearch ? serverSearchTotal : filteredProductsLocal.length)} de {useServerSearch ? serverSearchTotal : filteredProductsLocal.length} produtos
                         </p>
                         <div className="flex items-center gap-2">
                             <button

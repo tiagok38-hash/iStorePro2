@@ -807,6 +807,79 @@ export const searchProducts = async (term: string): Promise<Product[]> => {
     });
 };
 
+// ==========================================
+// SERVER-SIDE SEARCH ENGINE (PostgreSQL RPC)
+// ==========================================
+export interface SearchProductsParams {
+    query: string;
+    stockFilter?: 'all' | 'in_stock' | 'out_of_stock';
+    conditionFilter?: string;
+    locationFilter?: string;
+    typeFilter?: string;
+    sortOrder?: 'relevance' | 'newest' | 'oldest';
+    limit?: number;
+    offset?: number;
+}
+
+export interface SearchProductsResult {
+    products: Product[];
+    totalCount: number;
+}
+
+export const searchProductsRPC = async (params: SearchProductsParams): Promise<SearchProductsResult> => {
+    const {
+        query,
+        stockFilter = 'in_stock',
+        conditionFilter = 'Todos',
+        locationFilter = 'Todos',
+        typeFilter = 'Todos',
+        sortOrder = 'relevance',
+        limit = 15,
+        offset = 0
+    } = params;
+
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase.rpc('search_products', {
+            p_query: query,
+            p_stock_filter: stockFilter,
+            p_condition_filter: conditionFilter,
+            p_location_filter: locationFilter,
+            p_type_filter: typeFilter,
+            p_sort_order: query.trim() ? sortOrder : (sortOrder === 'relevance' ? 'newest' : sortOrder),
+            p_limit: limit,
+            p_offset: offset
+        });
+
+        if (error) {
+            console.warn('searchProductsRPC failed, will throw:', error);
+            throw error;
+        }
+
+        const rows = data || [];
+        const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
+
+        const products: Product[] = rows.map((p: any) => ({
+            ...p,
+            supplierId: p.supplier_id || p.supplierId,
+            storageLocation: p.storage_location || p.storageLocation,
+            costPrice: p.cost_price || p.costPrice,
+            wholesalePrice: p.wholesale_price || p.wholesalePrice,
+            batteryHealth: p.battery_health || p.batteryHealth,
+            serialNumber: p.serial_number || p.serialNumber,
+            additionalCostPrice: p.additional_cost_price || p.additionalCostPrice,
+            stockHistory: p.stock_history || p.stockHistory,
+            priceHistory: p.price_history || p.priceHistory,
+            createdAt: p.created_at || p.createdAt,
+            updatedAt: p.updated_at || p.updatedAt,
+            minimumStock: p.minimum_stock || p.minimumStock,
+            createdBy: p.created_by || p.createdBy,
+            createdByName: p.created_by_name || p.createdByName,
+        }));
+
+        return { products, totalCount };
+    });
+};
+
 export const getProductsByPurchaseForLabels = async (purchaseId: string): Promise<Product[]> => {
     return fetchWithRetry(async () => {
         const { data, error } = await supabase
