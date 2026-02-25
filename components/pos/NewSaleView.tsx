@@ -59,6 +59,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
     const [customerToEdit, setCustomerToEdit] = React.useState<Customer | null>(null);
     const [isCreditModalOpen, setIsCreditModalOpen] = React.useState(false);
+    const [creditMethodSelected, setCreditMethodSelected] = React.useState<'Crediário' | 'Promissória'>('Crediário');
     const [creditWarning, setCreditWarning] = React.useState<{ isOpen: boolean, customerName: string, creditLimit: number, creditUsed: number, purchaseAmount: number } | null>(null);
     const [variationModalConfig, setVariationModalConfig] = React.useState<{ isOpen: boolean, method: string, variations: string[] } | null>(null);
 
@@ -652,7 +653,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                             return;
                                                         }
 
-
+                                                        setCreditMethodSelected(label as 'Crediário' | 'Promissória');
                                                         setIsCreditModalOpen(true);
 
                                                     } else {
@@ -970,9 +971,9 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     if (details.financedAmount > 0) {
                         addPayment({
                             id: `pay-credit-${Date.now()}`,
-                            method: 'Crediário',
+                            method: creditMethodSelected,
                             value: details.financedAmount,
-                            type: 'Outros',
+                            type: 'pending',
                             creditDetails: details
                         });
                     }

@@ -89,7 +89,8 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
             p.serialNumber || '',
             p.brand || '',
             p.observations || '',
-            p.color || ''
+            p.color || '',
+            (p.barcodes || []).join(' ')
         ].join(' ').toLowerCase();
 
         return processingTerms.every(term => {

@@ -1381,7 +1381,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
         const totalDebt = sales.reduce((acc, sale) => {
             if (sale.status === 'Cancelada') return acc;
-            const pending = sale.payments.filter(p => p.type === 'pending').reduce((s, p) => s + p.value, 0);
+            const pending = sale.payments.filter(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória').reduce((s, p) => s + p.value, 0);
             return acc + pending;
         }, 0);
 

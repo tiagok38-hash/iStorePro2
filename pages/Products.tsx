@@ -348,7 +348,7 @@ const Products: React.FC = () => {
             // 2. Fetch main data (CRITICAL) - Tier 2A
             // OPTIMIZATION: We exclude heavy JSONB history columns here as they are only needed
             // in the History Modal (which can fetch them on demand or via a specific call).
-            const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value';
+            const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value,barcodes';
 
             const productsData = await getProducts({ select: productSelect });
             setProducts(productsData);

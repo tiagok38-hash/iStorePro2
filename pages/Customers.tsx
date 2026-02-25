@@ -65,12 +65,12 @@ const PurchaseHistoryModal: React.FC<{
                         const debtDetails = sales.reduce((acc, sale) => {
                             if (sale.status === 'Cancelada') return acc;
                             const pendingAmount = sale.payments
-                                .filter(p => p.type === 'pending')
+                                .filter(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória')
                                 .reduce((sum, p) => sum + p.value, 0);
 
                             if (pendingAmount > 0) {
                                 const salesperson = users.find(u => u.id === sale.salespersonId)?.name || 'Desconhecido';
-                                const internalNote = sale.payments.find(p => p.type === 'pending')?.internalNote;
+                                const internalNote = sale.payments.find(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória')?.internalNote;
                                 acc.push({
                                     id: sale.cashSessionDisplayId ? `${sale.cashSessionDisplayId}` : sale.id.substring(0, 8),
                                     fullId: sale.id,
@@ -588,7 +588,7 @@ const CustomersAndSuppliers: React.FC = () => {
                 totals.set(sale.customerId, current + sale.total);
 
                 const debt = sale.payments
-                    .filter(p => p.type === 'pending' && p.method !== 'Crediário' && p.method !== 'Crediario')
+                    .filter(p => p.type === 'pending' && p.method !== 'Crediário' && p.method !== 'Crediario' && p.method !== 'Promissória')
                     .reduce((sum, p) => sum + p.value, 0);
                 if (debt > 0) {
                     const currentDebt = debts.get(sale.customerId) || 0;

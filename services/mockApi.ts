@@ -2493,50 +2493,126 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
 
         // Auto-generate installments when finalizing a pending sale with Credit
-        const credPayment = updated.payments?.find((p: any) => p.method === 'Crediário');
-        if (credPayment && updated.customer_id && (newStatus === 'Finalizada' || newStatus === 'Editada') && (oldStatus !== 'Finalizada' && oldStatus !== 'Editada')) {
+        const creditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
+        if (creditPayments.length > 0 && updated.customer_id && (newStatus === 'Finalizada' || newStatus === 'Editada') && (oldStatus !== 'Finalizada' && oldStatus !== 'Editada')) {
             try {
+                let totalAdded = 0;
+                for (const credPayment of creditPayments) {
+                    const cDetails = credPayment.creditDetails || {};
+                    let cPreviews = cDetails.installmentsPreview || [];
 
-                const cDetails = credPayment.creditDetails || {};
-                let cPreviews = cDetails.installmentsPreview || [];
+                    if (!cPreviews.length) {
+                        const amt = Number(cDetails.financedAmount) || Number(credPayment.value) || 0;
+                        const cnt = Number(cDetails.totalInstallments) || 1;
+                        const val = amt / cnt;
+                        const dt = new Date();
+                        dt.setDate(dt.getDate() + 30);
 
-                if (!cPreviews.length) {
-                    const amt = Number(cDetails.financedAmount) || Number(credPayment.value) || 0;
-                    const cnt = Number(cDetails.totalInstallments) || 1;
-                    const val = amt / cnt;
-                    const dt = new Date();
-                    dt.setDate(dt.getDate() + 30);
+                        for (let k = 0; k < cnt; k++) {
+                            const d = new Date(dt);
+                            d.setMonth(d.getMonth() + k);
+                            cPreviews.push({ number: k + 1, date: d.toISOString().split('T')[0], amount: val });
+                        }
+                    }
 
-                    for (let k = 0; k < cnt; k++) {
-                        const d = new Date(dt);
-                        d.setMonth(d.getMonth() + k);
-                        cPreviews.push({ number: k + 1, date: d.toISOString().split('T')[0], amount: val });
+                    const iPayload = cPreviews.map((p: any) => ({
+                        id: crypto.randomUUID(),
+                        saleId: updated.id,
+                        customerId: updated.customer_id,
+                        installmentNumber: p.number,
+                        totalInstallments: cPreviews.length,
+                        dueDate: p.date,
+                        amount: p.amount,
+                        status: 'pending',
+                        amountPaid: 0,
+                        interestApplied: 0,
+                        penaltyApplied: 0
+                    }));
+
+                    await addCreditInstallments(iPayload);
+                    totalAdded += iPayload.reduce((s: number, i: any) => s + i.amount, 0);
+                }
+
+                if (totalAdded > 0) {
+                    const { data: cust } = await supabase.from('customers').select('credit_used').eq('id', updated.customer_id).single();
+                    if (cust) {
+                        await supabase.from('customers').update({ credit_used: (cust.credit_used || 0) + totalAdded }).eq('id', updated.customer_id);
+                        await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito atualizado via finalização de venda #${updated.display_id}`, userId, userName);
                     }
                 }
-
-                const iPayload = cPreviews.map((p: any) => ({
-                    id: crypto.randomUUID(),
-                    saleId: updated.id,
-                    customerId: updated.customer_id,
-                    installmentNumber: p.number,
-                    totalInstallments: cPreviews.length,
-                    dueDate: p.date,
-                    amount: p.amount,
-                    status: 'pending',
-                    amountPaid: 0,
-                    interestApplied: 0,
-                    penaltyApplied: 0
-                }));
-
-                await addCreditInstallments(iPayload);
-
-                const { data: cust } = await supabase.from('customers').select('credit_used').eq('id', updated.customer_id).single();
-                if (cust) {
-                    const added = iPayload.reduce((s: number, i: any) => s + i.amount, 0);
-                    await supabase.from('customers').update({ credit_used: (cust.credit_used || 0) + added }).eq('id', updated.customer_id);
-                    await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito atualizado via finalização de venda #${updated.display_id}`, userId, userName);
-                }
             } catch (e) { console.error('[updateSale] Error creating installments:', e); }
+        }
+
+        // FIX: Reconcile payments if they changed between Finalizada/Editada states
+        if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Finalizada' || newStatus === 'Editada')) {
+            const oldCreditPayments = originalSale?.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
+            const newCreditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
+
+            const oldCreditJSON = JSON.stringify(oldCreditPayments);
+            const newCreditJSON = JSON.stringify(newCreditPayments);
+
+            if (oldCreditJSON !== newCreditJSON) {
+                try {
+                    const oldCreditTotal = oldCreditPayments.reduce((s: number, p: any) => s + (p.value || 0), 0);
+                    if (oldCreditTotal > 0 && originalSale?.customer_id) {
+                        await supabase.from('credit_installments').delete().eq('sale_id', updated.id);
+                        const { data: custOld } = await supabase.from('customers').select('credit_used').eq('id', originalSale.customer_id).single();
+                        if (custOld) {
+                            const newUsed = Math.max(0, (custOld.credit_used || 0) - oldCreditTotal);
+                            await supabase.from('customers').update({ credit_used: newUsed }).eq('id', originalSale.customer_id);
+                        }
+                    }
+
+                    if (newCreditPayments.length > 0 && updated.customer_id) {
+                        let totalAdded = 0;
+                        for (const credPayment of newCreditPayments) {
+                            const cDetails = credPayment.creditDetails || {};
+                            let cPreviews = cDetails.installmentsPreview || [];
+
+                            if (!cPreviews.length) {
+                                const amt = Number(cDetails.financedAmount) || Number(credPayment.value) || 0;
+                                const cnt = Number(cDetails.totalInstallments) || 1;
+                                const val = amt / cnt;
+                                const dt = new Date(updated.date || new Date().toISOString());
+                                dt.setDate(dt.getDate() + 30);
+
+                                for (let k = 0; k < cnt; k++) {
+                                    const d = new Date(dt);
+                                    d.setMonth(d.getMonth() + k);
+                                    cPreviews.push({ number: k + 1, date: d.toISOString().split('T')[0], amount: val });
+                                }
+                            }
+
+                            const iPayload = cPreviews.map((p: any) => ({
+                                id: crypto.randomUUID(),
+                                saleId: updated.id,
+                                customerId: updated.customer_id,
+                                installmentNumber: p.number,
+                                totalInstallments: cPreviews.length,
+                                dueDate: p.date,
+                                amount: p.amount,
+                                status: 'pending',
+                                amountPaid: 0,
+                                interestApplied: 0,
+                                penaltyApplied: 0
+                            }));
+
+                            await addCreditInstallments(iPayload);
+                            totalAdded += iPayload.reduce((s: number, i: any) => s + i.amount, 0);
+                        }
+
+                        if (totalAdded > 0) {
+                            const { data: custNew } = await supabase.from('customers').select('credit_used').eq('id', updated.customer_id).single();
+                            if (custNew) {
+                                await supabase.from('customers').update({ credit_used: (custNew.credit_used || 0) + totalAdded }).eq('id', updated.customer_id);
+                                await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito re-aplicado em edição de venda #${updated.display_id}`, userId, userName);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('[updateSale] Error reconciling credit installments during edit:', err);
+                }
+            }
         }
 
         // TELEGRAM NOTIFICATION: Send notification when pending sale is finalized
@@ -2634,12 +2710,10 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     }
 
     // FIX: If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
-    // FIX: If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
     if (originalSale && (oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Cancelada' || newStatus === 'Pendente')) {
-        const creditPayment = originalSale.payments?.find((p: any) => p.method === 'Crediário' || p.method === 'Promissória'); // removed requirement for creditDetails to be strictly present for finding it, but used value.
+        const oldCreditPayments = originalSale.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
 
-        if (creditPayment && originalSale.customer_id) {
-
+        if (oldCreditPayments.length > 0 && originalSale.customer_id) {
 
             // 1. Delete installments for this sale
             const { error: deleteError } = await supabase
@@ -2649,12 +2723,10 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
             if (deleteError) {
                 console.error('[updateSale] Error deleting credit installments:', deleteError);
-            } else {
-
             }
 
             // 2. Restore customer credit limit
-            const creditUsedToRevert = creditPayment.value || 0;
+            const creditUsedToRevert = oldCreditPayments.reduce((s: number, p: any) => s + (p.value || 0), 0);
 
             if (creditUsedToRevert > 0) {
                 const { data: customerData } = await supabase
