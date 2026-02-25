@@ -8,21 +8,23 @@ import {
     UsersIcon, BuildingOffice2Icon, BanknotesIcon, WrenchIcon, WalletIcon, DocumentTextIcon
 } from './icons.tsx';
 // ...
-const navItems = [
+const NAV_ITEMS = [
     { name: 'Dashboard', to: '/', icon: <Squares2x2Icon />, permissionKey: 'canAccessDashboard' },
     { name: 'Estoque', to: '/products', icon: <ArchiveBoxIcon />, permissionKey: 'canAccessEstoque' },
     { name: 'Vendas', to: '/vendas', icon: <BanknotesIcon />, permissionKey: 'canAccessVendas' },
-    { name: 'PDV (Frente de Caixa)', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS' },
+    { name: 'Orçamentos', to: '/orcamentos', icon: <DocumentTextIcon />, permissionKey: 'canAccessOrcamentos' },
+    { name: 'Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessDashboard' },
+    { name: 'PDV (Frente de Caixa)', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS', target: '_blank' },
     { name: 'Clientes e Fornecedores', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
+    { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessDashboard' },
     { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
     { name: 'Financeiro', to: '/financeiro', icon: <WalletIcon />, permissionKey: 'canAccessFinanceiro' },
-    { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: 'canAccessEmpresa' },
+    { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
 ];
+
 import { User, PermissionSet } from '../types.ts';
 import { getPermissionProfiles } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';
-
-
 
 const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: string }>, label: string, isCollapsed: boolean, onCloseSidebar: () => void; target?: React.HTMLAttributeAnchorTarget }> = ({ to, icon, label, isCollapsed, onCloseSidebar, target }) => (
     <div className="relative group">
@@ -61,7 +63,6 @@ interface SidebarProps {
     onCloseSidebar: () => void;
 }
 
-
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, onCloseSidebar }) => {
     const { user, permissions, loading, logout } = useUser();
     const navigate = useNavigate();
@@ -87,21 +88,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         logout();
         navigate('/login');
     };
-
-    // --- OPTIMIZATION: Defined outside component to prevent re-creation ---
-    const NAV_ITEMS = [
-        { name: 'Dashboard', to: '/', icon: <Squares2x2Icon />, permissionKey: 'canAccessDashboard' },
-        { name: 'Estoque', to: '/products', icon: <ArchiveBoxIcon />, permissionKey: 'canAccessEstoque' },
-        { name: 'Vendas', to: '/vendas', icon: <BanknotesIcon />, permissionKey: 'canAccessVendas' },
-        { name: 'Orçamentos', to: '/orcamentos', icon: <DocumentTextIcon />, permissionKey: 'canAccessOrcamentos' },
-        { name: 'Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessDashboard' },
-        { name: 'PDV (Frente de Caixa)', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS', target: '_blank' },
-        { name: 'Clientes e Fornecedores', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
-        { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessDashboard' },
-        { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
-        { name: 'Financeiro', to: '/financeiro', icon: <WalletIcon />, permissionKey: 'canAccessFinanceiro' },
-        { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
-    ];
 
     const visibleNavItems = useMemo(() => {
         if (!permissions) {

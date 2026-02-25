@@ -6,7 +6,7 @@ import TopBar from './components/TopBar.tsx';
 import { ToastProvider } from './contexts/ToastContext.tsx';
 import { UserProvider } from './contexts/UserContext.tsx';
 import { ChatProvider, useChat } from './contexts/ChatContext.tsx';
-import { SpinnerIcon } from './components/icons.tsx';
+
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import AuthLayout from './components/AuthLayout.tsx';
 import { OnlineStatusIndicator, SuspenseFallback } from './components/GlobalLoading.tsx';

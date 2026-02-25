@@ -737,8 +737,11 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
     const { data: session, error: fetchError } = await supabase.from('cash_sessions').select('*').eq('id', sid).single();
     if (fetchError) throw fetchError;
 
-    // RULE 5: Strict validation of ownership
-    if (odId !== 'system' && session.user_id !== odId) {
+    // RULE 5: Strict validation of ownership (EXCEPT ADMINS)
+    const callingUserProfile = odId !== 'system' ? await getProfile(odId) : null;
+    const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
+
+    if (odId !== 'system' && !isCallingAdmin && session.user_id !== odId) {
         throw new Error('Acesso NEGADO: Você não tem permissão para movimentar este caixa.');
     }
 
