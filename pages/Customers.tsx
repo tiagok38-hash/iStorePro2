@@ -588,7 +588,7 @@ const CustomersAndSuppliers: React.FC = () => {
                 totals.set(sale.customerId, current + sale.total);
 
                 const debt = sale.payments
-                    .filter(p => p.type === 'pending' && p.method !== 'Crediário' && p.method !== 'Crediario' && p.method !== 'Promissória')
+                    .filter(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória')
                     .reduce((sum, p) => sum + p.value, 0);
                 if (debt > 0) {
                     const currentDebt = debts.get(sale.customerId) || 0;
@@ -612,7 +612,7 @@ const CustomersAndSuppliers: React.FC = () => {
         const customersWithStats = filtered.map(c => ({
             ...c,
             totalPurchases: customerStats.totals.get(c.id) || 0,
-            debt: (customerStats.debts.get(c.id) || 0) + (Number(c.credit_used) || 0)
+            debt: (customerStats.debts.get(c.id) || 0)
         }));
 
         let result = customersWithStats;

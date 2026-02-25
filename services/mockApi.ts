@@ -2244,11 +2244,11 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
     // Generate Credit Installments if (Crediário)
     if (saleData.status === 'Finalizada') {
-        const creditPayment = data.payments?.find((p: any) => (p.method === 'Crediário' || p.method === 'Crediario') && p.creditDetails);
+        const creditPayment = data.payments?.find((p: any) => (p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória') && p.creditDetails);
 
         if (creditPayment) {
         } else {
-            const hasCrediarioMethod = data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario');
+            const hasCrediarioMethod = data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória');
         }
 
         if (creditPayment && creditPayment.creditDetails) {
