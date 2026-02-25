@@ -157,7 +157,7 @@ const App: React.FC = () => {
                                     </Route>
 
                                     {/* Catalog Module (Immersive) */}
-                                    <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
+                                    <Route element={<ProtectedRoute permissionKey="canAccessCatalog" />}>
                                         <Route path="/catalog" element={<CatalogLayout />}>
                                             <Route index element={<CatalogAdmin />} />
                                             <Route path="settings" element={<CatalogSettings />} />

@@ -24,7 +24,7 @@ import BulkLocationUpdateModal from '../components/BulkLocationUpdateModal.tsx';
 import PurchaseOrderDetailModal from '../components/PurchaseOrderDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
 import GlobalLoading from '../components/GlobalLoading.tsx';
-import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
+import { toDateValue, getNowISO, formatDateBR } from '../utils/dateUtils.ts';
 import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
     TicketIcon, DocumentArrowUpIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
@@ -1122,6 +1122,18 @@ const Products: React.FC = () => {
                                                         <>
                                                             <span className="opacity-30">·</span>
                                                             <span className="text-emerald-600 font-medium font-mono uppercase">EAN: {product.barcodes.join(', ')}</span>
+                                                        </>
+                                                    )}
+                                                    {product.apple_warranty_until && (
+                                                        <>
+                                                            <span className="opacity-30">·</span>
+                                                            <span className="text-blue-600 font-bold">🍎 Gar. Apple: {formatDateBR(product.apple_warranty_until)}</span>
+                                                        </>
+                                                    )}
+                                                    {product.observations && (
+                                                        <>
+                                                            <span className="opacity-30">·</span>
+                                                            <span className="italic text-amber-600">"{product.observations}"</span>
                                                         </>
                                                     )}
                                                 </div>

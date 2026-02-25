@@ -99,7 +99,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
 
             {isOpen && (
                 <div
-                    className="absolute top-full left-0 mt-2 p-4 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 w-64 animate-in fade-in slide-in-from-top-2 duration-200"
+                    className="absolute top-full left-0 mt-2 p-4 bg-white border border-gray-100 rounded-xl shadow-2xl z-[9999] w-64 animate-in fade-in slide-in-from-top-2 duration-200"
                 >
                     <div className="flex items-center justify-between mb-4">
                         <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-xl transition-colors">

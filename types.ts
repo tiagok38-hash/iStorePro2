@@ -249,6 +249,7 @@ export interface Product {
     observations?: string;
     photos?: string[];
     accessories?: string[];
+    apple_warranty_until?: string;
 
     // Commission configuration
     commission_enabled?: boolean;

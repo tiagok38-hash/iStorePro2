@@ -1192,6 +1192,10 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
         checklist: data.checklist || null,
         additionalCostPrice: data.additionalCostPrice || 0,
         variations: data.variations || [],
+        observations: data.observations || null,
+        apple_warranty_until: (data.apple_warranty_until && typeof data.apple_warranty_until === 'string' && data.apple_warranty_until.trim())
+            ? data.apple_warranty_until
+            : null,
         // Add initial stock history entry for traceability (only if stock > 0)
         // Trade-in products (stock: 0) will have their history added when the sale is finalized
         stockHistory: data.stock === 0 ? [] : [{
@@ -1281,7 +1285,21 @@ export const updateProduct = async (data: any, userId?: string, userName?: strin
         }
     });
 
-    // Note: ensure supplierId exists in products table
+    // Sanitize: convert empty string observations to null
+    if (updatePayload.observations === '') {
+        updatePayload.observations = null;
+    }
+
+    // Sanitize: ensure apple_warranty_until is a valid ISO string or null (never undefined)
+    if (updatePayload.apple_warranty_until !== undefined) {
+        if (!updatePayload.apple_warranty_until) {
+            updatePayload.apple_warranty_until = null;
+        } else if (typeof updatePayload.apple_warranty_until === 'string' && updatePayload.apple_warranty_until.trim()) {
+            // Keep as-is (already a valid ISO string from the form)
+        } else {
+            updatePayload.apple_warranty_until = null;
+        }
+    }
 
     // Track price changes for history
     const existingPriceHistory = existingProduct.priceHistory || [];

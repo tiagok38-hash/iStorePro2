@@ -157,6 +157,11 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                                                     {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Bat: ${product.batteryHealth}%` : ''}
                                                 </p>
                                             )}
+                                            {product?.observations && (
+                                                <p className="text-[8px] text-amber-700 leading-tight italic mt-0.5">
+                                                    Obs: {product.observations}
+                                                </p>
+                                            )}
                                         </td>
                                         <td className="px-1.5 py-0.5 text-center align-top border border-black">{item.quantity}</td>
                                         <td className="px-1.5 py-0.5 text-right align-top border border-black">{formatCurrency(item.unitPrice)}</td>
@@ -307,6 +312,9 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
                                 )}
                                 {warrantyExp && (
                                     <p className="font-semibold italic">Garantia válida até {warrantyExp}</p>
+                                )}
+                                {product?.observations && (
+                                    <p className="italic text-[9px] text-amber-700">Obs: {product.observations}</p>
                                 )}
                             </div>
                         </div>

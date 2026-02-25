@@ -622,6 +622,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
             return;
         }
 
+        // Commission validation
+        if (formData.commission_enabled) {
+            if (!formData.commission_value || formData.commission_value < 0) {
+                showToast('Informe um valor de comissão válido.', 'error');
+                return;
+            }
+        }
+
         let finalModel = '';
         let finalBrand = '';
         let finalCategory = '';
@@ -745,8 +753,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
     const totalCost = useMemo(() => (formData.costPrice || 0) + (formData.additionalCostPrice || 0), [formData.costPrice, formData.additionalCostPrice]);
 
-    const labelClasses = "block text-xs font-medium text-muted mb-1";
-    const inputClasses = "w-full px-3 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-11 transition-all outline-none";
+    const labelClasses = "block text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5";
+    const inputClasses = "w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm";
 
     if (!visible && !isOpen) return null;
 
@@ -794,32 +802,30 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
                 <div className="flex-1 p-4 md:p-8 pt-6 space-y-6 overflow-y-auto custom-scrollbar pb-32 md:pb-24">
 
-                    {/* Tabs for Trade-In and Edit Mode */}
-                    {(isTradeInMode || product?.id) && (
-                        <div className="flex gap-2 md:gap-4 border-b border-gray-100 pb-4 mb-4 overflow-x-auto no-scrollbar">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('details')}
-                                className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'details' ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                            >
-                                Detalhes
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('extras')}
-                                className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'extras' ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                            >
-                                Fotos {formData.photos?.length ? `(${formData.photos.length})` : ''}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('checklist')}
-                                className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'checklist' ? 'bg-gray-900 text-white shadow-lg' : 'bg-red-50 text-red-400 hover:bg-red-100'}`}
-                            >
-                                Checklist
-                            </button>
-                        </div>
-                    )}
+                    {/* Tabs for All Modes */}
+                    <div className="flex gap-2 md:gap-4 border-b border-gray-100 pb-4 mb-4 overflow-x-auto no-scrollbar">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('details')}
+                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'details' ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                        >
+                            Detalhes
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('extras')}
+                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'extras' ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                        >
+                            Fotos {formData.photos?.length ? `(${formData.photos.length})` : ''}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('checklist')}
+                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'checklist' ? 'bg-gray-900 text-white shadow-lg' : 'bg-red-50 text-red-400 hover:bg-red-100'}`}
+                        >
+                            Checklist
+                        </button>
+                    </div>
 
 
                     {activeTab === 'checklist' && (
@@ -1121,6 +1127,28 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 </div>
                             </div>
 
+                            {productType === 'Apple' && (
+                                <div className="space-y-2">
+                                    <label className={labelClasses}>Garantia Apple Até</label>
+                                    <CustomDatePicker
+                                        value={formData.apple_warranty_until ? formData.apple_warranty_until.split('T')[0] : ''}
+                                        onChange={(dateStr) => setFormData(p => ({ ...p, apple_warranty_until: dateStr ? dateStr + 'T12:00:00.000Z' : undefined }))}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className={labelClasses}>Observações (aparece no comprovante)</label>
+                                <input
+                                    type="text"
+                                    name="observations"
+                                    value={formData.observations || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm"
+                                    placeholder="Ex: Produto sem carregador, arranhado na tampa..."
+                                />
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                                 <div className="space-y-3">
                                     <label className={labelClasses}>Fornecedor</label>
@@ -1142,7 +1170,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Estoque Mínimo</span>
                                         </label>
                                         {isMinimumStockEnabled && (
-                                            <input type="number" name="minimumStock" min="1" value={formData.minimumStock ?? 1} onChange={handleNumberChange} className="w-20 p-2 bg-gray-50 border border-gray-200 rounded-xl text-center font-bold text-sm h-[40px]" />
+                                            <input
+                                                type="number"
+                                                name="minimumStock"
+                                                min="1"
+                                                value={formData.minimumStock ?? 1}
+                                                onChange={handleNumberChange}
+                                                className="w-20 p-3 bg-white border border-gray-200 rounded-xl text-sm font-black text-blue-600 h-[48px] focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none text-center shadow-sm"
+                                            />
                                         )}
                                     </div>
                                 )}
@@ -1210,14 +1245,21 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         <div className="flex items-center gap-2">
                                             <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest">🏷️ Comissão</span>
                                         </div>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <span className="text-[10px] font-bold text-gray-500">{formData.commission_enabled ? 'Ativa' : 'Desativada'}</span>
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-gray-600 transition-colors">
+                                                {formData.commission_enabled ? 'Ativa' : 'Desativada'}
+                                            </span>
                                             <div
-                                                className={`w-10 h-5 rounded-full p-0.5 transition-colors relative ${formData.commission_enabled ? 'bg-violet-600 shadow-[0_0_10px_rgba(109,40,217,0.3)]' : 'bg-gray-300'}`}
-                                                onClick={() => setFormData(p => ({ ...p, commission_enabled: !p.commission_enabled }))}
+                                                className={`w-11 h-6 rounded-full p-1 transition-all relative ${formData.commission_enabled ? 'bg-violet-600 shadow-[0_0_15px_rgba(109,40,217,0.4)]' : 'bg-gray-200'}`}
                                             >
-                                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${formData.commission_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-all ${formData.commission_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
                                             </div>
+                                            <input
+                                                type="checkbox"
+                                                className="hidden"
+                                                checked={!!formData.commission_enabled}
+                                                onChange={() => setFormData(p => ({ ...p, commission_enabled: !p.commission_enabled }))}
+                                            />
                                         </label>
                                     </div>
 
