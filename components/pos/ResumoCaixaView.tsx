@@ -18,7 +18,7 @@ interface ResumoCaixaViewProps {
     setActiveView: (view: any) => void;
     handleOpenCashMovement: (type: 'suprimento' | 'sangria') => void;
     handleCloseSession: (s: CashSession) => void;
-    handleReopenSession: (s: CashSession) => void;
+    handleReopenSession: (s: CashSession, reason?: string) => void;
     handleEditSale: (sale: Sale) => void;
     handleViewClick: (sale: Sale) => void;
     handlePrintClick: (sale: Sale) => void;
@@ -39,6 +39,8 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
     const [cancelConfirmSale, setCancelConfirmSale] = useState<string | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+    const [showReopenModal, setShowReopenModal] = useState(false);
+    const [reopenReasonLocal, setReopenReasonLocal] = useState('');
     const targetSession = viewSession || currentUserOpenSession;
     const isCurrent = targetSession?.id === currentUserOpenSession?.id;
     const isOpen = targetSession?.status === 'aberto';
@@ -216,7 +218,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                     </div>
                 ) : targetSession.status === 'fechado' && (
                     <button
-                        onClick={() => handleReopenSession(targetSession)}
+                        onClick={() => setShowReopenModal(true)}
                         className="w-full md:w-auto px-4 md:px-6 py-2 md:py-3 bg-blue-500 text-white rounded-xl font-black shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-all flex items-center justify-center gap-2 text-xs md:text-sm uppercase"
                     >
                         <ArrowPathRoundedSquareIcon className="h-4 w-4 md:h-5 md:w-5" />
@@ -482,6 +484,56 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                 className="flex-1 py-4 text-red-500 font-black hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-wide flex items-center justify-center gap-2"
                             >
                                 {isCancelling ? 'Cancelando...' : 'Confirmar Cancelamento'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reopen Reason Modal */}
+            {showReopenModal && targetSession && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+                        <div className="p-6">
+                            <div className="text-center mb-6">
+                                <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <ArrowPathRoundedSquareIcon className="h-7 w-7 text-blue-500" />
+                                </div>
+                                <h3 className="text-lg font-black text-gray-800 mb-2">Reabrir Caixa #{targetSession.displayId}?</h3>
+                                <p className="text-sm text-gray-500">
+                                    Informe o motivo para reabrir este caixa. Esta ação será registrada no log de auditoria.
+                                </p>
+                            </div>
+
+                            <div className="mb-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Motivo da Reabertura <span className="text-red-500">*</span></label>
+                                <textarea
+                                    value={reopenReasonLocal}
+                                    onChange={(e) => setReopenReasonLocal(e.target.value)}
+                                    placeholder="Ex: Necessidade de lançar venda adicional, correção de erro..."
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none text-gray-700 placeholder-gray-400"
+                                    rows={3}
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <div className="flex border-t border-gray-100">
+                            <button
+                                onClick={() => { setShowReopenModal(false); setReopenReasonLocal(''); }}
+                                className="flex-1 py-4 text-gray-500 font-bold hover:bg-gray-50 transition-colors border-r border-gray-100 text-sm uppercase tracking-wide"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleReopenSession(targetSession, reopenReasonLocal.trim());
+                                    setShowReopenModal(false);
+                                    setReopenReasonLocal('');
+                                }}
+                                disabled={!reopenReasonLocal.trim()}
+                                className="flex-1 py-4 text-blue-500 font-black hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-wide flex items-center justify-center gap-2"
+                            >
+                                Confirmar Reabertura
                             </button>
                         </div>
                     </div>

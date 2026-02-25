@@ -289,7 +289,7 @@ const POS: React.FC = () => {
 
     const [reopenReason, setReopenReason] = useState('');
 
-    const handleReopenSession = async (session: CashSession) => {
+    const handleReopenSession = async (session: CashSession, reason?: string) => {
         // RULE 5: Only reopen own sessions (or admin)
         if (session.userId !== user?.id && !isAdmin) {
             showToast('Acesso NEGADO: Este caixa pertence a outro usuário.', 'error');
@@ -305,7 +305,8 @@ const POS: React.FC = () => {
             return;
         }
 
-        if (!reopenReason.trim()) {
+        const finalReason = reason || reopenReason.trim();
+        if (!finalReason) {
             showToast('É obrigatório informar o motivo para reabrir o caixa.', 'error');
             return;
         }
@@ -316,7 +317,7 @@ const POS: React.FC = () => {
                 id: session.id,
                 status: 'aberto',
                 closeTime: null,
-                reopenReason: reopenReason.trim()
+                reopenReason: finalReason
             }, user?.id, user?.name);
 
             // Re-fetch data silently to sync all balances and movements
