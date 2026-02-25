@@ -100,6 +100,9 @@ export interface PermissionSet {
     canDeleteCatalogItem: boolean;
     canAccessComissoes: boolean;
     canViewSaleProfit: boolean;
+    canEditCompletedSale: boolean;
+    canCancelCompletedSale: boolean;
+    canReopenCashRegister: boolean;
 }
 
 export interface PermissionProfile {

@@ -127,6 +127,15 @@ export const formatPhone = (value: string): string => {
 
 
 
+// --- PERMISSIONS HELPERS ---
+const resolvePermissions = async (userId: string): Promise<any> => {
+    const profile = await getProfile(userId);
+    if (!profile) return {};
+    const allProfiles = await getPermissionProfiles();
+    const userProfile = allProfiles.find(p => p.id === profile.permissionProfileId);
+    return userProfile?.permissions || {};
+};
+
 // --- AUDIT LOGGING HELPER ---
 export const addAuditLog = async (
     action: AuditActionType,
@@ -489,14 +498,15 @@ export const getCashSessions = async (currentUserId?: string): Promise<CashSessi
 
             // AUTO-CLOSE STALE SESSIONS
             // Check if any open session belongs to a previous day
-            // GOVERNANCE: Do NOT auto-close sessions that were explicitly reopened by admin
-            const today = getTodayDateString(); // Assume YYYY-MM-DD local
+            const today = getTodayDateString(); // YYYY-MM-DD in America/Sao_Paulo
             const staleSessions = mappedSessions.filter((s: any) => {
-                if (s.status === 'aberto' || s.status === 'Aberto') {
-                    // Skip auto-close for admin-reopened sessions (they have reopen_reason set)
-                    if (s.reopen_reason || s.reopened_at) return false;
+                const status = (s.status || '').toLowerCase();
+                if (status === 'aberto') {
+                    // Skip auto-close for admin-reopened sessions
+                    if (s.reopenReason || s.reopenedAt) return false;
 
-                    const sessionDate = s.openTime.split('T')[0];
+                    // Convert open_time (UTC ISO) to Brazil Date string
+                    const sessionDate = new Date(s.openTime).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
                     return sessionDate < today;
                 }
                 return false;
@@ -508,12 +518,13 @@ export const getCashSessions = async (currentUserId?: string): Promise<CashSessi
                     const staleIds = staleSessions.map((s: any) => s.id);
                     // Update status to 'fechado' locally and in DB
                     for (const session of staleSessions) {
-                        const sessionDay = session.openTime.split('T')[0];
-                        const autoCloseTime = `${sessionDay}T23:59:59.999Z`;
+                        const sessionDay = new Date(session.openTime).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+                        // Final do dia em Brasília (23:59:59-03:00)
+                        const autoCloseTime = `${sessionDay}T23:59:59.999-03:00`;
 
                         await supabase.from('cash_sessions').update({
                             status: 'fechado',
-                            close_time: autoCloseTime
+                            close_time: new Date(autoCloseTime).toISOString()
                         }).eq('id', session.id);
 
                         await addAuditLog(
@@ -533,8 +544,8 @@ export const getCashSessions = async (currentUserId?: string): Promise<CashSessi
                 return mappedSessions.map((s: any) => {
                     const isStale = staleSessions.find((st: any) => st.id === s.id);
                     if (isStale) {
-                        const sessionDay = s.openTime.split('T')[0];
-                        return { ...s, status: 'fechado', closeTime: `${sessionDay}T23:59:59.999Z` };
+                        const sessionDay = new Date(s.openTime).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+                        return { ...s, status: 'fechado', closeTime: new Date(`${sessionDay}T23:59:59.999-03:00`).toISOString() };
                     }
                     return s;
                 });
@@ -552,21 +563,18 @@ export const addCashSession = async (data: any, odId: string = 'system', userNam
 
     // RULE: ONE SESSION PER USER PER DAY
     // Check if there is already a session for this user today (open or closed)
-    const today = getTodayDateString(); // e.g. "2023-10-27"
+    const today = getTodayDateString();
 
-    // We need to check against the open_time which is ISO. 
-    // We can filter by open_time >= todayT00:00:00 and open_time <= todayT23:59:59
-    // But since getTodayDateString returns local date string, we need to be careful with UTC.
-    // However, for this mock implementation running locally, we can rely on string comparison of the date part 
-    // if we assume getNowISO() follows the same locale or we use a more robust check.
+    // Define o intervalo de "hoje" no fuso de Brasília para busca no DB (UTC)
+    const startOfDay = new Date(`${today}T00:00:00-03:00`).toISOString();
+    const endOfDay = new Date(`${today}T23:59:59.999-03:00`).toISOString();
 
-    // Robust check: fetch all sessions for user and check if any falls in "today"
     const { data: existingSessions, error: checkError } = await supabase
         .from('cash_sessions')
         .select('*')
         .eq('user_id', data.userId)
-        .gte('open_time', `${today}T00:00:00`)
-        .lte('open_time', `${today}T23:59:59.999`);
+        .gte('open_time', startOfDay)
+        .lte('open_time', endOfDay);
 
     if (checkError) throw checkError;
 
@@ -624,17 +632,20 @@ export const updateCashSession = async (data: any, odId: string = 'system', user
     // RULE 5 & 7: Validate ownership before update
     const callingUserProfile = odId !== 'system' ? await getProfile(odId) : null;
     const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
-    const permissions = (callingUserProfile as any)?.permissions || {};
+    const permissions = odId !== 'system' ? await resolvePermissions(odId) : {};
 
     if (odId !== 'system') {
-        const { data: existing } = await supabase.from('cash_sessions').select('user_id, status').eq('id', data.id).single();
+        const { data: existing } = await supabase.from('cash_sessions').select('user_id, status, open_time').eq('id', data.id).single();
         if (existing && !isCallingAdmin && existing.user_id !== odId) {
             throw new Error('Acesso NEGADO: Este caixa pertence a outro usuário.');
         }
 
         // GOVERNANCE: Reopening a closed cash register requires special permission
         if (existing?.status === 'fechado' && (data.status === 'aberto' || data.status === 'reaberto')) {
-            const canReopen = isCallingAdmin || permissions.canReopenCashRegister === true;
+            const isOwnSessionToday = existing.user_id === odId &&
+                new Date(existing.open_time).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) === getTodayDateString();
+
+            const canReopen = isCallingAdmin || permissions.canReopenCashRegister === true || isOwnSessionToday;
             if (!canReopen) {
                 throw new Error('Acesso NEGADO: Você não tem permissão para reabrir caixas fechados.');
             }
@@ -2508,7 +2519,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     // RULE 5 & 6: Strict validation of ownership (EXCEPT ADMINS)
     const callingUserProfile = userId !== 'system' ? await getProfile(userId) : null;
     const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
-    const userPermissions = (callingUserProfile as any)?.permissions || {};
+    const userPermissions = userId !== 'system' ? await resolvePermissions(userId) : {};
 
     if (userId !== 'system') {
         const { data: existing } = await supabase.from('sales').select('salesperson_id, cash_session_id, status').eq('id', data.id).single();

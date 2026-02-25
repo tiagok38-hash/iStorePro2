@@ -72,6 +72,9 @@ const defaultPermissions: PermissionSet = {
   canEditProductCommissionSettings: true,
   canAccessComissoes: true,
   canViewSaleProfit: true,
+  canEditCompletedSale: false,
+  canCancelCompletedSale: false,
+  canReopenCashRegister: false,
 };
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
