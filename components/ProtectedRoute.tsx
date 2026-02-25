@@ -41,7 +41,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         canCancelSales: true,
         canApplyDiscounts: true,
         canEditOwnProfile: true,
-        canManageMarcasECategorias: true
+        canManageMarcasECategorias: true,
+        canAccessCatalog: true,
+        canAccessFinanceiro: true,
+        canAccessServiceOrders: true,
+        canAccessCrm: true
     };
 
     const effectivePermissions = permissions

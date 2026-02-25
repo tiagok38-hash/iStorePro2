@@ -631,8 +631,8 @@ export const addCashSession = async (data: any, odId: string = 'system', userNam
 export const updateCashSession = async (data: any, odId: string = 'system', userName: string = 'Sistema') => {
     // RULE 5 & 7: Validate ownership before update
     const callingUserProfile = odId !== 'system' ? await getProfile(odId) : null;
-    const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
     const permissions = odId !== 'system' ? await resolvePermissions(odId) : {};
+    const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin' || permissions?.canManageCompanyData === true;
 
     if (odId !== 'system') {
         const { data: existing } = await supabase.from('cash_sessions').select('user_id, status, open_time').eq('id', data.id).single();
@@ -750,7 +750,8 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
 
     // RULE 5: Strict validation of ownership (EXCEPT ADMINS)
     const callingUserProfile = odId !== 'system' ? await getProfile(odId) : null;
-    const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
+    const permissions = odId !== 'system' ? await resolvePermissions(odId) : {};
+    const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin' || permissions?.canManageCompanyData === true;
 
     if (odId !== 'system' && !isCallingAdmin && session.user_id !== odId) {
         throw new Error('Acesso NEGADO: Você não tem permissão para movimentar este caixa.');
