@@ -481,16 +481,21 @@ export const getCashSessions = async (currentUserId?: string): Promise<CashSessi
                 openingBalance: s.opening_balance,
                 cashInRegister: s.cash_in_register,
                 openTime: s.open_time,
-                closeTime: s.close_time
+                closeTime: s.close_time,
+                reopenedBy: s.reopened_by,
+                reopenedAt: s.reopened_at,
+                reopenReason: s.reopen_reason
             }));
 
             // AUTO-CLOSE STALE SESSIONS
             // Check if any open session belongs to a previous day
+            // GOVERNANCE: Do NOT auto-close sessions that were explicitly reopened by admin
             const today = getTodayDateString(); // Assume YYYY-MM-DD local
             const staleSessions = mappedSessions.filter((s: any) => {
                 if (s.status === 'aberto' || s.status === 'Aberto') {
-                    // split('T')[0] gets the UTC date usually, but for this mock we assume usage consistency.
-                    // If openTime is "2023-10-26T...", and today is "2023-10-27", then 26 < 27.
+                    // Skip auto-close for admin-reopened sessions (they have reopen_reason set)
+                    if (s.reopen_reason || s.reopened_at) return false;
+
                     const sessionDate = s.openTime.split('T')[0];
                     return sessionDate < today;
                 }
