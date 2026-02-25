@@ -287,8 +287,10 @@ const POS: React.FC = () => {
         } catch (error) { showToast('Erro ao fechar o caixa.', 'error'); }
     };
 
+    const [reopenReason, setReopenReason] = useState('');
+
     const handleReopenSession = async (session: CashSession) => {
-        // RULE 5: Only reopen own sessions
+        // RULE 5: Only reopen own sessions (or admin)
         if (session.userId !== user?.id && !isAdmin) {
             showToast('Acesso NEGADO: Este caixa pertence a outro usuário.', 'error');
             return;
@@ -303,12 +305,18 @@ const POS: React.FC = () => {
             return;
         }
 
+        if (!reopenReason.trim()) {
+            showToast('É obrigatório informar o motivo para reabrir o caixa.', 'error');
+            return;
+        }
+
         try {
             // Fix: Send only changed fields. Clear closeTime using null.
             const updated = await updateCashSession({
                 id: session.id,
                 status: 'aberto',
-                closeTime: null
+                closeTime: null,
+                reopenReason: reopenReason.trim()
             }, user?.id, user?.name);
 
             // Re-fetch data silently to sync all balances and movements
@@ -321,10 +329,11 @@ const POS: React.FC = () => {
                 setViewSession(updated);
             }
 
+            setReopenReason('');
             showToast('Caixa reaberto com sucesso!', 'success');
             setActiveView('resumo');
-        } catch (error) {
-            showToast('Erro ao reabrir o caixa.', 'error');
+        } catch (error: any) {
+            showToast(error?.message || 'Erro ao reabrir o caixa.', 'error');
         }
     };
 
@@ -614,11 +623,23 @@ const POS: React.FC = () => {
                                 </p>
                                 <p className="text-xs text-amber-600 font-mono">ID #{sessionToReopen.displayId}</p>
                             </div>
-                            <p className="text-gray-600 mb-8 leading-relaxed">
+                            <p className="text-gray-600 mb-4 leading-relaxed">
                                 O sistema não permite a abertura de múltiplos caixas no mesmo dia para o mesmo usuário.
                                 <br />
                                 <span className="font-semibold text-gray-800">Deseja reabrir este caixa para continuar?</span>
                             </p>
+                            <div className="mb-6">
+                                <label className="block text-left text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                                    Motivo da Reabertura <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    value={reopenReason}
+                                    onChange={(e) => setReopenReason(e.target.value)}
+                                    placeholder="Informe o motivo para reabrir o caixa..."
+                                    className="w-full p-3 border border-gray-300 rounded-xl text-sm resize-none focus:ring-2 focus:ring-primary focus:border-primary"
+                                    rows={3}
+                                />
+                            </div>
                             <div className="flex flex-col gap-3">
                                 <button
                                     onClick={() => {
@@ -626,7 +647,8 @@ const POS: React.FC = () => {
                                         setIsReopenModalOpen(false);
                                         setSessionToReopen(null);
                                     }}
-                                    className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    disabled={!reopenReason.trim()}
+                                    className={`w-full py-4 rounded-2xl font-bold shadow-lg transition-all ${reopenReason.trim() ? 'bg-primary text-white shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                                 >
                                     Reabrir Caixa Existente
                                 </button>
@@ -634,6 +656,7 @@ const POS: React.FC = () => {
                                     onClick={() => {
                                         setIsReopenModalOpen(false);
                                         setSessionToReopen(null);
+                                        setReopenReason('');
                                     }}
                                     className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-all"
                                 >

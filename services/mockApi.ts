@@ -617,13 +617,25 @@ export const addCashSession = async (data: any, odId: string = 'system', userNam
 
 export const updateCashSession = async (data: any, odId: string = 'system', userName: string = 'Sistema') => {
     // RULE 5 & 7: Validate ownership before update
-    if (odId !== 'system') {
-        const callingUserProfile = await getProfile(odId);
-        const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
+    const callingUserProfile = odId !== 'system' ? await getProfile(odId) : null;
+    const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
+    const permissions = (callingUserProfile as any)?.permissions || {};
 
-        const { data: existing } = await supabase.from('cash_sessions').select('user_id').eq('id', data.id).single();
+    if (odId !== 'system') {
+        const { data: existing } = await supabase.from('cash_sessions').select('user_id, status').eq('id', data.id).single();
         if (existing && !isCallingAdmin && existing.user_id !== odId) {
             throw new Error('Acesso NEGADO: Este caixa pertence a outro usuário.');
+        }
+
+        // GOVERNANCE: Reopening a closed cash register requires special permission
+        if (existing?.status === 'fechado' && (data.status === 'aberto' || data.status === 'reaberto')) {
+            const canReopen = isCallingAdmin || permissions.canReopenCashRegister === true;
+            if (!canReopen) {
+                throw new Error('Acesso NEGADO: Você não tem permissão para reabrir caixas fechados.');
+            }
+            if (!data.reopenReason) {
+                throw new Error('É obrigatório informar o motivo para reabrir o caixa.');
+            }
         }
     }
 
@@ -637,6 +649,14 @@ export const updateCashSession = async (data: any, odId: string = 'system', user
     if (data.deposits !== undefined) updatePayload.deposits = data.deposits;
     if (data.movements !== undefined) updatePayload.movements = data.movements;
 
+    // GOVERNANCE: Track reopen metadata
+    const isReopening = data.status === 'aberto' && data.reopenReason;
+    if (isReopening) {
+        updatePayload.reopened_by = odId !== 'system' ? odId : null;
+        updatePayload.reopened_at = new Date().toISOString();
+        updatePayload.reopen_reason = data.reopenReason;
+    }
+
     const { data: updated, error } = await supabase.from('cash_sessions').update(updatePayload).eq('id', data.id).select().single();
     if (error) {
         console.error('Error updating cash session:', error);
@@ -647,9 +667,11 @@ export const updateCashSession = async (data: any, odId: string = 'system', user
     const auditAction = data.status === 'fechado' ? AuditActionType.CASH_CLOSE : AuditActionType.CASH_OPEN;
     const actionDescription = data.status === 'fechado'
         ? `Caixa #${displayId} fechado`
-        : `Caixa #${displayId} reaberto`;
+        : isReopening
+            ? `Caixa #${displayId} reaberto. Motivo: ${data.reopenReason}`
+            : `Caixa #${displayId} aberto`;
 
-    // Fire-and-forget audit
+    // Fire-and-forget legacy audit
     addAuditLog(
         auditAction,
         AuditEntityType.USER,
@@ -658,6 +680,36 @@ export const updateCashSession = async (data: any, odId: string = 'system', user
         data.userId || odId,
         userName
     ).catch(err => console.error('Failed to log cash session update:', err));
+
+    // GOVERNANCE: Insert immutable audit log for reopening
+    if (isReopening) {
+        supabase.from('cash_register_audit_logs').insert({
+            cash_register_id: updated.id,
+            action_type: 'cash_register_reopened',
+            description: `Admin reabriu caixa #${displayId}. Motivo: ${data.reopenReason}`,
+            performed_by: odId !== 'system' ? odId : '00000000-0000-0000-0000-000000000000',
+            performed_by_name: userName,
+            performed_at: new Date().toISOString(),
+            metadata: { reason: data.reopenReason, display_id: displayId }
+        }).then(({ error: auditErr }) => {
+            if (auditErr) console.error('Failed to insert cash_register_audit_log:', auditErr);
+        });
+    }
+
+    // GOVERNANCE: Insert immutable audit log for closing
+    if (data.status === 'fechado') {
+        supabase.from('cash_register_audit_logs').insert({
+            cash_register_id: updated.id,
+            action_type: 'cash_register_closed',
+            description: `Caixa #${displayId} fechado por ${userName}`,
+            performed_by: odId !== 'system' ? odId : '00000000-0000-0000-0000-000000000000',
+            performed_by_name: userName,
+            performed_at: new Date().toISOString(),
+            metadata: { display_id: displayId }
+        }).then(({ error: auditErr }) => {
+            if (auditErr) console.error('Failed to insert cash_register_audit_log:', auditErr);
+        });
+    }
 
     clearCache([`cash_sessions_${odId || 'all'}`, 'cash_sessions_all']);
 
@@ -669,7 +721,10 @@ export const updateCashSession = async (data: any, odId: string = 'system', user
         openingBalance: updated.opening_balance,
         cashInRegister: updated.cash_in_register,
         openTime: updated.open_time,
-        closeTime: updated.close_time
+        closeTime: updated.close_time,
+        reopenedBy: updated.reopened_by,
+        reopenedAt: updated.reopened_at,
+        reopenReason: updated.reopen_reason
     };
 };
 
@@ -713,14 +768,29 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
     // Fire-and-forget logging to avoid UI hang
     const auditAction = mov.type === 'sangria' ? AuditActionType.CASH_WITHDRAWAL : AuditActionType.CASH_SUPPLY;
     const actionLabel = mov.type === 'sangria' ? 'Sangria' : 'Suprimento';
+    const displayIdMov = updated.display_id || updated.displayId;
     addAuditLog(
         auditAction,
         AuditEntityType.USER,
         sid,
-        `${actionLabel} no Caixa #${updated.display_id || updated.displayId}: ${formatCurrency(totalAmount)} - Motivo: ${mov.reason}`,
+        `${actionLabel} no Caixa #${displayIdMov}: ${formatCurrency(totalAmount)} - Motivo: ${mov.reason}`,
         odId,
         userName
     ).catch(err => console.error('Failed to log cash movement:', err));
+
+    // GOVERNANCE: Insert immutable audit log for cash movement
+    supabase.from('cash_register_audit_logs').insert({
+        cash_register_id: sid,
+        sale_id: mov.saleId || null,
+        action_type: mov.type === 'sangria' ? 'withdrawal_created' : 'supply_created',
+        description: `${actionLabel} de ${formatCurrency(totalAmount)} no caixa #${displayIdMov}. Motivo: ${mov.reason}${mov.saleId ? ` (vinculada à venda #${mov.saleId})` : ''}`,
+        performed_by: odId !== 'system' ? odId : '00000000-0000-0000-0000-000000000000',
+        performed_by_name: userName,
+        performed_at: new Date().toISOString(),
+        metadata: { amount: totalAmount, reason: mov.reason, type: mov.type, sale_id: mov.saleId || null }
+    }).then(({ error: auditErr }) => {
+        if (auditErr) console.error('Failed to insert cash_register_audit_log (movement):', auditErr);
+    });
 
     clearCache(['cash_sessions']);
 
@@ -2428,18 +2498,42 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
 
     // RULE 5 & 6: Strict validation of ownership (EXCEPT ADMINS)
-    if (userId !== 'system') {
-        const callingUserProfile = await getProfile(userId);
-        const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
+    const callingUserProfile = userId !== 'system' ? await getProfile(userId) : null;
+    const isCallingAdmin = callingUserProfile?.permissionProfileId === 'profile-admin';
+    const userPermissions = (callingUserProfile as any)?.permissions || {};
 
-        const { data: existing } = await supabase.from('sales').select('salesperson_id, cash_session_id').eq('id', data.id).single();
+    if (userId !== 'system') {
+        const { data: existing } = await supabase.from('sales').select('salesperson_id, cash_session_id, status').eq('id', data.id).single();
         if (existing) {
-            // RULE: IMMUTABLE SALES - Block updates if session is closed
+            // GOVERNANCE: Editing completed sales requires admin permission
+            if ((existing.status === 'Finalizada' || existing.status === 'Editada') && finalStatus !== 'Cancelada') {
+                const canEdit = isCallingAdmin || userPermissions.canEditCompletedSale === true;
+                if (!canEdit) {
+                    throw new Error('Acesso NEGADO: Apenas administradores podem editar vendas finalizadas.');
+                }
+                if (!data.editReason) {
+                    throw new Error('É obrigatório informar o motivo da edição.');
+                }
+            }
+
+            // GOVERNANCE: Canceling completed sales requires admin permission
+            if (finalStatus === 'Cancelada' && (existing.status === 'Finalizada' || existing.status === 'Editada')) {
+                const canCancel = isCallingAdmin || userPermissions.canCancelCompletedSale === true;
+                if (!canCancel) {
+                    throw new Error('Acesso NEGADO: Apenas administradores podem cancelar vendas finalizadas.');
+                }
+                if (!data.cancelReason) {
+                    throw new Error('É obrigatório informar o motivo do cancelamento.');
+                }
+            }
+
+            // RULE: IMMUTABLE SALES - Block updates if session is closed (UNLESS admin)
             if (existing.cash_session_id) {
                 const { data: session } = await supabase.from('cash_sessions').select('status').eq('id', existing.cash_session_id).single();
                 if (session && (session.status === 'fechado' || session.status === 'closed')) {
-                    // STRICT BLOCK: No editing of past sales.
-                    throw new Error('Acesso NEGADO: Vendas de caixas fechados não podem ser editadas. Realize o cancelamento e lance uma nova venda.');
+                    if (!isCallingAdmin) {
+                        throw new Error('Acesso NEGADO: Vendas de caixas fechados não podem ser editadas. Realize o cancelamento e lance uma nova venda.');
+                    }
                 }
             }
 
@@ -2447,6 +2541,25 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 throw new Error('Acesso NEGADO: Esta venda pertence a outro vendedor.');
             }
         }
+    }
+
+    // GOVERNANCE: Track original_total on first edit
+    if (data.total !== undefined && originalSale && originalSale.original_total === null && Number(data.total) !== Number(originalSale.total)) {
+        updatePayload.original_total = originalSale.total;
+    }
+
+    // GOVERNANCE: Track edit metadata
+    if (data.editReason && finalStatus !== 'Cancelada') {
+        updatePayload.edited_by = userId !== 'system' ? userId : null;
+        updatePayload.edited_at = new Date().toISOString();
+        updatePayload.edit_reason = data.editReason;
+    }
+
+    // GOVERNANCE: Track cancel metadata
+    if (finalStatus === 'Cancelada' && data.cancelReason) {
+        updatePayload.canceled_by = userId !== 'system' ? userId : null;
+        updatePayload.canceled_at = new Date().toISOString();
+        updatePayload.cancel_reason = data.cancelReason;
     }
 
     const { data: updatedRows, error } = await supabase.from('sales').update(updatePayload).eq('id', data.id).select();
@@ -2462,14 +2575,50 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         console.warn('mockApi: Sale updated successfully but returned no data (likely RLS). Using local payload.');
     }
 
+    const saleDisplayId = updated.display_id || data.id;
+
     await addAuditLog(
         AuditActionType.UPDATE,
         AuditEntityType.SALE,
         data.id,
-        `Venda atualizada. Status: ${data.status || updated.status}`,
+        `Venda atualizada. Status: ${finalStatus || updated.status}${data.editReason ? ` | Motivo: ${data.editReason}` : ''}${data.cancelReason ? ` | Motivo cancelamento: ${data.cancelReason}` : ''}`,
         userId,
         userName
     );
+
+    // GOVERNANCE: Insert immutable audit log on edit
+    if (data.editReason && finalStatus !== 'Cancelada' && updated.cash_session_id) {
+        const oldTotal = originalSale?.total || 0;
+        const newTotal = data.total || updated.total || 0;
+        supabase.from('cash_register_audit_logs').insert({
+            cash_register_id: updated.cash_session_id,
+            sale_id: data.id,
+            action_type: 'sale_edited',
+            description: `Admin editou venda #${saleDisplayId} (${formatCurrency(Number(oldTotal))} → ${formatCurrency(Number(newTotal))}). Motivo: ${data.editReason}`,
+            performed_by: userId !== 'system' ? userId : '00000000-0000-0000-0000-000000000000',
+            performed_by_name: userName,
+            performed_at: new Date().toISOString(),
+            metadata: { old_total: oldTotal, new_total: newTotal, reason: data.editReason }
+        }).then(({ error: auditErr }) => {
+            if (auditErr) console.error('Failed to insert cash_register_audit_log (edit):', auditErr);
+        });
+    }
+
+    // GOVERNANCE: Insert immutable audit log on cancel
+    if (finalStatus === 'Cancelada' && data.cancelReason && updated.cash_session_id) {
+        supabase.from('cash_register_audit_logs').insert({
+            cash_register_id: updated.cash_session_id,
+            sale_id: data.id,
+            action_type: 'sale_canceled',
+            description: `Admin cancelou venda #${saleDisplayId} (motivo: ${data.cancelReason})`,
+            performed_by: userId !== 'system' ? userId : '00000000-0000-0000-0000-000000000000',
+            performed_by_name: userName,
+            performed_at: new Date().toISOString(),
+            metadata: { total: updated.total, reason: data.cancelReason }
+        }).then(({ error: auditErr }) => {
+            if (auditErr) console.error('Failed to insert cash_register_audit_log (cancel):', auditErr);
+        });
+    }
 
     // If sale was not Finalizada/Editada and now it is, we need to deduct stock
     const newStatus = updated.status;
@@ -5020,6 +5169,26 @@ export const getAuditLogs = async (): Promise<AuditLog[]> => {
         if (error) throw error;
         return data || [];
     });
+};
+
+// GOVERNANCE: Immutable audit logs for cash register operations
+export const getCashRegisterAuditLogs = async (cashRegisterId?: string) => {
+    let query = supabase
+        .from('cash_register_audit_logs')
+        .select('*')
+        .order('performed_at', { ascending: false })
+        .limit(500);
+
+    if (cashRegisterId) {
+        query = query.eq('cash_register_id', cashRegisterId);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+        console.error('Error fetching cash register audit logs:', error);
+        throw error;
+    }
+    return data || [];
 };
 
 // --- BACKUP & RESTORE ---
