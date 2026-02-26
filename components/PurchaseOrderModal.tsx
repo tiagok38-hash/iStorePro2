@@ -812,38 +812,30 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 <div className="bg-gray-50/50 p-4 md:p-5 rounded-lg border border-gray-100 space-y-4 md:space-y-5">
 
                     <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
-                        <div className="flex items-center space-x-6">
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="productType"
-                                    value="Apple"
-                                    checked={productType === 'Apple'}
-                                    onChange={() => {
-                                        setProductType('Apple');
-                                        const reset = JSON.parse(JSON.stringify(emptyItem));
-                                        setCurrentItem({ ...reset, hasImei: true });
-                                    }}
-                                    className="form-radio h-5 w-5 text-accent"
-                                />
-                                <span className="font-bold text-gray-700">Apple</span>
-                            </label>
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="productType"
-                                    value="Produto"
-                                    checked={productType === 'Produto'}
-                                    onChange={() => {
-                                        setProductType('Produto');
-                                        const reset = JSON.parse(JSON.stringify(emptyItem));
-                                        reset.productDetails.brand = '';
-                                        setCurrentItem(reset);
-                                    }}
-                                    className="form-radio h-5 w-5 text-accent"
-                                />
-                                <span className="font-bold text-gray-700">Produto</span>
-                            </label>
+                        <div className="flex justify-start items-center p-1 bg-gray-100/50 rounded-xl border border-gray-200 w-fit">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setProductType('Apple');
+                                    const reset = JSON.parse(JSON.stringify(emptyItem));
+                                    setCurrentItem({ ...reset, hasImei: true });
+                                }}
+                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Apple' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                            >
+                                Apple
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setProductType('Produto');
+                                    const reset = JSON.parse(JSON.stringify(emptyItem));
+                                    reset.productDetails.brand = '';
+                                    setCurrentItem(reset);
+                                }}
+                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Produto' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                            >
+                                Produto
+                            </button>
                         </div>
                         <div className="flex items-center gap-3 flex-wrap">
                             <button

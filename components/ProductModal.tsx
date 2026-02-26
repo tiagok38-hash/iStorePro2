@@ -914,14 +914,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             <div className="space-y-5">
                                 <div className="flex flex-wrap items-center gap-4">
                                     {!product?.id && (
-                                        <div className="flex justify-start items-center p-1 bg-gray-100 rounded-xl border border-gray-200 w-fit">
+                                        <div className="flex justify-start items-center p-1 bg-gray-100/50 rounded-xl border border-gray-200 w-fit">
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setProductType('Apple');
                                                     setFormData(prev => ({ ...prev, category: '', model: '', brand: 'Apple' }));
                                                 }}
-                                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${productType === 'Apple' ? 'bg-white shadow-md text-primary' : 'text-gray-400'}`}
+                                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Apple' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                                             >
                                                 Apple
                                             </button>
@@ -931,7 +931,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                                     setProductType('Produto');
                                                     setFormData(prev => ({ ...prev, category: '', model: '', brand: '' }));
                                                 }}
-                                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${productType === 'Produto' ? 'bg-white shadow-md text-primary' : 'text-gray-400'}`}
+                                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Produto' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                                             >
                                                 Produto
                                             </button>
