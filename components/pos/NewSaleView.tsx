@@ -303,7 +303,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 <label className={labelClasses}>Vendedor*</label>
                                 <select value={selectedSalespersonId} onChange={e => setSelectedSalespersonId(e.target.value)} className={`${inputClasses} h-10 sm:h-12 cursor-pointer appearance-none bg-no-repeat bg-[right_0.75rem_center] bg-[length:1em_1em]`} disabled={!selectedCustomerId}>
                                     <option value="">Selecione...</option>
-                                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                    {users.filter(u => u.active !== false || u.id === selectedSalespersonId).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                                 </select>
                             </div>
                         </div>

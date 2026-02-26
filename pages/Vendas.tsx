@@ -663,7 +663,9 @@ const Vendas: React.FC = () => {
                         >
                             <option value="todos">Vendedores</option>
                             {sellerUsers.map(user => (
-                                <option key={user.id} value={user.id}>{user.name}</option>
+                                <option key={user.id} value={user.id}>
+                                    {user.name} {user.active === false ? '(Inativo)' : ''}
+                                </option>
                             ))}
                         </select>
                         <select
@@ -748,7 +750,14 @@ const Vendas: React.FC = () => {
                                                     <div className="font-medium">{new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                                                     <div className="text-[10px] opacity-70">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-primary hidden sm:table-cell">{userMap[sale.salespersonId]?.name?.split(' ')[0] || 'N/A'}</td>
+                                                <td className="px-6 py-4 text-primary hidden sm:table-cell">
+                                                    <div className="flex items-center gap-1.5 font-bold">
+                                                        <span>{userMap[sale.salespersonId]?.name?.split(' ')[0] || 'N/A'}</span>
+                                                        {userMap[sale.salespersonId]?.active === false && (
+                                                            <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-gray-100 text-gray-500 border border-gray-200 uppercase mt-0.5" title="Vendedor Inativo">Inativo</span>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-primary font-black sm:font-bold truncate max-w-[150px] sm:max-w-none text-[13px] sm:text-sm">{customerMap[sale.customerId]?.name || 'N/A'}</span>
