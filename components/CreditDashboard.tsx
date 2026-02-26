@@ -22,7 +22,7 @@ const CreditDashboard: React.FC = () => {
     const { showToast } = useToast();
     const [installments, setInstallments] = useState<CreditInstallment[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'overdue' | 'paid'>('all');
+    const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'pending' | 'overdue' | 'paid'>('active');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedInstallment, setSelectedInstallment] = useState<CreditInstallment | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -85,7 +85,9 @@ const CreditDashboard: React.FC = () => {
         let filtered = installments;
 
         if (filterStatus !== 'all') {
-            if (filterStatus === 'overdue') {
+            if (filterStatus === 'active') {
+                filtered = filtered.filter(i => i.status !== 'paid');
+            } else if (filterStatus === 'overdue') {
                 const today = new Date().toISOString().split('T')[0];
                 filtered = filtered.filter(i => i.status !== 'paid' && new Date(i.dueDate) < new Date(today));
             } else {
@@ -229,10 +231,10 @@ const CreditDashboard: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex gap-2 p-1 bg-gray-100/50 rounded-xl">
                     <button
-                        onClick={() => setFilterStatus('all')}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${filterStatus === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setFilterStatus('active')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${filterStatus === 'active' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        Todos
+                        Ativos
                     </button>
                     <button
                         onClick={() => setFilterStatus('pending')}
@@ -251,6 +253,12 @@ const CreditDashboard: React.FC = () => {
                         className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${filterStatus === 'paid' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         Pagos
+                    </button>
+                    <button
+                        onClick={() => setFilterStatus('all')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${filterStatus === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        Todos
                     </button>
                 </div>
 

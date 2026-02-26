@@ -112,8 +112,8 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
             const dateMatch = saleDate >= start && saleDate <= end;
             const sellerMatch = sellerFilter === 'todos' || sale.salespersonId === sellerFilter;
-            // Align with Dashboard: Consider everything except Cancelled
-            const statusMatch = sale.status !== 'Cancelada';
+            // Alinhar com Financeiro: Considerar apenas "Finalizada"
+            const statusMatch = sale.status === 'Finalizada';
 
             return dateMatch && sellerMatch && statusMatch;
         });
