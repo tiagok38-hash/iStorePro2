@@ -571,7 +571,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     );
 });
 
-const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products: Product[]; users: User[]; className?: string; isPrivacyMode?: boolean; to?: string; permissions?: PermissionSet | null; onDenied?: () => void }> = React.memo(({ sales, customers, products, users, className, isPrivacyMode, to, permissions, onDenied }) => {
+const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products: Product[]; users: User[]; suppliers: Supplier[]; className?: string; isPrivacyMode?: boolean; to?: string; permissions?: PermissionSet | null; onDenied?: () => void }> = React.memo(({ sales, customers, products, users, suppliers, className, isPrivacyMode, to, permissions, onDenied }) => {
     const navigate = useNavigate();
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
@@ -699,6 +699,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products:
                     productMap={productMap}
                     customers={customers}
                     users={users}
+                    suppliers={suppliers}
                     onClose={() => setSelectedSale(null)}
                 />
             )}
@@ -1851,6 +1852,7 @@ const Dashboard: React.FC = () => {
                         customers={customers}
                         products={products}
                         users={users}
+                        suppliers={suppliers}
                         isPrivacyMode={isPrivacyMode}
                         to="/vendas?period=hoje"
                         permissions={permissions}

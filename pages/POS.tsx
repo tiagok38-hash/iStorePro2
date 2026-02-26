@@ -589,7 +589,7 @@ const POS: React.FC = () => {
 
 
 
-                {detailSale && <SaleDetailModal sale={detailSale} productMap={productMap} customers={customers} users={users} onClose={() => setDetailSale(null)} />}
+                {detailSale && <SaleDetailModal sale={detailSale} productMap={productMap} customers={customers} users={users} suppliers={suppliers} onClose={() => setDetailSale(null)} />}
                 {receiptSale && <SaleReceiptModal sale={receiptSale} productMap={productMap} customers={customers} users={users} onClose={() => setReceiptSale(null)} initialFormat={receiptFormat} />}
 
                 {isOpeningSessionModalOpen && (

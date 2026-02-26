@@ -816,7 +816,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                             onClick={() => setActiveTab('extras')}
                             className={`whitespace-nowrap px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'extras' ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
                         >
-                            Fotos {formData.photos?.length ? `(${formData.photos.length})` : ''}
+                            Acessórios & Fotos {formData.photos?.length ? `(${formData.photos.length})` : ''}
                         </button>
                         <button
                             type="button"
@@ -1127,27 +1127,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                 </div>
                             </div>
 
-                            {productType === 'Apple' && (
-                                <div className="space-y-2">
-                                    <label className={labelClasses}>Garantia Apple Até</label>
-                                    <CustomDatePicker
-                                        value={formData.apple_warranty_until ? formData.apple_warranty_until.split('T')[0] : ''}
-                                        onChange={(dateStr) => setFormData(p => ({ ...p, apple_warranty_until: dateStr ? dateStr + 'T12:00:00.000Z' : undefined }))}
-                                    />
-                                </div>
-                            )}
-
-                            <div className="space-y-2">
-                                <label className={labelClasses}>Observações (aparece no comprovante)</label>
-                                <input
-                                    type="text"
-                                    name="observations"
-                                    value={formData.observations || ''}
-                                    onChange={handleInputChange}
-                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm"
-                                    placeholder="Ex: Produto sem carregador, arranhado na tampa..."
-                                />
-                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                                 <div className="space-y-3">
@@ -1469,6 +1448,54 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                             )}
                                         </div>
                                     )}
+                                </div>
+                            </section>
+
+                            {/* Seção de Garantia Apple e Observações */}
+                            <section className="space-y-4">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-green-50 text-green-600 rounded-xl">
+                                        <CheckIcon className="h-5 w-5" />
+                                    </div>
+                                    <h3 className="font-bold text-lg text-gray-800">Informações Adicionais</h3>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    {productType === 'Apple' && (
+                                        <div className="space-y-2">
+                                            <label className={labelClasses}>Garantia Apple/Fabricante Restante</label>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={10}
+                                                value={formData.apple_warranty_until || ''}
+                                                onChange={(e) => {
+                                                    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+                                                    let formatted = digits;
+                                                    if (digits.length > 4) {
+                                                        formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+                                                    } else if (digits.length > 2) {
+                                                        formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+                                                    }
+                                                    setFormData(p => ({ ...p, apple_warranty_until: formatted || undefined }));
+                                                }}
+                                                className={inputClasses + ' w-1/2'}
+                                                placeholder="dd/mm/aaaa"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className={`space-y-2 ${productType !== 'Apple' ? 'col-start-2' : ''}`}>
+                                        <label className={labelClasses}>Observações (comprovante)</label>
+                                        <input
+                                            type="text"
+                                            name="observations"
+                                            value={formData.observations || ''}
+                                            onChange={handleInputChange}
+                                            className={inputClasses}
+                                            placeholder="Ex: Produto sem carregador, arranhado na tampa..."
+                                        />
+                                    </div>
                                 </div>
                             </section>
                         </div>

@@ -75,6 +75,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
         markup: 0,
         salePrice: 0,
         observations: '',
+        apple_warranty_until: '',
     });
 
     const [checklistData, setChecklistData] = useState<{
@@ -228,6 +229,8 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                 selectedCustomerId: customer.id, // For history tracking
                 photos: photos,
                 accessories: selectedAccessories,
+                apple_warranty_until: deviceData.apple_warranty_until || undefined,
+                observations: deviceData.observations || undefined,
             };
 
             await onSave({ tradeInValue: deviceData.costPrice, newProductData });
@@ -240,8 +243,8 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
 
     if (!isOpen) return null;
 
-    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-10";
-    const labelClasses = "block text-xs font-medium text-muted mb-1";
+    const inputClasses = "w-full p-2 border rounded-xl bg-transparent border-border focus:ring-success focus:border-success text-sm h-[48px]";
+    const labelClasses = "text-[11px] font-bold text-gray-900 mb-1 block pl-1";
     const tabClasses = (tabName: 'aparelho' | 'checklist' | 'fotos_acessorios') =>
         `px-4 py-2 text-sm font-semibold rounded-xl ${activeTab === tabName ? 'bg-primary text-white' : 'bg-gray-200 text-secondary'}`;
 
@@ -266,9 +269,9 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                             <div className="md:col-span-1"><label className={labelClasses}>Código de Barras</label><input name="barcode" value={deviceData.barcode} onChange={handleDeviceChange} className={inputClasses} placeholder="Escaneie aqui..." autoFocus /></div>
                             <div className="md:col-span-1"><label className={labelClasses}>Fornecedor*</label><input value={deviceData.supplierName} className={`${inputClasses} bg-gray-100`} disabled /></div>
-                            <div className="flex flex-col justify-end">
+                            <div>
+                                <label className={labelClasses}>Data da compra*</label>
                                 <CustomDatePicker
-                                    label="Data da compra*"
                                     value={deviceData.purchaseDate}
                                     onChange={(val) => setDeviceData(prev => ({ ...prev, purchaseDate: val }))}
                                     max={toDateValue()}
@@ -299,7 +302,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                             <div><label className={labelClasses}>Preço Sugerido</label><div className={`${inputClasses} bg-gray-100 flex items-center`}>{formatCurrency(suggestedPrice)}</div></div>
                             <div><label className={labelClasses}>Preço de Venda*</label><CurrencyInput value={deviceData.salePrice} onChange={v => setDeviceData(p => ({ ...p, salePrice: v || 0 }))} className="!border-red-500" /></div>
                         </div>
-                        <div><label className={labelClasses}>Observações:</label><textarea name="observations" value={deviceData.observations} onChange={handleDeviceChange} rows={3} className={inputClasses.replace('h-10', '')} /></div>
+                        <div><label className={labelClasses}>Observações</label><textarea name="observations" value={deviceData.observations} onChange={handleDeviceChange} rows={3} className={inputClasses.replace('h-10', '')} /></div>
                     </div>
                 )}
 
@@ -319,24 +322,26 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                             ))}
                         </div>
                         <div className="space-y-4 pt-4 border-t">
-                            <div><label className={labelClasses}>Anotações do Checklist:</label><textarea value={checklistData.notes} onChange={e => setChecklistData(p => ({ ...p, notes: e.target.value }))} rows={2} className={inputClasses.replace('h-10', '')} placeholder="Utilize este campo para anotar observações do checklist que não estão listados acima OU detalhar os campos marcados acima." /></div>
-                            <div><label className={labelClasses}>Descrição do(s) serviço(s):</label><textarea value={checklistData.services} onChange={e => setChecklistData(p => ({ ...p, services: e.target.value }))} rows={2} className={inputClasses.replace('h-10', '')} placeholder="Utilize este campo para anotar os serviços que serão executados." /></div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="flex flex-col justify-end">
+                            <div><label className={labelClasses}>Anotações do Checklist</label><textarea value={checklistData.notes} onChange={e => setChecklistData(p => ({ ...p, notes: e.target.value }))} rows={2} className={inputClasses.replace('h-10', '')} placeholder="Utilize este campo para anotar observações do checklist que não estão listados acima OU detalhar os campos marcados acima." /></div>
+                            <div><label className={labelClasses}>Descrição do(s) serviço(s)</label><textarea value={checklistData.services} onChange={e => setChecklistData(p => ({ ...p, services: e.target.value }))} rows={2} className={inputClasses.replace('h-10', '')} placeholder="Utilize este campo para anotar os serviços que serão executados." /></div>
+                            <div className="flex flex-col md:flex-row items-start gap-4">
+                                <div className="flex flex-col w-full md:w-1/2">
+                                    <div className="flex flex-col justify-end min-h-[44px] mb-1">
+                                        <label className={labelClasses.replace('mb-1', 'm-0')}>Data do Checklist</label>
+                                    </div>
                                     <CustomDatePicker
-                                        label="Data do Checklist"
                                         value={checklistData.date}
                                         onChange={(val) => setChecklistData(p => ({ ...p, date: val }))}
                                         max={toDateValue()}
-                                        className="w-full"
+                                        className="w-full !shadow-none !rounded-xl !h-14 !min-h-[56px] !max-h-[56px] box-border"
                                     />
                                 </div>
-                                <div>
-                                    <label className={labelClasses}>Custo de Reparo:</label>
-                                    <CurrencyInput value={checklistData.repairCost} onChange={v => setChecklistData(p => ({ ...p, repairCost: v || 0 }))} />
-                                </div>
-                                <div className="text-xs text-muted bg-gray-100 p-2 rounded-xl">
-                                    <strong>Obs:</strong> Insira o custo de reparo no campo "Custo Adicionais" para que o custo do produto seja somado com o custo de reparo.
+                                <div className="flex flex-col w-full md:w-1/2">
+                                    <div className="flex flex-col justify-end min-h-[44px] mb-1">
+                                        <label className={labelClasses.replace('mb-1', 'm-0')}>Custo de Reparo</label>
+                                        <p className="text-[10px] text-gray-400 mt-0.5 px-1 leading-tight">Valor a ser abatido/somado ao custo.</p>
+                                    </div>
+                                    <CurrencyInput value={checklistData.repairCost} onChange={v => setChecklistData(p => ({ ...p, repairCost: v || 0 }))} className="w-full !h-14 !min-h-[56px] !max-h-[56px] box-border" />
                                 </div>
                             </div>
                         </div>
@@ -388,6 +393,45 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                                         <span className="text-xs font-medium">Adicionar Foto</span>
                                     </button>
                                 )}
+                            </div>
+                        </section>
+
+                        {/* Informações Adicionais */}
+                        <section className="space-y-3 pt-2">
+                            <h3 className="font-semibold text-base flex items-center gap-2">Informações Adicionais</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className={labelClasses}>Garantia Apple/Fabricante Restante</label>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={10}
+                                        value={deviceData.apple_warranty_until || ''}
+                                        onChange={(e) => {
+                                            const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+                                            let formatted = digits;
+                                            if (digits.length > 4) {
+                                                formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+                                            } else if (digits.length > 2) {
+                                                formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+                                            }
+                                            setDeviceData(p => ({ ...p, apple_warranty_until: formatted }));
+                                        }}
+                                        className={inputClasses + ' w-1/2'}
+                                        placeholder="dd/mm/aaaa"
+                                    />
+                                </div>
+                                <div className={`space-y-1 ${!deviceData.apple_warranty_until ? 'col-start-2' : ''}`}>
+                                    <label className={labelClasses}>Observações (comprovante)</label>
+                                    <input
+                                        type="text"
+                                        name="observations"
+                                        value={deviceData.observations}
+                                        onChange={handleDeviceChange}
+                                        className={inputClasses}
+                                        placeholder="Ex: Produto sem carregador, arranhado na tampa..."
+                                    />
+                                </div>
                             </div>
                         </section>
                     </div>

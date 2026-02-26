@@ -880,7 +880,7 @@ const Vendas: React.FC = () => {
                 />
             )}
 
-            {saleToView && <SaleDetailModal sale={saleToView} productMap={productMap} customers={customers} users={users} onClose={() => setSaleToView(null)} />}
+            {saleToView && <SaleDetailModal sale={saleToView} productMap={productMap} customers={customers} users={users} suppliers={suppliers} onClose={() => setSaleToView(null)} />}
 
             {
                 isPrintChoiceOpen && saleToReprint && (

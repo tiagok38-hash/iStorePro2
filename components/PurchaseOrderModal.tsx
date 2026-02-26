@@ -114,6 +114,9 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             setFormData(purchaseOrderToEdit);
             setItems(purchaseOrderToEdit.items);
             setIsCustomerPurchase(purchaseOrderToEdit.isCustomerPurchase || false);
+            // Restore minimum stock toggle if any item has it configured
+            const hasMinStock = purchaseOrderToEdit.items.some(item => item.minimumStock && item.minimumStock > 0);
+            setIsMinimumStockEnabled(hasMinStock);
             setStep(1); // Start editing from Step 1
         } else {
             // Format date as YYYY-MM-DDTHH:mm for datetime-local input
@@ -218,6 +221,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     condition: item.productDetails?.condition || 'Novo',
                     warranty: item.productDetails?.warranty || '1 ano',
                     storageLocation: item.productDetails?.storageLocation || 'Loja Santa Cruz',
+                    batteryHealth: item.productDetails?.batteryHealth,
                 },
                 barcodes: itemAny.barcode ? [itemAny.barcode] : [],
                 quantity: Number(item.quantity || 0),
@@ -538,6 +542,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         condition: item.productDetails?.condition || 'Novo',
                         warranty: item.productDetails?.warranty || '1 ano',
                         storageLocation: item.productDetails?.storageLocation || 'Loja Santa Cruz',
+                        batteryHealth: item.productDetails?.batteryHealth,
                     },
                     barcodes: item.barcode ? [item.barcode] : [],
                     quantity: Number(item.quantity || 0),

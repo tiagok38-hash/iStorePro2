@@ -140,7 +140,7 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
 
                 {/* Search Bar */}
                 <div className="p-4 sm:p-6 bg-white border-b border-gray-100">
-                    <div className="flex items-center border-2 border-gray-200 rounded-xl bg-white focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all">
+                    <div className="flex items-center border border-gray-200 rounded-xl bg-white focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
                         <div className="pl-3 sm:pl-4">
                             <SearchIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
                         </div>

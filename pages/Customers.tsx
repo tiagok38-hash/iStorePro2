@@ -1214,7 +1214,7 @@ const CustomersAndSuppliers: React.FC = () => {
 
             {supplierForHistory && <SupplierHistoryModal supplier={supplierForHistory} purchases={supplierPurchases} users={users} products={products} onClose={() => setSupplierForHistory(null)} />}
             <ConfirmationModal isOpen={!!supplierToDelete} onClose={() => setSupplierToDelete(null)} onConfirm={handleDeleteSupplierConfirm} title="Confirmar Exclusão" message={`Tem certeza que deseja excluir o fornecedor "${supplierToDelete?.name}"?`} />
-            {saleToView && <SaleDetailModal sale={saleToView} productMap={productMap} customers={customers} users={users} onClose={() => setSaleToView(null)} />}
+            {saleToView && <SaleDetailModal sale={saleToView} productMap={productMap} customers={customers} users={users} suppliers={suppliers} onClose={() => setSaleToView(null)} />}
             {/* Inactivate Customer Confirmation */}
             <ConfirmationModal
                 isOpen={!!customerToInactivate}

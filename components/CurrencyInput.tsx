@@ -54,10 +54,7 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({
             !cls.startsWith('pr-') &&
             !cls.startsWith('pt-') &&
             !cls.startsWith('pb-') &&
-            !cls.startsWith('rounded') &&
             !cls.startsWith('bg-') &&
-            !cls.startsWith('h-') &&
-            !cls.startsWith('shadow') &&
             // We do NOT filter out text- classes here, so they can apply to the parent
             !cls.startsWith('w-'))
     ).join(' ') || '';
@@ -72,18 +69,17 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({
 
     return (
         <div className={`
-            flex items-center justify-between w-full relative
-            ${isCompact ? 'h-9 px-2' : 'h-11 px-3'} 
-            bg-white border border-gray-300 rounded-md transition-all overflow-hidden
-            focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary
-            ${disabled ? 'bg-gray-50 opacity-60' : ''}
+            flex items-center gap-2 border rounded-xl bg-white border-gray-200 transition-colors w-full shadow-sm
+            ${isCompact ? 'h-9 px-2 text-xs' : 'h-[48px] px-3 text-sm'} 
+            font-medium text-gray-700
+            hover:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary
+            ${disabled ? 'bg-gray-50 opacity-60 cursor-not-allowed' : ''}
             ${cleanClassName}
         `}>
             {showPrefix && (
                 <span className={`
-                    ${isCompact ? 'text-[11px]' : 'text-sm'} 
-                    font-medium select-none shrink-0 pointer-events-none mr-1
-                    ${isTextOrange ? 'text-[#ea580c] font-bold' : 'text-gray-500'}
+                    shrink-0 pointer-events-none select-none
+                    ${isTextOrange ? 'text-[#ea580c] font-bold' : 'text-gray-400'}
                 `}>
                     R$
                 </span>
@@ -94,14 +90,13 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({
                 onChange={handleChange}
                 placeholder={placeholder}
                 className={`
-                    flex-1 min-w-0 !border-none !outline-none !shadow-none !bg-transparent !p-0 h-full 
-                    ${isCompact ? 'text-[12px]' : 'text-sm'} 
-                    font-medium appearance-none text-right
+                    flex-1 w-full h-full !border-none !outline-none !shadow-none !bg-transparent !p-0 truncate
+                    font-medium appearance-none text-left
                     focus:!ring-0 focus:!border-none focus:!outline-none
                     ${disabled ? 'cursor-not-allowed' : ''}
-                    ${isTextOrange ? '!text-[#ea580c] placeholder:text-orange-300 font-bold' : 'text-gray-800'}
+                    ${isTextOrange ? '!text-[#ea580c] placeholder:text-orange-300 font-bold' : 'text-gray-700 placeholder-gray-400'}
                 `}
-                style={{ border: 'none', outline: 'none', boxShadow: 'none', padding: 0 }}
+                style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
                 disabled={disabled}
                 data-testid="unit-price-input"
             />

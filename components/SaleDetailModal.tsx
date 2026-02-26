@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter } from '../types.ts';
+import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter, Supplier } from '../types.ts';
 import { formatCurrency } from '../services/mockApi.ts';
 import { CloseIcon, PrinterIcon, DocumentTextIcon, TicketIcon } from './icons.tsx';
 import SaleReceiptModal from './SaleReceiptModal.tsx';
 
 const formatDateTime = (dateString: string) => new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
-const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product>; customers: Customer[]; users: User[]; onClose: () => void; }> = ({ sale, productMap, customers, users, onClose }) => {
+const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product>; customers: Customer[]; users: User[]; suppliers?: Supplier[]; onClose: () => void; }> = ({ sale, productMap, customers, users, suppliers, onClose }) => {
     const [isPrintChoiceOpen, setIsPrintChoiceOpen] = useState(false);
     const [receiptModalFormat, setReceiptModalFormat] = useState<'A4' | 'thermal' | null>(null);
 
@@ -142,13 +142,18 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                         </>
                                                                     )}
                                                                 </div>
-                                                                {product.variations && product.variations.length > 0 && (
-                                                                    <div className="mt-2 flex flex-wrap gap-1.5">
-                                                                        {product.variations.map((variation, index) => (
+                                                                {(product.variations && product.variations.length > 0 || product.supplierId) && (
+                                                                    <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                                                                        {product.variations?.map((variation, index) => (
                                                                             <span key={variation.gradeId || index} className="px-2 py-0.5 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700 border border-gray-200">
                                                                                 {variation.valueName ? `${variation.gradeName}: ${variation.valueName}` : variation.gradeName}
                                                                             </span>
                                                                         ))}
+                                                                        {product.supplierId && suppliers && (
+                                                                            <span className="text-[10px] md:text-xs font-bold text-purple-600 uppercase tracking-tighter" title="Fornecedor">
+                                                                                {suppliers.find(s => s.id === product.supplierId)?.name || 'Fornec. Desconhecido'}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                             </>

@@ -64,6 +64,9 @@ export const useSaleForm = ({
     const [cardMethodId, setCardMethodId] = useState<string>('');
     const [selectedPriceType, setSelectedPriceType] = useState<'sale' | 'cost' | 'wholesale'>('sale');
     const [reservedId, setReservedId] = useState<string | null>(null);
+    const [editReason, setEditReason] = useState('');
+    const [isEditReasonModalOpen, setIsEditReasonModalOpen] = useState(false);
+    const [pendingTargetStatus, setPendingTargetStatus] = useState<'Finalizada' | 'Pendente'>('Finalizada');
 
     const [paymentInput, setPaymentInput] = useState<{
         method: PaymentMethodType | 'Cartão',
@@ -91,6 +94,9 @@ export const useSaleForm = ({
         setPendingTradeInProduct(null);
         setSelectedPriceType('sale');
         setReservedId(null);
+        setEditReason('');
+        setIsEditReasonModalOpen(false);
+        setPendingTargetStatus('Finalizada');
     }, []);
 
     useEffect(() => {
@@ -425,6 +431,15 @@ export const useSaleForm = ({
             return;
         }
 
+        // If editing a finalized/edited sale, require editReason
+        if (saleToEdit && (saleToEdit.status === 'Finalizada' || saleToEdit.status === 'Editada') && !isPending) {
+            if (!editReason.trim()) {
+                setPendingTargetStatus(targetStatus);
+                setIsEditReasonModalOpen(true);
+                return;
+            }
+        }
+
         const baseSaleData = {
             customerId: selectedCustomerId,
             salespersonId: selectedSalespersonId,
@@ -450,7 +465,8 @@ export const useSaleForm = ({
             origin: saleToEdit?.origin || (openCashSessionId ? 'PDV' : 'Balcão'), warrantyTerm, observations, internalObservations,
             cashSessionId: saleToEdit?.cashSessionId || openCashSessionId || undefined,
             cashSessionDisplayId: saleToEdit?.cashSessionDisplayId || openCashSessionDisplayId || undefined,
-            id: saleToEdit?.id || reservedId || undefined
+            id: saleToEdit?.id || reservedId || undefined,
+            editReason: editReason.trim() || undefined,
         };
 
         setIsSaving(true);
@@ -539,7 +555,7 @@ export const useSaleForm = ({
         selectedCustomerId, selectedSalespersonId, cart, balance, subtotal,
         totalItemDiscounts, total, payments, saleToEdit,
         warrantyTerm, observations, internalObservations, openCashSessionId,
-        openCashSessionDisplayId, pendingTradeInProduct, users, onSaleSaved, showToast
+        openCashSessionDisplayId, pendingTradeInProduct, users, onSaleSaved, showToast, editReason
     ]);
 
     return {
@@ -551,7 +567,7 @@ export const useSaleForm = ({
             pendingTradeInProduct, localSuppliers, isCardPaymentModalOpen,
             cardTransactionType, cardMethodId, paymentInput,
             subtotal, totalItemDiscounts, total, totalPaid, balance,
-            isSaving, selectedPriceType, reservedId
+            isSaving, selectedPriceType, reservedId, editReason, isEditReasonModalOpen, pendingTargetStatus
         },
         actions: {
             setSaleDate, setSelectedCustomerId, setSelectedSalespersonId, setCart, setProductSearch,
@@ -562,6 +578,7 @@ export const useSaleForm = ({
             handleOpenTradeInModal, handleRequestPayment, handleConfirmPayment,
             handleConfirmCardPayment, handleRemovePayment, handleSaveTradeInProduct, handleSaveTradeInFromModal, handleSave,
             setSelectedPriceType, handleCancelReservation, addPayment: (p: Payment) => setPayments(prev => [...prev, p]),
+            setEditReason, setIsEditReasonModalOpen, setPendingTargetStatus,
 
             resetState
         },

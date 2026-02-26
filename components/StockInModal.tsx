@@ -5,8 +5,9 @@ import { PurchaseOrder, Product, PurchaseItem, ProductConditionParameter, Storag
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { launchPurchaseToStock, formatCurrency, getProductConditions, getStorageLocations, getWarranties } from '../services/mockApi.ts';
-import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon, BoltIcon, SearchIcon } from './icons.tsx';
+import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon, BoltIcon, SearchIcon, ArchiveBoxIcon } from './icons.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
+import StockSearchModal from './StockSearchModal.tsx';
 
 type ItemDetail = {
     purchaseItemId: string;
@@ -53,68 +54,8 @@ const StockInModal: React.FC<{
     const [locationOptions, setLocationOptions] = useState<StorageLocationParameter[]>([]);
     const [warrantyOptions, setWarrantyOptions] = useState<WarrantyParameter[]>([]);
 
-    // Quick Stock Search
-    const [stockSearchTerm, setStockSearchTerm] = useState('');
-    const [showStockResults, setShowStockResults] = useState(false);
-
-    const stockSearchResults = useMemo(() => {
-        if (!stockSearchTerm || stockSearchTerm.length < 1) return [];
-
-        const lowerTerm = stockSearchTerm.toLowerCase();
-
-        // Define known conditions to look for
-        const conditionsMap: Record<string, string> = {
-            'seminovo': 'Seminovo',
-            'novo': 'Novo',
-            'cpo': 'CPO',
-            'open box': 'Open Box',
-            'vitrine': 'Vitrine',
-            'lacrado': 'Novo', // Alias commonly used
-            'reservado': 'Reservado'
-        };
-
-        // Check if any condition keyword is present in the search term
-        let targetCondition: string | null = null;
-        let finalSearchTerm = lowerTerm;
-
-        // Sort keys by length desc to match "open box" before "box" if exists, or similar overlaps
-        const conditionKeys = Object.keys(conditionsMap).sort((a, b) => b.length - a.length);
-
-        for (const key of conditionKeys) {
-            if (finalSearchTerm.includes(key)) {
-                targetCondition = conditionsMap[key];
-                // Remove the condition keyword from the search string to filter model
-                finalSearchTerm = finalSearchTerm.replace(key, '').trim();
-                break; // Assume only one condition is searched at a time
-            }
-        }
-
-        return allProducts
-            .filter(p => {
-                if (p.stock <= 0) return false;
-
-                // If a specific condition was identified, strictly filter by it
-                if (targetCondition) {
-                    const productCondition = (p.condition || '').toLowerCase();
-                    const targetLower = targetCondition.toLowerCase();
-                    // Flexible matching for condition (e.g. if product is "Novo Lacrado" and target is "Novo")
-                    if (!productCondition.includes(targetLower)) {
-                        return false;
-                    }
-                }
-
-                // If there's remaining text after removing condition, check if it matches model
-                if (finalSearchTerm) {
-                    const modelMatch = (p.model || '').toLowerCase().includes(finalSearchTerm);
-                    // Also check if the remaining term might be part of the condition (fallback) or brand
-                    const otherMatch = (p.brand || '').toLowerCase().includes(finalSearchTerm);
-                    return modelMatch || otherMatch;
-                }
-
-                return true;
-            })
-            .slice(0, 10);
-    }, [allProducts, stockSearchTerm]);
+    // Component States
+    const [showSearchModal, setShowSearchModal] = useState(false);
 
     // Fetch dynamic parameters on mount
     useEffect(() => {
@@ -173,7 +114,7 @@ const StockInModal: React.FC<{
                 itemDescription: item.productDetails.model,
                 serialNumber: '', imei1: '', imei2: '',
                 condition: item.productDetails.condition || 'Novo',
-                batteryHealth: 100,
+                batteryHealth: item.productDetails.batteryHealth ?? 100,
                 warranty: item.productDetails.warranty || '1 ano',
                 storageLocation: item.productDetails.storageLocation || 'Loja Santa Cruz',
                 costPrice: item.unitCost,
@@ -550,22 +491,22 @@ const StockInModal: React.FC<{
                 <table className="w-full border-collapse table-fixed min-w-[1000px]">
                     <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0 z-10">
                         <tr>
-                            <th className="p-1 w-[250px] font-bold">Descrição</th>
-                            <th className="p-1 w-[50px] font-bold text-center">Qtd</th>
-                            <th className="p-1 w-[120px] font-bold text-center">Condição</th>
-                            <th className="p-1 w-[120px] font-bold text-center">Local</th>
-                            <th className="p-1 w-[100px] font-bold text-center">P. Custo</th>
-                            <th className="p-1 w-[100px] font-bold text-center">Garantia</th>
-                            <th className="p-1 w-[65px] font-bold text-center">MKP%</th>
-                            <th className="p-1 w-[70px] font-bold text-center">Atacado</th>
-                            <th className="p-1 w-[70px] font-bold text-center">Venda</th>
+                            <th className="p-1 w-[250px] min-w-[250px] font-bold">Descrição</th>
+                            <th className="p-1 w-[50px] min-w-[50px] max-w-[50px] font-bold text-center">Qtd</th>
+                            <th className="p-1 w-[120px] min-w-[120px] max-w-[120px] font-bold text-center">Condição</th>
+                            <th className="p-1 w-[97px] min-w-[97px] max-w-[97px] font-bold text-center">Local</th>
+                            <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">P. Custo</th>
+                            <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">Garantia</th>
+                            <th className="p-1 w-[45px] min-w-[45px] max-w-[45px] font-bold text-center">MKP%</th>
+                            <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Atacado</th>
+                            <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Venda</th>
                         </tr>
                     </thead>
                     <tbody>
                         {details.map((detail, index) => (
                             <tr key={index} className="border-b border-border hover:bg-surface-secondary/50">
                                 <td className="p-1">
-                                    <div className="font-medium text-primary">{detail.itemDescription}</div>
+                                    <div className="font-medium text-primary truncate max-w-[240px]" title={detail.itemDescription}>{detail.itemDescription}</div>
                                 </td>
                                 <td className="p-1 text-center">
                                     <span className="bg-gray-100 px-2 py-1 rounded-md font-bold">{detail.quantity}</span>
@@ -607,33 +548,33 @@ const StockInModal: React.FC<{
                                         </>}
                                     </select>
                                 </td>
-                                <td className="p-1 w-[65px]">
+                                <td className="p-1 w-[45px]">
                                     <div className="relative">
                                         <input
                                             type="number"
                                             step="0.01"
                                             value={detail.markup === null ? '' : detail.markup}
                                             onChange={e => handleDetailChange(index, 'markup', e.target.value)}
-                                            className={`${inputClasses} pr-6 text-right !text-[#16a34a] focus:!text-[#16a34a] font-bold`}
+                                            className={`${inputClasses} px-1 pr-4 text-center !text-[#16a34a] focus:!text-[#16a34a] font-bold text-[11px]`}
                                         />
-                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 !text-[#16a34a] font-bold text-sm pointer-events-none">%</span>
+                                        <span className="absolute right-1 top-1/2 -translate-y-1/2 !text-[#16a34a] font-bold text-[10px] pointer-events-none">%</span>
                                     </div>
                                 </td>
-                                <td className="p-1 w-[70px]">
+                                <td className="p-1 w-[91px]">
                                     <CurrencyInput
                                         value={detail.wholesalePrice}
                                         onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
-                                        className="text-[#ea580c]"
-                                        placeholder="0,00"
+                                        className="text-[#ea580c] !rounded-md placeholder:!text-[10px] placeholder:!font-bold placeholder:!uppercase placeholder:!text-gray-400 placeholder:!opacity-100"
+                                        placeholder="Opcional"
                                         showPrefix={true}
                                         size="compact"
                                     />
                                 </td>
-                                <td className="p-1 w-[70px]">
+                                <td className="p-1 w-[91px]">
                                     <CurrencyInput
                                         value={detail.salePrice}
                                         onChange={val => handleDetailChange(index, 'salePrice', val)}
-                                        className={errors[index] ? '!border-danger !ring-1 !ring-danger' : ''}
+                                        className={`${errors[index] ? '!border-danger !ring-1 !ring-danger' : ''} !rounded-md`}
                                         showPrefix={true}
                                         size="compact"
                                     />
@@ -714,8 +655,8 @@ const StockInModal: React.FC<{
                                                 <CurrencyInput
                                                     value={detail.wholesalePrice}
                                                     onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
-                                                    className="text-orange-600"
-                                                    placeholder="---"
+                                                    className="text-orange-600 placeholder:!text-[10px] placeholder:!font-bold placeholder:!uppercase placeholder:!text-gray-400 placeholder:!opacity-100"
+                                                    placeholder="Opcional"
                                                     showPrefix={false}
                                                 />
                                             </div>
@@ -742,26 +683,26 @@ const StockInModal: React.FC<{
                     <table className="w-full border-collapse table-fixed min-w-[1200px]">
                         <thead className="text-left text-xs text-gray-900 bg-surface-secondary sticky top-0 z-10">
                             <tr>
-                                <th className="p-1 w-[200px] font-bold text-left">Descrição</th>
-                                <th className="p-1 w-[40px] font-bold text-center">Qtd</th>
-                                <th className="p-1 w-[150px] font-bold text-center">IMEI 1</th>
-                                <th className="p-1 w-[150px] font-bold text-center">IMEI 2</th>
-                                <th className="p-1 w-[150px] font-bold text-center">S/N</th>
-                                <th className="p-1 w-[100px] font-bold text-center">Condição</th>
-                                <th className="p-1 w-[100px] font-bold text-center">Garantia</th>
-                                {hasAppleItems && <th className="p-1 w-[50px] font-bold text-center">Bat%</th>}
-                                <th className="p-1 w-[120px] font-bold text-center">Local</th>
-                                <th className="p-1 w-[80px] font-bold text-center">Custo</th>
-                                <th className="p-1 w-[65px] font-bold text-center">MKP%</th>
-                                <th className="p-1 w-[70px] font-bold text-center">Atacado</th>
-                                <th className="p-1 w-[70px] font-bold text-center">Venda</th>
+                                <th className="p-1 w-[200px] min-w-[200px] font-bold text-left">Descrição</th>
+                                <th className="p-1 w-[40px] min-w-[40px] max-w-[40px] font-bold text-center">Qtd</th>
+                                <th className="p-1 w-[122px] min-w-[122px] max-w-[122px] font-bold text-center">IMEI 1</th>
+                                <th className="p-1 w-[122px] min-w-[122px] max-w-[122px] font-bold text-center">IMEI 2</th>
+                                <th className="p-1 w-[150px] min-w-[150px] max-w-[150px] font-bold text-center">S/N</th>
+                                <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">Condição</th>
+                                <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">Garantia</th>
+                                {hasAppleItems && <th className="p-1 w-[50px] min-w-[50px] max-w-[50px] font-bold text-center">Bat%</th>}
+                                <th className="p-1 w-[97px] min-w-[97px] max-w-[97px] font-bold text-center">Local</th>
+                                <th className="p-1 w-[80px] min-w-[80px] max-w-[80px] font-bold text-center">Custo</th>
+                                <th className="p-1 w-[45px] min-w-[45px] max-w-[45px] font-bold text-center">MKP%</th>
+                                <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Atacado</th>
+                                <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Venda</th>
                             </tr>
                         </thead>
                         <tbody>
                             {details.map((detail, index) => (
                                 <tr key={index} className={`border-b border-border hover:bg-surface-secondary/50 ${!detail.hasImei ? 'bg-blue-50/30' : ''}`}>
                                     <td className="p-3 text-[11px] font-bold text-primary leading-tight">
-                                        <div className="max-w-[200px] break-words">{detail.itemDescription}</div>
+                                        <div className="truncate max-w-[190px]" title={detail.itemDescription}>{detail.itemDescription}</div>
                                     </td>
                                     <td className="p-1 text-center">
                                         <span className={`px-2 py-1 rounded-md font-bold text-sm ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
@@ -839,20 +780,20 @@ const StockInModal: React.FC<{
                                         </select>
                                     </td>
                                     <td className="p-1 font-semibold text-[12px]">{formatCurrency(detail.costPrice + (detail.additionalCostPrice || 0))}</td>
-                                    <td className="p-1 text-center w-[65px]">
+                                    <td className="p-1 text-center w-[45px]">
                                         <div className="relative">
                                             <input
                                                 type="number"
                                                 step="1"
                                                 value={detail.markup === null ? '' : detail.markup}
                                                 onChange={e => handleDetailChange(index, 'markup', e.target.value)}
-                                                className={`${inputClasses} h-9 w-full pr-5 text-right !text-[#16a34a] focus:!text-[#16a34a] font-bold`}
+                                                className={`${inputClasses} h-9 w-full px-1 pr-4 text-center !text-[#16a34a] focus:!text-[#16a34a] font-bold text-[11px]`}
                                             />
-                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 !text-[#16a34a] font-bold text-xs pointer-events-none">%</span>
+                                            <span className="absolute right-1 top-1/2 -translate-y-1/2 !text-[#16a34a] font-bold text-[10px] pointer-events-none">%</span>
                                         </div>
                                     </td>
-                                    <td className="p-1"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className="text-[#ea580c]" placeholder="0,00" showPrefix={true} size="compact" /></td>
-                                    <td className="p-1"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${errors[index] ? '!border-danger !ring-1 !ring-danger' : ''}`} showPrefix={true} size="compact" /></td>
+                                    <td className="p-1"><CurrencyInput value={detail.wholesalePrice} onChange={val => handleDetailChange(index, 'wholesalePrice', val)} className="text-[#ea580c] !rounded-md placeholder:!text-[10px] placeholder:!font-bold placeholder:!uppercase placeholder:!text-gray-400 placeholder:!opacity-100" placeholder="Opcional" showPrefix={true} size="compact" /></td>
+                                    <td className="p-1"><CurrencyInput value={detail.salePrice} onChange={val => handleDetailChange(index, 'salePrice', val)} className={`${errors[index] ? '!border-danger !ring-1 !ring-danger' : ''} !rounded-md`} showPrefix={true} size="compact" /></td>
                                 </tr>
                             ))}
                         </tbody>
@@ -975,8 +916,8 @@ const StockInModal: React.FC<{
                                                 <CurrencyInput
                                                     value={detail.wholesalePrice}
                                                     onChange={val => handleDetailChange(index, 'wholesalePrice', val)}
-                                                    className="text-orange-600"
-                                                    placeholder="---"
+                                                    className="text-orange-600 placeholder:!text-[10px] placeholder:!font-bold placeholder:!uppercase placeholder:!text-gray-400 placeholder:!opacity-100"
+                                                    placeholder="Opcional"
                                                     showPrefix={false}
                                                 />
                                             </div>
@@ -1002,57 +943,16 @@ const StockInModal: React.FC<{
 
                     {/* Quick Stock Search */}
                     <div className="relative flex-1 max-w-md mx-4 hidden md:block">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="🔍 Buscar estoque (Modelo/Condição)..."
-                                value={stockSearchTerm}
-                                onChange={e => {
-                                    setStockSearchTerm(e.target.value);
-                                    setShowStockResults(true);
-                                }}
-                                onFocus={() => setShowStockResults(true)}
-                                className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-border shadow-sm rounded-md text-sm font-medium text-primary placeholder:text-muted focus:bg-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all hover:bg-gray-100/50"
-                            />
-                            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            {stockSearchTerm && (
-                                <button onClick={() => { setStockSearchTerm(''); setShowStockResults(false); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-danger p-0.5 rounded-md hover:bg-danger/10">
-                                    <XCircleIcon className="h-4 w-4" />
-                                </button>
-                            )}
-                        </div>
-
-                        {showStockResults && stockSearchResults.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-md shadow-xl z-50 overflow-hidden max-h-[300px] overflow-y-auto">
-                                {stockSearchResults.map(product => (
-                                    <div key={product.id} className="p-3 border-b border-border hover:bg-surface-secondary transition-colors cursor-default">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <div className="font-bold text-sm text-primary">{product.model}</div>
-                                            <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">{product.condition}</span>
-                                        </div>
-                                        <div className="flex gap-4 text-xs mt-1">
-                                            <div>
-                                                <span className="text-muted block text-[10px] uppercase font-bold">Custo</span>
-                                                <span className="font-semibold text-gray-700">{formatCurrency(product.costPrice || 0)}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-muted block text-[10px] uppercase font-bold text-orange-600">Atacado</span>
-                                                <span className="font-semibold text-orange-600">{formatCurrency(product.wholesalePrice || 0)}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-muted block text-[10px] uppercase font-bold text-success">Venda</span>
-                                                <span className="font-bold text-success">{formatCurrency(product.price)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {showStockResults && stockSearchTerm && stockSearchResults.length === 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-md shadow-xl z-50 p-4 text-center text-sm text-muted">
-                                Nenhum produto encontrado.
-                            </div>
-                        )}
+                        <button
+                            type="button"
+                            onClick={() => setShowSearchModal(true)}
+                            className="relative w-fit rounded-full bg-[#f8fafc] border-[1.5px] border-slate-200 flex items-center px-5 py-2 hover:bg-slate-100 hover:border-slate-300 transition-all overflow-hidden h-11 shadow-sm group cursor-pointer"
+                        >
+                            <ArchiveBoxIcon className="h-5 w-5 text-[#334155] shrink-0 group-hover:text-primary transition-colors" strokeWidth={2.5} />
+                            <span className="text-[13px] font-black text-[#334155] group-hover:text-[#1e293b] uppercase ml-3 tracking-wide">
+                                BUSCA RÁPIDA ESTOQUE
+                            </span>
+                        </button>
                     </div>
 
                     <button onClick={() => onClose(false)} className="p-2 text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-colors">
@@ -1086,6 +986,13 @@ const StockInModal: React.FC<{
                     </div>
                 </div>
             </div>
+
+            {showSearchModal && (
+                <StockSearchModal
+                    products={allProducts}
+                    onClose={() => setShowSearchModal(false)}
+                />
+            )}
         </div>,
         document.body
     );

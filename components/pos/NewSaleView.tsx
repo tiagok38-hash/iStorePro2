@@ -74,7 +74,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         isCustomerModalOpen, isTradeInProductModalOpen, productForTradeIn,
         localSuppliers, isCardPaymentModalOpen, cardTransactionType, cardMethodId,
         paymentInput, subtotal, totalItemDiscounts, total,
-        totalPaid, balance, isSaving, selectedPriceType, reservedId
+        totalPaid, balance, isSaving, selectedPriceType, reservedId,
+        editReason, isEditReasonModalOpen, pendingTargetStatus
     } = state;
 
     const {
@@ -85,7 +86,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         handleAddToCart, confirmAddToCart, handleRemoveFromCart, handleCartItemUpdate,
         handleRequestPayment, handleConfirmPayment, handleConfirmCardPayment,
         handleRemovePayment, handleSaveTradeInProduct, handleSave, setSelectedPriceType,
-        handleCancelReservation, addPayment
+        handleCancelReservation, addPayment,
+        setEditReason, setIsEditReasonModalOpen
     } = actions;
 
     const handleCancelVenda = () => {
@@ -329,8 +331,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                             <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-xl text-[11px] md:text-xs font-black border border-emerald-100 uppercase tracking-tighter">
                                                                 Estoque: {p.stock}
                                                             </span>
-                                                            {(p.serialNumber || p.imei1 || (p.variations && p.variations.length > 0) || p.condition || p.warranty) && (
-                                                                <div className="text-[10px] md:text-xs text-muted flex items-center gap-1.5 font-medium bg-gray-50 px-2 py-0.5 rounded-xl border border-gray-100">
+                                                            {(p.serialNumber || p.imei1 || (p.variations && p.variations.length > 0) || p.condition || p.warranty || p.supplierId) && (
+                                                                <div className="text-[10px] md:text-xs text-muted flex items-center gap-1.5 font-medium bg-gray-50 px-2 py-0.5 rounded-xl border border-gray-100 flex-wrap">
                                                                     {p.condition && (
                                                                         <span className="text-gray-950 font-black uppercase tracking-tighter">{p.condition}</span>
                                                                     )}
@@ -365,6 +367,14 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                             {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length) && <span className="opacity-30">|</span>}
                                                                             <span className={`font-bold ${p.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>
                                                                                 Saúde: {p.batteryHealth}%
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                    {p.supplierId && (
+                                                                        <>
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length || (p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple'))) && <span className="opacity-30">|</span>}
+                                                                            <span className="text-purple-600 font-bold uppercase tracking-tighter" title="Fornecedor">
+                                                                                {props.suppliers?.find(s => s.id === p.supplierId)?.name || 'Fornec. Desconhecido'}
                                                                             </span>
                                                                         </>
                                                                     )}
@@ -422,6 +432,14 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                         <span className="opacity-30">|</span>
                                                                         <span className="italic text-gray-800 font-bold uppercase tracking-tighter">
                                                                             {item.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                {item.supplierId && (
+                                                                    <>
+                                                                        <span className="opacity-30">|</span>
+                                                                        <span className="text-purple-600 font-bold uppercase tracking-tighter" title="Fornecedor">
+                                                                            {props.suppliers?.find(s => s.id === item.supplierId)?.name || 'Fornec. Desconhecido'}
                                                                         </span>
                                                                     </>
                                                                 )}
@@ -533,6 +551,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                         {item.variations && item.variations.length > 0 && (
                                                             <span className="italic text-gray-800 font-bold uppercase tracking-tighter">
                                                                 {" | "}{item.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
+                                                            </span>
+                                                        )}
+                                                        {item.supplierId && (
+                                                            <span className="text-purple-600 font-bold uppercase tracking-tighter" title="Fornecedor">
+                                                                {" | "}{props.suppliers?.find(s => s.id === item.supplierId)?.name || 'Fornec. Desconhecido'}
                                                             </span>
                                                         )}
                                                     </p>
@@ -804,7 +827,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-gray-100 sm:border-0 sm:pt-0">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 mt-2 border-t border-gray-100 sm:border-0 sm:pt-0">
                         <div className="grid grid-cols-2 sm:flex gap-2">
                             <button onClick={props.onCancel} className="h-10 sm:h-12 px-4 sm:px-8 bg-red-100 text-red-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-red-200 transition-all">Sair</button>
                             <button onClick={() => handleSave('Pendente')} disabled={cart.length === 0 || !warrantyTerm || isSaving} className="h-10 sm:h-12 px-4 sm:px-8 bg-orange-100 text-orange-600 rounded-xl font-bold uppercase text-[10px] sm:text-xs tracking-widest hover:bg-orange-200 transition-all disabled:opacity-50">Pendente</button>
@@ -867,6 +890,58 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 Estamos atualizando o estoque e registrando seu histórico. <br />
                                 <span className="text-success font-bold mt-1 block">Por favor, aguarde...</span>
                             </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Motivo da Edição */}
+            {isEditReasonModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="bg-orange-50 border-b border-orange-100 p-5 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-orange-500 text-white p-2 rounded-xl">
+                                    <EditIcon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-800">Motivo da Edição</h3>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Obrigatório para vendas finalizadas</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsEditReasonModalOpen(false)} className="p-2 hover:bg-orange-100 rounded-full transition-colors text-gray-400">
+                                <XCircleIcon className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <textarea
+                                value={editReason}
+                                onChange={(e) => setEditReason(e.target.value)}
+                                rows={3}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 focus:ring-4 focus:ring-orange-100 focus:border-orange-400 outline-none transition-all resize-none shadow-sm"
+                                placeholder="Informe o motivo da edição desta venda..."
+                                autoFocus
+                            />
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditReasonModalOpen(false)}
+                                    className="flex-1 h-12 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={!editReason.trim()}
+                                    onClick={() => {
+                                        setIsEditReasonModalOpen(false);
+                                        handleSave(pendingTargetStatus);
+                                    }}
+                                    className="flex-1 h-12 bg-orange-500 text-white rounded-xl font-black text-sm hover:bg-orange-600 transition-all disabled:bg-gray-200 disabled:text-gray-400 shadow-lg shadow-orange-200"
+                                >
+                                    Confirmar e Salvar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

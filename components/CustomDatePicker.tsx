@@ -88,7 +88,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-3 border rounded-xl bg-white border-gray-200 text-sm font-medium text-gray-700 hover:border-primary/50 transition-colors w-full h-10 shadow-sm ${className || ''}`}
+                className={`flex items-center gap-2 px-3 border rounded-xl bg-white border-gray-200 text-sm font-medium text-gray-700 hover:border-primary/50 transition-colors w-full h-[48px] shadow-sm ${className || ''}`}
                 title={title}
             >
                 <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
