@@ -166,7 +166,9 @@ const StockInModal: React.FC<{
                         );
 
                         if (allIdsValid) {
-                            return parsed;
+                            const parsedItemIds = new Set(parsed.map((d: any) => d.purchaseItemId));
+                            const newItems = expandedDetails.filter((d: any) => !parsedItemIds.has(d.purchaseItemId));
+                            return [...parsed, ...newItems];
                         } else {
                             console.warn("Draft discarded because some items no longer exist in the purchase order.");
                             // Optional: showToast("Rascunho descartado pois a compra foi modificada.", "info");
@@ -491,12 +493,12 @@ const StockInModal: React.FC<{
                 <table className="w-full border-collapse table-fixed min-w-[1000px]">
                     <thead className="text-left text-xs text-muted bg-surface-secondary sticky top-0 z-10">
                         <tr>
-                            <th className="p-1 w-[250px] min-w-[250px] font-bold">Descrição</th>
+                            <th className="p-1 w-[281px] min-w-[281px] font-bold">Descrição</th>
                             <th className="p-1 w-[50px] min-w-[50px] max-w-[50px] font-bold text-center">Qtd</th>
-                            <th className="p-1 w-[120px] min-w-[120px] max-w-[120px] font-bold text-center">Condição</th>
-                            <th className="p-1 w-[97px] min-w-[97px] max-w-[97px] font-bold text-center">Local</th>
-                            <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">P. Custo</th>
-                            <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">Garantia</th>
+                            <th className="p-1 w-[114px] min-w-[114px] max-w-[114px] font-bold text-center">Condição</th>
+                            <th className="p-1 w-[92px] min-w-[92px] max-w-[92px] font-bold text-center">Local</th>
+                            <th className="p-1 w-[85px] min-w-[85px] max-w-[85px] font-bold text-center">P. Custo</th>
+                            <th className="p-1 w-[95px] min-w-[95px] max-w-[95px] font-bold text-center">Garantia</th>
                             <th className="p-1 w-[45px] min-w-[45px] max-w-[45px] font-bold text-center">MKP%</th>
                             <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Atacado</th>
                             <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Venda</th>
@@ -505,8 +507,8 @@ const StockInModal: React.FC<{
                     <tbody>
                         {details.map((detail, index) => (
                             <tr key={index} className="border-b border-border hover:bg-surface-secondary/50">
-                                <td className="p-1">
-                                    <div className="font-medium text-primary truncate max-w-[240px]" title={detail.itemDescription}>{detail.itemDescription}</div>
+                                <td className="p-1 align-middle">
+                                    <div className="font-bold text-primary line-clamp-2 whitespace-normal text-xs leading-snug" title={detail.itemDescription}>{detail.itemDescription}</div>
                                 </td>
                                 <td className="p-1 text-center">
                                     <span className="bg-gray-100 px-2 py-1 rounded-md font-bold">{detail.quantity}</span>
@@ -683,16 +685,16 @@ const StockInModal: React.FC<{
                     <table className="w-full border-collapse table-fixed min-w-[1200px]">
                         <thead className="text-left text-xs text-gray-900 bg-surface-secondary sticky top-0 z-10">
                             <tr>
-                                <th className="p-1 w-[200px] min-w-[200px] font-bold text-left">Descrição</th>
+                                <th className="p-1 w-[249px] min-w-[249px] font-bold text-left">Descrição</th>
                                 <th className="p-1 w-[40px] min-w-[40px] max-w-[40px] font-bold text-center">Qtd</th>
-                                <th className="p-1 w-[122px] min-w-[122px] max-w-[122px] font-bold text-center">IMEI 1</th>
-                                <th className="p-1 w-[122px] min-w-[122px] max-w-[122px] font-bold text-center">IMEI 2</th>
-                                <th className="p-1 w-[150px] min-w-[150px] max-w-[150px] font-bold text-center">S/N</th>
-                                <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">Condição</th>
-                                <th className="p-1 w-[100px] min-w-[100px] max-w-[100px] font-bold text-center">Garantia</th>
+                                <th className="p-1 w-[110px] min-w-[110px] max-w-[110px] font-bold text-center">IMEI 1</th>
+                                <th className="p-1 w-[110px] min-w-[110px] max-w-[110px] font-bold text-center">IMEI 2</th>
+                                <th className="p-1 w-[150px] min-w-[150px] max-w-[150px] font-bold text-center">Número de série</th>
+                                <th className="p-1 w-[95px] min-w-[95px] max-w-[95px] font-bold text-center">Condição</th>
+                                <th className="p-1 w-[95px] min-w-[95px] max-w-[95px] font-bold text-center">Garantia</th>
                                 {hasAppleItems && <th className="p-1 w-[50px] min-w-[50px] max-w-[50px] font-bold text-center">Bat%</th>}
-                                <th className="p-1 w-[97px] min-w-[97px] max-w-[97px] font-bold text-center">Local</th>
-                                <th className="p-1 w-[80px] min-w-[80px] max-w-[80px] font-bold text-center">Custo</th>
+                                <th className="p-1 w-[92px] min-w-[92px] max-w-[92px] font-bold text-center">Local</th>
+                                <th className="p-1 w-[70px] min-w-[70px] max-w-[70px] font-bold text-center">Custo</th>
                                 <th className="p-1 w-[45px] min-w-[45px] max-w-[45px] font-bold text-center">MKP%</th>
                                 <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Atacado</th>
                                 <th className="p-1 w-[91px] min-w-[91px] max-w-[91px] font-bold text-center">Venda</th>
@@ -701,8 +703,8 @@ const StockInModal: React.FC<{
                         <tbody>
                             {details.map((detail, index) => (
                                 <tr key={index} className={`border-b border-border hover:bg-surface-secondary/50 ${!detail.hasImei ? 'bg-blue-50/30' : ''}`}>
-                                    <td className="p-3 text-[11px] font-bold text-primary leading-tight">
-                                        <div className="truncate max-w-[190px]" title={detail.itemDescription}>{detail.itemDescription}</div>
+                                    <td className="p-1 align-middle">
+                                        <div className="font-bold text-primary line-clamp-2 whitespace-normal text-xs leading-snug" title={detail.itemDescription}>{detail.itemDescription}</div>
                                     </td>
                                     <td className="p-1 text-center">
                                         <span className={`px-2 py-1 rounded-md font-bold text-sm ${detail.hasImei ? 'bg-gray-100 text-gray-500' : 'bg-success/20 text-success'}`}>
@@ -846,7 +848,7 @@ const StockInModal: React.FC<{
                                                     />
                                                 </div>
                                                 <div className="relative group">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">S/N</span>
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted uppercase z-10 pointer-events-none group-focus-within:text-success transition-colors">Número de série</span>
                                                     <input
                                                         id={`stock-input-${index}-serialNumber`}
                                                         type="text"

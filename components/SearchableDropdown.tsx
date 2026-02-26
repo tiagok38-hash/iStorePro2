@@ -55,7 +55,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
         if (showDropdown && wrapperRef.current) {
             const rect = wrapperRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
-            const dropdownHeight = 220; // Increased slightly for comfort
+            const dropdownHeight = 450; // Increased to show at least 10 items
 
             let upwards = false;
             // Default to downwards unless there's clearly no space and space above
@@ -132,7 +132,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
             {showDropdown && createPortal(
                 <div
                     ref={dropdownRef}
-                    className="bg-white border border-border rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.25)] max-h-64 overflow-y-auto custom-scrollbar animate-scale-in"
+                    className="bg-white border border-border rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.25)] max-h-[450px] overflow-y-auto custom-scrollbar animate-scale-in"
                     style={{ ...dropdownStyles, zIndex: 9999999 }}
                 >
                     <ul className="py-1.5">
