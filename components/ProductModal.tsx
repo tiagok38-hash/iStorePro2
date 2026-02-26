@@ -997,10 +997,15 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         </div>
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Modelo*</label>
-                                            <select name="model" value={formData.model || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.category} required>
-                                                <option value="">Selecione</option>
-                                                {filteredModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                            </select>
+                                            <div className="h-[48px]">
+                                                <SearchableDropdown
+                                                    options={filteredModels.map(m => ({ value: m.id, label: m.name }))}
+                                                    value={formData.model || null}
+                                                    onChange={(val) => handleInputChange({ target: { name: 'model', value: val || '' } } as any)}
+                                                    placeholder="Selecione ou busque..."
+                                                    disabled={!formData.category}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 )}

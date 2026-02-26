@@ -887,7 +887,18 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div><label className={labelClasses}>Marca*</label><select value={currentItem.productDetails?.brand || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, brand: val, category: '', model: '' } })); }} className={`${inputClasses} h-11`}><option value="">Selecione</option>{brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
                                 <div><label className={labelClasses}>Categoria*</label><select value={currentItem.productDetails?.category || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, category: val, model: '' } })); }} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.brand}><option value="">Selecione</option>{filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                                <div><label className={labelClasses}>Modelo*</label><select value={currentItem.productDetails?.model || ''} onChange={e => handleProductDetailChange('model', e.target.value)} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.category}><option value="">Selecione</option>{filteredModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                                <div>
+                                    <label className={labelClasses}>Modelo*</label>
+                                    <div className="h-11">
+                                        <SearchableDropdown
+                                            options={filteredModels.map(m => ({ value: m.id, label: m.name }))}
+                                            value={currentItem.productDetails?.model || null}
+                                            onChange={val => handleProductDetailChange('model', val || '')}
+                                            placeholder="Selecione ou busque..."
+                                            disabled={!currentItem.productDetails?.category}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex justify-start">
                                 <button type="button" onClick={() => setShowVariations(s => !s)} className="text-sm font-semibold text-accent hover:underline flex items-center gap-1"><PlusIcon className="h-4 w-4" /> Adicionar Variação (Cor, Armazenamento, etc)</button>
