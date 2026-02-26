@@ -999,6 +999,15 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 isOpen={isTradeInProductModalOpen}
                 onClose={() => setIsTradeInProductModalOpen(false)}
                 onSave={handleSaveTradeInProduct}
+                suppliers={props.suppliers}
+                brands={brands}
+                categories={categories}
+                productModels={productModels}
+                grades={grades}
+                gradeValues={gradeValues}
+                customers={customers}
+                onAddNewSupplier={async () => null}
+                isTradeInMode={true}
             />
 
             <NewCreditModal
