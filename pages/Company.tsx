@@ -239,6 +239,7 @@ const MarcasECategoriasTab: React.FC = () => {
     const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
     const [isCropperModalOpen, setIsCropperModalOpen] = useState(false);
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+    const [modelSearchTerm, setModelSearchTerm] = useState('');
 
     // State for Grades
     const [grades, setGrades] = useState<Grade[]>([]);
@@ -270,7 +271,14 @@ const MarcasECategoriasTab: React.FC = () => {
 
     // Memoized filters
     const filteredCategories = useMemo(() => categories.filter(c => c.brandId === selectedBrandId), [categories, selectedBrandId]);
-    const filteredModels = useMemo(() => productModels.filter(m => m.categoryId === selectedCategoryId), [productModels, selectedCategoryId]);
+    const filteredModels = useMemo(() => {
+        let filtered = productModels.filter(m => m.categoryId === selectedCategoryId);
+        if (modelSearchTerm.trim()) {
+            const searchLower = modelSearchTerm.toLowerCase().trim();
+            filtered = filtered.filter(m => m.name.toLowerCase().includes(searchLower));
+        }
+        return filtered;
+    }, [productModels, selectedCategoryId, modelSearchTerm]);
     const filteredGradeValues = useMemo(() => gradeValues.filter(v => v.gradeId === selectedGradeId), [gradeValues, selectedGradeId]);
 
     // Handlers for Marcas, Categorias
@@ -454,7 +462,7 @@ const MarcasECategoriasTab: React.FC = () => {
     };
 
     // Generic list renderer
-    const renderList = (title: string, items: Item[], type: ModalType, onSelect: ((id: string) => void) | null, selectedId: string | null, onAdd: () => void, disabled: boolean = false) => (
+    const renderList = (title: string, items: Item[], type: ModalType, onSelect: ((id: string) => void) | null, selectedId: string | null, onAdd: () => void, disabled: boolean = false, searchTerm?: string, onSearchChange?: (val: string) => void) => (
         <div className={`p-0 border border-gray-100 bg-white/50 rounded-3xl overflow-hidden flex flex-col h-full shadow-sm ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="flex justify-between items-center p-3 bg-gray-50/50 border-b border-gray-100 backdrop-blur-sm">
                 <h3 className="font-semibold text-primary">{title}</h3>
@@ -462,6 +470,17 @@ const MarcasECategoriasTab: React.FC = () => {
                     <button onClick={onAdd} disabled={disabled} className="p-1 text-success disabled:text-muted"><PlusIcon className="h-5 w-5" /></button>
                 )}
             </div>
+            {onSearchChange !== undefined && (
+                <div className="px-3 py-2 border-b border-gray-100 bg-white/50">
+                    <input
+                        type="text"
+                        placeholder={`Buscar ${title.toLowerCase()}...`}
+                        value={searchTerm || ''}
+                        onChange={e => onSearchChange(e.target.value)}
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-xl text-xs bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-shadow"
+                    />
+                </div>
+            )}
             <ul className="h-64 overflow-y-auto custom-scrollbar">
                 {items.length === 0 ? (
                     <li className="p-8 text-center text-xs text-muted italic">Nenhum item encontrado</li>
@@ -509,7 +528,7 @@ const MarcasECategoriasTab: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_2fr] gap-4">
                         {renderList('Marcas', brands, 'brand', handleSelectBrand, selectedBrandId, () => handleOpenMarcasModal('brand'), false)}
                         {renderList('Categorias', filteredCategories, 'category', (id) => setSelectedCategoryId(id), selectedCategoryId, () => handleOpenMarcasModal('category'), !selectedBrandId)}
-                        {renderList('Modelos', filteredModels, 'model', () => { }, null, () => handleOpenSubcategoryModal(null), !selectedCategoryId)}
+                        {renderList('Modelos', filteredModels, 'model', () => { }, null, () => handleOpenSubcategoryModal(null), !selectedCategoryId, modelSearchTerm, setModelSearchTerm)}
                     </div>
                 )}
             </div>
