@@ -620,6 +620,7 @@ export enum AuditEntityType {
     SERVICE = 'SERVICE',
     SERVICE_ORDER = 'SERVICE_ORDER',
     COMMISSION = 'COMMISSION',
+    ORCAMENTO = 'ORCAMENTO',
 }
 
 export interface AuditLog {

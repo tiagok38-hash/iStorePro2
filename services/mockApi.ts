@@ -994,7 +994,17 @@ export const getProductsByPurchaseForLabels = async (purchaseId: string): Promis
 };
 
 export const addProduct = async (data: any, userId: string = 'system', userName: string = 'Sistema'): Promise<Product> => {
-    const { markup, selectedCustomerId, stockHistory, priceHistory, createdByName, ...rest } = data;
+    const {
+        markup,
+        selectedCustomerId,
+        stockHistory,
+        priceHistory,
+        createdByName,
+        relevance_score,
+        total_count,
+        totalCount,
+        ...rest
+    } = data;
     const now = getNowISO();
 
     const imei1 = rest.imei1 || null;
@@ -1269,7 +1279,16 @@ export const updateProduct = async (data: any, userId?: string, userName?: strin
     // Use data as fallback if currentProduct is null
     const existingProduct = currentProduct || data;
 
-    const { markup, selectedCustomerId, stockHistory, priceHistory: inputPriceHistory, ...rest } = data;
+    const {
+        markup,
+        selectedCustomerId,
+        stockHistory,
+        priceHistory: inputPriceHistory,
+        relevance_score,
+        total_count,
+        totalCount,
+        ...rest
+    } = data;
     const now = getNowISO();
 
     // Build the update payload

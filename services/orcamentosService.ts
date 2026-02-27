@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient.ts';
-import { Orcamento, OrcamentoItem, OrcamentoStatus } from '../types.ts';
+import { clearCache, addAuditLog } from './mockApi.ts';
+import { Orcamento, OrcamentoItem, OrcamentoStatus, AuditActionType, AuditEntityType } from '../types.ts';
 import { getNowISO } from '../utils/dateUtils.ts';
-import { clearCache } from './mockApi.ts';
 
 /**
  * Retorna os orçamentos, aplicando filtros de permissão.
@@ -89,7 +89,16 @@ export const createOrcamento = async (
 
     if (fetchErr) throw fetchErr;
 
-    // TODO: Adicionar AuditLog (import de mockApi pode causar conflito logico, mas como é um serviço separado, apenas limpamos cache por enquanto)
+    // Audit Log
+    addAuditLog(
+        AuditActionType.CREATE,
+        AuditEntityType.ORCAMENTO,
+        orcamento.id,
+        `Orçamento ${orcamento.numero} criado para cliente ${orcamentoData.cliente_id || 'Avulso'}`,
+        userId,
+        userName
+    ).catch(err => console.error('Failed to log orcamento create:', err));
+
     clearCache(['orcamentos']);
 
     return finalOrcamento as unknown as Orcamento;
