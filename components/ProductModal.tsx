@@ -287,8 +287,13 @@ const ProductModal: React.FC<ProductModalProps> = ({
                     initialData.model = model;
                     setAppleStorage(storageString || '');
                     if (storageString) {
-                        const numericStorage = parseInt(storageString, 10);
-                        initialData.storage = isNaN(numericStorage) ? undefined : numericStorage;
+                        if (storageString.toUpperCase().includes('TB')) {
+                            const tbValue = parseInt(storageString, 10);
+                            initialData.storage = isNaN(tbValue) ? undefined : tbValue * 1000;
+                        } else {
+                            const numericStorage = parseInt(storageString, 10);
+                            initialData.storage = isNaN(numericStorage) ? undefined : numericStorage;
+                        }
                     } else {
                         initialData.storage = undefined;
                     }
@@ -371,7 +376,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
             // Explicitly ensure important fields are set in formData from the incoming product
             initialData.supplierId = product.supplierId;
-            initialData.warranty = preservedWarranty || (product.brand === 'Apple' ? '1 ano' : '');
+            initialData.warranty = preservedWarranty || (product.brand === 'Apple' ? '1 Ano' : '');
             initialData.storageLocation = preservedStorageLocation || 'Loja Santa Cruz';
 
             setFormData(initialData);
@@ -380,7 +385,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
         } else {
             const defaults = {
-                stock: 1, batteryHealth: 100, condition: isTradeInMode ? 'Seminovo' : 'Novo', warranty: isTradeInMode ? '' : '1 ano', storageLocation: isTradeInMode ? '' : 'Loja Santa Cruz', variations: [], barcodes: [], createdBy: user?.name || 'Keiler', origin: 'Compra'
+                stock: 1, batteryHealth: 100, condition: isTradeInMode ? 'Seminovo' : 'Novo', warranty: isTradeInMode ? '' : '1 Ano', storageLocation: isTradeInMode ? '' : 'Loja Santa Cruz', variations: [], barcodes: [], createdBy: user?.name || 'Keiler', origin: 'Compra'
             };
             setFormData(defaults);
             setProductType('Apple'); // Default for new - Always Apple for trade-in mode
@@ -469,10 +474,17 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const handleAppleStorageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const storageStr = e.target.value;
         setAppleStorage(storageStr);
-        const numericStorage = parseInt(storageStr, 10);
+        let numericStorage: number | undefined;
+        if (storageStr.toUpperCase().includes('TB')) {
+            const tbValue = parseInt(storageStr, 10);
+            numericStorage = isNaN(tbValue) ? undefined : tbValue * 1000;
+        } else {
+            const parsed = parseInt(storageStr, 10);
+            numericStorage = isNaN(parsed) ? undefined : parsed;
+        }
         setFormData(prev => ({
             ...prev,
-            storage: isNaN(numericStorage) ? undefined : numericStorage,
+            storage: numericStorage,
             color: ''
         }));
     };
