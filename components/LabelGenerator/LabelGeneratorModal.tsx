@@ -16,6 +16,7 @@ interface LabelGeneratorModalProps {
 }
 
 interface LabelConfig {
+    paperType: 'a4' | 'thermal';
     widthMm: number;
     heightMm: number;
     cols: 1 | 2;
@@ -46,12 +47,17 @@ const LabelGeneratorModal: React.FC<LabelGeneratorModalProps> = ({ isOpen, onClo
     const [selectedProducts, setSelectedProducts] = useState<Product[]>(preSelectedProducts);
     const [searchTerm, setSearchTerm] = useState('');
     const [companyName, setCompanyName] = useState('iStore Pro');
+    // Default: A4 adhesive sheet, 2 columns
+    // A4 (210mm), margins 10mm each side → usable 190mm
+    // 2 cols: (190 - 10gap) / 2 = 90mm each label
+    // Height 50mm matches common adhesive labels (2col x 5row per A4 page)
     const [config, setConfig] = useState<LabelConfig>({
+        paperType: 'thermal', // Defaulting to thermal based on user usage
         widthMm: 50,
-        heightMm: 25,
+        heightMm: 30,
         cols: 2,
         identifier: 'imei1',
-        gapMm: 1,
+        gapMm: 4,
         showPrice: true,
         showDescription: true,
         showStoreName: false,
@@ -188,53 +194,53 @@ const LabelGeneratorModal: React.FC<LabelGeneratorModalProps> = ({ isOpen, onClo
                         <div className="grid grid-cols-2 gap-4 mb-5">
                             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                                 <h3 className="text-xs font-bold text-secondary uppercase tracking-widest">Configuração</h3>
-                                <div>
-                                    <label className="block text-[11px] font-black text-secondary uppercase tracking-tight mb-1">Tamanho</label>
-                                    <select
-                                        value={`${config.widthMm}x${config.heightMm}`}
-                                        onChange={e => {
-                                            const [w, h] = e.target.value.split('x').map(Number);
-                                            setConfig({ ...config, widthMm: w, heightMm: h });
-                                        }}
-                                        className="w-full h-9 px-3 rounded-xl border border-gray-300 text-sm bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none"
-                                    >
-                                        <option value="50x25">50mm x 25mm</option>
-                                        <option value="50x30">50mm x 30mm</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-[11px] font-black text-secondary uppercase tracking-tight mb-1">Colunas</label>
-                                    <div className="flex bg-gray-100 p-1 rounded-xl h-9">
-                                        <button
-                                            onClick={() => setConfig({ ...config, cols: 1 })}
-                                            className={`flex-1 rounded-lg text-xs font-bold transition-all ${config.cols === 1 ? 'bg-white shadow text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                <h3 className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">Papel / Tamanho</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <select
+                                            value={`${config.paperType}|${config.cols}|${config.widthMm}|${config.heightMm}`}
+                                            onChange={e => {
+                                                const [ptype, colsStr, wStr, hStr] = e.target.value.split('|');
+                                                setConfig({
+                                                    ...config,
+                                                    paperType: ptype as 'a4' | 'thermal',
+                                                    cols: Number(colsStr) as 1 | 2,
+                                                    widthMm: Number(wStr),
+                                                    heightMm: Number(hStr),
+                                                    gapMm: ptype === 'thermal' ? (Number(colsStr) === 2 ? 4 : 0) : 10
+                                                });
+                                            }}
+                                            className="w-full h-10 px-3 rounded-xl border border-gray-300 text-sm bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none font-medium"
                                         >
-                                            1 Col
-                                        </button>
-                                        <button
-                                            onClick={() => setConfig({ ...config, cols: 2 })}
-                                            className={`flex-1 rounded-lg text-xs font-bold transition-all ${config.cols === 2 ? 'bg-white shadow text-primary' : 'text-gray-500 hover:text-gray-700'}`}
-                                        >
-                                            2 Cols
-                                        </button>
+                                            <optgroup label="Bobina Térmica (Ex: Elgin L42 Pro)">
+                                                <option value="thermal|2|50|30">Dupla: 2 colunas de 50x30mm</option>
+                                                <option value="thermal|1|100|50">Simples: 1 coluna de 100x50mm</option>
+                                                <option value="thermal|1|50|30">Simples: 1 coluna de 50x30mm</option>
+                                            </optgroup>
+                                            <optgroup label="Folha A4 (Adesiva)">
+                                                <option value="a4|2|90|50">A4 - 2 colunas (90x50mm)</option>
+                                                <option value="a4|2|90|30">A4 - 2 colunas (90x30mm)</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-black text-secondary uppercase tracking-tight mb-1">Identificador</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {(['imei1', 'sku', 'serialNumber', 'ean'] as const).map(id => (
+                                                <button
+                                                    key={id}
+                                                    onClick={() => setConfig({ ...config, identifier: id })}
+                                                    className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${config.identifier === id
+                                                        ? 'bg-primary text-white border-primary shadow-sm'
+                                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                                                >
+                                                    {id === 'imei1' ? 'IMEI' : id === 'sku' ? 'SKU' : id === 'ean' ? 'EAN' : 'Serial'}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-[11px] font-black text-secondary uppercase tracking-tight mb-1">Identificador</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {(['imei1', 'sku', 'serialNumber', 'ean'] as const).map(id => (
-                                            <button
-                                                key={id}
-                                                onClick={() => setConfig({ ...config, identifier: id })}
-                                                className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${config.identifier === id
-                                                    ? 'bg-primary text-white border-primary shadow-sm'
-                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
-                                            >
-                                                {id === 'imei1' ? 'IMEI' : id === 'sku' ? 'SKU' : id === 'ean' ? 'EAN' : 'Serial'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                                <div className="hidden"></div>
                             </div>
 
                             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">
@@ -338,31 +344,63 @@ const LabelGeneratorModal: React.FC<LabelGeneratorModalProps> = ({ isOpen, onClo
                         </div>
 
                         <div className="flex-grow overflow-auto p-12 custom-scrollbar flex justify-center">
-                            <div className="bg-gray-300 shadow-2xl h-fit w-fit"
-                                style={{
-                                    // Use calc to ensure exact symmetry. 
-                                    // With border-box, width = labels + margins.
-                                    // Increased margin to 4mm on each side (total 8mm) for better visualization
-                                    width: `calc(${(config.widthMm * config.cols) + ((config.cols - 1) * config.gapMm)}mm + 8mm)`,
-                                    display: 'grid',
-                                    gridTemplateColumns: config.cols === 2 ? '1fr 1fr' : '1fr',
-                                    gap: `${config.gapMm}mm`,
-                                    alignContent: 'start',
-                                    padding: '4mm', // Symmetric 4mm margin all around
-                                    boxSizing: 'border-box'
-                                }}>
-                                {selectedProducts.length === 0 ? (
-                                    <div className="col-span-full w-full h-full flex items-center justify-center text-gray-300 font-medium py-10">
-                                        Adicione produtos para visualizar
+                            {/*
+                             * Preview mirrors the exact same mm math used by PrintLayout:
+                             * usable = 210 - 10 - 10 = 190mm
+                             * labelW = cols===2 ? (190 - gap) / 2 : 190
+                             * We scale this down visually with a wrapper but use real mm.
+                             */}
+                            {(() => {
+                                const previewLabelW = config.paperType === 'a4'
+                                    ? (config.cols === 2 ? (190 - config.gapMm) / 2 : 190)
+                                    : config.widthMm;
+
+                                return (
+                                    <div className="bg-gray-300 shadow-2xl h-fit"
+                                        style={{
+                                            // Represent A4 usable area: 190mm + page margins 10mm each side
+                                            // Scaled to fit the preview panel without transform (just defines the mm box).
+                                            width: config.paperType === 'a4' ? '210mm' : `${(config.widthMm * config.cols) + (config.cols > 1 ? config.gapMm : 0) + 10}mm`,
+                                            display: 'grid',
+                                            gridTemplateColumns: config.cols === 2
+                                                ? `${previewLabelW}mm ${previewLabelW}mm`
+                                                : `${previewLabelW}mm`,
+                                            columnGap: config.cols === 2 ? `${config.gapMm}mm` : '0',
+                                            rowGap: '0',
+                                            alignContent: 'start',
+                                            // Page margins mirrored
+                                            padding: '5mm 10mm',
+                                            boxSizing: 'border-box',
+                                            // Scale preview to fit panel — transform ONLY on the outer preview wrapper,
+                                            // NOT on any label or barcode element.
+                                            transformOrigin: 'top left',
+                                        }}>
+                                        {selectedProducts.length === 0 ? (
+                                            <div className="col-span-full w-full h-full flex items-center justify-center text-gray-300 font-medium py-10">
+                                                Adicione produtos para visualizar
+                                            </div>
+                                        ) : (
+                                            selectedProducts.map((p, idx) => {
+                                                const previewConfig = { ...config, widthMm: typeof previewLabelW === "number" ? previewLabelW : parseInt(previewLabelW as string) || 0 };
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        style={{
+                                                            width: `${previewLabelW}mm`,
+                                                            height: `${config.heightMm}mm`,
+                                                            overflow: 'hidden',
+                                                            outline: '1px dashed rgba(156,163,175,0.4)',
+                                                            boxSizing: 'border-box',
+                                                        }}
+                                                    >
+                                                        <BarcodeLabel product={p} config={previewConfig} storeName={companyName} />
+                                                    </div>
+                                                );
+                                            })
+                                        )}
                                     </div>
-                                ) : (
-                                    selectedProducts.map((p, idx) => (
-                                        <div key={idx} className="outline outline-1 outline-dashed outline-gray-400/30">
-                                            <BarcodeLabel product={p} config={config} storeName={companyName} />
-                                        </div>
-                                    ))
-                                )}
-                            </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Actions */}

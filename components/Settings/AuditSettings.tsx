@@ -69,6 +69,7 @@ const AuditSettings: React.FC = () => {
             [AuditEntityType.SERVICE]: 'Serviço',
             [AuditEntityType.SERVICE_ORDER]: 'Ordem de Serviço',
             [AuditEntityType.COMMISSION]: 'Comissão',
+            [AuditEntityType.ORCAMENTO]: 'Orçamento',
         };
         return translations[entity] || entity;
     };
