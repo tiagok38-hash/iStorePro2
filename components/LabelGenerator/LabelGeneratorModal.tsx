@@ -57,7 +57,7 @@ const LabelGeneratorModal: React.FC<LabelGeneratorModalProps> = ({ isOpen, onClo
         heightMm: 30,
         cols: 2,
         identifier: 'imei1',
-        gapMm: 4,
+        gapMm: 0, // Changed from 4 to 0 to fit 100mm paper (50+50)
         showPrice: true,
         showDescription: true,
         showStoreName: false,
@@ -123,7 +123,7 @@ const LabelGeneratorModal: React.FC<LabelGeneratorModalProps> = ({ isOpen, onClo
     });
 
     const handleDownloadZPL = () => {
-        const zpl = generateZPL(selectedProducts, config);
+        const zpl = generateZPL(selectedProducts, config, companyName);
         const blob = new Blob([zpl], { type: 'text/plain' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -207,7 +207,7 @@ const LabelGeneratorModal: React.FC<LabelGeneratorModalProps> = ({ isOpen, onClo
                                                     cols: Number(colsStr) as 1 | 2,
                                                     widthMm: Number(wStr),
                                                     heightMm: Number(hStr),
-                                                    gapMm: ptype === 'thermal' ? (Number(colsStr) === 2 ? 4 : 0) : 10
+                                                    gapMm: ptype === 'thermal' ? 0 : 10
                                                 });
                                             }}
                                             className="w-full h-10 px-3 rounded-xl border border-gray-300 text-sm bg-gray-50 focus:ring-2 focus:ring-primary/20 outline-none font-medium"

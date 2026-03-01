@@ -101,7 +101,8 @@ const CatalogItemModal: React.FC<Props> = ({ item, products, onClose, onSaved })
         if (!card?.config?.creditWithInterestRates) return;
         const rateEntry = card.config.creditWithInterestRates.find(r => r.installments === form.installments);
         if (rateEntry) {
-            const totalWithInterest = form.salePrice * (1 + rateEntry.rate / 100);
+            // Repasse: V / (1 - R/100)
+            const totalWithInterest = form.salePrice / (1 - (rateEntry.rate / 100));
             setForm(prev => ({ ...prev, cardPrice: Math.round(totalWithInterest * 100) / 100 }));
         } else {
             setForm(prev => ({ ...prev, cardPrice: form.salePrice }));
