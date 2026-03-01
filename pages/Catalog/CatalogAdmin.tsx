@@ -139,7 +139,7 @@ const CatalogAdmin: React.FC = () => {
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-primary">Meus Catálogos</h1>
                     <p className="text-secondary text-sm mt-1">Gerencie os produtos que aparecem na sua vitrine virtual</p>
@@ -147,7 +147,7 @@ const CatalogAdmin: React.FC = () => {
                 {permissions?.canCreateCatalogItem && (
                     <button
                         onClick={() => { setEditingItem(null); setShowModal(true); }}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all active:scale-95"
+                        className="flex items-center justify-center gap-2 px-5 py-2.5 w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all active:scale-95"
                     >
                         <Plus size={18} />
                         Adicionar Item
