@@ -44,7 +44,22 @@ export const formatDateBR = (
     date: string | Date,
     options: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' }
 ): string => {
-    const d = typeof date === 'string' ? new Date(date) : date;
+    if (!date) return '';
+    let d: Date;
+    if (typeof date === 'string') {
+        // Se for apenas data (YYYY-MM-DD), força 12:00 para evitar que o fuso horário mude o dia
+        if (date.length === 10 && date.includes('-')) {
+            d = new Date(`${date}T12:00:00`);
+        } else {
+            d = new Date(date);
+        }
+    } else {
+        d = date;
+    }
+
+    // Se a data for inválida, retorna string vazia ou original
+    if (isNaN(d.getTime())) return typeof date === 'string' ? date : '';
+
     return d.toLocaleDateString('pt-BR', { ...options, timeZone: BRAZIL_TIMEZONE });
 };
 

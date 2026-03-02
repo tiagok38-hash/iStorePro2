@@ -49,6 +49,10 @@ export interface PermissionSet {
     canEditOwnProfile: boolean;
     canManageMarcasECategorias: boolean;
 
+    // Banco de Horas permissions
+    canManageBancoHoras: boolean;
+    canCreateBancoHoras: boolean;
+    canPayBancoHoras: boolean;
     // granular customer permissions
     canCreateCustomer: boolean;
     canEditCustomer: boolean;
@@ -134,6 +138,49 @@ export interface Address {
     city: string;
     state: string;
     zip: string;
+}
+
+export interface BancoHoras {
+    id: string;
+    funcionario_id: string;
+    data_trabalho: string;
+    tipo: 'HOURS' | 'MINUTES';
+    quantidade: number;
+    valor_hora: number;
+    total: number;
+    status: 'PENDING' | 'PAID';
+    observacao?: string;
+    data_pagamento?: string;
+    usuario_pagamento_id?: string;
+    created_at?: string;
+    updated_at?: string;
+
+    // Virtual fields joined from users
+    funcionario_nome?: string;
+    usuario_pagamento_nome?: string;
+}
+
+export interface BancoHorasFuncionario {
+    id: string;
+    name: string;
+    active: boolean;
+    funcao?: string;
+    data_nascimento?: string;
+    cpf?: string;
+    rg?: string;
+    whatsapp?: string;
+    endereco?: string;
+    cep?: string;
+    numero?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+    valor_salario?: number;
+    valor_hora?: number;
+    bonus_salarial?: number;
+    data_admissao?: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface TradeInEntry {
@@ -621,6 +668,7 @@ export enum AuditEntityType {
     SERVICE_ORDER = 'SERVICE_ORDER',
     COMMISSION = 'COMMISSION',
     ORCAMENTO = 'ORCAMENTO',
+    BANCO_HORAS = 'BANCO_HORAS',
 }
 
 export interface AuditLog {
@@ -691,6 +739,9 @@ export interface CompanyInfo {
     email?: string;
     whatsapp?: string;
     instagram?: string;
+    isCatalogOnline?: boolean;
+    catalogOfflineMessage?: string;
+    catalogOfflineImageUrl?: string;
 }
 
 

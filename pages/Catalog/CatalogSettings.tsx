@@ -32,6 +32,9 @@ const CatalogSettings: React.FC = () => {
     const [newSectionEmoji, setNewSectionEmoji] = useState('📋');
     const [newSectionSort, setNewSectionSort] = useState('newest');
     const [showNewSection, setShowNewSection] = useState(false);
+    const [isCatalogOnline, setIsCatalogOnline] = useState(true);
+    const [catalogOfflineMessage, setCatalogOfflineMessage] = useState('');
+    const [catalogOfflineImageUrl, setCatalogOfflineImageUrl] = useState('');
 
     // DnD State
     const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
@@ -45,6 +48,9 @@ const CatalogSettings: React.FC = () => {
                 if (info) {
                     setWhatsapp(info.whatsapp || '');
                     setStoreName(info.name || '');
+                    setIsCatalogOnline(info.isCatalogOnline ?? true);
+                    setCatalogOfflineMessage(info.catalogOfflineMessage || '');
+                    setCatalogOfflineImageUrl(info.catalogOfflineImageUrl || '');
                 }
                 setSections(secs);
             } catch (e) {
@@ -59,7 +65,13 @@ const CatalogSettings: React.FC = () => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await updateCompanyInfo({ whatsapp, name: storeName } as any);
+            await updateCompanyInfo({
+                whatsapp,
+                name: storeName,
+                isCatalogOnline,
+                catalogOfflineMessage,
+                catalogOfflineImageUrl
+            } as any);
             showToast('Configurações salvas!', 'success');
         } catch {
             showToast('Erro ao salvar', 'error');
@@ -310,6 +322,49 @@ const CatalogSettings: React.FC = () => {
                     </div>
 
                     <div className="space-y-5">
+                        {/* Catalog Status Toggle */}
+                        <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-bold text-primary">Catálogo Online</span>
+                                <button
+                                    onClick={() => setIsCatalogOnline(!isCatalogOnline)}
+                                    className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${isCatalogOnline ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                >
+                                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${isCatalogOnline ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                            <p className="text-[11px] text-secondary leading-tight">
+                                {isCatalogOnline
+                                    ? "O catálogo público está visível e aceitando pedidos."
+                                    : "O catálogo exibirá uma mensagem de manutenção para os clientes."}
+                            </p>
+                        </div>
+
+                        {!isCatalogOnline && (
+                            <div className="space-y-4 animate-fade-in">
+                                <div>
+                                    <label className="block text-xs font-semibold text-primary mb-1.5 uppercase tracking-wider">Mensagem de Manutenção</label>
+                                    <textarea
+                                        value={catalogOfflineMessage}
+                                        onChange={e => setCatalogOfflineMessage(e.target.value)}
+                                        placeholder="Ex: O catálogo está em manutenção e logo estará de volta."
+                                        rows={3}
+                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-gray-50/50 focus:bg-white resize-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-primary mb-1.5 uppercase tracking-wider">URL da Imagem (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={catalogOfflineImageUrl}
+                                        onChange={e => setCatalogOfflineImageUrl(e.target.value)}
+                                        placeholder="URL da imagem de manutenção"
+                                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-gray-50/50 focus:bg-white"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         {/* Store Name */}
                         <div>
                             <label className="block text-xs font-semibold text-primary mb-1.5 uppercase tracking-wider">Nome da Loja</label>

@@ -3,7 +3,7 @@ import {
     Plus, Search, Copy, ExternalLink, MoreVertical, Pencil, Trash2, Eye, EyeOff,
     Package, Filter, ChevronDown, Loader2, Check, X, ShoppingBag, Link as LinkIcon, Image as ImageIcon
 } from 'lucide-react';
-import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, getCatalogSections } from '../../services/mockApi.ts';
+import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, getCatalogSections, deleteCatalogItems } from '../../services/mockApi.ts';
 import { CatalogItem, Product, Brand } from '../../types.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import CatalogItemModal from './CatalogItemModal.tsx';
@@ -25,6 +25,7 @@ const CatalogAdmin: React.FC = () => {
     const [editingField, setEditingField] = useState<{ id: string; field: string } | null>(null);
     const [editValue, setEditValue] = useState('');
     const [linkCopied, setLinkCopied] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     const catalogUrl = `${window.location.origin}${window.location.pathname}#/catalogo/loja`;
 
@@ -69,6 +70,35 @@ const CatalogAdmin: React.FC = () => {
             showToast('Erro ao remover item', 'error');
         }
         setMenuOpenId(null);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (!confirm(`Tem certeza que deseja remover ${selectedIds.length} itens do catálogo?`)) return;
+
+        setIsLoading(true);
+        try {
+            await deleteCatalogItems(selectedIds);
+            setItems(prev => prev.filter(i => !selectedIds.includes(i.id)));
+            setSelectedIds([]);
+            showToast(`${selectedIds.length} itens removidos`, 'success');
+        } catch {
+            showToast('Erro ao remover itens', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredItems.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredItems.map(i => i.id));
+        }
     };
 
     const handleInlineEdit = async (id: string) => {
@@ -155,6 +185,36 @@ const CatalogAdmin: React.FC = () => {
                 )}
             </div>
 
+            {/* Bulk Actions */}
+            {selectedIds.length > 0 && (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 p-4 rounded-2xl animate-fade-in shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                            <Check size={20} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-primary">{selectedIds.length} itens selecionados</p>
+                            <p className="text-xs text-secondary">Selecione uma ação para aplicar em massa</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="px-4 py-2 text-sm font-semibold text-secondary hover:bg-white rounded-xl transition-all"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-all shadow-md shadow-red-500/20 active:scale-95"
+                        >
+                            <Trash2 size={16} />
+                            Excluir Selecionados
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Public Link Card */}
             <div className="glass-card p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center gap-2 text-sm text-secondary flex-shrink-0">
@@ -210,6 +270,14 @@ const CatalogAdmin: React.FC = () => {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-100">
+                                <th className="px-4 py-3 text-left w-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.length > 0 && selectedIds.length === filteredItems.length}
+                                        onChange={toggleSelectAll}
+                                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">Imagem</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">Ordem</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">Descrição</th>
@@ -225,14 +293,14 @@ const CatalogAdmin: React.FC = () => {
                         <tbody className="divide-y divide-gray-50">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-16 text-center">
+                                    <td colSpan={11} className="px-6 py-16 text-center">
                                         <Loader2 size={32} className="mx-auto animate-spin text-emerald-500 mb-3" />
                                         <p className="text-secondary text-sm">Carregando catálogo...</p>
                                     </td>
                                 </tr>
                             ) : filteredItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="px-6 py-16 text-center">
+                                    <td colSpan={11} className="px-6 py-16 text-center">
                                         <ShoppingBag size={40} className="mx-auto text-gray-300 mb-3" />
                                         <p className="text-secondary font-medium">Nenhum item no catálogo</p>
                                         <p className="text-muted text-sm mt-1">Clique em "Adicionar Item" para começar</p>
@@ -240,9 +308,21 @@ const CatalogAdmin: React.FC = () => {
                                 </tr>
                             ) : (
                                 filteredItems.map(item => (
-                                    <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                                    <tr
+                                        key={item.id}
+                                        className={`hover:bg-gray-50/50 transition-colors group ${selectedIds.includes(item.id) ? 'bg-emerald-50/30' : ''}`}
+                                    >
+                                        {/* Checkbox */}
+                                        <td className="px-4 py-3 align-middle">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.includes(item.id)}
+                                                onChange={() => toggleSelect(item.id)}
+                                                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                            />
+                                        </td>
                                         {/* Image */}
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 align-middle">
                                             <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex items-center justify-center">
                                                 {item.imageUrl ? (
                                                     <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover" />
@@ -252,11 +332,11 @@ const CatalogAdmin: React.FC = () => {
                                             </div>
                                         </td>
                                         {/* Order */}
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-4 py-3 text-center align-middle">
                                             {renderInlineInput(item, 'displayOrder', item.displayOrder)}
                                         </td>
                                         {/* Description */}
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 align-middle">
                                             <div>
                                                 <p className="font-semibold text-sm text-primary">{item.productName}</p>
                                                 <p className="text-xs text-secondary">{item.productBrand} · {item.productCategory}</p>
@@ -268,24 +348,24 @@ const CatalogAdmin: React.FC = () => {
                                             </div>
                                         </td>
                                         {/* Section */}
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 align-middle">
                                             <span className="text-xs text-secondary bg-gray-50 px-2 py-1 rounded-lg">{item.section}</span>
                                         </td>
                                         {/* Prices */}
-                                        <td className="px-4 py-3 text-right">
+                                        <td className="px-4 py-3 text-right align-middle">
                                             {renderInlineInput(item, 'costPrice', item.costPrice, 'R$ ')}
                                         </td>
-                                        <td className="px-4 py-3 text-right">
+                                        <td className="px-4 py-3 text-right align-middle">
                                             {renderInlineInput(item, 'salePrice', item.salePrice, 'R$ ')}
                                         </td>
-                                        <td className="px-4 py-3 text-right">
+                                        <td className="px-4 py-3 text-right align-middle">
                                             {renderInlineInput(item, 'cardPrice', item.cardPrice, 'R$ ')}
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-4 py-3 text-center align-middle">
                                             {renderInlineInput(item, 'installments', item.installments)}
                                         </td>
                                         {/* Toggle */}
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-4 py-3 text-center align-middle">
                                             <button
                                                 disabled={!permissions?.canEditCatalogItem}
                                                 onClick={() => handleToggleActive(item)}
@@ -295,7 +375,7 @@ const CatalogAdmin: React.FC = () => {
                                             </button>
                                         </td>
                                         {/* Actions */}
-                                        <td className="px-4 py-3 text-center relative">
+                                        <td className="px-4 py-3 text-center relative align-middle">
                                             <button
                                                 onClick={() => setMenuOpenId(menuOpenId === item.id ? null : item.id)}
                                                 className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-secondary"

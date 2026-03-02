@@ -101,8 +101,8 @@ const CatalogItemModal: React.FC<Props> = ({ item, products, onClose, onSaved })
         if (!card?.config?.creditWithInterestRates) return;
         const rateEntry = card.config.creditWithInterestRates.find(r => r.installments === form.installments);
         if (rateEntry) {
-            // Repasse: V / (1 - R/100)
-            const totalWithInterest = form.salePrice / (1 - (rateEntry.rate / 100));
+            // Nova Fórmula: Preço * (1 + Taxa/100) -> 1000 + 14.1% = 1141
+            const totalWithInterest = form.salePrice * (1 + (rateEntry.rate / 100));
             setForm(prev => ({ ...prev, cardPrice: Math.round(totalWithInterest * 100) / 100 }));
         } else {
             setForm(prev => ({ ...prev, cardPrice: form.salePrice }));
@@ -401,14 +401,14 @@ const CatalogItemModal: React.FC<Props> = ({ item, products, onClose, onSaved })
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs text-secondary mb-1">Qtd. Parcelas</label>
+                                <label className="block text-xs text-secondary mb-1">Parcelas Padrão</label>
                                 <select
                                     value={form.installments}
                                     onChange={e => setForm(prev => ({ ...prev, installments: parseInt(e.target.value) || 1 }))}
                                     className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
                                 >
                                     {availableInstallments.map(n => (
-                                        <option key={n} value={n}>{n}x</option>
+                                        <option key={n} value={n}>{n}x (exibir no card)</option>
                                     ))}
                                 </select>
                             </div>

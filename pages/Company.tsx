@@ -42,6 +42,8 @@ import ImageCropperModal from '../components/ImageCropperModal.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import LoadingOverlay from '../components/LoadingOverlay.tsx';
 import Comissoes from './Comissoes.tsx';
+import BancoHorasTab from './BancoHorasTab.tsx';
+import GerenciarFuncionariosTab from './GerenciarFuncionariosTab.tsx';
 
 type ModalType = 'brand' | 'category' | 'model' | 'grade' | 'gradeValue';
 type Item = Brand | Category | ProductModel | Grade | GradeValue;
@@ -652,6 +654,8 @@ const AuditoriaTab: React.FC = () => {
             [AuditEntityType.SERVICE]: 'Serviço',
             [AuditEntityType.SERVICE_ORDER]: 'Ordem de Serviço',
             [AuditEntityType.COMMISSION]: 'Comissão',
+            [AuditEntityType.ORCAMENTO]: 'Orçamento',
+            [AuditEntityType.BANCO_HORAS]: 'Banco de Horas',
         };
         return translations[entity] || entity;
     };
@@ -1850,6 +1854,69 @@ const PerfilTab: React.FC = () => {
 };
 
 
+// --- FUNCIONARIOS TAB (Wrapper for Comissoes and Banco de Horas) ---
+const FuncionariosTab: React.FC = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { permissions } = useUser();
+    const activeSubTab = searchParams.get('subtab') || 'comissoes';
+
+    const subTabs = useMemo(() => [
+        { id: 'gerencia', label: 'Gerenciar Funcionários', permission: 'canManageBancoHoras' },
+        { id: 'banco_horas', label: 'Banco de Horas', permission: 'canManageBancoHoras' },
+        { id: 'comissoes', label: 'Comissões', permission: 'canAccessComissoes' },
+    ], []);
+
+    const visibleSubTabs = useMemo(() => {
+        if (!permissions) return [];
+        return subTabs.filter(tab => permissions[tab.permission as keyof PermissionSet]);
+    }, [permissions, subTabs]);
+
+    useEffect(() => {
+        if (visibleSubTabs.length > 0 && !visibleSubTabs.find(t => t.id === activeSubTab)) {
+            setSearchParams(prev => {
+                const newParams = new URLSearchParams(prev);
+                newParams.set('subtab', visibleSubTabs[0].id);
+                return newParams;
+            }, { replace: true });
+        }
+    }, [visibleSubTabs, activeSubTab, setSearchParams]);
+
+    const renderSubContent = () => {
+        switch (activeSubTab) {
+            case 'gerencia': return <GerenciarFuncionariosTab />;
+            case 'comissoes': return <Comissoes />;
+            case 'banco_horas': return <BancoHorasTab />;
+            default: return <GerenciarFuncionariosTab />;
+        }
+    };
+
+    if (visibleSubTabs.length === 0) return <div className="p-8 text-center text-muted">Acesso negado.</div>;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-200 w-fit shadow-sm">
+                {visibleSubTabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setSearchParams(prev => {
+                            const newParams = new URLSearchParams(prev);
+                            newParams.set('subtab', tab.id);
+                            return newParams;
+                        }, { replace: true })}
+                        className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${activeSubTab === tab.id ? 'bg-primary text-white shadow-md shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'}`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+            <div className="w-full">
+                {renderSubContent()}
+            </div>
+        </div>
+    );
+};
+
+
 // --- MAIN COMPONENT ---
 const Company: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -1861,7 +1928,7 @@ const Company: React.FC = () => {
         { id: 'usuarios', label: 'Usuários e Permissões', permission: 'canManageUsers' },
         { id: 'marcas', label: 'Marcas e Categorias', permission: 'canManageMarcasECategorias' },
         { id: 'perfil', label: 'Perfil', permission: 'canEditOwnProfile' },
-        { id: 'comissoes', label: 'Comissões', permission: 'canAccessComissoes' },
+        { id: 'funcionarios', label: 'Funcionários', permission: true },
         { id: 'parametros', label: 'Parâmetros', permission: 'canManageParameters' },
         { id: 'meios_pagamento', label: 'Meios de Pagamento', permission: 'canManagePaymentMethods' },
         { id: 'auditoria', label: 'Auditoria', permission: 'canViewAudit' },
@@ -1873,6 +1940,7 @@ const Company: React.FC = () => {
         return allTabs.filter(tab => {
             if (tab.permission === true) return true;
             if (tab.id === 'usuarios') return permissions.canManageUsers || permissions.canManagePermissions;
+            if (tab.id === 'funcionarios') return permissions.canAccessComissoes || permissions.canManageBancoHoras;
             return permissions[tab.permission as keyof PermissionSet];
         });
     }, [permissions, allTabs]);
@@ -1898,7 +1966,7 @@ const Company: React.FC = () => {
             case 'auditoria': content = <AuditoriaTab />; break;
             case 'backup': content = <BackupRestauracaoTab />; break;
             case 'perfil': content = <PerfilTab />; break;
-            case 'comissoes': content = <Comissoes />; break;
+            case 'funcionarios': content = <FuncionariosTab />; break;
             default: content = <DadosEmpresaTab />; break;
         }
 
@@ -1910,7 +1978,7 @@ const Company: React.FC = () => {
             return <div className="max-w-7xl">{content}</div>;
         }
 
-        if (activeTab === 'comissoes') {
+        if (activeTab === 'comissoes' || activeTab === 'funcionarios') {
             return <div className="w-full">{content}</div>;
         }
 

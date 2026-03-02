@@ -4,9 +4,9 @@ import {
     ShoppingBag, Package, MapPin, Phone, Mail, Clock, Instagram, Send, Plus, Minus,
     Zap, Smartphone, Headphones, Star, Gift, Trash2, ChevronDown
 } from 'lucide-react';
-import { getActiveCatalogItems, getCatalogSections, getCompanyInfo, getCategories } from '../../services/mockApi.ts';
+import { getActiveCatalogItems, getCatalogSections, getCompanyInfo, getCategories, getPaymentMethods } from '../../services/mockApi.ts';
 import { supabase } from '../../supabaseClient.ts';
-import { CatalogItem, CompanyInfo } from '../../types.ts';
+import { CatalogItem, CompanyInfo, PaymentMethodParameter } from '../../types.ts';
 
 // ===== CART CONTEXT (Local) =====
 interface CartEntry { item: CatalogItem; quantity: number; }
@@ -155,7 +155,8 @@ const ProductDetailsModal: React.FC<{
     onAdd: () => void;
     whatsapp: string;
     categoriesMap: Record<string, string>;
-}> = ({ item, onClose, onAdd, whatsapp, categoriesMap }) => {
+    cardRates: { rate: number; installments: number }[];
+}> = ({ item, onClose, onAdd, whatsapp, categoriesMap, cardRates }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showAllInstallments, setShowAllInstallments] = useState(false);
     const images = item.imageUrls?.length ? item.imageUrls : (item.imageUrl ? [item.imageUrl] : []);
@@ -253,42 +254,48 @@ const ProductDetailsModal: React.FC<{
                         </div>
 
                         {/* Installments Section - Expandable */}
-                        {item.installments > 1 && item.cardPrice > 0 && (
-                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-all hover:border-gray-200">
+                        {item.cardPrice > 0 && (
+                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 transition-all hover:border-gray-200">
                                 <div
                                     className="flex items-start justify-between cursor-pointer group"
                                     onClick={() => setShowAllInstallments(!showAllInstallments)}
                                 >
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2">
                                         <div className={`mt-0.5 transition-colors ${showAllInstallments ? 'text-emerald-500' : 'text-gray-400'}`}>
                                             <CreditCardIcon />
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-700 flex items-center gap-1.5">
+                                            <p className="text-[13px] text-gray-700 flex items-center gap-1">
                                                 <span className="font-semibold">{item.installments}x</span>
                                                 <span>de</span>
-                                                <span className="font-bold text-gray-900 text-base">R$ {(item.cardPrice / item.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className="font-bold text-gray-900 text-sm">R$ {(item.cardPrice / item.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </p>
-                                            <p className="text-xs text-gray-400 mt-0.5">Total a prazo: R$ {item.cardPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                            <p className="text-[10px] text-secondary mt-0.5 leading-none">Opção de parcelamento padrão</p>
                                         </div>
                                     </div>
-                                    <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${showAllInstallments ? 'rotate-180 text-emerald-500' : 'group-hover:text-gray-600'}`} />
+                                    <div className="flex items-center gap-1 text-emerald-600 font-bold text-[9px] bg-emerald-50 px-2 py-1 rounded-lg">
+                                        {showAllInstallments ? 'Ver menos' : 'Ver todas'}
+                                        <ChevronDown size={12} className={`transition-transform duration-300 ${showAllInstallments ? 'rotate-180' : ''}`} />
+                                    </div>
                                 </div>
 
-                                {/* Expanded Installments List */}
+                                {/* Expanded Installments List - Calculate on the fly for all up to max available */}
                                 {showAllInstallments && (
-                                    <div className="mt-3 pt-3 border-t border-gray-200 animate-fade-in">
-                                        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
-                                            {Array.from({ length: item.installments }).map((_, idx) => {
-                                                const installmentNum = idx + 1;
+                                    <div className="mt-2 pt-2 border-t border-gray-200 animate-fade-in">
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-0">
+                                            {(cardRates.length > 0 ? cardRates : [{ installments: 1, rate: 0 }]).map((rateEntry) => {
+                                                const n = rateEntry.installments;
+                                                // Calculate total with this specific rate: Price * (1 + rate/100)
+                                                const totalWithThisInterest = item.salePrice * (1 + (rateEntry.rate / 100));
                                                 return (
-                                                    <div key={installmentNum} className="text-xs flex justify-between items-center py-1 border-b border-dashed border-gray-100 last:border-0 odd:last:border-0">
-                                                        <span className="text-gray-500 font-medium">{installmentNum}x</span>
-                                                        <span className="font-bold text-gray-800">R$ {(item.cardPrice / installmentNum).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    <div key={n} className="text-[10px] flex justify-between items-center py-1 border-b border-gray-50 last:border-0 odd:pr-2 even:pl-2">
+                                                        <span className="text-secondary font-medium">{n}x de</span>
+                                                        <span className="font-bold text-primary">R$ {(totalWithThisInterest / n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                 );
                                             })}
                                         </div>
+                                        <p className="text-[9px] text-muted mt-2 text-center italic">Taxas calculadas automaticamente conforme política da loja.</p>
                                     </div>
                                 )}
                             </div>
@@ -512,20 +519,28 @@ const CatalogPublic: React.FC = () => {
     const [activeCategory, setActiveCategory] = useState('Todos');
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
+    const [cardRates, setCardRates] = useState<{ rate: number; installments: number }[]>([]);
     const { cart, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [catalogData, company, sectionsData, categoriesData] = await Promise.all([
+                const [catalogData, company, sectionsData, categoriesData, methods] = await Promise.all([
                     getActiveCatalogItems(),
                     getCompanyInfo(),
                     getCatalogSections(),
                     getCategories(),
+                    getPaymentMethods()
                 ]);
                 setItems(catalogData);
                 setCompanyInfo(company);
                 setSectionsConfig(sectionsData.sort((a, b) => a.displayOrder - b.displayOrder));
+
+                // Find card rates
+                const card = (methods as PaymentMethodParameter[]).find(m => m.type === 'card' && m.active && m.config?.creditWithInterestRates);
+                if (card?.config?.creditWithInterestRates) {
+                    setCardRates(card.config.creditWithInterestRates.sort((a, b) => a.installments - b.installments));
+                }
 
                 // Map categories
                 const catMap: Record<string, string> = {};
@@ -557,6 +572,13 @@ const CatalogPublic: React.FC = () => {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'catalog_sections' },
+                () => {
+                    loadData();
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'company_info' },
                 () => {
                     loadData();
                 }
@@ -703,6 +725,54 @@ const CatalogPublic: React.FC = () => {
                 <div className="text-center">
                     <div className="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin mx-auto mb-4" />
                     <p className="text-secondary font-medium">Carregando vitrine...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (companyInfo && companyInfo.isCatalogOnline === false) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+                <div className="max-w-md w-full bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-emerald-500/10 border border-emerald-50/50 text-center animate-scale-in">
+                    <div className="relative mb-8">
+                        {companyInfo.catalogOfflineImageUrl ? (
+                            <img
+                                src={companyInfo.catalogOfflineImageUrl}
+                                alt="Manutenção"
+                                className="w-48 h-48 mx-auto object-contain animate-float"
+                            />
+                        ) : (
+                            <div className="w-48 h-48 mx-auto bg-emerald-50 rounded-full flex items-center justify-center animate-pulse">
+                                <Package size={80} className="text-emerald-500/40" />
+                            </div>
+                        )}
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
+                            Em Manutenção
+                        </div>
+                    </div>
+
+                    <h1 className="text-2xl md:text-3xl font-black text-primary mb-4 leading-tight">
+                        {companyInfo.name || 'Ops! Estamos em manutenção'}
+                    </h1>
+
+                    <p className="text-secondary text-sm md:text-base leading-relaxed mb-8">
+                        {companyInfo.catalogOfflineMessage || 'Nosso catálogo está sendo atualizado para trazer as melhores ofertas para você. Voltamos em breve!'}
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                        <a
+                            href={`https://wa.me/55${companyInfo.whatsapp?.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-500 text-white rounded-2xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+                        >
+                            <WhatsAppSvg />
+                            Falar no WhatsApp
+                        </a>
+                        <p className="text-[10px] text-muted font-medium">
+                            iStorePro © {new Date().getFullYear()} · Tecnologia de Ponta
+                        </p>
+                    </div>
                 </div>
             </div>
         );
@@ -956,6 +1026,7 @@ const CatalogPublic: React.FC = () => {
                     onAdd={() => addToCart(selectedItem)}
                     whatsapp={companyInfo?.whatsapp || ''}
                     categoriesMap={categoriesMap}
+                    cardRates={cardRates}
                 />
             )}
         </div>

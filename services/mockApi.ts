@@ -4683,6 +4683,9 @@ export const getCompanyInfo = async (): Promise<CompanyInfo | null> => {
                 email: row.email,
                 whatsapp: row.whatsapp,
                 instagram: row.instagram,
+                isCatalogOnline: row.is_catalog_online ?? true,
+                catalogOfflineMessage: row.catalog_offline_message,
+                catalogOfflineImageUrl: row.catalog_offline_image_url,
             } as CompanyInfo;
         }, 2, 500);
     });
@@ -4706,6 +4709,9 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
         email: data.email,
         whatsapp: data.whatsapp,
         instagram: data.instagram,
+        is_catalog_online: data.isCatalogOnline,
+        catalog_offline_message: data.catalogOfflineMessage,
+        catalog_offline_image_url: data.catalogOfflineImageUrl,
     };
 
     // Include id if present in data
@@ -5761,6 +5767,18 @@ export const deleteCatalogItem = async (id: string): Promise<void> => {
     });
 };
 
+export const deleteCatalogItems = async (ids: string[]): Promise<void> => {
+    return fetchWithRetry(async () => {
+        const { error } = await supabase
+            .from('catalog_items')
+            .delete()
+            .in('id', ids);
+
+        if (error) throw error;
+        clearCache(['catalog_items', 'catalog_items_active']);
+    });
+};
+
 // ======= Catalog Sections =======
 export const getCatalogSections = async (): Promise<{ id: string; name: string; emoji: string; displayOrder: number; sortOrder?: string }[]> => {
     // Try to fetch from Supabase
@@ -6657,4 +6675,211 @@ export const getProductMovements = async (productId: string): Promise<InventoryM
 
     if (error) throw error;
     return (data || []) as InventoryMovement[];
+};
+
+// --- BANCO DE HORAS ---
+import { BancoHorasFuncionario, BancoHoras } from '../types.ts';
+
+export const getBancoHorasFuncionarios = async (): Promise<BancoHorasFuncionario[]> => {
+    return fetchWithCache('banco_horas_funcionarios', async () => {
+        const { data, error } = await supabase
+            .from('banco_horas_funcionarios')
+            .select('*')
+            .order('name', { ascending: true });
+        if (error) throw error;
+        return data as BancoHorasFuncionario[];
+    });
+};
+
+export const saveBancoHorasFuncionario = async (payload: Partial<BancoHorasFuncionario>): Promise<BancoHorasFuncionario> => {
+    const dataToSave = {
+        name: payload.name,
+        active: payload.active !== false,
+        funcao: payload.funcao,
+        data_nascimento: payload.data_nascimento || null,
+        cpf: payload.cpf,
+        rg: payload.rg,
+        whatsapp: payload.whatsapp,
+        endereco: payload.endereco,
+        cep: payload.cep,
+        numero: payload.numero,
+        bairro: payload.bairro,
+        cidade: payload.cidade,
+        estado: payload.estado,
+        valor_salario: payload.valor_salario,
+        valor_hora: payload.valor_hora,
+        bonus_salarial: payload.bonus_salarial,
+        data_admissao: payload.data_admissao || null
+    };
+
+    if (payload.id) {
+        const { data, error } = await supabase
+            .from('banco_horas_funcionarios')
+            .update(dataToSave)
+            .eq('id', payload.id)
+            .select()
+            .single();
+        if (error) throw error;
+        clearCache(['banco_horas_funcionarios', 'banco_horas_all']);
+        return data;
+    } else {
+        const { data, error } = await supabase
+            .from('banco_horas_funcionarios')
+            .insert([dataToSave])
+            .select()
+            .single();
+        if (error) throw error;
+        clearCache(['banco_horas_funcionarios']);
+        return data as BancoHorasFuncionario;
+    }
+};
+
+export const deleteBancoHorasFuncionario = async (id: string): Promise<void> => {
+    const { error } = await supabase
+        .from('banco_horas_funcionarios')
+        .delete()
+        .eq('id', id);
+    if (error) throw error;
+    clearCache(['banco_horas_funcionarios']);
+};
+
+export const getBancoHoras = async (): Promise<any[]> => {
+    return fetchWithCache('banco_horas_all', async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase
+                .from('banco_horas')
+                .select(`
+                    *,
+                    funcionarios:banco_horas_funcionarios!banco_horas_funcionario_id_fkey(name),
+                    payer:users!banco_horas_usuario_pagamento_id_fkey(name)
+                `)
+                .order('data_trabalho', { ascending: false });
+
+            if (error) throw error;
+
+            return (data || []).map(item => ({
+                ...item,
+                funcionario_nome: item.funcionarios?.name,
+                usuario_pagamento_nome: item.payer?.name
+            }));
+        });
+    });
+};
+
+export const addBancoHoras = async (item: Partial<BancoHoras>, userId?: string, userName?: string): Promise<any> => {
+    const { data, error } = await supabase
+        .from('banco_horas')
+        .insert([{ ...item, status: 'PENDING' }])
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.CREATE as any,
+        'BANCO_HORAS' as any,
+        data.id,
+        `Adicionou banco de horas: ${data.id}`,
+        userId || '',
+        userName || ''
+    );
+
+    clearCache(['banco_horas']);
+    return data;
+};
+
+export const updateBancoHoras = async (id: string, item: Partial<BancoHoras>, userId: string, userName: string): Promise<void> => {
+    const { error } = await supabase
+        .from('banco_horas')
+        .update(item)
+        .eq('id', id);
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.UPDATE as any,
+        'BANCO_HORAS' as any,
+        id,
+        `Editou banco de horas: ${id}`,
+        userId,
+        userName
+    );
+
+    clearCache(['banco_horas']);
+};
+
+export const deleteBancoHoras = async (id: string, userId: string, userName: string): Promise<void> => {
+    const { error } = await supabase
+        .from('banco_horas')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.DELETE as any,
+        'BANCO_HORAS' as any,
+        id,
+        `Excluiu banco de horas: ${id}`,
+        userId,
+        userName
+    );
+
+    clearCache(['banco_horas']);
+};
+
+
+export const payBancoHoras = async (id: string, userId: string, userName: string): Promise<any> => {
+    const { data, error } = await supabase
+        .from('banco_horas')
+        .update({
+            status: 'PAID',
+            data_pagamento: getNowISO(),
+            usuario_pagamento_id: userId
+        })
+        .eq('id', id)
+        .eq('status', 'PENDING') // Security: only pending can be paid
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.UPDATE as any,
+        'BANCO_HORAS' as any,
+        id,
+        `Pagou banco de horas: ${id}`,
+        userId,
+        userName
+    );
+
+    clearCache(['banco_horas']);
+    return data;
+};
+
+export const payMultipleBancoHoras = async (ids: string[], userId: string, userName: string): Promise<void> => {
+    if (!ids.length) return;
+
+    const { error } = await supabase
+        .from('banco_horas')
+        .update({
+            status: 'PAID',
+            data_pagamento: getNowISO(),
+            usuario_pagamento_id: userId
+        })
+        .in('id', ids)
+        .eq('status', 'PENDING');
+
+    if (error) throw error;
+
+    await addAuditLog(
+        AuditActionType.UPDATE as any,
+        'BANCO_HORAS' as any,
+        'MULTIPLE',
+        `Pagou ${ids.length} registros de banco de horas`,
+        userId,
+        userName
+    );
+
+    clearCache(['banco_horas']);
 };
