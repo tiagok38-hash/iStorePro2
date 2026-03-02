@@ -50,6 +50,7 @@ const EntryEditModal: React.FC<{
     })();
 
     const handleSave = async () => {
+        if (!observacao.trim()) return alert('Por favor, mencione o dia e hora exata dessa hora extra nas observações.');
         setSaving(true);
         await onSave(entry.id, {
             data_trabalho: dataTrabalho,
@@ -99,8 +100,15 @@ const EntryEditModal: React.FC<{
                     </div>
 
                     <div>
-                        <label className={labelClasses}>Observações</label>
-                        <input type="text" value={observacao} onChange={e => setObservacao(e.target.value)} className={inputClasses} />
+                        <label className={labelClasses}>Observações *</label>
+                        <input
+                            type="text"
+                            value={observacao}
+                            onChange={e => setObservacao(e.target.value)}
+                            className={inputClasses}
+                            placeholder="Mencione o dia e hora exata dessa hora extra"
+                            required
+                        />
                     </div>
 
                     <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center">
@@ -186,6 +194,7 @@ const BancoHorasTab: React.FC = () => {
         if (!dataTrabalho) return showToast('Selecione a data', 'error');
         if (q <= 0) return showToast('Quantidade deve ser maior que zero', 'error');
         if (!selectedFunc) return showToast('Funcionário não encontrado', 'error');
+        if (!observacao.trim()) return showToast('Mencione o dia e hora exata dessa hora extra nas observações', 'warning');
 
         if (!selectedFunc.valor_hora || selectedFunc.valor_hora <= 0) {
             return showToast(`O funcionário ${selectedFunc.name} não possui valor de hora configurado no cadastro.`, 'error');
@@ -337,8 +346,15 @@ const BancoHorasTab: React.FC = () => {
                         </div>
 
                         <div className="lg:col-span-3">
-                            <label className={labelClasses}>Observações</label>
-                            <input type="text" value={observacao} onChange={e => setObservacao(e.target.value)} className={inputClasses} placeholder="Opcional..." />
+                            <label className={labelClasses}>Observações *</label>
+                            <input
+                                type="text"
+                                value={observacao}
+                                onChange={e => setObservacao(e.target.value)}
+                                className={inputClasses}
+                                placeholder="Mencione o dia e hora exata dessa hora extra"
+                                required
+                            />
                         </div>
                         <div>
                             <label className={labelClasses}>Valor Total</label>

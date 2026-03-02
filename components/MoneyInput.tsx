@@ -74,7 +74,7 @@ const MoneyInput: React.FC<MoneyInputProps> = ({
                     value={displayValue}
                     onChange={handleChange}
                     placeholder={placeholder}
-                    className={inputClasses || defaultInputClasses}
+                    className={`${inputClasses || defaultInputClasses} pl-10`}
                 />
             </div>
         </div>

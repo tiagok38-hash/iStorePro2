@@ -254,12 +254,22 @@ const FuncionarioModal: React.FC<{
                                     inputClasses={`${inputClasses} text-xs font-bold text-green-600`}
                                 />
                             </div>
-                            <div className="flex-none">
+                            <div className="flex-none min-w-[120px]">
                                 <label className={`${labelClasses} text-center`}>Status</label>
-                                <div className="flex items-center gap-2 h-10 px-4 bg-white border border-border rounded-xl">
-                                    <input type="checkbox" id="activeFunc" checked={active} onChange={e => setActive(e.target.checked)} className="w-4 h-4 accent-success" />
-                                    <label htmlFor="activeFunc" className="text-sm font-medium cursor-pointer">{active ? 'Ativo' : 'Inativo'}</label>
-                                </div>
+                                <label className="flex items-center justify-between gap-3 cursor-pointer group h-10 px-4 bg-white border border-border rounded-xl hover:border-blue-200 transition-all">
+                                    <span className={`text-sm font-bold transition-colors ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+                                        {active ? 'Ativo' : 'Inativo'}
+                                    </span>
+                                    <div className="relative">
+                                        <input
+                                            type="checkbox"
+                                            checked={active}
+                                            onChange={e => setActive(e.target.checked)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className={`w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 shadow-inner`}></div>
+                                    </div>
+                                </label>
                             </div>
                         </div>
                     </div>

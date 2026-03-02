@@ -287,9 +287,16 @@ export const addUser = async (data: any) => {
 
     if (authError) {
         console.error('mockApi: Erro no signUp:', authError);
-        if (authError.message.includes('already registered') || authError.status === 422) {
-            throw new Error('Este e-mail já está cadastrado no sistema de autenticação (pode pertencer a um usuário antigo/excluído). Por favor, use um e-mail diferente.');
+
+        // Check for disabled signups in Supabase
+        if (authError.message.includes('Signups not allowed') || authError.message.includes('signup_disabled')) {
+            throw new Error('A criação de novos usuários está desativada no seu projeto Supabase. Por favor, acesse o painel do Supabase > Authentication > Settings e ative a opção "Allow new users to sign up".');
         }
+
+        if (authError.message.includes('already registered') || (authError.status === 422 && authError.message.includes('email'))) {
+            throw new Error('Este e-mail já está cadastrado no sistema de autenticação (pode pertencer a um usuário antigo/excluído). Por favor, use um e-mail diferente ou remova o usuário antigo do Auth do Supabase.');
+        }
+
         if (authError.message.includes('Database error')) {
             throw new Error('Erro interno ao salvar usuário (possível falha de Trigger). Tente novamente ou use outro e-mail.');
         }
