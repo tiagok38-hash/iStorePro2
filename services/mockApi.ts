@@ -5,6 +5,7 @@ import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
 import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
+import { sortProductsCommercial } from '../utils/productSorting.ts';
 
 // --- CACHE SYSTEM ---
 const cache: Record<string, { data: any, timestamp: number }> = {};
@@ -942,6 +943,11 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
     } = params;
 
     return fetchWithRetry(async () => {
+        // Strict Enforcement for iPhones: Fetch all, sort locally, slice.
+        const isIphoneSearch = query.trim().toLowerCase().includes('iphone');
+        const fetchLimit = isIphoneSearch ? 2000 : limit;
+        const fetchOffset = isIphoneSearch ? 0 : offset;
+
         const { data, error } = await supabase.rpc('search_products', {
             p_query: query,
             p_stock_filter: stockFilter,
@@ -949,8 +955,8 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
             p_location_filter: locationFilter,
             p_type_filter: typeFilter,
             p_sort_order: query.trim() ? sortOrder : (sortOrder === 'relevance' ? 'newest' : sortOrder),
-            p_limit: limit,
-            p_offset: offset
+            p_limit: fetchLimit,
+            p_offset: fetchOffset
         });
 
         if (error) {
@@ -961,7 +967,7 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
         const rows = data || [];
         const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
 
-        const products: Product[] = rows.map((p: any) => ({
+        let products: Product[] = rows.map((p: any) => ({
             ...p,
             supplierId: p.supplier_id || p.supplierId,
             storageLocation: p.storage_location || p.storageLocation,
@@ -978,6 +984,18 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
             createdBy: p.created_by || p.createdBy,
             createdByName: p.created_by_name || p.createdByName,
         }));
+
+        if (isIphoneSearch && products.length > 0) {
+            // Apply strict deterministic ordering in memory
+            products.sort((a, b) => sortProductsCommercial(
+                a,
+                b,
+                sortOrder as any,
+                (item) => ({ salePrice: item.price, costPrice: item.costPrice || 0 })
+            ));
+            // Slice the requested pagination window
+            products = products.slice(offset, offset + limit);
+        }
 
         return { products, totalCount };
     });
@@ -1565,13 +1583,26 @@ export const updateProductStock = async (id: string, newStock: number, reason: s
 export const updateMultipleProducts = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; storageLocation?: string; commission_enabled?: boolean; commission_type?: 'fixed' | 'percentage'; commission_value?: number; discount_limit_type?: 'fixed' | 'percentage'; discount_limit_value?: number }[], userId?: string, userName?: string) => {
     const now = getNowISO();
 
+    const updatedSummaries: any[] = [];
     for (const u of updates) {
-        const { data: currentProduct } = await supabase.from('products').select('*').eq('id', u.id).single();
+        const { data: currentProduct } = await supabase.from('products').select('*').eq('id', u.id).maybeSingle();
         if (!currentProduct) continue;
 
         const payload: any = {};
         const existingPriceHistory = currentProduct.priceHistory || [];
         let priceHistoryUpdated = false;
+
+        // Collect summary info with name
+        updatedSummaries.push({
+            id: u.id,
+            model: `${currentProduct.brand} ${currentProduct.model}`,
+            price: u.price,
+            costPrice: u.costPrice,
+            wholesalePrice: u.wholesalePrice,
+            location: u.storageLocation,
+            commission_enabled: u.commission_enabled,
+            commission_value: u.commission_value
+        });
 
         // Handle sale price update
         if (u.price !== undefined) {
@@ -1743,7 +1774,26 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
             await supabase.from('products').update(payload).eq('id', u.id);
         }
     }
-    clearCache(['products']);
+
+    // Log a summary for the entire bulk operation
+    if (updatedSummaries.length > 0) {
+        // We create a special audit log for the batch operation
+        await addAuditLog(
+            AuditActionType.BULK_PRICE_UPDATE,
+            AuditEntityType.PRODUCT,
+            'batch-' + Date.now(),
+            JSON.stringify({
+                count: updatedSummaries.length,
+                timestamp: now,
+                user: userName || 'Sistema',
+                updates: updatedSummaries.slice(0, 100) // Store up to 100 products in detail
+            }),
+            userId || 'system',
+            userName || 'Sistema'
+        );
+    }
+
+    clearCache(['products', 'audit_logs']);
 };
 
 const mapSale = (sale: any): Sale => {
@@ -5242,6 +5292,17 @@ export const getAuditLogs = async (): Promise<AuditLog[]> => {
         if (error) throw error;
         return data || [];
     });
+};
+
+export const getBulkUpdateLogs = async (): Promise<AuditLog[]> => {
+    const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('action', 'BULK_PRICE_UPDATE')
+        .order('timestamp', { ascending: false })
+        .limit(20);
+    if (error) throw error;
+    return data || [];
 };
 
 // GOVERNANCE: Immutable audit logs for cash register operations

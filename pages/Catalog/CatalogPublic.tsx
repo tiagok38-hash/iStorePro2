@@ -7,6 +7,7 @@ import {
 import { getActiveCatalogItems, getCatalogSections, getCompanyInfo, getCategories, getPaymentMethods, logCatalogEvent } from '../../services/mockApi.ts';
 import { supabase } from '../../supabaseClient.ts';
 import { CatalogItem, CompanyInfo, PaymentMethodParameter } from '../../types.ts';
+import { sortProductsCommercial } from '../../utils/productSorting.ts';
 
 // ===== CART CONTEXT (Local) =====
 interface CartEntry { item: CatalogItem; quantity: number; }
@@ -884,37 +885,14 @@ const CatalogPublic: React.FC = () => {
                         let sortedItems = [...sectionItems];
                         const sortOrder = (dbConfig as any)?.sortOrder || 'newest';
 
-                        switch (sortOrder) {
-                            case 'oldest':
-                                // Mantém a ordem original (assumindo que já vem por data de inserção) ou inverte se necessário
-                                // Como não temos data explícita aqui, vamos assumir que a ordem do array é a de inserção (se vier do DB assim)
-                                // Se quisermos garantir, precisaríamos do campo 'created_at' no CatalogItem
-                                // Por enquanto, vamos inverter a lógica do 'newest' se assumirmos que o padrão é newest.
-                                // Mas geralmente 'newest' é o padrão desejado.
-                                // Se a API retorna ordenado por criação (asc), então:
-                                // newest = reverse
-                                // oldest = normal
-                                // Vamos assumir que a API retorna 'newest' first ou algo assim. 
-                                // Melhor: vamos ordenar por created_at se existir, ou fallback.
-                                // Como não temos created_at garantido no type CatalogItem aqui (precisa checar), 
-                                // vamos usar lógica de preço que é garantida e inverter array para newest/oldest se assumirmos ordem de carga.
-                                // Assumindo que a API traz os mais novos primeiro (padrão comum), então:
-                                // newest = sortedItems
-                                // oldest = sortedItems.reverse()
-                                sortedItems.reverse();
-                                break;
-                            case 'lowest_price':
-                                sortedItems.sort((a, b) => a.salePrice - b.salePrice);
-                                break;
-                            case 'highest_price':
-                                sortedItems.sort((a, b) => b.salePrice - a.salePrice);
-                                break;
-                            case 'newest':
-                            default:
-                                // Assumindo que a API já retorna os mais recentes primeiro ou que a ordem natural é essa.
-                                // Se precisar garantir, usaríamos created_at.
-                                break;
-                        }
+                        sortedItems.sort((a, b) => {
+                            return sortProductsCommercial(
+                                a,
+                                b,
+                                sortOrder as any,
+                                (item) => ({ salePrice: item.salePrice, costPrice: item.costPrice })
+                            );
+                        });
 
                         return (
                             <section key={sectionName} className="relative pt-2">
