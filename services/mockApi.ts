@@ -1038,33 +1038,34 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     } = data;
     const now = getNowISO();
 
-    const imei1 = rest.imei1 || null;
-    const imei2 = rest.imei2 || null;
-    const serialNumber = rest.serialNumber || null;
+    const imei1 = rest.imei1?.trim() || null;
+    const imei2 = rest.imei2?.trim() || null;
+    const serialNumber = rest.serialNumber?.trim() || null;
 
     // PROFESSIONAL DEVICE LIFECYCLE: Check if IMEI/Serial already exists
     let existingProduct = null;
 
     if (imei1 || imei2 || serialNumber) {
-        const orConditions = [];
-        if (imei1) orConditions.push(`imei1.eq.${imei1}`, `imei2.eq.${imei1}`);
-        if (imei2) orConditions.push(`imei1.eq.${imei2}`, `imei2.eq.${imei2}`);
-        if (serialNumber) orConditions.push(`"serialNumber".eq.${serialNumber}`);
-
         try {
-            const searchQuery = supabase
-                .from('products')
-                .select('*')
-                .or(orConditions.join(','))
-                .limit(1)
-                .maybeSingle();
+            // Use separate queries to safely handle special characters that break PostgREST .or() string parser
+            let existing: any = null;
 
-            const timeout = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('SEARCH_TIMEOUT')), 5000)
-            );
+            if (serialNumber) {
+                const { data } = await supabase.from('products').select('*').eq('serialNumber', serialNumber).maybeSingle();
+                if (data) existing = data;
+            }
 
-            const result = await Promise.race([searchQuery, timeout]) as any;
-            existingProduct = result.data || null;
+            if (!existing && imei1) {
+                const { data } = await supabase.from('products').select('*').or(`imei1.eq.${imei1},imei2.eq.${imei1}`).maybeSingle();
+                if (data) existing = data;
+            }
+
+            if (!existing && imei2) {
+                const { data } = await supabase.from('products').select('*').or(`imei1.eq.${imei2},imei2.eq.${imei2}`).maybeSingle();
+                if (data) existing = data;
+            }
+
+            existingProduct = existing;
         } catch (e: any) {
             if (e.message === 'SEARCH_TIMEOUT') {
                 console.warn('[addProduct] Search timed out. Proceeding as new product.');
@@ -1266,7 +1267,7 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     Object.keys(productData).forEach(key => productData[key] === undefined && delete productData[key]);
 
     // Sanitize UUID fields to prevent 400 Bad Request from Supabase
-    const uuidFields = ['supplier_id', 'categoryId', 'brandId'];
+    const uuidFields = ['supplier_id', 'categoryId', 'brandId', 'createdBy'];
     uuidFields.forEach(f => {
         if (productData[f] && typeof productData[f] === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productData[f])) {
             productData[f] = null;
