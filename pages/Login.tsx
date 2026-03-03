@@ -90,9 +90,9 @@ const Login: React.FC = () => {
                     >
                         {(loading || isExiting) ? <SpinnerIcon className="h-5 w-5" /> : 'Entrar'}
                     </button>
-                    <div className="text-center mt-4">
+                    <div className="text-center mt-4 opacity-0 select-none">
                         <span className="text-sm text-muted">Ainda não tem uma conta? </span>
-                        <Link to="/register" className="text-sm text-accent hover:underline font-medium focus:outline-none focus:underline">
+                        <Link to="/register" className="text-sm text-accent hover:underline font-medium focus:outline-none focus:underline hover:opacity-0 focus:opacity-0">
                             Crie aqui
                         </Link>
                     </div>
