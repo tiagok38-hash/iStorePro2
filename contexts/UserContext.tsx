@@ -75,6 +75,9 @@ const defaultPermissions: PermissionSet = {
   canEditCompletedSale: false,
   canCancelCompletedSale: false,
   canReopenCashRegister: false,
+  canManageBancoHoras: true,
+  canCreateBancoHoras: true,
+  canPayBancoHoras: true,
 };
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -240,7 +243,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           break;
         case 'SIGNED_OUT':
           await updateUserAndPermissions(null);
-          clearCache(['products', 'sales', 'users', 'cash_sessions']);
+          clearCache(Object.keys(localStorage).concat(['products', 'sales', 'users', 'cash_sessions', 'company_info']));
           break;
         case 'USER_UPDATED':
           checkSession(false);

@@ -4666,8 +4666,12 @@ export const deleteWarranty = (id: string, userId?: string, userName?: string) =
 export const getCompanyInfo = async (): Promise<CompanyInfo | null> => {
     return fetchWithCache('company_info', async () => {
         return fetchWithRetry(async () => {
-            const res = await supabase.from('company_info').select('*').single();
-            if (res.error) return { name: 'iStorePro' } as CompanyInfo;
+            const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+            const query = supabase.from('companies').select('*');
+            if (userCompanyId) query.eq('id', userCompanyId);
+
+            const res = await query.single();
+            if (res.error) return { name: 'Sua Empresa' } as CompanyInfo;
             const row = res.data;
             // Map snake_case database columns to camelCase frontend fields
             // Use localStorage fallback for logo if column doesn't exist
@@ -4699,6 +4703,8 @@ export const getCompanyInfo = async (): Promise<CompanyInfo | null> => {
 };
 
 export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'system', userName: string = 'Sistema') => {
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+
     // Map camelCase frontend fields to snake_case database columns
     const payload: Record<string, any> = {
         name: data.name,
@@ -4721,22 +4727,11 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
         catalog_offline_image_url: data.catalogOfflineImageUrl,
     };
 
-    // Include id if present in data
-    if (data.id) {
-        payload.id = data.id;
-    } else {
-        // Try to find existing record to update
-        const { data: existing } = await supabase.from('company_info').select('id').limit(1).maybeSingle();
-        if (existing) {
-            payload.id = existing.id;
-        } else {
-            // If no record, generate new valid UUID
-            payload.id = crypto.randomUUID();
-        }
-    }
+    // If no record, we must use the one we have or error (RLS handles insert per user if they only have 1)
+    if (userCompanyId) payload.id = userCompanyId;
 
     // Try to save with logo_url first
-    let result = await supabase.from('company_info').upsert(payload).select().single();
+    let result = await supabase.from('companies').upsert(payload).select().single();
 
     // If logo_url column doesn't exist, retry without it
     if (result.error && result.error.message.includes('logo_url')) {
@@ -4748,7 +4743,7 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
         } else {
             localStorage.removeItem('company_logo_fallback');
         }
-        result = await supabase.from('company_info').upsert(payloadWithoutLogo).select().single();
+        result = await supabase.from('companies').upsert(payloadWithoutLogo).select().single();
     } else if (!result.error) {
         // Logo was saved to DB successfully, clear localStorage fallback
         localStorage.removeItem('company_logo_fallback');
