@@ -276,12 +276,18 @@ export const addUser = async (data: any) => {
         auth: { persistSession: false }
     });
 
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+
     // 1. Create entry in Auth
     const { data: authData, error: authError } = await tempSupabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
-            data: { name: data.name }
+            data: {
+                name: data.name,
+                company_id: userCompanyId,
+                permissionProfileId: data.permissionProfileId
+            }
         }
     });
 
