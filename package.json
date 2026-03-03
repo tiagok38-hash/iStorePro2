@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
     "@types/jsbarcode": "^3.11.4",
+    "date-fns": "^4.1.0",
     "html2canvas-pro": "^1.6.7",
     "jsbarcode": "^3.12.3",
     "jspdf": "^4.2.0",

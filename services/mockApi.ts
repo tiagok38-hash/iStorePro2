@@ -5681,6 +5681,18 @@ export const getCatalogItems = async (): Promise<CatalogItem[]> => {
     });
 };
 
+export const logCatalogEvent = async (eventType: 'PAGE_VIEW' | 'WHATSAPP_CLICK' | 'CART_ADD', catalogItemId?: string, productId?: string) => {
+    try {
+        await supabase.from('catalog_events').insert([{
+            event_type: eventType,
+            catalog_item_id: catalogItemId || null,
+            product_id: productId || null
+        }]);
+    } catch (e) {
+        console.error('Failed to log catalog event:', e);
+    }
+};
+
 export const getActiveCatalogItems = async (): Promise<CatalogItem[]> => {
     return fetchWithCache('catalog_items_active', async () => {
         return fetchWithRetry(async () => {

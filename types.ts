@@ -759,6 +759,14 @@ export interface ReceiptTermParameter {
 }
 
 // Catalog Module
+export interface CatalogEvent {
+    id: string;
+    event_type: 'PAGE_VIEW' | 'WHATSAPP_CLICK' | 'CART_ADD';
+    product_id?: string;
+    catalog_item_id?: string;
+    created_at: string;
+}
+
 export interface CatalogItem {
     id: string;
     productId: string;

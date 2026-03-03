@@ -46,6 +46,7 @@ const ServiceOrderReports = lazyWithRetry(() => import('./pages/ServiceOrders/Se
 const CatalogLayout = lazyWithRetry(() => import('./pages/Catalog/CatalogLayout.tsx'), 'CatalogLayout');
 const CatalogAdmin = lazyWithRetry(() => import('./pages/Catalog/CatalogAdmin.tsx'), 'CatalogAdmin');
 const CatalogSettings = lazyWithRetry(() => import('./pages/Catalog/CatalogSettings.tsx'), 'CatalogSettings');
+const CatalogStats = lazyWithRetry(() => import('./pages/Catalog/CatalogStats.tsx'), 'CatalogStats');
 const CatalogPublic = lazyWithRetry(() => import('./pages/Catalog/CatalogPublic.tsx'), 'CatalogPublic');
 const Financeiro = lazyWithRetry(() => import('./pages/Financeiro.tsx'), 'Financeiro');
 
@@ -160,6 +161,7 @@ const App: React.FC = () => {
                                     <Route element={<ProtectedRoute permissionKey="canAccessCatalog" />}>
                                         <Route path="/catalog" element={<CatalogLayout />}>
                                             <Route index element={<CatalogAdmin />} />
+                                            <Route path="stats" element={<CatalogStats />} />
                                             <Route path="settings" element={<CatalogSettings />} />
                                         </Route>
                                     </Route>

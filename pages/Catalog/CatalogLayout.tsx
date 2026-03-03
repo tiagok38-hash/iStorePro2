@@ -42,6 +42,7 @@ const CatalogLayout: React.FC = () => {
                 {/* Nav */}
                 <nav className="flex-1 px-3 py-4 space-y-1">
                     <CatalogSidebarItem to="/catalog" icon={<LayoutGrid size={20} />} label="Meus Produtos" end />
+                    <CatalogSidebarItem to="/catalog/stats" icon={<BarChart3 size={20} />} label="Estatísticas" />
                     <CatalogSidebarItem to="/catalog/settings" icon={<Settings size={20} />} label="Configurações" />
                 </nav>
 
@@ -71,6 +72,9 @@ const CatalogLayout: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <NavLink to="/catalog" end className={({ isActive }) => `p-2 rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/70'}`}>
                         <List size={18} />
+                    </NavLink>
+                    <NavLink to="/catalog/stats" className={({ isActive }) => `p-2 rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/70'}`}>
+                        <BarChart3 size={18} />
                     </NavLink>
                     <NavLink to="/catalog/settings" className={({ isActive }) => `p-2 rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/70'}`}>
                         <Settings size={18} />

@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    ShoppingCart, Search, Filter, MessageCircle, X, ChevronRight, ChevronLeft,
-    ShoppingBag, Package, MapPin, Phone, Mail, Clock, Instagram, Send, Plus, Minus,
+    Search, X, ChevronRight, ChevronLeft,
+    ShoppingBag, Package, Phone, Send, Plus, Minus,
     Zap, Smartphone, Headphones, Star, Gift, Trash2, ChevronDown
 } from 'lucide-react';
-import { getActiveCatalogItems, getCatalogSections, getCompanyInfo, getCategories, getPaymentMethods } from '../../services/mockApi.ts';
+import { getActiveCatalogItems, getCatalogSections, getCompanyInfo, getCategories, getPaymentMethods, logCatalogEvent } from '../../services/mockApi.ts';
 import { supabase } from '../../supabaseClient.ts';
 import { CatalogItem, CompanyInfo, PaymentMethodParameter } from '../../types.ts';
 
 // ===== CART CONTEXT (Local) =====
 interface CartEntry { item: CatalogItem; quantity: number; }
 
-// ===== CART CONTEXT (Local) =====
-
 const useCart = () => {
     const [cart, setCart] = useState<CartEntry[]>([]);
 
     const addToCart = (item: CatalogItem) => {
+        logCatalogEvent('CART_ADD', item.id, item.productId);
         setCart(prev => {
             const existing = prev.find(e => e.item.id === item.id);
             if (existing) return prev.map(e => e.item.id === item.id ? { ...e, quantity: e.quantity + 1 } : e);
@@ -46,7 +45,6 @@ const SECTION_CONFIG: Record<string, { icon: React.ReactNode; emoji: string }> =
     'Outros': { icon: <Gift size={18} />, emoji: '🎁' },
 };
 
-// ===== PRODUCT CARD =====
 // ===== PRODUCT CARD =====
 const ProductCard: React.FC<{ item: CatalogItem; onClick: () => void; onAdd: (e: React.MouseEvent) => void; whatsapp: string }> = ({ item, onClick, onAdd, whatsapp }) => {
     const [imgLoaded, setImgLoaded] = useState(false);
@@ -129,7 +127,7 @@ const ProductCard: React.FC<{ item: CatalogItem; onClick: () => void; onAdd: (e:
                         href={`https://wa.me/55${whatsappNumber}?text=${encodeURIComponent(`Olá! Tenho interesse no *${item.productName}*. Pode me dar mais detalhes?`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); logCatalogEvent('WHATSAPP_CLICK', item.id, item.productId); }}
                         className="flex-1 max-w-[80%] flex items-center justify-center gap-1.5 px-2 py-2 bg-[#25D366] text-white rounded-lg text-[10px] font-bold hover:bg-[#128C7E] transition-colors shadow-sm"
                     >
                         <WhatsAppSvg size={14} />
@@ -334,6 +332,7 @@ const ProductDetailsModal: React.FC<{
                             href={whatsappLink}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => logCatalogEvent('WHATSAPP_CLICK', item.id, item.productId)}
                             className="w-full flex items-center justify-center gap-2 py-3.5 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/20"
                         >
                             <WhatsAppSvg />
@@ -521,6 +520,10 @@ const CatalogPublic: React.FC = () => {
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
     const [cardRates, setCardRates] = useState<{ rate: number; installments: number }[]>([]);
     const { cart, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
+
+    useEffect(() => {
+        logCatalogEvent('PAGE_VIEW');
+    }, []);
 
     useEffect(() => {
         const loadData = async () => {
