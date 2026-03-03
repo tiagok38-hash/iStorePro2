@@ -4727,11 +4727,13 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
         catalog_offline_image_url: data.catalogOfflineImageUrl,
     };
 
-    // If no record, we must use the one we have or error (RLS handles insert per user if they only have 1)
-    if (userCompanyId) payload.id = userCompanyId;
+    // We must use the userCompanyId since RLS dictates they can only UPDATE their own company
+    if (!userCompanyId) {
+        throw new Error('Empresa não encontrada para este usuário.');
+    }
 
     // Try to save with logo_url first
-    let result = await supabase.from('companies').upsert(payload).select().single();
+    let result = await supabase.from('companies').update(payload).eq('id', userCompanyId).select().single();
 
     // If logo_url column doesn't exist, retry without it
     if (result.error && result.error.message.includes('logo_url')) {
@@ -4743,7 +4745,7 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
         } else {
             localStorage.removeItem('company_logo_fallback');
         }
-        result = await supabase.from('companies').upsert(payloadWithoutLogo).select().single();
+        result = await supabase.from('companies').update(payloadWithoutLogo).eq('id', userCompanyId).select().single();
     } else if (!result.error) {
         // Logo was saved to DB successfully, clear localStorage fallback
         localStorage.removeItem('company_logo_fallback');
