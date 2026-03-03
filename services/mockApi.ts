@@ -1235,9 +1235,18 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
         additionalCostPrice: data.additionalCostPrice || 0,
         variations: data.variations || [],
         observations: data.observations || null,
-        apple_warranty_until: (data.apple_warranty_until && typeof data.apple_warranty_until === 'string' && data.apple_warranty_until.trim())
-            ? data.apple_warranty_until
-            : null,
+        apple_warranty_until: (() => {
+            if (data.apple_warranty_until && typeof data.apple_warranty_until === 'string' && data.apple_warranty_until.trim()) {
+                const aw = data.apple_warranty_until.trim();
+                // Handle DD/MM/YYYY format from TradeInModal
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(aw)) {
+                    const [dd, mm, yyyy] = aw.split('/');
+                    return `${yyyy}-${mm}-${dd}`;
+                }
+                return aw;
+            }
+            return null;
+        })(),
         // Add initial stock history entry for traceability (only if stock > 0)
         // Trade-in products (stock: 0) will have their history added when the sale is finalized
         stockHistory: data.stock === 0 ? [] : [{
@@ -1255,6 +1264,14 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     };
 
     Object.keys(productData).forEach(key => productData[key] === undefined && delete productData[key]);
+
+    // Sanitize UUID fields to prevent 400 Bad Request from Supabase
+    const uuidFields = ['supplier_id', 'categoryId', 'brandId'];
+    uuidFields.forEach(f => {
+        if (productData[f] && typeof productData[f] === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productData[f])) {
+            productData[f] = null;
+        }
+    });
 
     // INSERT and get the created product with its database-generated ID
     let createdProduct: any = null;
