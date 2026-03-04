@@ -753,14 +753,14 @@ const Vendas: React.FC = () => {
                                     }).join(', ');
 
                                     return (
-                                        <tbody key={sale.id} className="border-b border-gray-100/50 hover:bg-gray-50/50 transition-colors duration-150 group">
+                                        <tbody key={sale.id} className="border-t border-b border-gray-200 hover:bg-gray-50/50 transition-colors duration-150 group">
                                             <tr className="text-xs sm:text-sm">
-                                                <td className="px-6 py-4 font-bold text-primary border-t-0">{sale.id}</td>
-                                                <td className="px-6 py-4 text-muted border-t-0">
+                                                <td className="px-6 py-5 font-bold text-primary border-0">{sale.id}</td>
+                                                <td className="px-6 py-5 text-muted border-0">
                                                     <div className="font-medium">{new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                                                     <div className="text-[10px] opacity-70">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-primary hidden sm:table-cell border-t-0">
+                                                <td className="px-6 py-5 text-primary hidden sm:table-cell border-0">
                                                     <div className="flex items-center gap-1.5 font-bold">
                                                         <span>{userMap[sale.salespersonId]?.name?.split(' ')[0] || 'N/A'}</span>
                                                         {userMap[sale.salespersonId]?.active === false && (
@@ -768,7 +768,7 @@ const Vendas: React.FC = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 border-t-0">
+                                                <td className="px-6 py-5 border-0">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-primary font-black sm:font-bold truncate max-w-[150px] sm:max-w-none text-[13px] sm:text-sm">{customerMap[sale.customerId]?.name || 'N/A'}</span>
                                                         {customerMap[sale.customerId]?.phone && (
@@ -785,7 +785,7 @@ const Vendas: React.FC = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 border-t-0">
+                                                <td className="px-6 py-5 border-0">
                                                     <div className="flex gap-1 flex-wrap">
                                                         {getStatusBadge(sale.status)}
                                                         {/* Only show Promissória tag if sale is NOT cancelled */}
@@ -794,19 +794,19 @@ const Vendas: React.FC = () => {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-primary font-bold hidden md:table-cell border-t-0">
+                                                <td className="px-6 py-5 text-primary font-bold hidden md:table-cell border-0">
                                                     {(() => {
                                                         if (sale.origin === 'Balcão') return 'Vendas';
                                                         if (sale.origin === 'PDV' && !sale.cashSessionDisplayId && !sale.cashSessionId) return 'Vendas';
                                                         return sale.origin;
                                                     })()}
                                                 </td>
-                                                <td className="px-6 py-4 font-bold text-primary border-t-0">{formatCurrency(sale.total)}</td>
-                                                <td className="px-6 py-4 text-muted hidden lg:table-cell border-t-0">{formatCurrency(sale.payments.reduce((acc, p) => acc + (p.fees || 0), 0))}</td>
+                                                <td className="px-6 py-5 font-bold text-primary border-0">{formatCurrency(sale.total)}</td>
+                                                <td className="px-6 py-5 text-muted hidden lg:table-cell border-0">{formatCurrency(sale.payments.reduce((acc, p) => acc + (p.fees || 0), 0))}</td>
                                                 {permissions?.canViewSaleProfit && (
-                                                    <td className={`px-6 py-4 font-bold border-t-0 ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
+                                                    <td className={`px-6 py-5 font-bold border-0 ${profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatCurrency(profit)}</td>
                                                 )}
-                                                <td className="px-6 py-4 border-t-0">
+                                                <td className="px-6 py-5 border-0">
                                                     <div className="flex justify-center">
                                                         <SaleActionsDropdown
                                                             permissions={permissions}
@@ -826,7 +826,7 @@ const Vendas: React.FC = () => {
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td colSpan={colSpanTotal} className="px-6 pb-4 pt-0 border-t-0">
+                                                <td colSpan={colSpanTotal} className="px-6 pb-5 pt-0 border-0">
                                                     <div className="flex flex-col gap-1.5 -mt-3 scale-95 origin-left">
                                                         {displayItems.map((item, idx) => {
                                                             const product = productMap[item.productId];
@@ -841,8 +841,8 @@ const Vendas: React.FC = () => {
                                                             const itemName = item.name || product?.model || 'Produto Desconhecido';
 
                                                             return (
-                                                                <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-500 bg-black/[0.02] px-2 py-1.5 rounded-lg border border-gray-100/50 max-w-[95%]">
-                                                                    <span className="font-bold text-gray-500 max-w-[180px] sm:max-w-[250px] truncate" title={itemName}>{itemName}</span>
+                                                                <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-500 bg-white/40 px-2 py-1.5 rounded-lg border border-gray-200/50 max-w-[95%] shadow-sm">
+                                                                    <span className="font-bold text-gray-700 max-w-[180px] sm:max-w-[250px] truncate" title={itemName}>{itemName}</span>
                                                                     {identifiers.length > 0 && (
                                                                         <>
                                                                             <span className="text-gray-300 hidden sm:inline">•</span>
@@ -856,12 +856,12 @@ const Vendas: React.FC = () => {
                                                         })}
                                                         <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5 ml-0.5">
                                                             {remainingItemsCount > 0 && (
-                                                                <span className="text-gray-600 font-bold bg-gray-100/80 px-2 py-0.5 rounded-full border border-gray-200/50" title="Abra a venda para ver todos os produtos">
+                                                                <span className="text-gray-500 font-bold bg-white/60 px-2 py-0.5 rounded-full border border-gray-200" title="Abra a venda para ver todos os produtos">
                                                                     + {remainingItemsCount} outro{remainingItemsCount > 1 ? 's' : ''} produto{remainingItemsCount > 1 ? 's' : ''}
                                                                 </span>
                                                             )}
                                                             {paymentsStr && (
-                                                                <div className="flex items-center gap-1.5 text-gray-500 font-bold bg-black/[0.02] px-2 py-0.5 rounded-full border border-gray-100/50">
+                                                                <div className="flex items-center gap-1.5 text-gray-500 font-bold bg-white/60 px-2 py-0.5 rounded-full border border-gray-200">
                                                                     <CreditCardIcon className="w-3 h-3 opacity-60" />
                                                                     <span>Pagamento: {paymentsStr}</span>
                                                                 </div>
@@ -869,6 +869,10 @@ const Vendas: React.FC = () => {
                                                         </div>
                                                     </div>
                                                 </td>
+                                            </tr>
+                                            {/* Spacer semi-visible border for separation */}
+                                            <tr className="bg-gray-50/20">
+                                                <td colSpan={colSpanTotal} className="p-0 border-0 h-[1px]"></td>
                                             </tr>
                                         </tbody>
                                     );
