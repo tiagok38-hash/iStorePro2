@@ -3438,14 +3438,32 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                         userName
                     );
                 } else {
-                    // Product was NEVER sold to another customer - DELETE it completely
-                    await supabase.from('products').delete().eq('id', productId);
+                    // Product was NEVER sold to another customer - reset stock to 0 (deactivate)
+                    const existingStockHistory = tradeInProduct.stockHistory || [];
+                    await supabase.from('products').update({
+                        stock: 0,
+                        is_active: false,
+                        stockHistory: [
+                            ...existingStockHistory,
+                            {
+                                id: crypto.randomUUID(),
+                                oldStock: tradeInProduct.stock,
+                                newStock: 0,
+                                adjustment: -tradeInProduct.stock,
+                                reason: 'Cancelamento de Venda (trade-in)',
+                                relatedId: sale.id,
+                                timestamp: getNowISO(),
+                                changedBy: userName,
+                                details: `Motivo: ${reason}`
+                            }
+                        ]
+                    }).eq('id', productId);
 
                     await addAuditLog(
-                        AuditActionType.DELETE,
+                        AuditActionType.STOCK_ADJUST,
                         AuditEntityType.PRODUCT,
                         productId,
-                        `Produto de troca excluído (venda cancelada): ${tradeInProduct.model}. Motivo: ${reason}`,
+                        `Produto de troca removido (venda cancelada): ${tradeInProduct.model}. Estoque zerado. Motivo: ${reason}`,
                         userId,
                         userName
                     );
