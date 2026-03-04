@@ -133,7 +133,7 @@ export const useOrcamentoForm = ({
         return total + disc;
     }, 0), [cart]);
 
-    // FIX: Total should NOT include card fees. Card fees are external to the product value.
+    // Total excludes card fees. Card fees are external to the product value.
     const total = useMemo(() => subtotal - totalItemDiscounts, [subtotal, totalItemDiscounts]);
     const totalPaid = useMemo(() => payments.reduce((sum, p) => sum + p.value, 0), [payments]);
     const balance = useMemo(() => total - totalPaid, [total, totalPaid]);

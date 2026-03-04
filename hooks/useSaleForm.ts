@@ -149,7 +149,7 @@ export const useSaleForm = ({
         return total + disc;
     }, 0), [cart]);
 
-    // FIX: Total should NOT include card fees. Card fees are external to the product value.
+    // Total excludes card fees (they are external to the product value)
     const total = useMemo(() => subtotal - totalItemDiscounts, [subtotal, totalItemDiscounts]);
     const totalPaid = useMemo(() => payments.reduce((sum, p) => sum + p.value, 0), [payments]);
     const balance = useMemo(() => total - totalPaid, [total, totalPaid]);
@@ -478,7 +478,6 @@ export const useSaleForm = ({
                     try {
                         const created = await onAddProduct(p.tradeInDetails.newProductPayload);
                         if (created && created.id) {
-                            console.log('[useSaleForm] Trade-in product created with REAL ID:', created.id);
                             // Update payment with real ID and remove payload to avoid cluttering DB
                             const { newProductPayload, ...restDetails } = p.tradeInDetails;
                             const updatedPayment = {
@@ -503,7 +502,6 @@ export const useSaleForm = ({
 
             // Update baseSaleData with processed payments forcefully
             baseSaleData.payments = processedPayments.map(p => ({ ...p }));
-            console.log('[useSaleForm] Final Processed Payments sent to addSale:', baseSaleData.payments);
 
             let savedSale: Sale;
             if (saleToEdit) {
@@ -518,15 +516,9 @@ export const useSaleForm = ({
 
             if (savedSale) {
                 const salesperson = users.find(u => u.id === selectedSalespersonId);
-                // Log all trade-in products linked to this sale
+                // Log trade-in products linked to this sale
                 for (const p of savedSale.payments) {
                     if (p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId) {
-                        // Skip if it was already a real ID (not created just now)?
-                        // Actually, logging it again as "Linked" is fine, or we can assume if it's in this sale it's relevant.
-                        // Ideally we only log for NEWly created ones, but 'Produto vinculado' implies connection.
-
-                        // If we want only the ones we just created, we'd need to track them.
-                        // But since we are finalizing the sale, logging the link is appropriate for all trade-ins in this sale.
                         await addAuditLog(
                             AuditActionType.STOCK_LAUNCH,
                             AuditEntityType.PRODUCT,

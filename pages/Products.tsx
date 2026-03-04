@@ -167,7 +167,7 @@ const getSupplierColorClass = (supplier: Supplier | undefined) => {
     if (!supplier) return 'bg-gray-100 text-gray-700';
     if (supplier.linkedCustomerId) return 'bg-purple-100 text-purple-700 border border-purple-200'; // Client-Suppliers (Purple) - Mantendo roxo para diferenciar "Cliente"
 
-    // FIX: All standard suppliers should be Orange as requested
+    // All standard suppliers should be Orange as requested
     return 'bg-orange-100 text-orange-700 border border-orange-200';
 };
 

@@ -369,7 +369,7 @@ export interface ServiceOrder {
     exitDate?: string;
 }
 
-// FIX: Added CartItem interface to be used across components like NewSaleModal.
+// CartItem interface to be used across components like NewSaleModal.
 export interface CartItem extends Product {
     quantity: number;
     salePrice: number;

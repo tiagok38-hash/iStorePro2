@@ -2843,7 +2843,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             } catch (e) { console.error('[updateSale] Error creating installments:', e); }
         }
 
-        // FIX: Reconcile payments if they changed between Finalizada/Editada states
+        // Reconcile payments if they changed between Finalizada/Editada states
         if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Finalizada' || newStatus === 'Editada')) {
             const oldCreditPayments = originalSale?.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
             const newCreditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
@@ -3009,7 +3009,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
     }
 
-    // FIX: If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
+    // If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
     if (originalSale && (oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Cancelada' || newStatus === 'Pendente')) {
         const oldCreditPayments = originalSale.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
 
@@ -3057,7 +3057,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
     }
 
-    // FIX: If sale was Finalizada/Editada and now is Pendente (Estorno), we need to RETURN stock
+    // If sale was Finalizada/Editada and now is Pendente (Estorno), we need to RETURN stock
     if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && newStatus === 'Pendente') {
         const paymentMethods = data.payments?.map((p: any) => p.method).join(', ') || 'N/A';
         const { data: customerData } = await supabase.from('customers').select('name').eq('id', updated.customer_id).maybeSingle();

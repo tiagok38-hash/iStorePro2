@@ -144,7 +144,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
             method: methodType,
             type: typeLabel,
             card: `${selectedMethod.name} - ${typeLabel}`,
-            value: calculations.originalValue, // FIX: Always use original value for system balance
+            value: calculations.originalValue, // Always use original value for system balance
             installments: calculations.installments,
             installmentsValue: calculations.installmentValue,
             feePercentage: calculations.feePercent,

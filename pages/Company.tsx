@@ -618,6 +618,7 @@ const AuditoriaTab: React.FC = () => {
             [AuditActionType.LOGIN]: 'Login',
             [AuditActionType.LOGOUT]: 'Logout',
             [AuditActionType.CASH_OPEN]: 'Abertura de Caixa',
+            [AuditActionType.BULK_PRICE_UPDATE]: 'Atualização em Massa',
             [AuditActionType.CASH_CLOSE]: 'Fechamento de Caixa',
             [AuditActionType.CASH_WITHDRAWAL]: 'Sangria',
             [AuditActionType.CASH_SUPPLY]: 'Suprimento',
@@ -1034,7 +1035,6 @@ const AuditoriaTab: React.FC = () => {
     );
 };
 
-// FIX: Added ParameterManager component definition
 // --- ParameterManager Component ---
 interface ParameterManagerProps<T extends { id: string; name: string;[key: string]: any }> {
     permissions: PermissionSet | null;
