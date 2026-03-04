@@ -841,28 +841,28 @@ const Vendas: React.FC = () => {
                                                             const itemName = item.name || product?.model || 'Produto Desconhecido';
 
                                                             return (
-                                                                <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-500 bg-white/40 px-2 py-1.5 rounded-lg border border-gray-200/50 max-w-[95%] shadow-sm">
-                                                                    <span className="font-bold text-gray-700 max-w-[180px] sm:max-w-[250px] truncate" title={itemName}>{itemName}</span>
+                                                                <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-400 group-hover:text-gray-500 transition-colors max-w-[95%]">
+                                                                    <span className="font-bold text-gray-500 group-hover:text-gray-700 max-w-[180px] sm:max-w-[250px] truncate" title={itemName}>{itemName}</span>
                                                                     {identifiers.length > 0 && (
                                                                         <>
-                                                                            <span className="text-gray-300 hidden sm:inline">•</span>
-                                                                            <span className="font-mono tracking-tight text-[9px] sm:text-[10px] truncate max-w-[200px] sm:max-w-none opacity-80">{identifiers.join(' | ')}</span>
+                                                                            <span className="text-gray-200 hidden sm:inline">•</span>
+                                                                            <span className="font-mono tracking-tight text-[9px] sm:text-[10px] truncate max-w-[200px] sm:max-w-none opacity-60 group-hover:opacity-80">{identifiers.join(' | ')}</span>
                                                                         </>
                                                                     )}
-                                                                    <span className="text-gray-300 hidden sm:inline">•</span>
-                                                                    <span className="font-bold text-gray-600 whitespace-nowrap">{priceStr}</span>
+                                                                    <span className="text-gray-200 hidden sm:inline">•</span>
+                                                                    <span className="font-bold text-gray-500 group-hover:text-gray-600 whitespace-nowrap">{priceStr}</span>
                                                                 </div>
                                                             );
                                                         })}
-                                                        <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5 ml-0.5">
+                                                        <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5 ml-0">
                                                             {remainingItemsCount > 0 && (
-                                                                <span className="text-gray-500 font-bold bg-white/60 px-2 py-0.5 rounded-full border border-gray-200" title="Abra a venda para ver todos os produtos">
+                                                                <span className="text-gray-400 font-bold" title="Abra a venda para ver todos os produtos">
                                                                     + {remainingItemsCount} outro{remainingItemsCount > 1 ? 's' : ''} produto{remainingItemsCount > 1 ? 's' : ''}
                                                                 </span>
                                                             )}
                                                             {paymentsStr && (
-                                                                <div className="flex items-center gap-1.5 text-gray-500 font-bold bg-white/60 px-2 py-0.5 rounded-full border border-gray-200">
-                                                                    <CreditCardIcon className="w-3 h-3 opacity-60" />
+                                                                <div className="flex items-center gap-1.5 text-gray-400 font-bold">
+                                                                    <CreditCardIcon className="w-3 h-3 opacity-40 group-hover:opacity-60" />
                                                                     <span>Pagamento: {paymentsStr}</span>
                                                                 </div>
                                                             )}
