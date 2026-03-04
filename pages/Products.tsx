@@ -964,16 +964,16 @@ const Products: React.FC = () => {
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-70">TOTAL: {useServerSearch ? serverSearchTotal : filteredProductsLocal.length}{serverSearching ? '...' : ''}</p>
                 </div>
                 <div className="flex flex-wrap items-end gap-4 justify-between">
-                    <div className="flex flex-wrap items-end gap-4 flex-grow">
-                        <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Status</label>
-                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
+                    <div className="flex flex-wrap items-end gap-4 flex-grow w-full md:w-auto">
+                        <div className="flex-1 min-w-[120px]">
+                            <label className="block text-xs font-medium text-muted mb-1 ml-1 text-center sm:text-left">Status</label>
+                            <select value={filters.stock} onChange={e => handleFilterChange('stock', e.target.value)} className="w-full h-10 px-4 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600 font-medium shadow-sm hover:border-gray-300">
                                 <option>Todos</option><option>Em estoque</option><option>Sem estoque</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Condição</label>
-                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
+                        <div className="flex-1 min-w-[120px]">
+                            <label className="block text-xs font-medium text-muted mb-1 ml-1 text-center sm:text-left">Condição</label>
+                            <select value={filters.condition} onChange={e => handleFilterChange('condition', e.target.value)} className="w-full h-10 px-4 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600 font-medium shadow-sm hover:border-gray-300">
                                 <option value="Todos">Todos</option>
                                 <option>Novo</option>
                                 <option>Seminovo</option>
@@ -982,18 +982,18 @@ const Products: React.FC = () => {
                                 <option>Reservado</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Local</label>
-                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
+                        <div className="flex-1 min-w-[120px]">
+                            <label className="block text-xs font-medium text-muted mb-1 ml-1 text-center sm:text-left">Local</label>
+                            <select value={filters.location} onChange={e => handleFilterChange('location', e.target.value)} className="w-full h-10 px-4 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600 font-medium shadow-sm hover:border-gray-300">
                                 <option value="Todos">Todos</option>
                                 {storageLocations.map(loc => (
                                     <option key={loc.id} value={loc.name}>{loc.name}</option>
                                 ))}
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Tipo de Produto</label>
-                            <select value={filters.type} onChange={e => handleFilterChange('type', e.target.value)} className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white">
+                        <div className="flex-1 min-w-[130px]">
+                            <label className="block text-xs font-medium text-muted mb-1 ml-1 text-center sm:text-left">Tipo de Produto</label>
+                            <select value={filters.type} onChange={e => handleFilterChange('type', e.target.value)} className="w-full h-10 px-4 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600 font-medium shadow-sm hover:border-gray-300">
                                 <option value="Todos">Todos</option>
                                 <option value="Produtos Apple">Produtos Apple</option>
                                 <option value="Produtos Variados">Produtos Variados</option>
@@ -1002,28 +1002,34 @@ const Products: React.FC = () => {
                                 <option value="Com Comissão">Com Comissão</option>
                             </select>
                         </div>
-                        <div className="relative flex-grow min-w-[250px]">
-                            <label className="block text-xs font-medium text-muted mb-1">Buscar produto</label>
-                            <input type="text" placeholder="digite para buscar por SKU, descricao, IMEI, numero de serie e codigo de barras..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="p-2 border rounded-xl w-full bg-transparent border-border pr-8 h-10" />
-                            {searchTerm && (<button onClick={() => setSearchTerm('')} className="absolute right-2 bottom-2 text-muted hover:text-primary" aria-label="Limpar busca"><XCircleIcon className="h-5 w-5" /></button>)}
+                        <div className="relative flex-[2_2_250px] min-w-[250px]">
+                            <label className="block text-xs font-medium text-muted mb-1 ml-1">Buscar produto</label>
+                            <div className="relative w-full">
+                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                <input type="text" placeholder="SKU, descricao, IMEI..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-9 pr-9 h-10 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-700 font-medium shadow-sm hover:border-gray-300" />
+                                {searchTerm && (<button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors" aria-label="Limpar busca"><XCircleIcon className="h-5 w-5" /></button>)}
+                            </div>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-end gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Por página</label>
-                            <select
-                                value={itemsPerPage}
-                                onChange={e => { setItemsPerPage(Number(e.target.value) as 15 | 20 | 30); setCurrentPage(1); }}
-                                className="h-10 px-3 border border-gray-300 rounded-xl text-sm bg-white"
-                            >
-                                <option value={15}>15</option>
-                                <option value={20}>20</option>
-                                <option value={30}>30</option>
-                            </select>
+                    <div className="flex items-end gap-3 w-full md:w-auto justify-end">
+                        <div className="flex-1 md:flex-none min-w-[110px]">
+                            <label className="block text-xs font-medium text-muted mb-1 ml-1">Por página</label>
+                            <div className="relative">
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={e => { setItemsPerPage(Number(e.target.value) as 15 | 20 | 30); setCurrentPage(1); }}
+                                    className="w-full pl-4 pr-10 h-10 border border-gray-200 rounded-xl text-sm bg-white appearance-none font-bold text-gray-600 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none cursor-pointer shadow-sm hover:border-gray-300 transition-all"
+                                >
+                                    <option value={15}>15</option>
+                                    <option value={20}>20</option>
+                                    <option value={30}>30</option>
+                                </select>
+                                <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                            </div>
                         </div>
                         <button
                             onClick={() => setInventorySortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                            className="h-10 px-3 py-2 bg-gray-200 text-secondary rounded-xl hover:bg-gray-300 flex items-center gap-2 text-sm font-medium"
+                            className="h-10 px-4 bg-gray-100/50 text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 flex items-center justify-center gap-2 text-sm font-bold shadow-sm transition-all"
                         >
                             <ArrowsUpDownIcon className="h-4 w-4" />
                             <span>{inventorySortOrder === 'newest' ? 'Mais Recentes' : 'Mais Antigos'}</span>
@@ -1297,12 +1303,12 @@ const Products: React.FC = () => {
 
                         {/* Filtros - Direita */}
                         <div className="flex flex-col lg:flex-row items-end gap-3 w-full xl:w-auto xl:flex-1 justify-end">
-                            <div>
-                                <label className="block text-xs font-medium text-muted mb-1 text-center sm:text-left">Status</label>
+                            <div className="flex-1 lg:flex-none lg:w-48">
+                                <label className="block text-xs font-medium text-muted mb-1 ml-1 text-center sm:text-left">Status</label>
                                 <select
                                     value={statusFilter}
                                     onChange={e => setStatusFilter(e.target.value)}
-                                    className="w-full lg:w-48 px-3 border rounded-xl bg-white border-gray-300 text-sm h-10 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600"
+                                    className="w-full h-10 px-4 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-600 font-medium shadow-sm hover:border-gray-300"
                                 >
                                     <option value="Todos">Todos</option>
                                     <option value="Não lançada">Não lançada</option>
@@ -1312,8 +1318,8 @@ const Products: React.FC = () => {
                                 </select>
                             </div>
 
-                            <div className="relative w-full xl:max-w-2xl flex-1">
-                                <label className="block text-xs font-medium text-muted mb-1">Buscar compra</label>
+                            <div className="relative w-full xl:max-w-2xl flex-[2_2_250px]">
+                                <label className="block text-xs font-medium text-muted mb-1 ml-1">Buscar compra</label>
                                 <div className="relative">
                                     <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                     <input
@@ -1321,29 +1327,19 @@ const Products: React.FC = () => {
                                         placeholder="ID, Fornecedor ou Localizador..."
                                         value={purchaseSearchTerm}
                                         onChange={e => setPurchaseSearchTerm(e.target.value)}
-                                        className="w-full p-2.5 pl-9 border rounded-xl bg-white border-gray-300 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all h-10"
+                                        className="w-full pl-9 pr-9 h-10 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all text-gray-700 font-medium shadow-sm hover:border-gray-300"
                                     />
+                                    {purchaseSearchTerm && (<button onClick={() => setPurchaseSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors" aria-label="Limpar busca"><XCircleIcon className="h-5 w-5" /></button>)}
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-medium text-muted mb-1">Ordenar</label>
-                                <button
-                                    onClick={() => setPurchaseSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                                    className="w-full lg:w-auto px-4 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2 text-sm font-medium transition-colors border border-gray-200 h-10 flex-shrink-0 min-w-[110px]"
-                                >
-                                    <ArrowsUpDownIcon className="h-4 w-4" />
-                                    <span>{purchaseSortOrder === 'newest' ? 'Recente' : 'Antigo'}</span>
-                                </button>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-muted mb-1">Por página</label>
+                            <div className="flex-1 lg:flex-none min-w-[110px]">
+                                <label className="block text-xs font-medium text-muted mb-1 ml-1">Por página</label>
                                 <div className="relative">
                                     <select
                                         value={purchasesPerPage}
                                         onChange={e => { setPurchasesPerPage(Number(e.target.value) as 15 | 30 | 50); setCurrentPurchasePage(1); }}
-                                        className="h-10 px-4 pr-10 border border-gray-300 rounded-xl text-sm bg-white appearance-none font-bold text-gray-700 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none cursor-pointer"
+                                        className="w-full pl-4 pr-10 h-10 border border-gray-200 rounded-xl text-sm bg-white appearance-none font-bold text-gray-600 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none cursor-pointer shadow-sm hover:border-gray-300 transition-all"
                                     >
                                         <option value={15}>15</option>
                                         <option value={30}>30</option>
@@ -1351,6 +1347,17 @@ const Products: React.FC = () => {
                                     </select>
                                     <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                 </div>
+                            </div>
+
+                            <div className="flex-none lg:min-w-[110px]">
+                                <label className="block text-xs font-medium text-muted mb-1 opacity-0">Ordenar</label>
+                                <button
+                                    onClick={() => setPurchaseSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
+                                    className="w-full h-10 px-4 bg-gray-100/50 text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 flex items-center justify-center gap-2 text-sm font-bold shadow-sm transition-all flex-shrink-0"
+                                >
+                                    <ArrowsUpDownIcon className="h-4 w-4" />
+                                    <span>{purchaseSortOrder === 'newest' ? 'Recente' : 'Antigo'}</span>
+                                </button>
                             </div>
                         </div>
                     </div>

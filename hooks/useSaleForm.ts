@@ -477,16 +477,21 @@ export const useSaleForm = ({
                 if (p.method === 'Aparelho na Troca' && p.tradeInDetails?.newProductPayload) {
                     try {
                         const created = await onAddProduct(p.tradeInDetails.newProductPayload);
-                        if (created) {
+                        if (created && created.id) {
+                            console.log('[useSaleForm] Trade-in product created with REAL ID:', created.id);
                             // Update payment with real ID and remove payload to avoid cluttering DB
                             const { newProductPayload, ...restDetails } = p.tradeInDetails;
-                            return {
+                            const updatedPayment = {
                                 ...p,
                                 tradeInDetails: {
                                     ...restDetails,
                                     productId: created.id
                                 }
                             };
+                            return updatedPayment;
+                        } else {
+                            console.error('[useSaleForm] onAddProduct succeeded but returned product without id!', created);
+                            throw new Error('Falha ao criar UUID do produto de troca.');
                         }
                     } catch (err) {
                         console.error('Error creating deferred trade-in product:', err);
@@ -496,8 +501,9 @@ export const useSaleForm = ({
                 return p;
             }));
 
-            // Update baseSaleData with processed payments
-            baseSaleData.payments = processedPayments;
+            // Update baseSaleData with processed payments forcefully
+            baseSaleData.payments = processedPayments.map(p => ({ ...p }));
+            console.log('[useSaleForm] Final Processed Payments sent to addSale:', baseSaleData.payments);
 
             let savedSale: Sale;
             if (saleToEdit) {

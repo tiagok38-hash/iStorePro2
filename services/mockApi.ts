@@ -1085,11 +1085,12 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
 
         // ✅ REACTIVATE: Product was sold, now being repurchased
 
+        const newStock = data.stock !== undefined ? data.stock : 1;
         const newStockHistoryEntry = {
             id: crypto.randomUUID(),
             oldStock: 0,
-            newStock: data.stock || 1,
-            adjustment: data.stock || 1,
+            newStock: newStock,
+            adjustment: newStock,
             reason: data.origin === 'Troca' ? 'Recompra (Troca)' : 'Reentrada',
             timestamp: now,
             changedBy: userName,
@@ -1098,8 +1099,8 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
 
         const existingHistory = existingProduct.stockHistory || [];
 
-        const updatePayload = {
-            stock: data.stock || 1,
+        const updatePayload: any = {
+            stock: newStock,
             costPrice: data.costPrice,
             price: data.price,
             wholesalePrice: data.wholesalePrice,
@@ -1108,7 +1109,7 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
             warranty: data.warranty || existingProduct.warranty,
             batteryHealth: data.batteryHealth || existingProduct.batteryHealth,
             origin: data.origin || 'Recompra',
-            supplier: data.supplier || data.supplierName,
+            supplier_id: data.supplierId || existingProduct.supplier_id,
             updatedAt: now,
             stockHistory: [...existingHistory, newStockHistoryEntry]
         };
@@ -1130,7 +1131,7 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
             AuditActionType.STOCK_LAUNCH,
             AuditEntityType.PRODUCT,
             existingProduct.id,
-            `Produto reativado (${data.origin || 'Recompra'}): ${existingProduct.model}. Estoque: 0 → ${data.stock || 1}.`,
+            `Produto reativado (${data.origin || 'Recompra'}): ${existingProduct.model}. Estoque: 0 → ${newStock}.`,
             userId,
             userName
         ).catch(e => console.warn('[addProduct] Audit log failed:', e));
@@ -2255,6 +2256,11 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
         for (const tradeInPayment of tradeInPayments) {
             const productId = tradeInPayment.tradeInDetails.productId;
+
+            if (!productId || productId.startsWith('temp-trade-')) {
+                console.error('[addSale] Skipped trade-in stock update due to invalid ID:', productId);
+                continue;
+            }
 
             // Retry logic to ensure stock update persists
             let attempts = 0;
