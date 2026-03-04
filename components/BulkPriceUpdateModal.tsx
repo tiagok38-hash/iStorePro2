@@ -307,7 +307,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                 <div className="divide-y divide-gray-100">
                                     {searchedProducts.map(product => {
                                         const isApple = product.brand?.toLowerCase() === 'apple' || ['iphone', 'ipad', 'macbook', 'apple watch', 'airpods'].includes(product.category?.toLowerCase() || '');
-                                        const displayBrand = isApple ? 'Apple' : (product.brand || '');
+                                        const displayBrand = isApple ? '' : (product.brand || '');
                                         const rawDesc = `${displayBrand} ${product.model || ''}${product.color && !(product.model || '').toLowerCase().includes(product.color.toLowerCase()) ? ' ' + product.color : ''}`;
                                         const desc = rawDesc.replace(/\s+/g, ' ').trim();
                                         return (
