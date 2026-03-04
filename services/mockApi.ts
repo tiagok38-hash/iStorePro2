@@ -2465,19 +2465,17 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
     // Generate Credit Installments if (Crediário)
     if (saleData.status === 'Finalizada') {
-        const creditPayment = data.payments?.find((p: any) => (p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória') && p.creditDetails);
-
-        if (creditPayment) {
-        } else {
-            const hasCrediarioMethod = data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória');
-        }
+        const creditPayment = data.payments?.find((p: any) =>
+            (['Crediário', 'Crediario', 'Promissória'].includes(p.method)) && p.creditDetails
+        );
 
         if (creditPayment && creditPayment.creditDetails) {
             try {
                 const { creditDetails } = creditPayment;
                 const interestRate = Number(creditDetails.interestRate || 0);
                 const totalInstallments = Number(creditDetails.totalInstallments || 1);
-                const productValue = Number(creditDetails.totalAmount || 0);
+                // Use financedAmount if available, otherwise fallback to totalAmount (legacy/fallback)
+                const productValue = Number(creditDetails.financedAmount ?? creditDetails.totalAmount ?? 0);
 
                 // Regra 2: Cálculo do valor total financiado (Juros Simples)
                 const { totalFinanced, installmentAmount } = calculateFinancedAmount(productValue, interestRate, totalInstallments);
@@ -2527,10 +2525,10 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
             } catch (err: any) {
                 console.error('Failed to create credit installments or update limit:', err);
-                throw new Error(`Erro no Crediário: ${err.message || 'Falha desconhecida'}`);
+                throw new Error(`Erro no Crediário/Promissória: ${err.message || 'Falha desconhecida'}`);
             }
-        } else if (data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario')) {
-            throw new Error('Falha: Pagamento Crediário selecionado, mas os detalhes das parcelas estão ausentes.');
+        } else if (data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória')) {
+            throw new Error('Falha: Pagamento Crediário ou Promissória selecionado, mas os detalhes das parcelas estão ausentes.');
         }
     }
 
@@ -2825,7 +2823,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                         amount: p.amount,
                         status: 'pending',
                         amountPaid: 0,
-                        interestApplied: 0,
+                        interestApplied: Number(cDetails.interestRate || 0) > 0 ? (p.amount * (Number(cDetails.interestRate) / 100)) / cPreviews.length : 0, // Estimativa se não provido
                         penaltyApplied: 0
                     }));
 
@@ -2893,7 +2891,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                                 amount: p.amount,
                                 status: 'pending',
                                 amountPaid: 0,
-                                interestApplied: 0,
+                                interestApplied: Number(cDetails.interestRate || 0) > 0 ? (p.amount * (Number(cDetails.interestRate) / 100)) / cPreviews.length : 0,
                                 penaltyApplied: 0
                             }));
 
