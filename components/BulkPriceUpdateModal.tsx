@@ -75,11 +75,29 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
 
             const searchPhrase = terms.join(' ');
 
+            const modifiers = ['pro', 'max', 'plus', 'mini'];
+            const missingModifiers = modifiers.filter(m => !terms.includes(m));
+
             const results = allProducts.filter(p => {
                 const description = `${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`.toLowerCase();
-                const searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
+                let searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
+
                 const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
                 const stockMatch = p.stock > 0;
+
+                // Strict modifier check: if product model has 'pro', 'max', 'plus' or 'mini', 
+                // the search terms MUST also include it to prevent showing 'Pro Max' when searching just for 'iPhone 16'.
+                if (searchMatch) {
+                    const modelStr = `${p.model || ''}`.toLowerCase();
+                    for (const mod of missingModifiers) {
+                        const regex = new RegExp(`\\b${mod}\\b`);
+                        if (regex.test(modelStr)) {
+                            searchMatch = false;
+                            break;
+                        }
+                    }
+                }
+
                 return searchMatch && conditionMatch && stockMatch;
             });
 
@@ -302,7 +320,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                 <InfoIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                 <span>
                                     {activeTab === 'precos'
-                                        ? <><strong>Dica:</strong> Busque por "iPhone 16 Pro Max" para encontrar produtos específicos.</>
+                                        ? <><strong>Dica:</strong> Para uma busca mais acertiva, selecione a condicao e digite a descricao corretamente. Exemplo: iPhone 17 Pro 256GB.</>
                                         : <><strong>Dica:</strong> Busque os produtos e defina comissão e limites de desconto para todos de uma vez.</>
                                     }
                                 </span>
