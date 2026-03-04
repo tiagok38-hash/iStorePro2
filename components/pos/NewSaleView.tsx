@@ -238,9 +238,6 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
             dynamic.push({ label: 'Cartão', icon: <CreditCardIcon /> });
         }
 
-        if (!dynamic.find(d => d.label === 'Aparelho na Troca')) {
-            dynamic.push({ label: 'Aparelho na Troca', icon: <DeviceExchangeIcon /> });
-        }
 
         // Ensure Crediário/Promissória is visible or added if not in paymentMethods (though it should be)
         if (!dynamic.find(d => d.label === 'Crediário' || d.label === 'Promissória')) {
