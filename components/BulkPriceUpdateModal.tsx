@@ -62,46 +62,52 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
         };
     }, []);
 
-    const handleSearch = () => {
+    useEffect(() => {
         setIsSearching(true);
-        const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
-        const searchPhrase = terms.join(' ');
+        const timer = setTimeout(() => {
+            const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+            const searchPhrase = terms.join(' ');
 
-        const results = allProducts.filter(p => {
-            const description = `${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''}`.toLowerCase();
-            const searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
-            const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
-            const stockMatch = p.stock > 0;
-            return searchMatch && conditionMatch && stockMatch;
-        });
-
-        // Sort by relevance: phrase match first, then word-boundary match
-        if (terms.length > 1) {
-            results.sort((a, b) => {
-                const modelA = String(a.model || '').toLowerCase();
-                const modelB = String(b.model || '').toLowerCase();
-                const phraseInA = modelA.includes(searchPhrase) ? 200 : 0;
-                const phraseInB = modelB.includes(searchPhrase) ? 200 : 0;
-
-                let scoreA = phraseInA;
-                let scoreB = phraseInB;
-
-                terms.forEach(term => {
-                    const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-                    if (regex.test(modelA)) scoreA += 50;
-                    else if (modelA.includes(term)) scoreA += 5;
-                    if (regex.test(modelB)) scoreB += 50;
-                    else if (modelB.includes(term)) scoreB += 5;
-                });
-
-                return scoreB - scoreA;
+            const results = allProducts.filter(p => {
+                const description = `${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`.toLowerCase();
+                const searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
+                const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
+                const stockMatch = p.stock > 0;
+                return searchMatch && conditionMatch && stockMatch;
             });
-        }
 
-        setTimeout(() => {
+            // Sort by relevance: phrase match first, then word-boundary match
+            if (terms.length > 1) {
+                results.sort((a, b) => {
+                    const modelA = String(a.model || '').toLowerCase();
+                    const modelB = String(b.model || '').toLowerCase();
+                    const phraseInA = modelA.includes(searchPhrase) ? 200 : 0;
+                    const phraseInB = modelB.includes(searchPhrase) ? 200 : 0;
+
+                    let scoreA = phraseInA;
+                    let scoreB = phraseInB;
+
+                    terms.forEach(term => {
+                        const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                        if (regex.test(modelA)) scoreA += 50;
+                        else if (modelA.includes(term)) scoreA += 5;
+                        if (regex.test(modelB)) scoreB += 50;
+                        else if (modelB.includes(term)) scoreB += 5;
+                    });
+
+                    return scoreB - scoreA;
+                });
+            }
+
             setSearchedProducts(results);
             setIsSearching(false);
-        }, 300);
+        }, 400);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm, conditionFilter, allProducts]);
+
+    const handleSearch = () => {
+        // Now handled automatically by the useEffect
     };
 
     const handlePriceUpdate = async () => {
@@ -275,19 +281,14 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                 </select>
                                 <input
                                     type="text"
-                                    placeholder="Buscar produto..."
+                                    placeholder="Buscar por nome, SKU, EAN, S/N, IMEI..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
                                     className="flex-1 min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                                 />
-                                <button
-                                    onClick={handleSearch}
-                                    disabled={isSearching}
-                                    className="flex-shrink-0 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold text-sm hover:bg-indigo-700 disabled:bg-gray-400"
-                                >
+                                <div className="flex-shrink-0 px-4 py-2.5 bg-indigo-600 flex items-center justify-center text-white rounded-lg font-semibold text-sm">
                                     {isSearching ? <SpinnerIcon className="h-5 w-5 animate-spin" /> : <SearchIcon className="h-5 w-5" />}
-                                </button>
+                                </div>
                             </div>
                             <div className="p-2 bg-blue-50 text-blue-700 rounded-lg text-xs flex items-start gap-2">
                                 <InfoIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -305,7 +306,10 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                             {searchedProducts.length > 0 ? (
                                 <div className="divide-y divide-gray-100">
                                     {searchedProducts.map(product => {
-                                        const desc = `${product.brand} ${product.model}${product.color && !product.model.toLowerCase().includes(product.color.toLowerCase()) ? ' ' + product.color : ''}`;
+                                        const isApple = product.brand?.toLowerCase() === 'apple' || ['iphone', 'ipad', 'macbook', 'apple watch', 'airpods'].includes(product.category?.toLowerCase() || '');
+                                        const displayBrand = isApple ? 'Apple' : (product.brand || '');
+                                        const rawDesc = `${displayBrand} ${product.model || ''}${product.color && !(product.model || '').toLowerCase().includes(product.color.toLowerCase()) ? ' ' + product.color : ''}`;
+                                        const desc = rawDesc.replace(/\s+/g, ' ').trim();
                                         return (
                                             <div key={product.id} className="p-4 relative group">
                                                 <button
