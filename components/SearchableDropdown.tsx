@@ -143,7 +143,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
                                     className={`px-4 py-3 text-sm cursor-pointer transition-all flex items-center justify-between group/item ${value === option.value ? 'bg-accent text-white font-bold shadow-md' : 'text-gray-900 hover:bg-accent/5 hover:text-accent'}`}
                                     onClick={() => handleSelect(option.value)}
                                 >
-                                    <span className="flex-1 truncate pr-4">{option.label || 'Sem Nome'}</span>
+                                    <span className="flex-1 whitespace-normal break-words pr-4">{option.label || 'Sem Nome'}</span>
                                     {value === option.value ? (
                                         <div className="w-2 h-2 rounded-full bg-white shadow-sm" />
                                     ) : (

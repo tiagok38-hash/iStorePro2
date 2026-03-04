@@ -1610,10 +1610,15 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
         const existingPriceHistory = currentProduct.priceHistory || [];
         let priceHistoryUpdated = false;
 
+        const isApple = currentProduct.brand?.toLowerCase() === 'apple' || ['iphone', 'ipad', 'macbook', 'apple watch', 'airpods'].includes(currentProduct.category?.toLowerCase() || '');
+        const displayBrand = isApple ? '' : (currentProduct.brand || '');
+        const rawDesc = `${displayBrand} ${currentProduct.model || ''}${currentProduct.color && !(currentProduct.model || '').toLowerCase().includes(currentProduct.color.toLowerCase()) ? ' ' + currentProduct.color : ''} ${currentProduct.storage || ''}`;
+        const finalDesc = rawDesc.replace(/\s+/g, ' ').trim();
+
         // Collect summary info with name
         updatedSummaries.push({
             id: u.id,
-            model: `${currentProduct.brand} ${currentProduct.model}`,
+            model: finalDesc,
             price: u.price,
             costPrice: u.costPrice,
             wholesalePrice: u.wholesalePrice,

@@ -66,6 +66,13 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
         setIsSearching(true);
         const timer = setTimeout(() => {
             const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+
+            if (terms.length === 0) {
+                setSearchedProducts([]);
+                setIsSearching(false);
+                return;
+            }
+
             const searchPhrase = terms.join(' ');
 
             const results = allProducts.filter(p => {
@@ -227,11 +234,12 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                             {summary.updates && (
                                                 <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                                     {summary.updates.slice(0, 10).map((u: any, idx: number) => (
-                                                        <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 text-[10px]">
-                                                            <span className="font-semibold text-gray-700 truncate max-w-[150px]">{u.model}</span>
-                                                            <div className="flex gap-2">
-                                                                {u.price !== undefined && <span className="text-green-600 font-bold">V: {formatCurrency(u.price)}</span>}
-                                                                {u.costPrice !== undefined && <span className="text-gray-500">C: {formatCurrency(u.costPrice)}</span>}
+                                                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-xl bg-gray-50 text-[10px] gap-2">
+                                                            <span className="font-semibold text-gray-700">{u.model}</span>
+                                                            <div className="flex flex-wrap gap-2 sm:justify-end">
+                                                                {u.price !== undefined && <span className="text-green-600 font-bold whitespace-nowrap">V: {formatCurrency(u.price)}</span>}
+                                                                {u.wholesalePrice !== undefined && <span className="text-orange-600 font-bold whitespace-nowrap">A: {formatCurrency(u.wholesalePrice)}</span>}
+                                                                {u.costPrice !== undefined && <span className="text-gray-500 whitespace-nowrap">C: {formatCurrency(u.costPrice)}</span>}
                                                             </div>
                                                         </div>
                                                     ))}
