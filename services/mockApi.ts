@@ -2394,10 +2394,12 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 ? productDescriptions.join(' + ')
                 : 'Produto';
 
-            // Calculate daily profit (all finalized sales today)
+            // Calculate daily profit (all finalized sales today in BRT)
             let dailyProfit = totalProfit;
             try {
-                const today = new Date().toISOString().split('T')[0];
+                // Determine 'today' in Brasilia time (BRT) to match the user's timezone accurately
+                const brtFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' });
+                const today = brtFormatter.format(new Date());
                 const { data: todaySales } = await supabase
                     .from('sales')
                     .select('items')

@@ -103,8 +103,10 @@ export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<vo
         const pdfBlob = await generateReceiptPDF(receiptElementId, format);
         const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         // Try Web Share API with file (works on mobile Chrome/Safari)
-        if (navigator.share && navigator.canShare) {
+        if (isMobile && navigator.share && navigator.canShare) {
             try {
                 const shareData = { title: `Comprovante de Venda #${saleId}`, text: message, files: [file] };
                 if (navigator.canShare(shareData)) {

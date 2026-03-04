@@ -19,8 +19,9 @@ export const sendSaleNotification = async (data: SaleNotificationData): Promise<
 
     try {
         const profitFormatted = data.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const timeBRT = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).format(new Date());
 
-        let message = `${data.productDescription} vendido! Lucro R$ ${profitFormatted} 💰`;
+        let message = `[${timeBRT}] ${data.productDescription} vendido! Lucro R$ ${profitFormatted} 💰`;
 
         // Add daily profit if available
         if (data.dailyProfit !== undefined && data.dailyProfit > 0) {
