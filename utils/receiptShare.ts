@@ -125,7 +125,7 @@ export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<vo
 
         const phone = customerPhone?.replace(/\D/g, '') || '';
         const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
-        const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message + `\n\n📎 O PDF foi baixado. Anexe-o na conversa.`)}`;
+        const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
 
         setTimeout(() => {
             window.open(waUrl, '_blank');
@@ -169,7 +169,7 @@ export async function shareViaEmail(options: ShareReceiptOptions): Promise<void>
         downloadBlob(pdfBlob, filename);
 
         const to = customerEmail || '';
-        const body = message + `\n\nO PDF "${filename}" foi baixado. Anexe-o ao e-mail.`;
+        const body = message;
 
         setTimeout(() => {
             window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
