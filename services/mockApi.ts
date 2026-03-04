@@ -3144,53 +3144,37 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 if (wasFinalized && isNowPendingOrCancelled) {
                     const stockHistory = product.stockHistory || [];
 
-                    // Check if product was EVER sold in another sale
-                    const wasSoldInAnotherSale = stockHistory.some((entry: any) =>
-                        entry.reason === 'Venda' && entry.relatedId && entry.relatedId !== data.id
-                    );
+                    // Use CURRENT STOCK as the source of truth:
+                    // stock > 0 means the product is still in inventory (not sold to anyone else)
+                    // stock === 0 means it was already sold to another customer
+                    if (product.stock > 0) {
+                        const newStockEntry = {
+                            id: crypto.randomUUID(),
+                            oldStock: product.stock,
+                            newStock: 0,
+                            adjustment: -product.stock,
+                            reason: `Venda ${newStatus}`,
+                            relatedId: data.id,
+                            timestamp: getNowISO(),
+                            changedBy: userName,
+                            details: `Produto de troca removido do estoque (venda ${newStatus.toLowerCase()})`
+                        };
 
-                    if (wasSoldInAnotherSale || newStatus === 'Pendente') {
-                        // Product was sold to another customer OR sale is just pending - keep it but zero the stock
-                        if (product.stock > 0) {
-                            const newStockEntry = {
-                                id: crypto.randomUUID(),
-                                oldStock: product.stock,
-                                newStock: 0,
-                                adjustment: -product.stock,
-                                reason: `Venda ${newStatus}`,
-                                relatedId: data.id,
-                                timestamp: getNowISO(),
-                                changedBy: userName,
-                                details: `Produto de troca removido do estoque (venda ${newStatus.toLowerCase()})`
-                            };
-
-                            await supabase.from('products').update({
-                                stock: 0,
-                                stockHistory: [...stockHistory, newStockEntry]
-                            }).eq('id', productId);
-
-                            await addAuditLog(
-                                AuditActionType.STOCK_ADJUST,
-                                AuditEntityType.PRODUCT,
-                                productId,
-                                `Estoque zerado (venda ${newStatus.toLowerCase()}): ${product.model}. Estoque: ${product.stock} → 0`,
-                                userId,
-                                userName
-                            );
-                        }
-                    } else {
-                        // Product was NEVER sold elsewhere AND sale is being CANCELLED - DELETE it completely
-                        await supabase.from('products').delete().eq('id', productId);
+                        await supabase.from('products').update({
+                            stock: 0,
+                            stockHistory: [...stockHistory, newStockEntry]
+                        }).eq('id', productId);
 
                         await addAuditLog(
-                            AuditActionType.DELETE,
+                            AuditActionType.STOCK_ADJUST,
                             AuditEntityType.PRODUCT,
                             productId,
-                            `Produto de troca excluído (venda cancelada): ${product.model}`,
+                            `Estoque zerado (venda ${newStatus.toLowerCase()}): ${product.model}. Estoque: ${product.stock} → 0`,
                             userId,
                             userName
                         );
                     }
+                    // If stock is already 0, the product was sold to another customer - nothing to do
                 }
 
                 // Case 2: Sale was Pending and now is Finalized -> Add trade-in to stock
@@ -3417,34 +3401,15 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
             if (tradeInProduct) {
                 const stockHistory = tradeInProduct.stockHistory || [];
 
-                // Check if product was EVER sold in another sale (has a 'Venda' entry with a different sale ID)
-                const wasSoldInAnotherSale = stockHistory.some((entry: any) =>
-                    entry.reason === 'Venda' && entry.relatedId && entry.relatedId !== sale.id
-                );
-
-                if (wasSoldInAnotherSale) {
-                    // Product was already sold - cannot be removed, just track it for notification
-                    tradeInAlreadySoldProducts.push({
-                        model: tradeInProduct.model,
-                        sku: tradeInProduct.sku
-                    });
-
-                    await addAuditLog(
-                        AuditActionType.STOCK_ADJUST,
-                        AuditEntityType.PRODUCT,
-                        productId,
-                        `Produto de troca não removido (já vendido em outra venda): ${tradeInProduct.model}`,
-                        userId,
-                        userName
-                    );
-                } else {
-                    // Product was NEVER sold to another customer - reset stock to 0 (deactivate)
-                    const existingStockHistory = tradeInProduct.stockHistory || [];
+                // Use CURRENT STOCK as the source of truth:
+                // stock > 0 means the product is still in inventory (not sold to anyone else)
+                // stock === 0 means it was already sold to another customer
+                if (tradeInProduct.stock > 0) {
+                    // Product is still in stock - zero it out
                     await supabase.from('products').update({
                         stock: 0,
-                        is_active: false,
                         stockHistory: [
-                            ...existingStockHistory,
+                            ...stockHistory,
                             {
                                 id: crypto.randomUUID(),
                                 oldStock: tradeInProduct.stock,
@@ -3463,7 +3428,22 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                         AuditActionType.STOCK_ADJUST,
                         AuditEntityType.PRODUCT,
                         productId,
-                        `Produto de troca removido (venda cancelada): ${tradeInProduct.model}. Estoque zerado. Motivo: ${reason}`,
+                        `Produto de troca removido (venda cancelada): ${tradeInProduct.model}. Estoque: ${tradeInProduct.stock} → 0. Motivo: ${reason}`,
+                        userId,
+                        userName
+                    );
+                } else {
+                    // Product stock is already 0 - it was sold to another customer
+                    tradeInAlreadySoldProducts.push({
+                        model: tradeInProduct.model,
+                        sku: tradeInProduct.sku
+                    });
+
+                    await addAuditLog(
+                        AuditActionType.STOCK_ADJUST,
+                        AuditEntityType.PRODUCT,
+                        productId,
+                        `Produto de troca não removido (estoque já em 0, possivelmente vendido): ${tradeInProduct.model}`,
                         userId,
                         userName
                     );
