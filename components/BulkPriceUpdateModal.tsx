@@ -80,13 +80,32 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
 
             const results = allProducts.filter(p => {
                 const description = `${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`.toLowerCase();
+
+                // 1. Basic check: all terms must be present
                 let searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
+
+                // 2. Strict numeric check: if user typed "16", we don't want "15" or "17" 
+                // This handles cases where "16" might be a substring of something else, but here we want it to be a specific identifier.
+                if (searchMatch && terms.length > 0) {
+                    for (const term of terms) {
+                        // If the term is numeric (like 14, 15, 16)
+                        if (/^\d+$/.test(term)) {
+                            // Check if this specific number exists as a whole word/token in the description
+                            // We use a regex with word boundaries \b
+                            const strictNumericRegex = new RegExp(`\\b${term}\\b`);
+                            if (!strictNumericRegex.test(description)) {
+                                searchMatch = false;
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
                 const stockMatch = p.stock > 0;
 
-                // Strict modifier check: if product model has 'pro', 'max', 'plus' or 'mini', 
-                // the search terms MUST also include it to prevent showing 'Pro Max' when searching just for 'iPhone 16'.
+                // 3. Strict modifier check: if product model has 'pro', 'max', 'plus' or 'mini', 
+                // the search terms MUST also include it.
                 if (searchMatch) {
                     const modelStr = `${p.model || ''}`.toLowerCase();
                     for (const mod of missingModifiers) {
