@@ -38,8 +38,9 @@ const CatalogSettings: React.FC = () => {
 
     // DnD State
     const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+    const [companySlug, setCompanySlug] = useState('loja');
 
-    const catalogUrl = `${window.location.origin}${window.location.pathname}#/catalogo/loja`;
+    const catalogUrl = `${window.location.origin}${window.location.pathname}#/catalogo/${companySlug}`;
 
     useEffect(() => {
         const load = async () => {
@@ -51,6 +52,7 @@ const CatalogSettings: React.FC = () => {
                     setIsCatalogOnline(info.isCatalogOnline ?? true);
                     setCatalogOfflineMessage(info.catalogOfflineMessage || '');
                     setCatalogOfflineImageUrl(info.catalogOfflineImageUrl || '');
+                    if (info.slug) setCompanySlug(info.slug);
                 }
                 setSections(secs);
             } catch (e) {

@@ -4766,6 +4766,7 @@ export const getCompanyInfo = async (): Promise<CompanyInfo | null> => {
             const logoFromStorage = typeof window !== 'undefined' ? localStorage.getItem('company_logo_fallback') : null;
             return {
                 id: row.id,
+                slug: row.slug,
                 name: row.name,
                 razaoSocial: row.razao_social,
                 logoUrl: logoFromDb || logoFromStorage || '',
@@ -5776,13 +5777,17 @@ export const getCatalogItems = async (): Promise<CatalogItem[]> => {
     });
 };
 
-export const logCatalogEvent = async (eventType: 'PAGE_VIEW' | 'WHATSAPP_CLICK' | 'CART_ADD', catalogItemId?: string, productId?: string) => {
+export const logCatalogEvent = async (eventType: 'PAGE_VIEW' | 'WHATSAPP_CLICK' | 'CART_ADD', catalogItemId?: string, productId?: string, companyId?: string) => {
     try {
-        await supabase.from('catalog_events').insert([{
+        const payload: any = {
             event_type: eventType,
             catalog_item_id: catalogItemId || null,
             product_id: productId || null
-        }]);
+        };
+        if (companyId) {
+            payload.company_id = companyId;
+        }
+        await supabase.from('catalog_events').insert([payload]);
     } catch (e) {
         console.error('Failed to log catalog event:', e);
     }
@@ -5801,6 +5806,53 @@ export const getActiveCatalogItems = async (): Promise<CatalogItem[]> => {
             return (data || []).map(mapCatalogItem);
         });
     });
+};
+
+export const getPublicCatalogData = async (slug: string): Promise<any> => {
+    return fetchWithCache(`public_catalog_${slug}`, async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase.rpc('get_public_catalog', { p_slug: slug });
+
+            if (error) throw error;
+
+            // Map data types correctly
+            const row = data.company;
+            const mappedCompany = {
+                id: row.id,
+                name: row.name,
+                razaoSocial: row.razao_social,
+                logoUrl: row.logo_url || row.logoUrl || '',
+                cnpj: row.cnpj,
+                inscricaoEstadual: row.inscricao_estadual,
+                address: row.address,
+                numero: row.numero,
+                complemento: row.complemento,
+                bairro: row.bairro,
+                city: row.city,
+                state: row.state,
+                cep: row.cep,
+                email: row.email,
+                whatsapp: row.whatsapp,
+                instagram: row.instagram,
+                isCatalogOnline: row.is_catalog_online ?? true,
+                catalogOfflineMessage: row.catalog_offline_message,
+                catalogOfflineImageUrl: row.catalog_offline_image_url,
+            };
+
+            return {
+                company: mappedCompany,
+                items: (data.items || []).map(mapCatalogItem),
+                sections: (data.sections || []).map((s: any) => ({
+                    id: s.id,
+                    name: s.name,
+                    emoji: s.emoji || '📦',
+                    displayOrder: s.display_order || 0
+                })),
+                categories: data.categories || [],
+                methods: data.paymentMethods || []
+            };
+        });
+    }, 60 * 1000); // 1 minute cache for public viewers
 };
 
 export const addCatalogItem = async (item: Partial<CatalogItem>): Promise<CatalogItem> => {

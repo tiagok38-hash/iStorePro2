@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import {
     Search, X, ChevronRight, ChevronLeft,
     ShoppingBag, Package, Phone, Send, Plus, Minus,
     Zap, Smartphone, Headphones, Star, Gift, Trash2, ChevronDown
 } from 'lucide-react';
-import { getActiveCatalogItems, getCatalogSections, getCompanyInfo, getCategories, getPaymentMethods, logCatalogEvent } from '../../services/mockApi.ts';
+import { getPublicCatalogData, logCatalogEvent } from '../../services/mockApi.ts';
 import { supabase } from '../../supabaseClient.ts';
 import { CatalogItem, CompanyInfo, PaymentMethodParameter } from '../../types.ts';
 import { sortProductsCommercial } from '../../utils/productSorting.ts';
@@ -510,6 +511,7 @@ const CartDrawer: React.FC<{
 
 // ===== MAIN PUBLIC PAGE =====
 const CatalogPublic: React.FC = () => {
+    const { slug } = useParams<{ slug: string }>();
     const [items, setItems] = useState<CatalogItem[]>([]);
     const [sectionsConfig, setSectionsConfig] = useState<{ id: string; name: string; emoji: string; displayOrder: number; sortOrder?: string }[]>([]);
     const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({});
@@ -520,6 +522,7 @@ const CatalogPublic: React.FC = () => {
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
     const [cardRates, setCardRates] = useState<{ rate: number; installments: number }[]>([]);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const { cart, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
 
     useEffect(() => {
@@ -528,34 +531,33 @@ const CatalogPublic: React.FC = () => {
 
     useEffect(() => {
         const loadData = async () => {
+            if (!slug) return;
             try {
-                const [catalogData, company, sectionsData, categoriesData, methods] = await Promise.all([
-                    getActiveCatalogItems(),
-                    getCompanyInfo(),
-                    getCatalogSections(),
-                    getCategories(),
-                    getPaymentMethods()
-                ]);
-                setItems(catalogData);
-                setCompanyInfo(company);
-                setSectionsConfig(sectionsData.sort((a, b) => a.displayOrder - b.displayOrder));
+                // Fetch all related data by company slug using the new RPC
+                const data = await getPublicCatalogData(slug);
+
+                setItems(data.items);
+                setCompanyInfo(data.company);
+                setSectionsConfig(data.sections.sort((a: any, b: any) => a.displayOrder - b.displayOrder));
 
                 // Find card rates
-                const card = (methods as PaymentMethodParameter[]).find(m => m.type === 'card' && m.active && m.config?.creditWithInterestRates);
+                const card = (data.methods as PaymentMethodParameter[]).find(m => m.type === 'card' && m.active && m.config?.creditWithInterestRates);
                 if (card?.config?.creditWithInterestRates) {
                     setCardRates(card.config.creditWithInterestRates.sort((a, b) => a.installments - b.installments));
                 }
 
                 // Map categories
                 const catMap: Record<string, string> = {};
-                if (Array.isArray(categoriesData)) {
-                    categoriesData.forEach((c: any) => {
+                if (Array.isArray(data.categories)) {
+                    data.categories.forEach((c: any) => {
                         if (c.id && c.name) catMap[c.id] = c.name;
                     });
                 }
                 setCategoriesMap(catMap);
-            } catch (error) {
+                setFetchError(null);
+            } catch (error: any) {
                 console.error('Error loading catalog:', error);
+                setFetchError(error.message);
             } finally {
                 setIsLoading(false);
             }
@@ -565,7 +567,7 @@ const CatalogPublic: React.FC = () => {
 
         // Realtime Subscription
         const channel = supabase
-            .channel('catalog-public-changes')
+            .channel(`catalog-public-changes-${slug}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'catalog_items' },
@@ -592,7 +594,7 @@ const CatalogPublic: React.FC = () => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [slug]);
 
     const sections = useMemo(() => {
         const sectionMap: Record<string, CatalogItem[]> = {};
@@ -729,6 +731,27 @@ const CatalogPublic: React.FC = () => {
                 <div className="text-center">
                     <div className="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin mx-auto mb-4" />
                     <p className="text-secondary font-medium">Carregando vitrine...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (fetchError) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+                <div className="max-w-md w-full bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-emerald-500/10 border border-emerald-50/50 text-center animate-scale-in">
+                    <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                        <Package size={40} className="text-gray-400" />
+                    </div>
+                    <h1 className="text-2xl font-black text-primary mb-4">Catálogo Não Encontrado</h1>
+                    <p className="text-secondary text-sm leading-relaxed mb-8">
+                        {fetchError === 'Empresa não encontrada ou inativa'
+                            ? 'Este catálogo não existe, foi desativado ou o link está incorreto.'
+                            : 'Ocorreu um erro ao tentar carregar este catálogo. Tente novamente mais tarde.'}
+                    </p>
+                    <p className="text-[10px] text-muted font-medium">
+                        iStorePro © {new Date().getFullYear()}
+                    </p>
                 </div>
             </div>
         );

@@ -725,6 +725,7 @@ export interface PaymentMethodParameter {
 
 export interface CompanyInfo {
     id?: string;
+    slug?: string;
     name: string;
     razaoSocial?: string;
     logoUrl?: string;

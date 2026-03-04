@@ -3,8 +3,8 @@ import {
     Plus, Search, Copy, ExternalLink, MoreVertical, Pencil, Trash2, Eye, EyeOff,
     Package, Filter, ChevronDown, Loader2, Check, X, ShoppingBag, Link as LinkIcon, Image as ImageIcon
 } from 'lucide-react';
-import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, getCatalogSections, deleteCatalogItems } from '../../services/mockApi.ts';
-import { CatalogItem, Product, Brand } from '../../types.ts';
+import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, getCatalogSections, deleteCatalogItems, getCompanyInfo } from '../../services/mockApi.ts';
+import { CatalogItem, Product, Brand, CompanyInfo } from '../../types.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import CatalogItemModal from './CatalogItemModal.tsx';
 
@@ -24,22 +24,25 @@ const CatalogAdmin: React.FC = () => {
     const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
     const [editingField, setEditingField] = useState<{ id: string; field: string } | null>(null);
     const [editValue, setEditValue] = useState('');
+    const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     const [linkCopied, setLinkCopied] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-    const catalogUrl = `${window.location.origin}${window.location.pathname}#/catalogo/loja`;
+    const catalogUrl = `${window.location.origin}${window.location.pathname}#/catalogo/${companyInfo?.slug || 'loja'}`;
 
     const loadData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [catalogData, productsData, brandsData] = await Promise.all([
+            const [catalogData, productsData, brandsData, companyData] = await Promise.all([
                 getCatalogItems(),
                 getProducts(),
                 getBrands(),
+                getCompanyInfo()
             ]);
             setItems(catalogData);
             setProducts(productsData);
             setBrands(brandsData);
+            setCompanyInfo(companyData);
         } catch (error) {
             console.error('Error loading catalog data:', error);
             showToast('Erro ao carregar dados do catálogo', 'error');
