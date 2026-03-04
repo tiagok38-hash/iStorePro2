@@ -320,7 +320,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                 <InfoIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                 <span>
                                     {activeTab === 'precos'
-                                        ? <><strong>Dica:</strong> Para uma busca mais acertiva, selecione a condicao e digite a descricao corretamente. Exemplo: iPhone 17 Pro 256GB.</>
+                                        ? <><strong>Dica:</strong> Para uma busca mais assertiva, selecione a condição e digite a descrição corretamente. Exemplo: iPhone 17 Pro 256GB.</>
                                         : <><strong>Dica:</strong> Busque os produtos e defina comissão e limites de desconto para todos de uma vez.</>
                                     }
                                 </span>
