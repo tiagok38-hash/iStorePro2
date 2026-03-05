@@ -2113,6 +2113,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         observations: dbObservations,
         cash_session_id: data.cashSessionId || null,
         lead_origin: data.leadOrigin || null,
+        company_id: data.company_id || null,
     };
 
     let success = false;
@@ -2397,27 +2398,34 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
             // Calculate daily profit (all finalized sales today in BRT)
             let dailyProfit = totalProfit;
             try {
-                // Determine 'today' in Brasilia time (BRT) to match the user's timezone accurately
-                const brtFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' });
-                const today = brtFormatter.format(new Date());
+                // Determine 'today' in Brasilia time (BRT) to match the dashboard's logic
+                const brtDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+                const year = brtDate.getFullYear();
+                const month = String(brtDate.getMonth() + 1).padStart(2, '0');
+                const day = String(brtDate.getDate()).padStart(2, '0');
+
+                const startOfDay = `${year}-${month}-${day}T00:00:00-03:00`;
+                const endOfDay = `${year}-${month}-${day}T23:59:59-03:00`;
+
                 const { data: todaySales } = await supabase
                     .from('sales')
-                    .select('items')
-                    .gte('date', today)
+                    .select('items, total')
+                    .eq('company_id', newSale.company_id)
+                    .gte('date', startOfDay)
+                    .lte('date', endOfDay)
                     .neq('id', newSale.id)
                     .in('status', ['Finalizada', 'Editada']);
 
-                if (todaySales && todaySales.length > 0) {
+                if (todaySales) {
                     dailyProfit = 0;
                     for (const sale of todaySales) {
                         const items = sale.items || [];
+                        let saleCost = 0;
                         for (const item of items) {
-                            const itemNetRevenue = item.netTotal ?? ((item.unitPrice || 0) * (item.quantity || 1));
-                            dailyProfit += itemNetRevenue - ((item.costPrice || 0) * (item.quantity || 1));
+                            saleCost += ((item.costPrice || 0) + (item.additionalCostPrice || 0)) * (item.quantity || 1);
                         }
-
+                        dailyProfit += (sale.total || 0) - saleCost;
                     }
-                    // Add current sale profit (manually added since we excluded it or in case of delay)
                     dailyProfit += totalProfit;
                 }
             } catch (dailyError) {
@@ -2644,6 +2652,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
     if (data.total !== undefined) updatePayload.total = data.total;
     if (data.payments) updatePayload.payments = data.payments;
+    if (data.company_id) updatePayload.company_id = data.company_id;
 
 
     // RULE 5 & 6: Strict validation of ownership (EXCEPT ADMINS)
@@ -2976,21 +2985,31 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             // Calculate daily profit
             let dailyProfit = totalProfit;
             try {
-                const today = new Date().toISOString().split('T')[0];
+                const brtDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+                const year = brtDate.getFullYear();
+                const month = String(brtDate.getMonth() + 1).padStart(2, '0');
+                const day = String(brtDate.getDate()).padStart(2, '0');
+
+                const startOfDay = `${year}-${month}-${day}T00:00:00-03:00`;
+                const endOfDay = `${year}-${month}-${day}T23:59:59-03:00`;
+
                 const { data: todaySales } = await supabase
                     .from('sales')
-                    .select('items')
-                    .gte('date', today)
+                    .select('items, total')
+                    .eq('company_id', updated.company_id)
+                    .gte('date', startOfDay)
+                    .lte('date', endOfDay)
                     .in('status', ['Finalizada', 'Editada']);
 
-                if (todaySales && todaySales.length > 0) {
+                if (todaySales) {
                     dailyProfit = 0;
                     for (const sale of todaySales) {
                         const items = sale.items || [];
+                        let saleCost = 0;
                         for (const item of items) {
-                            const itemNetRevenue = item.netTotal ?? ((item.unitPrice || 0) * (item.quantity || 1));
-                            dailyProfit += itemNetRevenue - ((item.costPrice || 0) * (item.quantity || 1));
+                            saleCost += ((item.costPrice || 0) + (item.additionalCostPrice || 0)) * (item.quantity || 1);
                         }
+                        dailyProfit += (sale.total || 0) - saleCost;
                     }
                 }
             } catch (dailyError) {
@@ -4723,6 +4742,12 @@ export const addProductCondition = (data: any, userId?: string, userName?: strin
 export const updateProductCondition = (data: any, userId?: string, userName?: string) => updateItem('product_conditions', data, 'product_conditions', userId, userName);
 export const deleteProductCondition = (id: string, userId?: string, userName?: string) => deleteItem('product_conditions', id, 'product_conditions', userId, userName);
 
+export const getChecklistItems = () => getTable('checklist_items', 'checklist_items');
+export const addChecklistItem = (data: any, userId?: string, userName?: string) => addItem('checklist_items', data, 'checklist_items', userId, userName);
+export const updateChecklistItem = (data: any, userId?: string, userName?: string) => updateItem('checklist_items', data, 'checklist_items', userId, userName);
+export const deleteChecklistItem = (id: string, userId?: string, userName?: string) => deleteItem('checklist_items', id, 'checklist_items', userId, userName);
+
+
 export const getStorageLocations = () => getTable('storage_locations', 'storage_locations');
 export const addStorageLocation = (data: any, userId?: string, userName?: string) => addItem('storage_locations', data, 'storage_locations', userId, userName);
 export const updateStorageLocation = (data: any, userId?: string, userName?: string) => updateItem('storage_locations', data, 'storage_locations', userId, userName);
@@ -5568,6 +5593,8 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
                 responsibleName: so.responsible_name,
                 entryDate: so.entry_date,
                 exitDate: so.exit_date,
+                attendantObservations: so.attendant_observations,
+                customerDeviceId: so.customer_device_id,
             }));
         });
     });
@@ -5596,16 +5623,29 @@ export const getServiceOrder = async (id: string): Promise<ServiceOrder | null> 
             updatedAt: data.updated_at,
             responsibleId: data.responsible_id,
             responsibleName: data.responsible_name,
+            attendantId: data.attendant_id,
+            attendantName: data.attendant_name,
             entryDate: data.entry_date,
             exitDate: data.exit_date,
+            estimatedDate: data.estimated_date,
+            attendantObservations: data.attendant_observations,
+            customerDeviceId: data.customer_device_id,
+            isOrcamentoOnly: data.is_orcamento_only,
+            isQuick: data.is_quick,
+            phone: data.phone,
         };
     });
 };
 
 export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'updatedAt' | 'displayId'>) => {
-    // Generate Display ID
-    const { count } = await supabase.from('service_orders').select('*', { count: 'exact', head: true });
-    const nextDisplayId = (count || 0) + 1;
+    // Generate sequential unique Display ID - uses MAX to avoid duplicates after deletions
+    const { data: maxRow } = await supabase
+        .from('service_orders')
+        .select('display_id')
+        .order('display_id', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    const nextDisplayId = (maxRow?.display_id ?? 0) + 1;
 
     const newOrder: any = {
         ...data,
@@ -5619,15 +5659,25 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         technical_report: data.technicalReport,
         responsible_id: data.responsibleId,
         responsible_name: data.responsibleName,
+        attendant_id: (data as any).attendantId,
+        attendant_name: (data as any).attendantName,
         entry_date: data.entryDate,
         exit_date: data.exitDate,
+        estimated_date: (data as any).estimatedDate,
+        attendant_observations: data.attendantObservations,
+        customer_device_id: data.customerDeviceId,
+        is_orcamento_only: (data as any).isOrcamentoOnly ?? false,
+        is_quick: (data as any).isQuick ?? false,
+        phone: (data as any).phone || null,
     };
 
     // Remove camelCase keys that were added by ...data
     const camelCaseKeys = [
         'customerId', 'customerName', 'deviceModel', 'serialNumber',
         'patternLock', 'defectDescription', 'technicalReport',
-        'responsibleId', 'responsibleName', 'entryDate', 'exitDate'
+        'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
+        'entryDate', 'exitDate', 'estimatedDate',
+        'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly', 'isQuick', 'phone'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -5663,6 +5713,65 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         responsibleName: created.responsible_name,
         entryDate: created.entry_date,
         exitDate: created.exit_date,
+        attendantObservations: created.attendant_observations,
+        customerDeviceId: created.customer_device_id,
+    };
+};
+
+// --- CUSTOMER DEVICES (SERVICE ORDERS) ---
+
+export const getCustomerDevices = async (): Promise<any[]> => {
+    return fetchWithCache('customer_devices', async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase
+                .from('customer_devices')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return (data || []).map((device: any) => ({
+                id: device.id,
+                customerId: device.customer_id,
+                brand: device.brand,
+                category: device.category,
+                model: device.model,
+                imei: device.imei,
+                serialNumber: device.serial_number,
+                observations: device.observations,
+                createdAt: device.created_at,
+                updatedAt: device.updated_at,
+            }));
+        });
+    });
+};
+
+export const addCustomerDevice = async (data: any) => {
+    const payload = {
+        customer_id: data.customerId,
+        brand: data.brand,
+        category: data.category,
+        model: data.model,
+        imei: data.imei,
+        serial_number: data.serialNumber,
+        observations: data.observations,
+    };
+
+    const { data: created, error } = await supabase.from('customer_devices').insert([payload]).select().single();
+    if (error) throw error;
+
+    clearCache(['customer_devices']);
+    return {
+        id: created.id,
+        customerId: created.customer_id,
+        brand: created.brand,
+        category: created.category,
+        model: created.model,
+        imei: created.imei,
+        serialNumber: created.serial_number,
+        observations: created.observations,
+        createdAt: created.created_at,
+        updatedAt: created.updated_at,
     };
 };
 
@@ -5670,17 +5779,23 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     const updatePayload: any = { ...data, updated_at: getNowISO() };
 
     // Map to snake_case
-    if (data.customerId) updatePayload.customer_id = data.customerId;
-    if (data.customerName) updatePayload.customer_name = data.customerName;
-    if (data.deviceModel) updatePayload.device_model = data.deviceModel;
-    if (data.serialNumber) updatePayload.serial_number = data.serialNumber;
-    if (data.patternLock) updatePayload.pattern_lock = data.patternLock;
-    if (data.defectDescription) updatePayload.defect_description = data.defectDescription;
-    if (data.technicalReport) updatePayload.technical_report = data.technicalReport;
-    if (data.responsibleId) updatePayload.responsible_id = data.responsibleId;
-    if (data.responsibleName) updatePayload.responsible_name = data.responsibleName;
-    if (data.entryDate) updatePayload.entry_date = data.entryDate;
-    if (data.exitDate) updatePayload.exit_date = data.exitDate;
+    if (data.customerId !== undefined) updatePayload.customer_id = data.customerId;
+    if (data.customerName !== undefined) updatePayload.customer_name = data.customerName;
+    if (data.deviceModel !== undefined) updatePayload.device_model = data.deviceModel;
+    if (data.serialNumber !== undefined) updatePayload.serial_number = data.serialNumber;
+    if (data.patternLock !== undefined) updatePayload.pattern_lock = data.patternLock;
+    if (data.defectDescription !== undefined) updatePayload.defect_description = data.defectDescription;
+    if (data.technicalReport !== undefined) updatePayload.technical_report = data.technicalReport;
+    if (data.responsibleId !== undefined) updatePayload.responsible_id = data.responsibleId;
+    if (data.responsibleName !== undefined) updatePayload.responsible_name = data.responsibleName;
+    if ((data as any).attendantId !== undefined) updatePayload.attendant_id = (data as any).attendantId;
+    if ((data as any).attendantName !== undefined) updatePayload.attendant_name = (data as any).attendantName;
+    if (data.entryDate !== undefined) updatePayload.entry_date = data.entryDate;
+    if (data.exitDate !== undefined) updatePayload.exit_date = data.exitDate;
+    if ((data as any).estimatedDate !== undefined) updatePayload.estimated_date = (data as any).estimatedDate;
+    if (data.attendantObservations !== undefined) updatePayload.attendant_observations = data.attendantObservations;
+    if (data.customerDeviceId !== undefined) updatePayload.customer_device_id = data.customerDeviceId;
+    if ((data as any).isOrcamentoOnly !== undefined) updatePayload.is_orcamento_only = (data as any).isOrcamentoOnly;
 
     // Remove camelCase keys
     delete updatePayload.customerId;
@@ -5692,8 +5807,14 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     delete updatePayload.technicalReport;
     delete updatePayload.responsibleId;
     delete updatePayload.responsibleName;
+    delete updatePayload.attendantId;
+    delete updatePayload.attendantName;
     delete updatePayload.entryDate;
     delete updatePayload.exitDate;
+    delete updatePayload.estimatedDate;
+    delete updatePayload.attendantObservations;
+    delete updatePayload.customerDeviceId;
+    delete updatePayload.isOrcamentoOnly;
     delete updatePayload.id;
     delete updatePayload.createdAt;
     delete updatePayload.updatedAt;
@@ -5731,6 +5852,10 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         responsibleName: updated.responsible_name,
         entryDate: updated.entry_date,
         exitDate: updated.exit_date,
+        estimatedDate: updated.estimated_date,
+        attendantObservations: updated.attendant_observations,
+        customerDeviceId: updated.customer_device_id,
+        isOrcamentoOnly: updated.is_orcamento_only,
     };
 };
 

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices, getSuppliers } from '../services/mockApi.ts';
 import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service, Supplier } from '../types.ts';
-import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon } from '../components/icons.tsx';
+import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon, BoltIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
@@ -47,23 +47,23 @@ const ProtectedLink: React.FC<{
 
 // --- Components ---
 const InfoBanner: React.FC = React.memo(() => (
-    <div className="bg-accent-light text-accent text-sm font-medium px-4 py-2 rounded-2xl flex items-center gap-2 border border-accent/10 shadow-sm shadow-accent/5 flex-1 justify-center">
+    <div className="bg-indigo-100 text-indigo-700 text-sm font-black px-4 py-2 rounded-2xl flex items-center gap-2 border border-indigo-200 shadow-sm flex-1 justify-center">
         <SmartphoneIcon className="h-4 w-4" />
         <span>Bem-vindo ao iStore! Fique de olho para novidades.</span>
     </div>
 ));
 
 const LowStockBanner: React.FC<{ count: number; isPrivacyMode?: boolean }> = React.memo(({ count, isPrivacyMode }) => (
-    <Link to="/reports?tab=estoque&filter=low_stock" className="bg-danger-light text-danger text-sm font-medium px-4 py-2 rounded-2xl flex items-center gap-2 hover:bg-red-200 transition-all border border-danger/10 shadow-sm shadow-danger/5 flex-1 justify-center">
+    <Link to="/reports?tab=estoque&filter=low_stock" className="bg-red-100 text-red-700 text-sm font-black px-4 py-2 rounded-2xl flex items-center gap-2 hover:bg-red-200 transition-all border border-red-200 shadow-sm flex-1 justify-center">
         <TagIcon className="h-4 w-4" />
-        <span className="font-semibold text-center">Produtos com estoque baixo: {isPrivacyMode ? '***' : count}</span>
+        <span className="font-bold text-center">Produtos com estoque baixo: {isPrivacyMode ? '***' : count}</span>
     </Link>
 ));
 
 const FinancialDiscrepancyBanner: React.FC<{ count: number; isPrivacyMode?: boolean }> = React.memo(({ count, isPrivacyMode }) => (
-    <Link to="/vendas?filter=discrepancy" className="bg-orange-100 text-orange-700 text-sm font-medium px-4 py-2 rounded-2xl flex items-center gap-2 hover:bg-orange-200 transition-all border border-orange-200/50 shadow-sm shadow-orange-500/5 flex-1 justify-center animate-pulse">
+    <Link to="/vendas?filter=discrepancy" className="bg-orange-100 text-orange-800 text-sm font-black px-4 py-2 rounded-2xl flex items-center gap-2 hover:bg-orange-200 transition-all border border-orange-300 shadow-sm flex-1 justify-center animate-pulse">
         <CurrencyDollarIcon className="h-4 w-4" />
-        <span className="font-semibold text-center">Atenção: {isPrivacyMode ? '***' : count} vendas com divergência financeira</span>
+        <span className="font-bold text-center">Atenção: {isPrivacyMode ? '***' : count} vendas com divergência financeira</span>
     </Link>
 ));
 
@@ -95,9 +95,22 @@ const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacy
                         <p className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{isPrivacyMode ? '***' : openOrders.length}</p>
                     </div>
                 </div>
-                {to && (
-                    <button className="text-[10px] font-black tracking-widest text-amber-600 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-xl hover:bg-amber-100 transition-all uppercase">Ver Todas</button>
-                )}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); navigate('/service-orders/new'); }}
+                        className="flex items-center gap-1 text-[10px] font-black tracking-widest text-gray-700 bg-gray-200 border border-gray-300 px-3 py-1.5 rounded-xl hover:bg-gray-300 transition-all uppercase"
+                    >
+                        <PlusIcon className="h-3 w-3" />
+                        Nova OS
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); navigate('/service-orders/list?quickOS=1'); }}
+                        className="flex items-center gap-1 text-[10px] font-black tracking-widest text-amber-800 bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-xl hover:bg-amber-300 transition-all uppercase"
+                    >
+                        <BoltIcon className="h-3 w-3 fill-amber-600" />
+                        OS Rápida
+                    </button>
+                </div>
             </div>
 
             <div className="space-y-2 flex-1 overflow-y-auto max-h-[120px] pr-1 custom-scrollbar" style={{ minHeight: "75px" }}>

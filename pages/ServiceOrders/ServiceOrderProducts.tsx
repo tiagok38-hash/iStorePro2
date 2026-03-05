@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../contexts/ToastContext';
-import { useUser } from '../../contexts/UserContext';
 import {
     getServices, addService, updateService, deleteService, getProducts,
     getSuppliers, addSupplier, getCustomers, getBrands, getCategories, getProductModels, getGrades as getProductGrades, getGradeValues, getWarranties
 } from '../../services/mockApi';
 import { Service, Product, Supplier, Customer, Brand, Category, ProductModel, Grade, GradeValue, WarrantyParameter } from '../../types';
 import {
-    SearchIcon, PlusIcon, EditIcon, TrashIcon, WrenchIcon, PackageIcon,
-    MoreVerticalIcon, FilterIcon, ArrowsUpDownIcon as ArrowUpDownIcon, ShoppingCartIcon
+    SearchIcon, PlusIcon, EditIcon, TrashIcon, WrenchIcon, PackageIcon, ShoppingCartIcon
 } from '../../components/icons';
 import Button from '../../components/Button';
 import GlobalLoading from '../../components/GlobalLoading';
@@ -149,7 +147,7 @@ const ServiceOrderProducts: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'services' | 'products'>('services');
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
-    const { permissions } = useUser();
+
 
     // Data States
     const [services, setServices] = useState<Service[]>([]);

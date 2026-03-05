@@ -729,7 +729,7 @@ const CrmKanbanBoard: React.FC<CrmKanbanBoardProps> = ({ customers }) => {
                         return (
                             <div
                                 key={col.id}
-                                className={`flex-shrink-0 w-[280px] lg:flex-1 lg:min-w-[220px] flex flex-col rounded-2xl border transition-all duration-200 ${isDragOver
+                                className={`flex-shrink-0 w-[260px] lg:flex-1 lg:min-w-[220px] flex flex-col rounded-2xl border transition-all duration-200 ${isDragOver
                                     ? `${col.bgLight} border-2 shadow-md scale-[1.01]`
                                     : 'bg-gray-50/50 border-gray-100'
                                     }`}

@@ -20,6 +20,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = '' }) => 
             break;
         case 'overdue':
         case 'Atrasado':
+        case 'Em Aberto':
             colorClass = 'bg-red-100 text-red-700';
             break;
         case 'partial':

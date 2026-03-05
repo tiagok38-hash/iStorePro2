@@ -756,7 +756,7 @@ const CustomersAndSuppliers: React.FC = () => {
                 </div>
 
                 {permissions?.canCreateCustomer && (
-                    <button onClick={() => handleOpenModal()} className="w-full h-12 bg-gray-800 text-white rounded-xl hover:bg-gray-700 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all">
+                    <button onClick={() => handleOpenModal()} className="w-full h-12 bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest shadow-md active:scale-[0.98] transition-all">
                         <PlusIcon className="h-5 w-5" /> Adicionar Cliente
                     </button>
                 )}
@@ -835,7 +835,7 @@ const CustomersAndSuppliers: React.FC = () => {
                 </div>
 
                 {permissions?.canCreateCustomer && (
-                    <button onClick={() => handleOpenModal()} className="h-10 px-5 bg-gray-800 text-white rounded-xl hover:bg-gray-700 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0">
+                    <button onClick={() => handleOpenModal()} className="h-10 px-5 bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0">
                         <PlusIcon className="h-5 w-5" /> Adicionar Cliente
                     </button>
                 )}

@@ -45,7 +45,14 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                 setDefaultSettings(settings);
                 setInterestRate(settings.defaultInterestRate);
             });
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
         }
+
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [isOpen, totalAmount]);
 
     if (!isOpen) return null;
@@ -98,8 +105,8 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg md:max-w-2xl flex flex-col md:flex-row overflow-hidden animate-scale-in">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in py-10">
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg md:max-w-2xl flex flex-col md:flex-row animate-scale-in my-auto">
                 {/* Left Panel - Inputs */}
                 <div className="p-6 md:p-8 flex-1 space-y-5">
                     <div className="flex items-center gap-3 mb-2 text-indigo-600">
@@ -265,7 +272,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                 </div>
 
                 {/* Right Panel - Preview */}
-                <div className="bg-gray-50 p-6 md:p-8 md:w-80 flex flex-col border-t md:border-t-0 md:border-l border-gray-200">
+                <div className="bg-gray-50 p-6 md:p-8 md:w-80 flex flex-col border-t md:border-t-0 md:border-l border-gray-200 rounded-b-3xl md:rounded-b-none md:rounded-r-3xl">
                     <h3 className="text-xs font-black uppercase text-gray-400 tracking-widest mb-4">Resumo do Parcelamento</h3>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-2 mb-4 max-h-[250px] md:max-h-full">

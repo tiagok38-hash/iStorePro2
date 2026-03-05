@@ -1,0 +1,580 @@
+import React, { useState } from 'react';
+import { Smartphone, Plus, Search, Clock, Calendar, Cpu, FileText, User, Wrench, Image as ImageIcon, ShoppingCart, Edit, Trash2, CheckCircle } from 'lucide-react';
+import Modal from '../../components/Modal';
+
+// Types and Mock Data Interfaces
+export type ElectronicType = 'Produtos Apple' | 'Smartphone' | 'Tablets' | 'Computadores' | 'Notebooks' | 'Caixas de Som' | 'Outros';
+
+interface ElectronicHistory {
+    id: string;
+    osId: string;
+    date: Date;
+    customer: string;
+    problemsReported: string[];
+    attendant: string;
+    technician: string;
+    status: 'Concluído' | 'Em Reparo' | 'Aberto';
+    photos: string[];
+}
+
+interface ElectronicDevice {
+    id: string;
+    type: ElectronicType;
+    model: string;
+    brand: string;
+    color: string;
+    imei1: string;
+    imei2?: string;
+    serialNumber?: string;
+    ean?: string;
+    soldInStore: boolean;
+    hasPreviousRepair: boolean;
+    customerName: string;
+    customerCpf?: string;
+    history: ElectronicHistory[];
+}
+
+// Mock Data
+let MOCK_DEVICES: ElectronicDevice[] = [
+    {
+        id: '1',
+        type: 'Produtos Apple',
+        model: 'iPhone 13 Pro Max',
+        brand: 'Apple',
+        color: 'Grafite',
+        imei1: '123456789012345',
+        serialNumber: 'F1234567890',
+        soldInStore: true,
+        hasPreviousRepair: true,
+        customerName: 'João Silva',
+        customerCpf: '111.222.333-44',
+        history: [
+            {
+                id: 'h1',
+                osId: 'OS-2026-001',
+                date: new Date('2026-02-15T14:30:00'),
+                customer: 'João Silva',
+                problemsReported: ['Tela trincada', 'Bateria Viciada'],
+                attendant: 'Maria (Balcão)',
+                technician: 'Carlos (Técnico Nível 2)',
+                status: 'Concluído',
+                photos: ['https://via.placeholder.com/150', 'https://via.placeholder.com/150']
+            },
+            {
+                id: 'h2',
+                osId: 'OS-2026-089',
+                date: new Date('2026-03-01T10:15:00'),
+                customer: 'João Silva',
+                problemsReported: ['Não está carregando'],
+                attendant: 'Pedro (Balcão)',
+                technician: 'Carlos (Técnico Nível 2)',
+                status: 'Em Reparo',
+                photos: []
+            }
+        ]
+    },
+    {
+        id: '2',
+        type: 'Smartphone',
+        model: 'Galaxy S23 Ultra',
+        brand: 'Samsung',
+        color: 'Preto',
+        imei1: '987654321098765',
+        imei2: '111122223333444',
+        ean: '8801234567890',
+        soldInStore: false,
+        hasPreviousRepair: false,
+        customerName: 'Ana Souza',
+        history: [
+            {
+                id: 'h3',
+                osId: 'OS-2026-095',
+                date: new Date('2026-03-03T09:00:00'),
+                customer: 'Ana Souza',
+                problemsReported: ['Câmera traseira sem foco'],
+                attendant: 'Maria (Balcão)',
+                technician: 'TBD',
+                status: 'Aberto',
+                photos: ['https://via.placeholder.com/150']
+            }
+        ]
+    }
+];
+
+const FILTER_OPTIONS: (ElectronicType | 'Todos')[] = [
+    'Todos',
+    'Produtos Apple',
+    'Smartphone',
+    'Tablets',
+    'Computadores',
+    'Notebooks',
+    'Caixas de Som',
+    'Outros'
+];
+
+const ServiceOrderDevices: React.FC = () => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [typeFilter, setTypeFilter] = useState<ElectronicType | 'Todos'>('Todos');
+    const [selectedDevice, setSelectedDevice] = useState<ElectronicDevice | null>(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    // Form state (simplified for example)
+    const [formData, setFormData] = useState<Partial<ElectronicDevice>>({
+        type: 'Smartphone',
+        model: '',
+        brand: '',
+        color: '',
+        imei1: '',
+        customerName: '',
+    });
+
+    const filteredDevices = MOCK_DEVICES.filter(device => {
+        const lowerSearch = searchTerm.toLowerCase();
+        const matchesSearch = device.model.toLowerCase().includes(lowerSearch) ||
+            device.imei1.includes(searchTerm) ||
+            (device.imei2 && device.imei2.includes(searchTerm)) ||
+            (device.serialNumber && device.serialNumber.toLowerCase().includes(lowerSearch)) ||
+            (device.ean && device.ean.includes(searchTerm)) ||
+            device.customerName.toLowerCase().includes(lowerSearch) ||
+            (device.customerCpf && device.customerCpf.includes(searchTerm)) ||
+            device.history.some(h => h.osId.toLowerCase().includes(lowerSearch));
+
+        const matchesType = typeFilter === 'Todos' || device.type === typeFilter;
+        return matchesSearch && matchesType;
+    });
+
+    const handleDelete = (id: string) => {
+        if (window.confirm('Tem certeza que deseja excluir este eletrônico?')) {
+            MOCK_DEVICES = MOCK_DEVICES.filter(d => d.id !== id);
+            setSelectedDevice(null);
+            // Re-render would happen automatically if MOCK_DEVICES was state, but since it's just a mock let's trick it:
+            setSearchTerm(searchTerm + ' ');
+            setTimeout(() => setSearchTerm(searchTerm), 0);
+        }
+    };
+
+    const handleEdit = (device: ElectronicDevice) => {
+        setFormData(device);
+        setIsAddModalOpen(true);
+        setSelectedDevice(null);
+    };
+
+    const handleSaveDevice = () => {
+        // Implement save logic for add/edit
+        setIsAddModalOpen(false);
+        setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei1: '', customerName: '' });
+        window.alert("Eletrônico salvo com sucesso!");
+    };
+
+    return (
+        <div className="p-4 md:p-6 lg:p-8 space-y-6">
+            {/* Header Area */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent shrink-0">
+                        <Smartphone size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-primary">Eletrônicos</h1>
+                        <p className="text-sm text-secondary font-medium">Gestão e histórico de aparelhos cadastrados</p>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                    <div className="relative w-full sm:w-64 xl:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Buscar por IMEI, SN, EAN, OS, CPF ou Cliente..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full h-11 pl-10 pr-4 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-sm font-medium"
+                        />
+                    </div>
+
+                    <div className="flex w-full sm:w-auto gap-3">
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value as ElectronicType | 'Todos')}
+                            className="flex-1 sm:flex-none h-11 px-4 bg-white border border-gray-200 text-gray-600 rounded-xl focus:border-accent outline-none font-medium text-sm transition-all"
+                        >
+                            {FILTER_OPTIONS.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={() => {
+                                setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei1: '', customerName: '' });
+                                setIsAddModalOpen(true);
+                            }}
+                            className="h-11 px-5 bg-accent hover:bg-accent/90 text-white rounded-xl shadow-lg shadow-accent/20 transition-all flex items-center gap-2 font-bold text-sm shrink-0"
+                        >
+                            <Plus size={18} />
+                            <span className="hidden sm:inline">Adicionar Eletrônico</span>
+                            <span className="sm:hidden">Adicionar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {filteredDevices.map(device => {
+                    const isEmReparo = device.history.some(h => h.status === 'Em Reparo' || h.status === 'Aberto');
+                    const isEntregue = device.history.some(h => h.status === 'Concluído') && !isEmReparo && device.history.length > 0;
+
+                    return (
+                        <div
+                            key={device.id}
+                            onClick={() => setSelectedDevice(device)}
+                            className="bg-white p-3.5 rounded-2xl border border-gray-200 hover:border-accent/40 cursor-pointer transition-all hover:shadow-md group flex flex-col justify-between"
+                        >
+                            <div>
+                                <div className="flex justify-between items-start mb-2 gap-2">
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-primary text-sm leading-tight group-hover:text-accent transition-colors">
+                                            {device.model} <span className="text-secondary font-medium">({device.color})</span>
+                                        </h3>
+                                        <p className="text-[11px] text-secondary font-medium">{device.type} • {device.brand}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleEdit(device); }}
+                                            className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 bg-gray-50 rounded"
+                                            title="Editar"
+                                        >
+                                            <Edit size={12} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(device.id); }}
+                                            className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 bg-gray-50 rounded"
+                                            title="Excluir"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1 mb-3">
+                                    <div className="text-[11px] font-mono text-gray-500 bg-gray-50 p-1 rounded flex items-center gap-1.5 truncate">
+                                        <Cpu size={10} className="shrink-0" /> IMEI: {device.imei1}
+                                    </div>
+                                    <div className="text-[11px] text-secondary flex items-center gap-1.5 font-medium">
+                                        <User size={10} className="shrink-0" /> {device.customerName}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5 mt-auto">
+                                {device.soldInStore && (
+                                    <span className="px-2 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                        <ShoppingCart size={10} /> Vendido Loja
+                                    </span>
+                                )}
+                                {device.hasPreviousRepair && (
+                                    <span className="px-2 py-1 bg-purple-50 text-purple-600 border border-purple-100 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                        <Wrench size={10} /> Retorno
+                                    </span>
+                                )}
+                                {isEmReparo && (
+                                    <span className="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                        <Clock size={10} /> Em Reparo
+                                    </span>
+                                )}
+                                {isEntregue && (
+                                    <span className="px-2 py-1 bg-green-50 text-green-600 border border-green-200 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                        <CheckCircle size={10} /> Entregue
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            {
+                filteredDevices.length === 0 && (
+                    <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                            <Search className="text-gray-300" size={32} />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-400 mb-1">Nenhum eletrônico encontrado</h3>
+                        <p className="text-sm text-gray-400">Verifique os filtros ou tente buscar por outro termo.</p>
+                    </div>
+                )
+            }
+
+            {/* Device Details & History Modal */}
+            <Modal
+                isOpen={!!selectedDevice}
+                onClose={() => setSelectedDevice(null)}
+                title="Detalhes do Eletrônico"
+                className="max-w-4xl"
+            >
+                {selectedDevice && (
+                    <div className="space-y-6">
+                        {/* Device Header Card */}
+                        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 relative overflow-hidden flex flex-col md:flex-row gap-6 items-start">
+                            <div className="w-24 h-24 bg-white border border-gray-200 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+                                <Smartphone size={40} className="text-gray-400" />
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex flex-wrap gap-2 mb-2 items-center">
+                                    <span className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs font-bold">{selectedDevice.type}</span>
+                                    {selectedDevice.soldInStore && (
+                                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                                            <ShoppingCart size={12} /> Vendido pela Loja
+                                        </span>
+                                    )}
+                                    {selectedDevice.hasPreviousRepair && (
+                                        <span className="px-2.5 py-1 bg-purple-50 text-purple-600 border border-purple-100 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                                            <Wrench size={12} /> Retorno Assistência
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between gap-4">
+                                    <h2 className="text-2xl font-black text-primary mb-1 leading-tight">{selectedDevice.model} ({selectedDevice.color})</h2>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <button onClick={() => handleEdit(selectedDevice)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                                            <Edit size={18} />
+                                        </button>
+                                        <button onClick={() => handleDelete(selectedDevice.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-secondary font-medium mb-4">{selectedDevice.brand} • Cliente: <span className="font-bold text-primary">{selectedDevice.customerName}</span></p>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">IMEI 1</p>
+                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.imei1 || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">IMEI 2</p>
+                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.imei2 || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Cód. Série</p>
+                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.serialNumber || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">EAN</p>
+                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.ean || '-'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Service History Timeline */}
+                        <div>
+                            <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                                <Clock className="text-accent" size={20} /> Histórico de OS do Aparelho
+                            </h3>
+
+                            {selectedDevice.history.length === 0 ? (
+                                <p className="text-center text-gray-400 py-4 text-sm">Nenhum histórico de conserto encontrado.</p>
+                            ) : (
+                                <div className="relative border-l-2 border-gray-100 ml-4 space-y-6 pb-2">
+                                    {selectedDevice.history.map((record, index) => (
+                                        <div key={record.id} className="relative pl-6">
+                                            {/* Status Dot */}
+                                            <div className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-4 border-white ${record.status === 'Concluído' ? 'bg-emerald-500' :
+                                                record.status === 'Em Reparo' ? 'bg-blue-500' : 'bg-red-500'
+                                                }`}
+                                            />
+
+                                            <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                                <div className="flex flex-wrap justify-between items-start gap-4 mb-3">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="font-bold text-primary">{record.osId}</span>
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${record.status === 'Concluído' ? 'bg-emerald-100 text-emerald-700' :
+                                                                record.status === 'Em Reparo' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                                                                }`}>
+                                                                {record.status}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-4 text-xs font-medium text-secondary">
+                                                            <span className="flex items-center gap-1.5"><Calendar size={12} /> {new Date(record.date).toLocaleDateString('pt-BR')} às {new Date(record.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <button className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-primary hover:bg-gray-100 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors">
+                                                        <FileText size={14} /> Abrir OS
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Problemas Relatados</p>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {record.problemsReported.map((problem, i) => (
+                                                                <span key={i} className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-xs font-medium">
+                                                                    {problem}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100 text-xs">
+                                                        <div>
+                                                            <span className="text-gray-400 font-medium">Atendente: </span>
+                                                            <span className="font-bold text-primary">{record.attendant}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-gray-400 font-medium">Técnico: </span>
+                                                            <span className="font-bold text-primary">{record.technician}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {record.photos.length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                                                <ImageIcon size={12} /> Fotos ({record.photos.length})
+                                                            </p>
+                                                            <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                                                {record.photos.map((photo, i) => (
+                                                                    <div key={i} className="w-16 h-16 rounded-lg bg-gray-200 border border-gray-300 shrink-0 overflow-hidden relative group cursor-pointer">
+                                                                        <img src={photo} alt="Evidência" className="w-full h-full object-cover" />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Add / Edit Form Modal */}
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title={formData.id ? "Editar Eletrônico" : "Adicionar Eletrônico"}
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-primary mb-1">Tipo de Aparelho *</label>
+                        <select
+                            value={formData.type || 'Smartphone'}
+                            onChange={(e) => setFormData({ ...formData, type: e.target.value as ElectronicType })}
+                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
+                        >
+                            {FILTER_OPTIONS.filter(o => o !== 'Todos').map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-primary mb-1">Marca *</label>
+                            <input
+                                type="text"
+                                value={formData.brand || ''}
+                                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                placeholder="Ex: Apple"
+                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-primary mb-1">Modelo *</label>
+                            <input
+                                type="text"
+                                value={formData.model || ''}
+                                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                                placeholder="Ex: iPhone 13"
+                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-primary mb-1">Cor</label>
+                            <input
+                                type="text"
+                                value={formData.color || ''}
+                                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                                placeholder="Ex: Prata"
+                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-primary mb-1">Cliente Vinculado</label>
+                            <input
+                                type="text"
+                                value={formData.customerName || ''}
+                                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                                placeholder="Nome do Cliente"
+                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-primary mb-1">IMEI 1 *</label>
+                        <input
+                            type="text"
+                            value={formData.imei1 || ''}
+                            onChange={(e) => setFormData({ ...formData, imei1: e.target.value })}
+                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-primary mb-1">IMEI 2</label>
+                        <input
+                            type="text"
+                            value={formData.imei2 || ''}
+                            onChange={(e) => setFormData({ ...formData, imei2: e.target.value })}
+                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-primary mb-1">Cód. Série</label>
+                            <input
+                                type="text"
+                                value={formData.serialNumber || ''}
+                                onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-primary mb-1">EAN</label>
+                            <input
+                                type="text"
+                                value={formData.ean || ''}
+                                onChange={(e) => setFormData({ ...formData, ean: e.target.value })}
+                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+                        <button
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="px-4 py-2 border border-gray-200 rounded-lg text-secondary font-bold hover:bg-gray-50"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleSaveDevice}
+                            className="px-4 py-2 bg-accent text-white rounded-lg font-bold shadow-md hover:bg-accent/90"
+                        >
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </div >
+    );
+};
+
+export default ServiceOrderDevices;

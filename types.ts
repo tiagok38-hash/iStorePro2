@@ -218,6 +218,18 @@ export interface Customer {
     allow_credit?: boolean;
 }
 
+export interface CustomerDevice {
+    id: string;
+    customerId: string;
+    brand: string;
+    category: string;
+    model: string;
+    imei?: string;
+    serialNumber?: string;
+    createdAt: string;
+    updatedAt: string;
+    observations?: string;
+}
 
 export type ProductCondition = 'Novo' | 'Seminovo' | 'CPO' | 'Openbox' | 'Reservado';
 
@@ -297,6 +309,7 @@ export interface Product {
     photos?: string[];
     accessories?: string[];
     apple_warranty_until?: string;
+    unit?: string; // Unidade de medida (Un, Kg, Mt)
 
     // Commission configuration
     commission_enabled?: boolean;
@@ -367,6 +380,8 @@ export interface ServiceOrder {
     photos?: string[];
     entryDate: string;
     exitDate?: string;
+    attendantObservations?: string;
+    customerDeviceId?: string;
 }
 
 // CartItem interface to be used across components like NewSaleModal.
@@ -697,6 +712,11 @@ export interface WarrantyParameter {
     id: string;
     name: string;
     days: number;
+}
+
+export interface ChecklistItemParameter {
+    id: string;
+    name: string;
 }
 
 

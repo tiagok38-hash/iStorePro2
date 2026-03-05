@@ -281,14 +281,14 @@ const CreditDashboard: React.FC = () => {
                         Nenhum registro encontrado.
                     </div>
                 ) : groupedData.map((group) => (
-                    <div key={group.customerId} className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm transition-all">
+                    <div key={group.customerId} className={`${group.totalOpen > 0 ? 'bg-red-50/50 border-red-100' : 'bg-white border-gray-200'} border rounded-3xl overflow-hidden shadow-sm transition-all`}>
                         {/* Customer Summary Row */}
                         <div
                             onClick={() => toggleCustomer(group.customerId)}
-                            className="p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                            className={`p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer transition-colors ${group.totalOpen > 0 ? 'hover:bg-red-100/30' : 'hover:bg-gray-50'}`}
                         >
                             <div className="flex items-center gap-4 flex-1">
-                                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-lg">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg ${group.totalOpen > 0 ? 'bg-red-100 text-red-600' : 'bg-indigo-50 text-indigo-600'}`}>
                                     {group.customerName.charAt(0)}
                                 </div>
                                 <div>
@@ -306,11 +306,11 @@ const CreditDashboard: React.FC = () => {
 
                             <div className="flex items-center gap-6">
                                 <div className="text-right">
-                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Saldo em Aberto</p>
-                                    <p className={`text-lg font-black ${group.overdueCount > 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatCurrency(group.totalOpen)}</p>
+                                    <p className={`text-[10px] uppercase font-bold tracking-widest ${group.totalOpen > 0 ? 'text-red-400' : 'text-gray-400'}`}>Saldo em Aberto</p>
+                                    <p className={`text-lg font-black ${group.totalOpen > 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatCurrency(group.totalOpen)}</p>
                                 </div>
                                 <div className={`transition-transform duration-300 ${expandedCustomers[group.customerId] ? 'rotate-180' : ''}`}>
-                                    <ChevronDownIcon className="h-5 w-5 text-gray-300" />
+                                    <ChevronDownIcon className={`h-5 w-5 ${group.totalOpen > 0 ? 'text-red-300' : 'text-gray-300'}`} />
                                 </div>
                             </div>
                         </div>
@@ -359,7 +359,7 @@ const CreditDashboard: React.FC = () => {
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
-                                                            <StatusBadge status={isLate ? 'Atrasado' : inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Pendente'} />
+                                                            <StatusBadge status={isLate ? 'Atrasado' : inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Em Aberto'} />
                                                         </td>
                                                         <td className="pr-6 sm:pr-10 py-4 text-right">
                                                             <div className="flex items-center justify-end gap-2">

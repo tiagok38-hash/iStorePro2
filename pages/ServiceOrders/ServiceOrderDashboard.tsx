@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Clock,
     Calendar,
     TrendingUp,
     TrendingDown,
@@ -13,7 +12,9 @@ import {
     Users,
     Package,
     ClipboardList,
-    PieChart as PieChartIcon
+    PieChart as PieChartIcon,
+    Zap,
+    Wrench
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getServiceOrders } from '../../services/mockApi';
@@ -33,10 +34,10 @@ import {
 
 // --- Constants ---
 const KPI_CONFIG = [
-    { key: 'Aberto', label: 'OS em Aberto', icon: AlertCircle, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { key: 'Análise', label: 'Em Análise', icon: SmartphoneIcon, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { key: 'Aprovado', label: 'Aprovadas', icon: WrenchIcon, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { key: 'Pronto', label: 'Prontas p/ Entrega', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { key: 'Aberto', label: 'OS em Aberto', icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10' },
+    { key: 'Análise', label: 'Em Análise', icon: SmartphoneIcon, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    { key: 'Aprovado', label: 'Aprovadas', icon: WrenchIcon, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+    { key: 'Pronto', label: 'Prontas p/ Entrega', icon: CheckCircle2, color: 'text-purple-500', bg: 'bg-purple-500/10' },
 ];
 
 const AGENDA_ITEMS = [
@@ -48,7 +49,6 @@ const AGENDA_ITEMS = [
 
 const ServiceOrderDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const [currentTime, setCurrentTime] = useState(new Date());
     const [orders, setOrders] = useState<ServiceOrder[]>([]);
     const [expenses, setExpenses] = useState<any[]>(() => {
         const saved = localStorage.getItem('os_expenses');
@@ -60,9 +60,7 @@ const ServiceOrderDashboard: React.FC = () => {
     const [customEndDate, setCustomEndDate] = useState('');
 
     useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
         loadData();
-        return () => clearInterval(timer);
     }, []);
 
     const loadData = async () => {
@@ -79,20 +77,12 @@ const ServiceOrderDashboard: React.FC = () => {
         }
     };
 
-    const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    };
-
-    const formatDate = (date: Date) => {
-        return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-    };
-
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     };
 
     // Greeting logic
-    const hour = currentTime.getHours();
+    const hour = new Date().getHours();
     let greeting = 'Bom dia';
     if (hour >= 12) greeting = 'Boa tarde';
     if (hour >= 18) greeting = 'Boa noite';
@@ -209,56 +199,57 @@ const ServiceOrderDashboard: React.FC = () => {
     return (
         <div className="space-y-6 pb-20 fade-in">
             {/* 1. Header & Greeting */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 overflow-hidden">
+                <div className="flex-shrink-0">
                     <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-primary">
                         {greeting}.
                     </h1>
-                    <p className="text-secondary mt-1 flex items-center gap-2">
-                        <Calendar size={14} />
-                        <span className="capitalize">{formatDate(currentTime)}</span>
-                        <span className="w-1 h-1 bg-secondary rounded-full mx-1" />
-                        <Clock size={14} />
-                        <span>{formatTime(currentTime)}</span>
-                    </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+                <div className="flex flex-wrap items-center gap-2 lg:gap-3 w-full lg:justify-end">
                     <button
                         onClick={() => navigate('/service-orders/customers')}
-                        className="px-5 py-3 bg-cyan-50/50 text-cyan-700 rounded-xl font-black shadow-sm border-2 border-cyan-200/80 hover:bg-cyan-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
+                        className="h-11 px-4 py-2.5 bg-cyan-100 text-cyan-800 rounded-xl font-black shadow-sm border-2 border-cyan-300 hover:bg-cyan-200 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <Users size={16} />
                         Clientes
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/financial')}
-                        className="px-5 py-3 bg-emerald-50/50 text-emerald-700 rounded-xl font-black shadow-sm border-2 border-emerald-200/80 hover:bg-emerald-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
+                        className="h-11 px-4 py-2.5 bg-emerald-100 text-emerald-800 rounded-xl font-black shadow-sm border-2 border-emerald-300 hover:bg-emerald-200 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <DollarSign size={16} />
                         Financeiro
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/products')}
-                        className="px-5 py-3 bg-amber-50/50 text-amber-700 rounded-xl font-black shadow-sm border-2 border-amber-200/80 hover:bg-amber-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
+                        className="h-11 px-4 py-2.5 bg-amber-100 text-amber-800 rounded-xl font-black shadow-sm border-2 border-amber-300 hover:bg-amber-200 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <Package size={16} />
                         Peças e Serviços
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/list')}
-                        className="px-5 py-3 bg-violet-50/50 text-violet-700 rounded-xl font-black shadow-sm border-2 border-violet-200/80 hover:bg-violet-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
+                        className="h-11 px-4 py-2.5 bg-violet-100 text-violet-800 rounded-xl font-black shadow-sm border-2 border-violet-300 hover:bg-violet-200 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <ClipboardList size={16} />
                         Ordens de Serviço
                     </button>
                     <button
                         onClick={() => navigate('/service-orders/reports')}
-                        className="px-5 py-3 bg-rose-50/50 text-rose-700 rounded-xl font-black shadow-sm border-2 border-rose-200/80 hover:bg-rose-100 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
+                        className="h-11 px-4 py-2.5 bg-rose-100 text-rose-800 rounded-xl font-black shadow-sm border-2 border-rose-300 hover:bg-rose-200 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
                         <PieChartIcon size={16} />
                         Relatórios
                     </button>
 
                     <button
+                        onClick={() => navigate('/service-orders/list?quickOS=1')}
+                        className="h-11 px-4 py-2.5 bg-amber-500 text-white rounded-xl font-black shadow-lg shadow-amber-500/20 border-2 border-transparent hover:bg-amber-600 hover:scale-105 transition-all text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap"
+                    >
+                        <Zap size={16} className="fill-white" />
+                        OS Rápida
+                    </button>
+
+                    <button
                         onClick={() => navigate('/service-orders/new')}
-                        className="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2 whitespace-nowrap">
-                        <WrenchIcon size={18} />
+                        className="h-11 px-5 py-2.5 bg-primary text-white rounded-xl font-black shadow-lg shadow-primary/20 border-2 border-transparent hover:scale-105 transition-transform text-[11px] uppercase tracking-wider flex items-center gap-2 whitespace-nowrap">
+                        <Wrench size={16} />
                         Nova OS
                     </button>
                 </div>
@@ -401,34 +392,34 @@ const ServiceOrderDashboard: React.FC = () => {
                 </div>
 
                 {/* 3.2 Agenda / Schedule */}
-                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-6 rounded-3xl shadow-sm flex flex-col">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-lg text-primary">Agenda do Dia</h3>
-                        <button className="text-accent text-sm font-bold hover:underline">Ver tudo</button>
+                <div className="bg-white/95 backdrop-blur-xl border border-gray-100 p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col">
+                    <div className="flex items-center justify-between mb-8">
+                        <h3 className="font-black text-[22px] text-gray-900 tracking-tight">Agenda do Dia</h3>
+                        <button className="text-accent text-sm font-bold hover:opacity-80 transition-opacity">Ver tudo</button>
                     </div>
 
-                    <div className="flex-1 space-y-3 overflow-y-auto max-h-[300px] custom-scrollbar pr-2">
+                    <div className="flex-1 space-y-6 overflow-y-auto max-h-[350px] custom-scrollbar pr-2 mb-2">
                         {AGENDA_ITEMS.map((item) => (
-                            <div key={item.id} className="flex gap-3 p-3 rounded-2xl hover:bg-white transition-colors border border-transparent hover:border-gray-100 group cursor-pointer">
-                                <div className="flex flex-col items-center justify-center min-w-[50px] bg-gray-50 rounded-xl px-2 py-1">
-                                    <span className="text-xs font-bold text-secondary">{item.time.split(':')[0]}</span>
-                                    <span className="text-[10px] text-gray-400">:{item.time.split(':')[1]}</span>
+                            <div key={item.id} className="flex items-center gap-5 group cursor-pointer">
+                                <div className="w-[52px] h-[52px] bg-gray-50/80 rounded-full flex flex-col items-center justify-center shrink-0 border border-gray-100 transition-all group-hover:scale-105 group-hover:shadow-sm">
+                                    <span className="text-[15px] font-black text-gray-700 leading-none">{item.time.split(':')[0]}</span>
+                                    <span className="text-[11px] font-bold text-gray-400 mt-0.5">:{item.time.split(':')[1]}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-sm text-primary truncate">{item.title}</h4>
-                                    <p className="text-xs text-secondary truncate">{item.customer}</p>
+                                    <h4 className="font-bold text-[17px] text-gray-900 truncate group-hover:text-accent transition-colors">{item.title}</h4>
+                                    <p className="text-[13px] text-gray-500 truncate mt-0.5">{item.customer}</p>
                                 </div>
-                                <div className={`w-2 h-2 rounded-full mt-2
-                                    ${item.type === 'delivery' ? 'bg-emerald-500' :
-                                        item.type === 'analysis' ? 'bg-amber-500' :
-                                            item.type === 'repair' ? 'bg-blue-500' : 'bg-purple-500'}
+                                <div className={`w-2 h-2 rounded-full shrink-0
+                                    ${item.type === 'delivery' ? 'bg-[#21CD92]' :
+                                        item.type === 'analysis' ? 'bg-[#FCAF3B]' :
+                                            item.type === 'repair' ? 'bg-[#3B82F6]' : 'bg-[#9853F0]'}
                                 `} />
                             </div>
                         ))}
                     </div>
 
-                    <button className="mt-4 w-full py-3 border border-dashed border-gray-300 rounded-xl text-secondary text-sm font-medium hover:bg-white hover:border-accent hover:text-accent transition-all flex items-center justify-center gap-2">
-                        <Calendar size={16} />
+                    <button className="mt-4 w-full py-3.5 border border-dashed border-gray-300 rounded-[20px] text-gray-500 text-[15px] font-semibold hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50/50 transition-all flex items-center justify-center gap-2">
+                        <Calendar size={18} strokeWidth={2} />
                         Agendar Compromisso
                     </button>
                 </div>

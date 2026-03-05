@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
-import { ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter, PermissionSet } from '../../types';
+import { ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter, ChecklistItemParameter, PermissionSet } from '../../types';
 import {
     getProductConditions, addProductCondition, updateProductCondition, deleteProductCondition,
     getStorageLocations, addStorageLocation, updateStorageLocation, deleteStorageLocation,
     getWarranties, addWarranty, updateWarranty, deleteWarranty,
-    getReceiptTerms, addReceiptTerm, updateReceiptTerm, deleteReceiptTerm
+    getReceiptTerms, addReceiptTerm, updateReceiptTerm, deleteReceiptTerm,
+    getChecklistItems, addChecklistItem, updateChecklistItem, deleteChecklistItem
 } from '../../services/mockApi';
 import Button from '../Button';
 import { PlusIcon, EditIcon, TrashIcon } from '../icons';
@@ -176,6 +177,7 @@ const ParameterSettings: React.FC = () => {
     const [locations, setLocations] = useState<StorageLocationParameter[]>([]);
     const [warranties, setWarranties] = useState<WarrantyParameter[]>([]);
     const [receiptTerms, setReceiptTerms] = useState<ReceiptTermParameter[]>([]);
+    const [checklistItems, setChecklistItems] = useState<ChecklistItemParameter[]>([]);
     const [isTermModalOpen, setIsTermModalOpen] = useState(false);
     const [editingTerm, setEditingTerm] = useState<Partial<ReceiptTermParameter> | null>(null);
     const [deletingTerm, setDeletingTerm] = useState<ReceiptTermParameter | null>(null);
@@ -183,13 +185,14 @@ const ParameterSettings: React.FC = () => {
     const { permissions, user } = useUser();
 
     const fetchData = useCallback(async () => {
-        const [c, l, w, t] = await Promise.all([
+        const [c, l, w, t, ch] = await Promise.all([
             getProductConditions(),
             getStorageLocations(),
             getWarranties(),
-            getReceiptTerms()
+            getReceiptTerms(),
+            getChecklistItems()
         ]);
-        setConditions(c); setLocations(l); setWarranties(w); setReceiptTerms(t);
+        setConditions(c); setLocations(l); setWarranties(w); setReceiptTerms(t); setChecklistItems(ch);
     }, []);
 
     useEffect(() => { fetchData(); }, [fetchData]);
@@ -240,10 +243,12 @@ const ParameterSettings: React.FC = () => {
                 <button onClick={() => setActiveSubTab('local')} className={tabClasses('local')}>Local de estoque</button>
                 <button onClick={() => setActiveSubTab('garantia')} className={tabClasses('garantia')}>Garantia</button>
                 <button onClick={() => setActiveSubTab('termos')} className={tabClasses('termos')}>Termos de Garantia</button>
+                <button onClick={() => setActiveSubTab('checklist')} className={tabClasses('checklist')}>Checklist Físico</button>
             </div>
             {activeSubTab === 'condicao' && <ParameterManager permissions={permissions} title="Condições de Produto" items={conditions} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addProductCondition, update: updateProductCondition, del: deleteProductCondition }} fetchData={fetchData} />}
             {activeSubTab === 'local' && <ParameterManager permissions={permissions} title="Locais de Estoque" items={locations} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addStorageLocation, update: updateStorageLocation, del: deleteStorageLocation }} fetchData={fetchData} />}
             {activeSubTab === 'garantia' && <ParameterManager permissions={permissions} title="Garantias" items={warranties} fields={[{ name: 'name', label: 'Nome', type: 'text' }, { name: 'days', label: 'Dias', type: 'number' }]} api={{ add: addWarranty, update: updateWarranty, del: deleteWarranty }} fetchData={fetchData} />}
+            {activeSubTab === 'checklist' && <ParameterManager permissions={permissions} title="Itens de Checklist (OS)" items={checklistItems} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addChecklistItem, update: updateChecklistItem, del: deleteChecklistItem }} fetchData={fetchData} />}
             {activeSubTab === 'termos' && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-2xl">

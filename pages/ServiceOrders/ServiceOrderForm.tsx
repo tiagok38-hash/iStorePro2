@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     User as UserIcon,
-    Smartphone,
     Wrench,
     FileText,
     Save,
@@ -11,21 +10,17 @@ import {
     Search,
     Plus,
     Trash2,
-    Grid3x3,
     Unlock,
-    Battery,
-    Wifi,
-    Cpu,
     Camera,
-    Speaker,
-    Mic,
-    Plug,
     Image as ImageIcon,
     X,
     Eye,
     Package,
     ChevronRight,
-    ChevronLeft
+    ChevronLeft,
+    Printer,
+    Tag,
+    Zap
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
@@ -37,32 +32,22 @@ import {
     addServiceOrder,
     getServiceOrder,
     updateServiceOrder,
-    formatCurrency
+    formatCurrency,
+    getPermissionProfiles,
+    getServices,
+    getProducts,
+    getCustomerDevices,
+    getChecklistItems
 } from '../../services/mockApi';
-import { User, Customer, ServiceOrderItem, ServiceOrderChecklist } from '../../types';
+import { WhatsAppIcon } from '../../components/icons';
+import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, Product, CustomerDevice, ChecklistItemParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
+import QuickOSModal from '../../components/QuickOSModal';
 import CameraModal from '../../components/CameraModal';
 import ItemSelectionModal from '../../components/ItemSelectionModal';
-import { getServices, getProducts } from '../../services/mockApi';
-import { Service, Product } from '../../types';
+import CustomerDeviceModal from '../../components/CustomerDeviceModal';
 
-// --- Types ---
-// (ServiceOrderItem is now imported from types.ts if available, or defined locally matching it)
 
-// --- Icons for Checklist ---
-const CONDITION_ICONS = [
-    { id: 'scratch', label: 'Arranhado', icon: Grid3x3 },
-    { id: 'cracked_screen', label: 'Tela Trincada', icon: Smartphone },
-    { id: 'dented', label: 'Amassado', icon: Grid3x3 },
-    { id: 'no_power', label: 'Não Liga', icon: Plug },
-    { id: 'no_wifi', label: 'Sem Wi-Fi', icon: Wifi },
-    { id: 'bad_battery', label: 'Bateria Ruim', icon: Battery },
-    { id: 'front_camera_fail', label: 'Câm. Frontal', icon: Camera },
-    { id: 'rear_camera_fail', label: 'Câm. Traseira', icon: Camera },
-    { id: 'no_sound', label: 'Sem Som', icon: Speaker },
-    { id: 'mic_fail', label: 'Mic Ruim', icon: Mic },
-    { id: 'others', label: 'Outros', icon: CheckCircle2 },
-];
 
 type TabId = 'client_device' | 'diagnosis' | 'financial';
 const TAB_ORDER: TabId[] = ['client_device', 'diagnosis', 'financial'];
@@ -86,6 +71,8 @@ const ServiceOrderForm: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('client_device');
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingEdit, setIsLoadingEdit] = useState(isEditing);
+    const [displayId, setDisplayId] = useState<number | null>(null);
+    const [isQuickOSOpen, setIsQuickOSOpen] = useState(false);
 
     // Data Sources
     const [users, setUsers] = useState<User[]>([]);
@@ -95,10 +82,13 @@ const ServiceOrderForm: React.FC = () => {
     // Catalogs
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
     const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+    const [customerDevices, setCustomerDevices] = useState<CustomerDevice[]>([]);
+    const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
 
     // Selection Modals
     const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
 
     // Form Data
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -106,10 +96,14 @@ const ServiceOrderForm: React.FC = () => {
     const [showCustomerResults, setShowCustomerResults] = useState(false);
 
     const [responsibleId, setResponsibleId] = useState('');
+    const [attendantId, setAttendantId] = useState('');
 
+    const [customerDeviceId, setCustomerDeviceId] = useState('');
     const [deviceModel, setDeviceModel] = useState('');
     const [imei, setImei] = useState('');
     const [serialNumber, setSerialNumber] = useState('');
+    const [deviceSearch, setDeviceSearch] = useState('');
+    const [showDeviceResults, setShowDeviceResults] = useState(false);
     const [passcode, setPasscode] = useState('');
     const [patternLock, setPatternLock] = useState<number[]>([]);
 
@@ -117,6 +111,7 @@ const ServiceOrderForm: React.FC = () => {
     const [othersDescription, setOthersDescription] = useState('');
 
     const [defectDescription, setDefectDescription] = useState('');
+    const [attendantObservations, setAttendantObservations] = useState('');
     const [technicalReport, setTechnicalReport] = useState('');
     const [observations, setObservations] = useState('');
 
@@ -128,7 +123,12 @@ const ServiceOrderForm: React.FC = () => {
     const [discount, setDiscount] = useState(0);
 
     // OS Status (para edição)
-    const [osStatus, setOsStatus] = useState<string>('Aberto');
+    const [osStatus, setOsStatus] = useState<string>('Orçamento');
+    // Orçamento only toggle (para criação)
+    const [isOrcamentoOnly, setIsOrcamentoOnly] = useState(false);
+    // Datas
+    const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [estimatedDate, setEstimatedDate] = useState('');
 
     // --- Effects ---
     useEffect(() => {
@@ -139,6 +139,9 @@ const ServiceOrderForm: React.FC = () => {
         if (currentUser && !responsibleId) {
             setResponsibleId(currentUser.id);
         }
+        if (currentUser && !attendantId) {
+            setAttendantId(currentUser.id);
+        }
     }, [currentUser]);
 
     // Carrega dados da OS ao editar
@@ -148,18 +151,26 @@ const ServiceOrderForm: React.FC = () => {
         }
     }, [editId]);
 
+    const [availableChecklistItems, setAvailableChecklistItems] = useState<ChecklistItemParameter[]>([]);
+
     const loadData = async () => {
         try {
-            const [usersData, customersData, servicesData, productsData] = await Promise.all([
+            const [usersData, customersData, servicesData, productsData, devicesData, checklistData, profilesData] = await Promise.all([
                 getUsers(),
                 getCustomers(),
                 getServices(),
-                getProducts()
+                getProducts(),
+                getCustomerDevices(),
+                getChecklistItems(),
+                getPermissionProfiles()
             ]);
             setUsers(usersData);
             setCustomers(customersData);
             setAvailableServices(servicesData);
             setAvailableProducts(productsData);
+            setCustomerDevices(devicesData);
+            setAvailableChecklistItems(checklistData);
+            setProfiles(profilesData);
         } catch (error) {
             console.error("Error loading data:", error);
             toast.error("Erro ao carregar dados iniciais.");
@@ -177,6 +188,7 @@ const ServiceOrderForm: React.FC = () => {
             }
 
             // Preencher todos os campos com os dados da OS
+            setCustomerDeviceId(so.customerDeviceId || '');
             setDeviceModel(so.deviceModel || '');
             setImei(so.imei || '');
             setSerialNumber(so.serialNumber || '');
@@ -185,13 +197,19 @@ const ServiceOrderForm: React.FC = () => {
             setChecklist(so.checklist || {});
             setOthersDescription((so.checklist as any)?.othersDescription || '');
             setDefectDescription(so.defectDescription || '');
+            setAttendantObservations(so.attendantObservations || '');
             setTechnicalReport(so.technicalReport || '');
             setObservations(so.observations || '');
             setPhotos(so.photos || []);
             setItems(so.items || []);
             setDiscount(so.discount || 0);
             setResponsibleId(so.responsibleId || '');
-            setOsStatus(so.status || 'Aberto');
+            setAttendantId((so as any).attendantId || '');
+            setOsStatus(so.status || 'Orçamento');
+            setIsOrcamentoOnly(!!(so as any).isOrcamentoOnly);
+            setDisplayId(so.displayId || null);
+            if ((so as any).entryDate) setEntryDate(new Date((so as any).entryDate).toISOString().slice(0, 10));
+            if ((so as any).estimatedDate) setEstimatedDate(new Date((so as any).estimatedDate).toISOString().slice(0, 10));
 
             // Carregar e selecionar cliente
             if (so.customerName) {
@@ -243,6 +261,34 @@ const ServiceOrderForm: React.FC = () => {
         setSelectedCustomer(customer);
         setCustomerSearch(customer.name);
         setShowCustomerResults(false);
+    };
+
+    const filteredDevices = customerDevices.filter(d => {
+        const owner = customers.find(c => c.id === d.customerId);
+        const matchCustomer = selectedCustomer ? d.customerId === selectedCustomer.id : true;
+        const matchSearch = deviceSearch ? (
+            (d.model && d.model.toLowerCase().includes(deviceSearch.toLowerCase())) ||
+            (d.imei && d.imei.includes(deviceSearch)) ||
+            (d.serialNumber && d.serialNumber.toLowerCase().includes(deviceSearch.toLowerCase())) ||
+            (d.brand && d.brand.toLowerCase().includes(deviceSearch.toLowerCase())) ||
+            (owner && owner.cpf && owner.cpf.includes(deviceSearch))
+        ) : true;
+        return matchCustomer && matchSearch;
+    }).slice(0, 5);
+
+    const handleSelectDevice = (device: CustomerDevice) => {
+        setCustomerDeviceId(device.id);
+        setDeviceModel(device.model);
+        setImei(device.imei || '');
+        setSerialNumber(device.serialNumber || '');
+        setDeviceSearch(device.model);
+        setShowDeviceResults(false);
+
+        // Se ainda não tiver cliente selecionado, auto-selecionar o dono do aparelho
+        if (!selectedCustomer) {
+            const owner = customers.find(c => c.id === device.customerId);
+            if (owner) handleSelectCustomer(owner);
+        }
     };
 
     // --- Form Logic ---
@@ -330,17 +376,23 @@ const ServiceOrderForm: React.FC = () => {
                     othersDescription: checklist.others ? othersDescription : undefined
                 },
                 defectDescription,
+                attendantObservations,
                 technicalReport,
                 observations,
-                status: (isEditing ? osStatus : 'Aberto') as any,
+                status: (isEditing ? osStatus : 'Orçamento') as any,
+                isOrcamentoOnly,
                 items,
                 subtotal,
                 discount,
                 total,
                 responsibleId,
                 responsibleName: responsible?.name || 'Sistema',
+                attendantId,
+                attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
                 photos,
-                entryDate: new Date().toISOString()
+                entryDate: entryDate ? new Date(entryDate + 'T12:00:00').toISOString() : new Date().toISOString(),
+                estimatedDate: estimatedDate ? new Date(estimatedDate + 'T12:00:00').toISOString() : undefined,
+                customerDeviceId
             };
 
             if (isEditing && editId) {
@@ -360,24 +412,30 @@ const ServiceOrderForm: React.FC = () => {
 
     // --- Pattern Lock Grid ---
     const PatternGrid = () => (
-        <div className="grid grid-cols-3 gap-4 w-32 mx-auto select-none">
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(dot => (
-                <button
-                    key={dot}
-                    type="button"
-                    onClick={() => {
-                        if (patternLock.includes(dot)) {
-                            setPatternLock(prev => prev.filter(p => p !== dot));
-                        } else {
-                            setPatternLock(prev => [...prev, dot]);
-                        }
-                    }}
-                    className={`w-6 h-6 rounded-full border-2 transition-all ${patternLock.includes(dot)
-                        ? 'bg-accent border-accent scale-110'
-                        : 'bg-transparent border-gray-300 hover:border-accent/50'
-                        }`}
-                />
-            ))}
+        <div className="grid grid-cols-3 gap-4 w-40 mx-auto select-none">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(dot => {
+                const indexInPattern = patternLock.indexOf(dot);
+                const isSelected = indexInPattern !== -1;
+                return (
+                    <button
+                        key={dot}
+                        type="button"
+                        onClick={() => {
+                            if (isSelected) {
+                                setPatternLock(prev => prev.filter(p => p !== dot));
+                            } else {
+                                setPatternLock(prev => [...prev, dot]);
+                            }
+                        }}
+                        className={`w-10 h-10 rounded-full border-[3px] transition-all flex items-center justify-center font-bold text-sm ${isSelected
+                            ? 'bg-accent border-accent text-white scale-110 shadow-md'
+                            : 'bg-white border-gray-300 hover:border-accent/50 text-transparent shadow-inner'
+                            }`}
+                    >
+                        {isSelected ? indexInPattern + 1 : ''}
+                    </button>
+                )
+            })}
         </div>
     );
 
@@ -399,98 +457,183 @@ const ServiceOrderForm: React.FC = () => {
     };
 
     return (
-        <div className="max-w-5xl mx-auto pb-20">
+        <div className="max-w-[1400px] w-full px-4 md:px-8 mx-auto pb-20">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 justify-between">
-                <div className="flex items-center gap-4 self-start sm:self-auto">
+            <div className="flex flex-col sm:flex-row items-start gap-4 mb-8 justify-between">
+                <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/service-orders/list')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                         <ArrowLeft size={24} className="text-secondary" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black text-primary">
-                            {isEditing ? `Ordem de Serviço #${editId?.slice(0, 8)}` : 'Nova Ordem de Serviço'}
-                        </h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-black text-primary">
+                                {isEditing
+                                    ? <span>OS-<span className="text-accent">{displayId ?? '...'}</span></span>
+                                    : 'Nova Ordem de Serviço'
+                                }
+                            </h1>
+                        </div>
                         <p className="text-secondary text-sm">
                             {isEditing ? 'Editar dados do atendimento' : 'Preencha os dados do atendimento'}
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-3 self-end sm:self-auto">
-                    <button
-                        onClick={() => navigate('/service-orders/list')}
-                        className="px-6 py-2 rounded-xl text-sm font-bold text-secondary border border-gray-200 hover:bg-gray-50 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={isLoading}
-                        className="px-6 py-2 rounded-xl text-sm font-bold text-white bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Save size={18} />
-                        {isLoading ? 'Salvando...' : 'Salvar OS'}
-                    </button>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+                    {/* Print / Share actions - only visible when editing */}
+                    {isEditing && (
+                        <>
+                            <button
+                                onClick={() => window.print()}
+                                title="Imprimir A4"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+                            >
+                                <Printer size={15} />
+                                A4
+                            </button>
+                            <button
+                                onClick={() => window.print()}
+                                title="Imprimir 80mm"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+                            >
+                                <Printer size={15} />
+                                80mm
+                            </button>
+                            <button
+                                onClick={() => window.print()}
+                                title="Imprimir Etiqueta"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
+                            >
+                                <Tag size={15} />
+                                Etiqueta
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const msg = encodeURIComponent(
+                                        `Olá, sua Ordem de Serviço *OS-${displayId}* foi registrada!\nAparelho: ${deviceModel}\nStatus: ${osStatus}\n\nAguarde, entraremos em contato em breve.`
+                                    );
+                                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                                }}
+                                title="Enviar WhatsApp"
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all shadow-sm shadow-green-500/20"
+                            >
+                                <WhatsAppIcon size={16} className="text-white fill-white" />
+                                WhatsApp
+                            </button>
+                        </>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+                        {!isEditing && (
+                            <button
+                                onClick={() => setIsQuickOSOpen(true)}
+                                className="bg-amber-500 hover:bg-amber-600 text-white h-11 px-6 rounded-2xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
+                            >
+                                <Zap size={16} className="fill-white" />
+                                OS Rápida
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => navigate('/service-orders/list')}
+                            className="bg-red-100 hover:bg-red-200 text-red-500 h-11 px-6 rounded-2xl text-sm font-black active:scale-95 transition-all flex items-center justify-center"
+                        >
+                            Cancelar
+                        </button>
+
+                        <button
+                            onClick={handleSave}
+                            disabled={isLoading}
+                            className="bg-gray-800 hover:bg-gray-900 text-white h-11 px-8 rounded-2xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Save size={18} />
+                            {isLoading ? 'Salvando...' : 'Salvar OS'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* Left Column - Navigation & Progress */}
-                <div className="space-y-2 lg:sticky lg:top-8 h-fit">
+                <div className="space-y-4 lg:sticky lg:top-8 h-fit">
                     <button
                         onClick={() => setActiveTab('client_device')}
-                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'client_device' ? 'bg-white border-accent shadow-md' : 'bg-transparent border-transparent hover:bg-white/50'
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'client_device' ? 'bg-accent border-accent text-white shadow-lg shadow-accent/20' : 'bg-transparent border-transparent hover:bg-white/50'
                             }`}
                     >
-                        <div className={`p-2 rounded-xl ${activeTab === 'client_device' ? 'bg-accent text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`p-2 rounded-xl ${activeTab === 'client_device' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
                             <UserIcon size={20} />
                         </div>
                         <div>
-                            <h3 className={`font-bold ${activeTab === 'client_device' ? 'text-primary' : 'text-gray-500'}`}>Cliente e Aparelho</h3>
-                            <p className="text-xs text-secondary">Dados iniciais e checklist</p>
+                            <h3 className={`font-bold ${activeTab === 'client_device' ? 'text-white' : 'text-gray-500'}`}>Cliente e Aparelho</h3>
+                            <p className={`text-xs ${activeTab === 'client_device' ? 'text-white/80' : 'text-secondary'}`}>Dados iniciais e checklist</p>
                         </div>
                     </button>
 
                     <button
                         onClick={() => setActiveTab('diagnosis')}
-                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'diagnosis' ? 'bg-white border-accent shadow-md' : 'bg-transparent border-transparent hover:bg-white/50'
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'diagnosis' ? 'bg-accent border-accent text-white shadow-lg shadow-accent/20' : 'bg-transparent border-transparent hover:bg-white/50'
                             }`}
                     >
-                        <div className={`p-2 rounded-xl ${activeTab === 'diagnosis' ? 'bg-accent text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`p-2 rounded-xl ${activeTab === 'diagnosis' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
                             <Wrench size={20} />
                         </div>
                         <div>
-                            <h3 className={`font-bold ${activeTab === 'diagnosis' ? 'text-primary' : 'text-gray-500'}`}>Diagnóstico</h3>
-                            <p className="text-xs text-secondary">Defeito e laudo técnico</p>
+                            <h3 className={`font-bold ${activeTab === 'diagnosis' ? 'text-white' : 'text-gray-500'}`}>Diagnóstico</h3>
+                            <p className={`text-xs ${activeTab === 'diagnosis' ? 'text-white/80' : 'text-secondary'}`}>Defeito e laudo técnico</p>
                         </div>
                     </button>
 
                     <button
                         onClick={() => setActiveTab('financial')}
-                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'financial' ? 'bg-white border-accent shadow-md' : 'bg-transparent border-transparent hover:bg-white/50'
+                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'financial' ? 'bg-accent border-accent text-white shadow-lg shadow-accent/20' : 'bg-transparent border-transparent hover:bg-white/50'
                             }`}
                     >
-                        <div className={`p-2 rounded-xl ${activeTab === 'financial' ? 'bg-accent text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`p-2 rounded-xl ${activeTab === 'financial' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
                             <FileText size={20} />
                         </div>
                         <div>
-                            <h3 className={`font-bold ${activeTab === 'financial' ? 'text-primary' : 'text-gray-500'}`}>Orçamento</h3>
-                            <p className="text-xs text-secondary">Peças, serviços e totais</p>
+                            <h3 className={`font-bold ${activeTab === 'financial' ? 'text-white' : 'text-gray-500'}`}>Orçamento</h3>
+                            <p className={`text-xs ${activeTab === 'financial' ? 'text-white/80' : 'text-secondary'}`}>Peças, serviços e totais</p>
                         </div>
                     </button>
 
-                    {/* Responsible Selector in Sidebar */}
-                    <div className="mt-8 p-4 bg-white/50 rounded-2xl border border-gray-100">
-                        <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Responsável Técnico</label>
-                        <select
-                            value={responsibleId}
-                            onChange={(e) => setResponsibleId(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
-                        >
-                            <option value="">Selecione...</option>
-                            {users.filter(u => u.active !== false).map(u => (
-                                <option key={u.id} value={u.id}>{u.name}</option>
-                            ))}
-                        </select>
+                    {/* Attendant + Responsible Selectors in Sidebar */}
+                    <div className="mt-8 p-4 bg-white/50 rounded-2xl border border-gray-100 space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Atendente (Entrada)</label>
+                            <select
+                                value={attendantId}
+                                onChange={(e) => setAttendantId(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
+                            >
+                                <option value="">Selecione...</option>
+                                {users.filter(u => u.active !== false).map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Responsável Técnico</label>
+                            <select
+                                value={responsibleId}
+                                onChange={(e) => setResponsibleId(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
+                            >
+                                <option value="">Selecione...</option>
+                                {users
+                                    .filter(u => {
+                                        const profile = profiles.find(p => p.id === u.permissionProfileId);
+                                        const profileName = profile?.name?.toLowerCase() || '';
+                                        return u.active !== false && (profileName.includes('técnico') || profileName.includes('tecnico'));
+                                    })
+                                    .map(u => (
+                                        <option key={u.id} value={u.id}>{u.name}</option>
+                                    ))
+                                }
+                            </select>
+                        </div>
                     </div>
 
                     {/* Status selector em modo edição */}
@@ -499,10 +642,22 @@ const ServiceOrderForm: React.FC = () => {
                             <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Status da OS</label>
                             <select
                                 value={osStatus}
-                                onChange={(e) => setOsStatus(e.target.value)}
+                                onChange={async (e) => {
+                                    const newStatus = e.target.value;
+                                    setOsStatus(newStatus);
+                                    // Instant sync if editing
+                                    if (isEditing && editId) {
+                                        try {
+                                            await updateServiceOrder(editId, { status: newStatus } as any);
+                                            toast.success(`Status atualizado para ${newStatus}`);
+                                        } catch (err) {
+                                            toast.error("Erro ao sincronizar status.");
+                                        }
+                                    }
+                                }}
                                 className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
                             >
-                                {['Aberto', 'Análise', 'Orçamento', 'Aprovado', 'Em Reparo', 'Pronto', 'Entregue'].map(s => (
+                                {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue'].map(s => (
                                     <option key={s} value={s}>{s}</option>
                                 ))}
                             </select>
@@ -511,16 +666,17 @@ const ServiceOrderForm: React.FC = () => {
                 </div>
 
                 {/* Right Column - Form Content */}
-                <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-white/40 p-6 sm:p-8 rounded-3xl shadow-sm min-h-[600px] flex flex-col">
+                <div className="lg:col-span-3 bg-white border border-gray-200 p-6 sm:p-8 rounded-3xl shadow-sm min-h-[600px] flex flex-col">
 
                     {/* TAB 1: CLIENT & DEVICE */}
                     {activeTab === 'client_device' && (
                         <div className="space-y-6 animate-fade-in flex-1">
-                            {/* Client Search */}
+                            {/* Client Search + Date Filters + Orcamento Toggle all in one row */}
                             <div>
                                 <label className="block text-sm font-bold text-primary mb-2">Cliente</label>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
+                                <div className="flex flex-wrap gap-2 items-end">
+                                    {/* Client search */}
+                                    <div className="relative flex-1 min-w-[200px]">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                         <input
                                             type="text"
@@ -552,97 +708,225 @@ const ServiceOrderForm: React.FC = () => {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Add client button */}
                                     <button
                                         onClick={() => setIsCustomerModalOpen(true)}
-                                        className="h-12 w-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-primary rounded-xl transition-colors"
+                                        className="h-12 w-12 flex items-center justify-center bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl transition-colors flex-shrink-0"
                                         title="Novo Cliente"
                                     >
                                         <Plus size={20} />
                                     </button>
+
+                                    {/* Data Entrada - fully clickable */}
+                                    <div className="flex flex-col min-w-[130px]">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Data Entrada</label>
+                                        <label className="relative cursor-pointer">
+                                            <input
+                                                type="date"
+                                                value={entryDate}
+                                                onChange={e => setEntryDate(e.target.value)}
+                                                className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Data Prevista - fully clickable */}
+                                    <div className="flex flex-col min-w-[130px]">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Data Prevista</label>
+                                        <label className="relative cursor-pointer">
+                                            <input
+                                                type="date"
+                                                value={estimatedDate}
+                                                onChange={e => setEstimatedDate(e.target.value)}
+                                                className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Toggle Orçamento */}
+                                    <div className={`h-12 flex items-center gap-2 px-3 rounded-xl border transition-all flex-shrink-0 ${isOrcamentoOnly
+                                        ? 'bg-amber-50 border-amber-300'
+                                        : 'bg-gray-50 border-gray-200'
+                                        }`}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsOrcamentoOnly(!isOrcamentoOnly)}
+                                            className={`relative w-10 h-5 rounded-full transition-all duration-300 flex-shrink-0 ${isOrcamentoOnly ? 'bg-amber-500 shadow-sm' : 'bg-gray-300'
+                                                }`}
+                                        >
+                                            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${isOrcamentoOnly ? 'left-[22px]' : 'left-0.5'
+                                                }`} />
+                                        </button>
+                                        <span className={`text-xs font-bold whitespace-nowrap ${isOrcamentoOnly ? 'text-amber-600' : 'text-gray-400'
+                                            }`}>Orçamento</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-primary mb-2">Modelo do Aparelho</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ex: iPhone 13 Pro"
-                                        value={deviceModel}
-                                        onChange={e => setDeviceModel(e.target.value)}
-                                        className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-primary mb-2">IMEI / Serial</label>
-                                    <input
-                                        type="text"
-                                        placeholder="IMEI"
-                                        value={imei}
-                                        onChange={e => setImei(e.target.value)}
-                                        className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all font-mono mb-2"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Serial Number (Opcional)"
-                                        value={serialNumber}
-                                        onChange={e => setSerialNumber(e.target.value)}
-                                        className="w-full h-10 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all font-mono text-sm"
-                                    />
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <label className="block text-sm font-bold text-primary">Aparelho do Cliente (Busca por IMEI/Serial)</label>
+                                        <button
+                                            onClick={() => setIsDeviceModalOpen(true)}
+                                            className="h-8 px-3 flex items-center gap-1 bg-accent text-white rounded-lg text-xs font-bold transition-colors hover:bg-accent/90"
+                                            title="Novo Aparelho"
+                                        >
+                                            <Plus size={14} /> Novo Aparelho
+                                        </button>
+                                    </div>
+                                    <div className="relative mb-4">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar aparelhos do cliente ou bipar IMEI..."
+                                            value={deviceSearch}
+                                            onChange={e => {
+                                                setDeviceSearch(e.target.value);
+                                                setShowDeviceResults(true);
+                                            }}
+                                            onFocus={() => setShowDeviceResults(true)}
+                                            className="w-full h-12 pl-10 pr-4 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
+                                        />
+                                        {showDeviceResults && deviceSearch && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
+                                                {filteredDevices.length > 0 ? (
+                                                    filteredDevices.map(d => (
+                                                        <button
+                                                            key={d.id}
+                                                            onClick={() => handleSelectDevice(d)}
+                                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                                                        >
+                                                            <div className="font-bold text-primary">{d.brand} {d.model}</div>
+                                                            <div className="text-xs text-secondary font-mono">
+                                                                {d.imei && `IMEI: ${d.imei} `}
+                                                                {d.serialNumber && `SN: ${d.serialNumber}`}
+                                                            </div>
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-3 text-sm text-gray-400">Nenhum aparelho encontrado. Cadastre um novo.</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Modelo</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ex: iPhone 13 Pro"
+                                                value={deviceModel}
+                                                onChange={e => setDeviceModel(e.target.value)}
+                                                className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm focus:border-accent"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">IMEI</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="IMEI"
+                                                    value={imei}
+                                                    onChange={e => setImei(e.target.value)}
+                                                    className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm font-mono focus:border-accent"
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Serial Number</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Opcional"
+                                                    value={serialNumber}
+                                                    onChange={e => setSerialNumber(e.target.value)}
+                                                    className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm font-mono focus:border-accent"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 pt-4 border-t border-gray-100">
                                 {/* Lock Pattern / Password */}
-                                <div>
+                                <div className="sm:col-span-4 lg:col-span-3">
                                     <label className="block text-sm font-bold text-primary mb-4 flex items-center gap-2">
                                         <Unlock size={16} /> Senha / Padrão
                                     </label>
-                                    <div className="flex gap-4">
-                                        <div className="flex-1">
+                                    <div className="flex flex-col gap-4">
+                                        <div className="w-full">
                                             <input
                                                 type="text"
-                                                placeholder="Senha numérica (PIN)"
+                                                placeholder="Senha numérica (PIN) ou Alfanumérica"
                                                 value={passcode}
                                                 onChange={e => setPasscode(e.target.value)}
-                                                className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm mb-4 outline-none focus:border-accent"
+                                                className="w-full h-11 px-3 bg-white border border-gray-200 rounded-xl text-sm mb-4 outline-none focus:border-accent shadow-sm"
                                             />
-                                            <p className="text-xs text-gray-400">Ou desenhe o padrão ao lado:</p>
+                                            <p className="text-[11px] font-bold text-gray-500 mb-2">Ou desenhe o padrão abaixo (a numeração indica a ordem exata da sequência):</p>
                                         </div>
-                                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                            <PatternGrid />
+                                        <div className="flex flex-col items-start w-full">
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 shadow-inner inline-block">
+                                                <PatternGrid />
+                                            </div>
+                                            {patternLock.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPatternLock([])}
+                                                    className="mt-3 text-xs text-red-500 hover:text-red-700 hover:underline font-bold"
+                                                >
+                                                    Limpar Padrão
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Visual Checklist */}
-                                <div>
+                                <div className="sm:col-span-8 lg:col-span-9">
                                     <label className="block text-sm font-bold text-primary mb-4 flex items-center gap-2">
                                         <CheckCircle2 size={16} /> Estado Físico (Checklist)
                                     </label>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {CONDITION_ICONS.map(cond => (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                        {availableChecklistItems.map(item => (
                                             <button
                                                 type="button"
-                                                key={cond.id}
-                                                onClick={() => toggleCondition(cond.id as keyof ServiceOrderChecklist)}
-                                                className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${checklist[cond.id as keyof ServiceOrderChecklist]
-                                                    ? 'bg-red-50 border-red-200 text-red-600'
-                                                    : 'bg-white border-gray-100 text-gray-400 hover:border-gray-300'
+                                                key={item.id}
+                                                onClick={() => toggleCondition(item.id as keyof ServiceOrderChecklist)}
+                                                className={`flex items-center gap-2 p-3 rounded-2xl border-2 transition-all ${checklist[item.id as keyof ServiceOrderChecklist]
+                                                    ? 'bg-purple-50 border-purple-500 text-purple-700 shadow-sm'
+                                                    : 'bg-white border-gray-100 text-gray-500 hover:border-purple-200 hover:bg-purple-50/30'
                                                     }`}
                                             >
-                                                <cond.icon size={16} className="mb-1" />
-                                                <span className="text-[10px] font-medium leading-tight text-center">{cond.label}</span>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${checklist[item.id as keyof ServiceOrderChecklist] ? 'bg-purple-500 text-white shadow-sm' : 'bg-gray-100 border border-gray-300 text-transparent'}`}>
+                                                    <CheckCircle2 size={12} strokeWidth={4} />
+                                                </div>
+                                                <span className="text-xs font-bold leading-tight text-left flex-1">{item.name}</span>
                                             </button>
                                         ))}
+
+                                        {/* "Outros" Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleCondition('others')}
+                                            className={`flex items-center gap-2 p-3 rounded-2xl border-2 transition-all ${checklist.others
+                                                ? 'bg-purple-50 border-purple-500 text-purple-700 shadow-sm'
+                                                : 'bg-white border-gray-100 text-gray-500 hover:border-purple-200 hover:bg-purple-50/30'
+                                                }`}
+                                        >
+                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${checklist.others ? 'bg-purple-500 text-white shadow-sm' : 'bg-gray-100 border border-gray-300 text-transparent'}`}>
+                                                <CheckCircle2 size={12} strokeWidth={4} />
+                                            </div>
+                                            <span className="text-xs font-bold leading-tight text-left flex-1">Outros</span>
+                                        </button>
                                     </div>
                                     {checklist.others && (
                                         <input
                                             type="text"
-                                            placeholder="Descreva outros problemas..."
+                                            placeholder="Descreva outros problemas ou itens..."
                                             value={othersDescription}
                                             onChange={e => setOthersDescription(e.target.value)}
-                                            className="mt-2 w-full h-8 px-2 text-xs bg-gray-50 border-b border-gray-300 outline-none focus:border-accent"
+                                            className="mt-3 w-full h-11 px-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 shadow-sm"
                                         />
                                     )}
                                 </div>
@@ -699,6 +983,15 @@ const ServiceOrderForm: React.FC = () => {
                                     placeholder="Descreva o problema relatado..."
                                     value={defectDescription}
                                     onChange={e => setDefectDescription(e.target.value)}
+                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none mb-4"
+                                />
+
+                                <label className="block text-sm font-bold text-primary mb-2">Observações Feitas Pelo Atendente</label>
+                                <textarea
+                                    rows={4}
+                                    placeholder="Observações do atendente no recebimento..."
+                                    value={attendantObservations}
+                                    onChange={e => setAttendantObservations(e.target.value)}
                                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none"
                                 />
                             </div>
@@ -742,21 +1035,21 @@ const ServiceOrderForm: React.FC = () => {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setIsServiceModalOpen(true)}
-                                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border border-blue-100"
+                                        className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 border border-blue-100"
                                     >
-                                        <Wrench size={14} /> Adicionar Serviço
+                                        <Wrench size={16} /> Adicionar Serviço
                                     </button>
                                     <button
                                         onClick={() => setIsProductModalOpen(true)}
-                                        className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border border-orange-100"
+                                        className="px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 border border-orange-100"
                                     >
-                                        <Package size={14} /> Adicionar Peça
+                                        <Package size={16} /> Adicionar Peça
                                     </button>
                                     <button
                                         onClick={addItem}
-                                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-primary rounded-lg text-xs font-bold transition-colors flex items-center gap-1 border border-gray-200"
+                                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-primary rounded-xl text-sm font-bold transition-colors flex items-center gap-2 border border-gray-200"
                                     >
-                                        <Plus size={14} /> Item Avulso
+                                        <Plus size={16} /> Item Avulso
                                     </button>
                                 </div>
                             </div>
@@ -765,12 +1058,12 @@ const ServiceOrderForm: React.FC = () => {
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-50 border-b border-gray-200 text-left text-xs font-bold text-secondary uppercase">
                                         <tr>
-                                            <th className="px-4 py-3">Descrição</th>
-                                            <th className="px-4 py-3 w-24">Tipo</th>
-                                            <th className="px-4 py-3 w-20 text-center">Qtd</th>
-                                            <th className="px-4 py-3 w-32 text-right">Valor Unit.</th>
-                                            <th className="px-4 py-3 w-32 text-right">Total</th>
-                                            <th className="px-4 py-3 w-10"></th>
+                                            <th className="px-4 py-4">Descrição</th>
+                                            <th className="px-4 py-4 w-48">Tipo</th>
+                                            <th className="px-4 py-4 w-28 text-center">Qtd</th>
+                                            <th className="px-4 py-4 w-32 text-right">Valor Unit.</th>
+                                            <th className="px-4 py-4 w-32 text-right">Total</th>
+                                            <th className="px-4 py-4 w-10"></th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
@@ -786,14 +1079,14 @@ const ServiceOrderForm: React.FC = () => {
                                                             type="text"
                                                             value={item.description}
                                                             onChange={e => updateItem(item.id, 'description', e.target.value)}
-                                                            className="w-full bg-transparent outline-none focus:underline font-medium"
+                                                            className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-accent font-medium text-sm transition-all"
                                                         />
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <select
                                                             value={item.type}
                                                             onChange={e => updateItem(item.id, 'type', e.target.value)}
-                                                            className="bg-transparent outline-none text-xs"
+                                                            className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm focus:border-accent transition-all"
                                                         >
                                                             <option value="service">Serviço</option>
                                                             <option value="part">Peça</option>
@@ -804,16 +1097,25 @@ const ServiceOrderForm: React.FC = () => {
                                                             type="number"
                                                             value={item.quantity}
                                                             onChange={e => updateItem(item.id, 'quantity', Number(e.target.value))}
-                                                            className="w-full text-center bg-transparent outline-none" min="1"
+                                                            className="w-full h-11 px-2 text-center bg-white border border-gray-200 rounded-lg outline-none focus:border-accent transition-all" min="1"
                                                         />
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <input
-                                                            type="number"
-                                                            value={item.price}
-                                                            onChange={e => updateItem(item.id, 'price', Number(e.target.value))}
-                                                            className="w-full text-right bg-transparent outline-none"
-                                                        />
+                                                        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg h-11 px-3 focus-within:border-accent transition-all">
+                                                            <span className="text-gray-300 text-sm font-medium flex-shrink-0">R$</span>
+                                                            <input
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                value={item.price === 0 ? '' : item.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                placeholder="0,00"
+                                                                onChange={e => {
+                                                                    const raw = e.target.value.replace(/\D/g, '');
+                                                                    const numeric = Number(raw) / 100;
+                                                                    updateItem(item.id, 'price', isNaN(numeric) ? 0 : numeric);
+                                                                }}
+                                                                className="w-full text-right bg-transparent outline-none font-medium text-primary text-sm"
+                                                            />
+                                                        </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right font-medium text-primary">
                                                         {formatCurrency(item.price * item.quantity)}
@@ -847,7 +1149,7 @@ const ServiceOrderForm: React.FC = () => {
                                             type="number"
                                             value={discount}
                                             onChange={e => setDiscount(Number(e.target.value))}
-                                            className="w-full outline-none text-right font-medium text-emerald-600"
+                                            className="w-full text-right font-medium text-emerald-600 bg-transparent border-0 outline-none ring-0 focus:ring-0"
                                         />
                                     </div>
                                 </div>
@@ -951,6 +1253,27 @@ const ServiceOrderForm: React.FC = () => {
                 onSelect={(item) => handleAddItemFromCatalog(item, 'part')}
             />
 
+            {isDeviceModalOpen && (
+                <CustomerDeviceModal
+                    isOpen={isDeviceModalOpen}
+                    onClose={() => setIsDeviceModalOpen(false)}
+                    customer={selectedCustomer}
+                    onSuccess={(device) => {
+                        setCustomerDevices([...customerDevices, device]);
+                        handleSelectDevice(device);
+                    }}
+                />
+            )}
+
+            {isQuickOSOpen && (
+                <QuickOSModal
+                    onClose={() => setIsQuickOSOpen(false)}
+                    onSaved={() => {
+                        setIsQuickOSOpen(false);
+                        navigate('/service-orders/list');
+                    }}
+                />
+            )}
         </div>
     );
 };

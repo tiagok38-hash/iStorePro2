@@ -41,6 +41,7 @@ const ServiceOrderList = lazyWithRetry(() => import('./pages/ServiceOrders/Servi
 const ServiceOrderForm = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderForm.tsx'), 'SOForm');
 const ServiceOrderProducts = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderProducts.tsx'), 'SOProducts');
 const ServiceOrderCustomers = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderCustomers.tsx'), 'SOCustomers');
+const ServiceOrderDevices = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderDevices.tsx'), 'SODevices');
 const ServiceOrderSettings = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderSettings.tsx'), 'SOSettings');
 const ServiceOrderFinancial = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderFinancial.tsx'), 'SOFinancial');
 const ServiceOrderReports = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderReports.tsx'), 'SOReports');
@@ -151,6 +152,7 @@ const App: React.FC = () => {
                                             <Route path="edit/:id" element={<ServiceOrderForm />} />
                                             <Route path="products" element={<ServiceOrderProducts />} />
                                             <Route path="customers" element={<ServiceOrderCustomers />} />
+                                            <Route path="devices" element={<ServiceOrderDevices />} />
                                             <Route path="financial" element={<ServiceOrderFinancial />} />
                                             <Route path="reports" element={<ServiceOrderReports />} />
                                             <Route path="settings" element={<ServiceOrderSettings />} />

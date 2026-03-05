@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, Plus, EyeIcon, TrashIcon, Search, Filter, CalendarDays, ChartBar } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, Plus, EyeIcon, TrashIcon, Search, Filter, ChartBar } from 'lucide-react';
 import { getServiceOrders } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
 

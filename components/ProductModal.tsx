@@ -992,7 +992,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Marca*</label>
                                             <select name="brand" value={formData.brand || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" required>
@@ -1018,6 +1018,15 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                                     disabled={!formData.category}
                                                 />
                                             </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className={labelClasses}>Unidade / Medida</label>
+                                            <select name="unit" value={formData.unit || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm">
+                                                <option value="">Padrão (Un)</option>
+                                                <option value="Unidade (Un)">Unidade (Un)</option>
+                                                <option value="Kilo (Kg)">Kilo (Kg)</option>
+                                                <option value="Metro (Mt)">Metro (Mt)</option>
+                                            </select>
                                         </div>
                                     </div>
                                 )}

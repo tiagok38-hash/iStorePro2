@@ -451,6 +451,7 @@ export const useSaleForm = ({
                     quantity: item.quantity,
                     unitPrice: item.salePrice,
                     costPrice: item.costPrice || 0,
+                    additionalCostPrice: item.additionalCostPrice || 0,
                     productName: item.model || item.name || '',
                     model: item.model || '',
                     priceType: item.priceType,
