@@ -10,12 +10,14 @@ import {
 } from './icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { openWhatsApp, getWhatsAppLink } from '../utils/whatsappUtils.ts';
 import {
     Sparkles, MessageCircle, Package, Clock, CheckCircle2, Archive,
     Phone, Flame, Snowflake, Thermometer, Send, Calendar,
     MoreVertical, ExternalLink, Instagram, Globe, User as UserIcon,
     ChevronDown, AlertCircle, Pencil, MessageSquare, History
 } from 'lucide-react';
+
 
 // ============================================================
 // Constants
@@ -75,10 +77,9 @@ const DealCard: React.FC<{
 
     const handleWhatsApp = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const phone = (deal.client_phone || '').replace(/\D/g, '');
         const product = deal.product_interest || 'nossos produtos';
-        const msg = encodeURIComponent(`Olá ${deal.client_name || ''}! 😊 Vi que você se interessou pelo ${product}. Posso te ajudar com mais informações?`);
-        window.open(`https://wa.me/55${phone}?text=${msg}`, '_blank');
+        const msg = `Olá ${deal.client_name || ''}! 😊 Vi que você se interessou pelo ${product}. Posso te ajudar com mais informações?`;
+        openWhatsApp(deal.client_phone || '', msg);
     };
 
     return (

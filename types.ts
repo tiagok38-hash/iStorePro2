@@ -377,11 +377,16 @@ export interface ServiceOrder {
     updatedAt: string;
     responsibleId: string;
     responsibleName: string;
+    attendantId?: string;
+    attendantName?: string;
+    estimatedDate?: string;
+    color?: string;
     photos?: string[];
     entryDate: string;
     exitDate?: string;
     attendantObservations?: string;
     customerDeviceId?: string;
+    trackingToken?: string;
 }
 
 // CartItem interface to be used across components like NewSaleModal.

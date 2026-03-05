@@ -9,6 +9,7 @@ import { getPublicCatalogData, logCatalogEvent } from '../../services/mockApi.ts
 import { supabase } from '../../supabaseClient.ts';
 import { CatalogItem, CompanyInfo, PaymentMethodParameter } from '../../types.ts';
 import { sortProductsCommercial } from '../../utils/productSorting.ts';
+import { getWhatsAppLink, openWhatsApp } from '../../utils/whatsappUtils.ts';
 
 // ===== CART CONTEXT (Local) =====
 interface CartEntry { item: CatalogItem; quantity: number; }
@@ -126,7 +127,7 @@ const ProductCard: React.FC<{ item: CatalogItem; onClick: () => void; onAdd: (e:
                 {/* Actions */}
                 <div className="mt-auto flex items-center justify-between gap-2 pt-2">
                     <a
-                        href={`https://wa.me/55${whatsappNumber}?text=${encodeURIComponent(`Olá! Tenho interesse no *${item.productName}*. Pode me dar mais detalhes?`)}`}
+                        href={getWhatsAppLink(whatsappNumber, `Olá! Tenho interesse no *${item.productName}*. Pode me dar mais detalhes?`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => { e.stopPropagation(); logCatalogEvent('WHATSAPP_CLICK', item.id, item.productId); }}
@@ -164,7 +165,7 @@ const ProductDetailsModal: React.FC<{
     const whatsappMsg = encodeURIComponent(
         `Olá! Tenho interesse no produto:\n\n📱 *${item.productName}*\n💰 R$ ${item.salePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nGostaria de mais informações!`
     );
-    const whatsappLink = whatsapp ? `https://wa.me/55${whatsapp.replace(/\D/g, '')}?text=${whatsappMsg}` : '#';
+    const whatsappLink = whatsapp ? getWhatsAppLink(whatsapp, decodeURIComponent(whatsappMsg)) : '#';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -722,7 +723,7 @@ const CatalogPublic: React.FC = () => {
             `Olá, vim através do catálogo virtual. Pedido de orçamento:\n\n${lines.join('\n')}\n\nTotal: R$ ${totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nGostaria de receber mais informações!`
         );
 
-        window.open(`https://wa.me/55${whatsapp.replace(/\D/g, '')}?text=${msg}`, '_blank');
+        openWhatsApp(whatsapp, decodeURIComponent(msg));
     };
 
     if (isLoading) {
@@ -788,7 +789,7 @@ const CatalogPublic: React.FC = () => {
 
                     <div className="flex flex-col gap-3">
                         <a
-                            href={`https://wa.me/55${companyInfo.whatsapp?.replace(/\D/g, '')}`}
+                            href={getWhatsAppLink(companyInfo.whatsapp)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-500 text-white rounded-2xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
@@ -995,7 +996,7 @@ const CatalogPublic: React.FC = () => {
                     </p>
                     {companyInfo?.whatsapp && (
                         <a
-                            href={`https://wa.me/55${companyInfo.whatsapp.replace(/\D/g, '')}`}
+                            href={getWhatsAppLink(companyInfo.whatsapp)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 mt-2 text-emerald-500 text-sm font-medium hover:underline"

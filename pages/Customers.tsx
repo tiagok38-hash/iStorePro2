@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
+import { getWhatsAppLink } from '../utils/whatsappUtils.ts';
 import { Customer, Sale, Product, Supplier, PurchaseOrder, PermissionSet, User } from '../types.ts';
 import {
     getCustomers, addCustomer, updateCustomer, deleteCustomer, getCustomerSales, getCustomerById,
@@ -898,7 +899,7 @@ const CustomersAndSuppliers: React.FC = () => {
                                         <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
                                             <div className="flex gap-1.5">
                                                 {customer.phone && (
-                                                    <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} className="w-6 h-6 flex items-center justify-center rounded bg-green-100 text-green-600 active:bg-green-200">
+                                                    <a href={getWhatsAppLink(customer.phone)} className="w-6 h-6 flex items-center justify-center rounded bg-green-100 text-green-600 active:bg-green-200">
                                                         <WhatsAppIcon className="w-3.5 h-3.5" />
                                                     </a>
                                                 )}
@@ -964,7 +965,7 @@ const CustomersAndSuppliers: React.FC = () => {
                                                 <div className="flex items-center gap-2">
                                                     <span>{customer.phone}</span>
                                                     {customer.phone && (
-                                                        <a href={`https://wa.me/55${customer.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" title="Abrir WhatsApp">
+                                                        <a href={getWhatsAppLink(customer.phone)} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" title="Abrir WhatsApp">
                                                             <WhatsAppIcon />
                                                         </a>
                                                     )}
@@ -1104,7 +1105,7 @@ const CustomersAndSuppliers: React.FC = () => {
                                         <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                                             <div className="flex gap-1.5">
                                                 {supplier.phone && (
-                                                    <a href={`https://wa.me/55${supplier.phone.replace(/\D/g, '')}`} className="w-6 h-6 flex items-center justify-center rounded bg-green-100 text-green-600 active:bg-green-200 transition-colors">
+                                                    <a href={getWhatsAppLink(supplier.phone)} className="w-6 h-6 flex items-center justify-center rounded bg-green-100 text-green-600 active:bg-green-200 transition-colors">
                                                         <WhatsAppIcon className="w-3.5 h-3.5" />
                                                     </a>
                                                 )}
@@ -1152,7 +1153,7 @@ const CustomersAndSuppliers: React.FC = () => {
                                                 <div className="flex items-center gap-2">
                                                     <span>{supplier.phone}</span>
                                                     {supplier.phone && (
-                                                        <a href={`https://wa.me/55${supplier.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-700" title="WhatsApp">
+                                                        <a href={getWhatsAppLink(supplier.phone)} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-700" title="WhatsApp">
                                                             <WhatsAppIcon className="h-4 w-4" />
                                                         </a>
                                                     )}

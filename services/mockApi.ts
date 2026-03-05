@@ -5595,6 +5595,7 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
                 exitDate: so.exit_date,
                 attendantObservations: so.attendant_observations,
                 customerDeviceId: so.customer_device_id,
+                displayId: so.display_id,
             }));
         });
     });
@@ -5633,6 +5634,7 @@ export const getServiceOrder = async (id: string): Promise<ServiceOrder | null> 
             isOrcamentoOnly: data.is_orcamento_only,
             isQuick: data.is_quick,
             phone: data.phone,
+            displayId: data.display_id,
         };
     });
 };
@@ -5659,17 +5661,21 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         technical_report: data.technicalReport,
         responsible_id: data.responsibleId,
         responsible_name: data.responsibleName,
-        attendant_id: (data as any).attendantId,
-        attendant_name: (data as any).attendantName,
+        attendant_id: (data as any).attendantId || null,
+        attendant_name: (data as any).attendantName || null,
         entry_date: data.entryDate,
-        exit_date: data.exitDate,
-        estimated_date: (data as any).estimatedDate,
-        attendant_observations: data.attendantObservations,
-        customer_device_id: data.customerDeviceId,
+        exit_date: data.exitDate || null,
+        estimated_date: (data as any).estimatedDate || null,
+        attendant_observations: data.attendantObservations || null,
+        customer_device_id: data.customerDeviceId || null,
         is_orcamento_only: (data as any).isOrcamentoOnly ?? false,
         is_quick: (data as any).isQuick ?? false,
         phone: (data as any).phone || null,
     };
+
+    // Fix empty UUIDs for responsible_id
+    if (!newOrder.responsible_id) newOrder.responsible_id = null;
+    if (!newOrder.customer_id) newOrder.customer_id = null;
 
     // Remove camelCase keys that were added by ...data
     const camelCaseKeys = [
@@ -5715,6 +5721,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         exitDate: created.exit_date,
         attendantObservations: created.attendant_observations,
         customerDeviceId: created.customer_device_id,
+        displayId: created.display_id,
     };
 };
 
@@ -5856,6 +5863,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         attendantObservations: updated.attendant_observations,
         customerDeviceId: updated.customer_device_id,
         isOrcamentoOnly: updated.is_orcamento_only,
+        displayId: updated.display_id,
     };
 };
 

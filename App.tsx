@@ -51,6 +51,7 @@ const CatalogSettings = lazyWithRetry(() => import('./pages/Catalog/CatalogSetti
 const CatalogStats = lazyWithRetry(() => import('./pages/Catalog/CatalogStats.tsx'), 'CatalogStats');
 const CatalogPublic = lazyWithRetry(() => import('./pages/Catalog/CatalogPublic.tsx'), 'CatalogPublic');
 const Financeiro = lazyWithRetry(() => import('./pages/Financeiro.tsx'), 'Financeiro');
+const PublicOSTracking = lazyWithRetry(() => import('./pages/ServiceOrders/PublicOSTracking.tsx'), 'PublicOSTracking');
 
 const GlobalChat = () => {
     const { isChatOpen, closeChat } = useChat();
@@ -171,6 +172,9 @@ const App: React.FC = () => {
 
                                 {/* Public Catalog (No Auth Required) */}
                                 <Route path="/catalogo/:slug" element={<CatalogPublic />} />
+
+                                {/* Public OS Tracking (No Auth Required) */}
+                                <Route path="/os/track/:token" element={<PublicOSTracking />} />
                             </Routes>
                         </Suspense>
                         {/* Global Online/Offline Status Indicator */}

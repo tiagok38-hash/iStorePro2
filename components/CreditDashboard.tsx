@@ -16,6 +16,7 @@ import StatusBadge from './StatusBadge.tsx';
 import { CarnetPrintButton } from './print/CarnetPrintButton';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { openWhatsApp } from '../utils/whatsappUtils.ts';
 
 const CreditDashboard: React.FC = () => {
     const { user } = useUser();
@@ -164,19 +165,12 @@ const CreditDashboard: React.FC = () => {
 
         const message = `Olá *${customerName}*,\n\nPassando para lembrar que sua parcela de *${amount}* na *${storeName}* venceu dia *${dueDate}*.\n\nPodemos enviar a chave Pix para regularização?`;
 
-        let phone = (inst as any).customerPhone || '';
-        if (!phone) {
+        if (!(inst as any).customerPhone) {
             showToast('Cliente sem telefone cadastrado', 'error');
             return;
         }
 
-        // Clean phone: remove non-digits and ensure 55 prefix
-        phone = phone.replace(/\D/g, '');
-        if (!phone.startsWith('55')) phone = '55' + phone;
-
-        const encoded = encodeURIComponent(message);
-        const url = `https://wa.me/${phone}?text=${encoded}`;
-        window.open(url, '_blank');
+        openWhatsApp((inst as any).customerPhone, message);
     };
 
     if (loading) return <div className="p-10 text-center text-gray-500">Carregando carteira de crediário...</div>;

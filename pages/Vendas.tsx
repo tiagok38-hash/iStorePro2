@@ -14,6 +14,7 @@ import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
 import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
+import { getWhatsAppLink } from '../utils/whatsappUtils.ts';
 
 import { lazyWithRetry } from '../utils/lazyWithRetry.ts';
 
@@ -773,7 +774,7 @@ const Vendas: React.FC = () => {
                                                         <span className="text-primary font-black sm:font-bold truncate max-w-[150px] sm:max-w-none text-[13px] sm:text-sm">{customerMap[sale.customerId]?.name || 'N/A'}</span>
                                                         {customerMap[sale.customerId]?.phone && (
                                                             <a
-                                                                href={`https://wa.me/55${customerMap[sale.customerId].phone.replace(/\D/g, '')}`}
+                                                                href={getWhatsAppLink(customerMap[sale.customerId]?.phone)}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="text-[#25D366] hover:opacity-80 transition-opacity shrink-0"

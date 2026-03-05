@@ -4,6 +4,7 @@
  */
 import html2canvas from 'html2canvas-pro';
 import { jsPDF } from 'jspdf';
+import { getWhatsAppLink } from './whatsappUtils.ts';
 
 interface ShareReceiptOptions {
     receiptElementId: string;
@@ -123,9 +124,7 @@ export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<vo
         // Fallback: Download the PDF, then open WhatsApp with the message
         downloadBlob(pdfBlob, filename);
 
-        const phone = customerPhone?.replace(/\D/g, '') || '';
-        const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
-        const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
+        const waUrl = getWhatsAppLink(customerPhone, message);
 
         setTimeout(() => {
             window.open(waUrl, '_blank');
@@ -133,9 +132,7 @@ export async function shareViaWhatsApp(options: ShareReceiptOptions): Promise<vo
     } catch (error: any) {
         console.error('Erro ao compartilhar via WhatsApp:', error);
         // Last resort fallback: just open whatsapp with text
-        const phone = customerPhone?.replace(/\D/g, '') || '';
-        const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
-        window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
+        window.open(getWhatsAppLink(customerPhone, message), '_blank');
     }
 }
 

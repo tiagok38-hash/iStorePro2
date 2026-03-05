@@ -18,6 +18,7 @@ import { getServiceOrders, updateServiceOrder } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import QuickOSModal from '../../components/QuickOSModal';
+import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
 
 // --- Constants ---
 type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardando Peça' | 'Pronto' | 'Entregue';
@@ -102,6 +103,8 @@ const ServiceOrderList: React.FC = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isQuickOSOpen, setIsQuickOSOpen] = useState(false);
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [selectedOSForPrint, setSelectedOSForPrint] = useState<any>(null);
 
     // Drag & Drop state
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -325,7 +328,10 @@ const ServiceOrderList: React.FC = () => {
                                                             <Edit2 size={14} />
                                                         </button>
                                                         <button
-                                                            onClick={() => window.print()}
+                                                            onClick={() => {
+                                                                setSelectedOSForPrint(os);
+                                                                setIsPrintModalOpen(true);
+                                                            }}
                                                             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
                                                             title="Re-imprimir"
                                                         >
@@ -472,6 +478,17 @@ const ServiceOrderList: React.FC = () => {
                     onSaved={() => {
                         setIsQuickOSOpen(false);
                         loadOrders();
+                    }}
+                />
+            )}
+
+            {isPrintModalOpen && selectedOSForPrint && (
+                <ServiceOrderPrintModal
+                    serviceOrder={selectedOSForPrint}
+                    initialFormat="thermal"
+                    onClose={() => {
+                        setIsPrintModalOpen(false);
+                        setSelectedOSForPrint(null);
                     }}
                 />
             )}

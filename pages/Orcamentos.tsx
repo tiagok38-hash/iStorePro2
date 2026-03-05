@@ -12,6 +12,7 @@ import { formatDateTimeBR } from '../utils/dateUtils.ts';
 import { formatCurrency } from '../services/mockApi.ts';
 import NewOrcamentoView from '../components/orcamentos/NewOrcamentoView.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
+import { openWhatsApp } from '../utils/whatsappUtils.ts';
 
 type TabType = 'list' | 'new';
 
@@ -485,8 +486,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
             `_Gerado via iStore Pro_`
         ].filter(Boolean).join('\n');
 
-        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+        openWhatsApp('', message);
     };
 
     return (

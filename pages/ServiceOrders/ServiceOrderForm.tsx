@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     User as UserIcon,
     Wrench,
@@ -23,6 +23,7 @@ import {
     Zap
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { openWhatsApp } from '../../utils/whatsappUtils.ts';
 import { useToast } from '../../contexts/ToastContext';
 import { useUser } from '../../contexts/UserContext';
 import {
@@ -46,6 +47,7 @@ import QuickOSModal from '../../components/QuickOSModal';
 import CameraModal from '../../components/CameraModal';
 import ItemSelectionModal from '../../components/ItemSelectionModal';
 import CustomerDeviceModal from '../../components/CustomerDeviceModal';
+import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
 
 
 
@@ -129,6 +131,26 @@ const ServiceOrderForm: React.FC = () => {
     // Datas
     const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [estimatedDate, setEstimatedDate] = useState('');
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [printFormat, setPrintFormat] = useState<'A4' | 'thermal'>('thermal');
+
+    // Refs para controle de clique fora
+    const customerSearchRef = useRef<HTMLDivElement>(null);
+    const deviceSearchRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (customerSearchRef.current && !customerSearchRef.current.contains(event.target as Node)) {
+                setShowCustomerResults(false);
+            }
+            if (deviceSearchRef.current && !deviceSearchRef.current.contains(event.target as Node)) {
+                setShowDeviceResults(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // --- Effects ---
     useEffect(() => {
@@ -485,7 +507,10 @@ const ServiceOrderForm: React.FC = () => {
                     {isEditing && (
                         <>
                             <button
-                                onClick={() => window.print()}
+                                onClick={() => {
+                                    setPrintFormat('A4');
+                                    setIsPrintModalOpen(true);
+                                }}
                                 title="Imprimir A4"
                                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
                             >
@@ -493,7 +518,10 @@ const ServiceOrderForm: React.FC = () => {
                                 A4
                             </button>
                             <button
-                                onClick={() => window.print()}
+                                onClick={() => {
+                                    setPrintFormat('thermal');
+                                    setIsPrintModalOpen(true);
+                                }}
                                 title="Imprimir 80mm"
                                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
                             >
@@ -510,10 +538,10 @@ const ServiceOrderForm: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => {
-                                    const msg = encodeURIComponent(
-                                        `Olá, sua Ordem de Serviço *OS-${displayId}* foi registrada!\nAparelho: ${deviceModel}\nStatus: ${osStatus}\n\nAguarde, entraremos em contato em breve.`
-                                    );
-                                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                                    const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
+                                    const msg = `Olá, sua Ordem de Serviço *OS-${displayId}* foi registrada!\n\nAparelho: ${deviceModel}\nStatus: ${osStatus}\n\nAcompanhe o status em tempo real aqui: ${trackingUrl}\n\nAguarde, entraremos em contato em breve.`;
+
+                                    openWhatsApp(selectedCustomer?.phone, msg);
                                 }}
                                 title="Enviar WhatsApp"
                                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all shadow-sm shadow-green-500/20"
@@ -661,6 +689,22 @@ const ServiceOrderForm: React.FC = () => {
                                     <option key={s} value={s}>{s}</option>
                                 ))}
                             </select>
+
+                            <div className="mt-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
+                                        const msg = `Olá, o status da sua Ordem de Serviço *OS-${displayId}* foi atualizado!\n\nStatus Atual: *${osStatus}*\nAparelho: ${deviceModel}\n\nAcompanhe seu reparo em tempo real aqui: ${trackingUrl}`;
+
+                                        openWhatsApp(selectedCustomer?.phone, msg);
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-2 w-full rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all shadow-md shadow-green-500/20"
+                                >
+                                    <WhatsAppIcon size={14} className="fill-white" />
+                                    Notificar Status via WhatsApp
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -676,7 +720,7 @@ const ServiceOrderForm: React.FC = () => {
                                 <label className="block text-sm font-bold text-primary mb-2">Cliente</label>
                                 <div className="flex flex-wrap gap-2 items-end">
                                     {/* Client search */}
-                                    <div className="relative flex-1 min-w-[200px]">
+                                    <div ref={customerSearchRef} className="relative flex-1 min-w-[200px]">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                         <input
                                             type="text"
@@ -776,7 +820,7 @@ const ServiceOrderForm: React.FC = () => {
                                             <Plus size={14} /> Novo Aparelho
                                         </button>
                                     </div>
-                                    <div className="relative mb-4">
+                                    <div ref={deviceSearchRef} className="relative mb-4">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                         <input
                                             type="text"
@@ -1272,6 +1316,44 @@ const ServiceOrderForm: React.FC = () => {
                         setIsQuickOSOpen(false);
                         navigate('/service-orders/list');
                     }}
+                />
+            )}
+
+            {isPrintModalOpen && (
+                <ServiceOrderPrintModal
+                    serviceOrder={{
+                        id: editId || '',
+                        displayId: displayId || 0,
+                        customerId: selectedCustomer?.id || '',
+                        customerName: selectedCustomer?.name || 'Cliente Avulso',
+                        customerDeviceId,
+                        deviceModel,
+                        imei,
+                        serialNumber,
+                        passcode,
+                        patternLock,
+                        checklist: { ...checklist, othersDescription },
+                        defectDescription,
+                        attendantObservations,
+                        technicalReport,
+                        observations,
+                        photos,
+                        items,
+                        discount,
+                        subtotal: items.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+                        total: items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - discount,
+                        status: osStatus,
+                        entryDate,
+                        estimatedDate,
+                        responsibleId,
+                        responsibleName: users.find(u => u.id === responsibleId)?.name || 'Técnico',
+                        attendantId,
+                        attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
+                        createdAt: entryDate, // Use entryDate as fallback
+                        updatedAt: new Date().toISOString()
+                    } as any}
+                    initialFormat={printFormat}
+                    onClose={() => setIsPrintModalOpen(false)}
                 />
             )}
         </div>

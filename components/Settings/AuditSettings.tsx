@@ -41,6 +41,7 @@ const AuditSettings: React.FC = () => {
             [AuditActionType.COMMISSION_CLOSE]: 'Fechar Comissão',
             [AuditActionType.COMMISSION_PAY]: 'Pagar Comissão',
             [AuditActionType.COMMISSION_RECALCULATE]: 'Recalcular Comissão',
+            [AuditActionType.BULK_PRICE_UPDATE]: 'Atualização em Massa de Preços',
         };
         return translations[action] || action;
     };

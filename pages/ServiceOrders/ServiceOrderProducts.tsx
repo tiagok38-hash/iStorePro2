@@ -13,6 +13,7 @@ import GlobalLoading from '../../components/GlobalLoading';
 import Modal from '../../components/Modal';
 import { formatCurrency } from '../../services/mockApi';
 import PurchaseOrderModal from '../../components/PurchaseOrderModal';
+import CurrencyInput from '../../components/CurrencyInput';
 
 // --- Service Modal Component ---
 interface ServiceModalProps {
@@ -58,7 +59,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={service?.id ? 'Editar Serviço' : 'Novo Serviço'}>
+        <Modal isOpen={isOpen} onClose={onClose} title={service?.id ? 'Editar Serviço' : '+ Novo serviço'}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Serviço *</label>
@@ -76,28 +77,17 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Preço de Venda (R$) *</label>
-                        <input
-                            type="number"
-                            name="price"
-                            required
-                            min="0"
-                            step="0.01"
-                            value={formData.price || ''}
-                            onChange={handleChange}
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        <CurrencyInput
+                            value={formData.price}
+                            onChange={(val) => setFormData(prev => ({ ...prev, price: val || 0 }))}
                             placeholder="0,00"
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Custo Estimado (R$)</label>
-                        <input
-                            type="number"
-                            name="cost"
-                            min="0"
-                            step="0.01"
-                            value={formData.cost || ''}
-                            onChange={handleChange}
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        <CurrencyInput
+                            value={formData.cost}
+                            onChange={(val) => setFormData(prev => ({ ...prev, cost: val || 0 }))}
                             placeholder="0,00"
                         />
                     </div>
@@ -144,7 +134,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
 
 // --- Main Page Component ---
 const ServiceOrderProducts: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'services' | 'products'>('services');
+    const [activeTab, setActiveTab] = useState<'services' | 'products'>('products');
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
 
@@ -275,23 +265,23 @@ const ServiceOrderProducts: React.FC = () => {
         <div className="h-full flex flex-col space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Produtos e Serviços</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Peças e Serviços</h1>
                     <p className="text-gray-500">Gerencie seu catálogo para Ordens de Serviço</p>
                 </div>
                 <div className="flex p-0.5 bg-gray-200/50 rounded-xl border border-gray-200">
+                    <button
+                        onClick={() => setActiveTab('products')}
+                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                            }`}
+                    >
+                        Peças
+                    </button>
                     <button
                         onClick={() => setActiveTab('services')}
                         className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'services' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                             }`}
                     >
                         Serviços
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('products')}
-                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
-                            }`}
-                    >
-                        Produtos
                     </button>
                 </div>
             </div>
@@ -302,7 +292,7 @@ const ServiceOrderProducts: React.FC = () => {
                     <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
                         type="text"
-                        placeholder={activeTab === 'services' ? "Buscar serviços..." : "Buscar produtos..."}
+                        placeholder={activeTab === 'services' ? "Buscar serviços..." : "Buscar peças..."}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20"
@@ -404,7 +394,7 @@ const ServiceOrderProducts: React.FC = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Produto</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Peça</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estoque</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Preço</th>
                                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>

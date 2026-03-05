@@ -238,17 +238,26 @@ export const convertOrcamentoToSale = async (
     // Adaptando pagamentos baseado no snapshot do orçamento
     let adaptedPayments = [];
     const paymentSnap = orcamento.forma_pagamento_snapshot;
-    if (paymentSnap) {
-        // Assume payment method structure from Orçamento UI
+
+    if (paymentSnap && Array.isArray(paymentSnap.pagamentos) && paymentSnap.pagamentos.length > 0) {
+        // Se houver a lista detalhada de pagamentos (novo padrão)
+        adaptedPayments = paymentSnap.pagamentos.map((p: any) => ({
+            ...p,
+            id: p.id || `pay-conv-${Date.now()}-${Math.random()}`
+        }));
+    } else if (paymentSnap && paymentSnap.metodo) {
+        // Fallback para padrão antigo (objeto único)
         adaptedPayments.push({
+            id: `pay-conv-${Date.now()}`,
             method: paymentSnap.metodo || 'Outro',
             value: orcamento.total_final,
             installments: paymentSnap.parcelas || 1,
             isCreditInstallment: paymentSnap.metodo === 'Crediário'
         });
     } else {
-        // Fallback
+        // Fallback total
         adaptedPayments.push({
+            id: `pay-conv-${Date.now()}`,
             method: 'Dinheiro',
             value: orcamento.total_final,
             installments: 1
@@ -257,15 +266,18 @@ export const convertOrcamentoToSale = async (
 
     // Construct the payload for addSale
     const salePayload = {
-        customerId: orcamento.cliente_id, // can be null for unnamed consumers
+        customerId: orcamento.cliente_id,
+        salespersonId: userId, // ESSENCIAL: Atribuir ao vendedor que converteu
         items: adaptedItems,
         payments: adaptedPayments,
+        subtotal: orcamento.subtotal,
         total: orcamento.total_final,
         discountTotal: orcamento.desconto_total,
         interestTotal: orcamento.juros_total,
         observations: `Venda convertida do orçamento ${orcamento.numero}. \r\n${orcamento.observacoes || ''}`,
         cashSessionId: openSessionId,
-        cashSessionDisplayId: openSessionDisplayId
+        cashSessionDisplayId: openSessionDisplayId,
+        warrantyTerm: 'Recibo de Venda' // Garantia padrão para conversão rápida
     };
 
     try {
@@ -274,6 +286,16 @@ export const convertOrcamentoToSale = async (
 
         // 2. Atualiza status do Orcamento
         await updateOrcamentoStatus(orcamento.id, 'convertido', newSale.id);
+
+        // 3. Log de Auditoria da Conversão
+        addAuditLog(
+            AuditActionType.UPDATE,
+            AuditEntityType.ORCAMENTO,
+            orcamento.id,
+            `Orçamento ${orcamento.numero} convertido em Venda #${newSale.id} por ${userName}`,
+            userId,
+            userName
+        ).catch(err => console.error('Failed to log orcamento conversion:', err));
 
         return newSale.id;
     } catch (e: any) {
