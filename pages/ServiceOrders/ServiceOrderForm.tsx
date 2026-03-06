@@ -20,7 +20,8 @@ import {
     ChevronLeft,
     Printer,
     Tag,
-    Zap
+    Zap,
+    DollarSign
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
@@ -49,6 +50,7 @@ import CameraModal from '../../components/CameraModal';
 import ItemSelectionModal from '../../components/ItemSelectionModal';
 import CustomerDeviceModal from '../../components/CustomerDeviceModal';
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
+import OSBillingModal from '../../components/OSBillingModal';
 
 
 
@@ -134,6 +136,7 @@ const ServiceOrderForm: React.FC = () => {
     const [estimatedDate, setEstimatedDate] = useState('');
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [printFormat, setPrintFormat] = useState<'A4' | 'thermal'>('thermal');
+    const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
 
     // Refs para controle de clique fora
     const customerSearchRef = useRef<HTMLDivElement>(null);
@@ -368,6 +371,41 @@ const ServiceOrderForm: React.FC = () => {
     const total = subtotal - discount;
 
     // --- Save ---
+    const buildServiceOrderData = (overrideStatus?: string) => {
+        const responsible = users.find(u => u.id === responsibleId);
+        return {
+            customerId: selectedCustomer!.id,
+            customerName: selectedCustomer!.name,
+            deviceModel,
+            imei,
+            serialNumber,
+            passcode,
+            patternLock,
+            checklist: {
+                ...checklist,
+                othersDescription: checklist.others ? othersDescription : undefined
+            },
+            defectDescription,
+            attendantObservations,
+            technicalReport,
+            observations,
+            status: (overrideStatus ?? (isEditing ? osStatus : 'Orçamento')) as any,
+            isOrcamentoOnly,
+            items,
+            subtotal,
+            discount,
+            total,
+            responsibleId,
+            responsibleName: responsible?.name || 'Sistema',
+            attendantId,
+            attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
+            photos,
+            entryDate: entryDate ? new Date(entryDate + 'T12:00:00').toISOString() : new Date().toISOString(),
+            estimatedDate: estimatedDate ? new Date(estimatedDate + 'T12:00:00').toISOString() : undefined,
+            customerDeviceId
+        };
+    };
+
     const handleSave = async () => {
         if (!selectedCustomer) {
             toast.error("Selecione um cliente.");
@@ -384,40 +422,7 @@ const ServiceOrderForm: React.FC = () => {
 
         setIsLoading(true);
         try {
-            const responsible = users.find(u => u.id === responsibleId);
-
-            const serviceOrderData = {
-                customerId: selectedCustomer.id,
-                customerName: selectedCustomer.name,
-                deviceModel,
-                imei,
-                serialNumber,
-                passcode,
-                patternLock,
-                checklist: {
-                    ...checklist,
-                    othersDescription: checklist.others ? othersDescription : undefined
-                },
-                defectDescription,
-                attendantObservations,
-                technicalReport,
-                observations,
-                status: (isEditing ? osStatus : 'Orçamento') as any,
-                isOrcamentoOnly,
-                items,
-                subtotal,
-                discount,
-                total,
-                responsibleId,
-                responsibleName: responsible?.name || 'Sistema',
-                attendantId,
-                attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
-                photos,
-                entryDate: entryDate ? new Date(entryDate + 'T12:00:00').toISOString() : new Date().toISOString(),
-                estimatedDate: estimatedDate ? new Date(estimatedDate + 'T12:00:00').toISOString() : undefined,
-                customerDeviceId
-            };
-
+            const serviceOrderData = buildServiceOrderData();
             if (isEditing && editId) {
                 await updateServiceOrder(editId, serviceOrderData);
                 toast.success("Ordem de Serviço atualizada com sucesso!");
@@ -431,6 +436,16 @@ const ServiceOrderForm: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // --- Faturar ---
+    const handleBilled = async (_paymentMethodId: string, _paymentMethodName: string) => {
+        if (!editId) return;
+        // Salva OS com status Entregue
+        const data = buildServiceOrderData('Entregue');
+        await updateServiceOrder(editId, data);
+        setOsStatus('Entregue');
+        toast.success('OS faturada e marcada como Entregue!');
     };
 
     // --- Pattern Lock Grid ---
@@ -483,103 +498,101 @@ const ServiceOrderForm: React.FC = () => {
         <div className="max-w-[1400px] w-full px-4 md:px-8 mx-auto pb-20">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start gap-4 mb-8 justify-between">
+                {/* Lado esquerdo: título + botões de impressão/WhatsApp */}
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/service-orders/list')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <button onClick={() => navigate('/service-orders/list')} className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
                         <ArrowLeft size={24} className="text-secondary" />
                     </button>
                     <div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-2xl font-black text-primary">
                                 {isEditing
                                     ? <span>OS-<span className="text-accent">{displayId ?? '...'}</span></span>
                                     : 'Nova Ordem de Serviço'
                                 }
                             </h1>
+                            {/* Botões Print / WhatsApp — lado esquerdo, visíveis ao editar */}
+                            {isEditing && (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <button
+                                        onClick={() => { setPrintFormat('A4'); setIsPrintModalOpen(true); }}
+                                        title="Imprimir A4"
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all"
+                                    >
+                                        <Printer size={13} /> A4
+                                    </button>
+                                    <button
+                                        onClick={() => { setPrintFormat('thermal'); setIsPrintModalOpen(true); }}
+                                        title="Imprimir 80mm"
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all"
+                                    >
+                                        <Printer size={13} /> 80mm
+                                    </button>
+                                    <button
+                                        onClick={() => window.print()}
+                                        title="Imprimir Etiqueta"
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all"
+                                    >
+                                        <Tag size={13} /> Etiqueta
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
+                                            const msg = `Olá, sua Ordem de Serviço *OS-${displayId}* foi registrada!\n\nAparelho: ${deviceModel}\nStatus: ${osStatus}\n\nAcompanhe o status em tempo real aqui: ${trackingUrl}\n\nAguarde, entraremos em contato em breve.`;
+                                            openWhatsApp(selectedCustomer?.phone, msg);
+                                        }}
+                                        title="Enviar WhatsApp"
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all"
+                                    >
+                                        <WhatsAppIcon size={13} className="text-white fill-white" /> WhatsApp
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                        <p className="text-secondary text-sm">
+                        <p className="text-secondary text-sm mt-0.5">
                             {isEditing ? 'Editar dados do atendimento' : 'Preencha os dados do atendimento'}
                         </p>
                     </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Lado direito: OS Rápida + Cancelar + Salvar OS + Faturar */}
                 <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-                    {/* Print / Share actions - only visible when editing */}
-                    {isEditing && (
-                        <>
-                            <button
-                                onClick={() => {
-                                    setPrintFormat('A4');
-                                    setIsPrintModalOpen(true);
-                                }}
-                                title="Imprimir A4"
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
-                            >
-                                <Printer size={15} />
-                                A4
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setPrintFormat('thermal');
-                                    setIsPrintModalOpen(true);
-                                }}
-                                title="Imprimir 80mm"
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
-                            >
-                                <Printer size={15} />
-                                80mm
-                            </button>
-                            <button
-                                onClick={() => window.print()}
-                                title="Imprimir Etiqueta"
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
-                            >
-                                <Tag size={15} />
-                                Etiqueta
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
-                                    const msg = `Olá, sua Ordem de Serviço *OS-${displayId}* foi registrada!\n\nAparelho: ${deviceModel}\nStatus: ${osStatus}\n\nAcompanhe o status em tempo real aqui: ${trackingUrl}\n\nAguarde, entraremos em contato em breve.`;
-
-                                    openWhatsApp(selectedCustomer?.phone, msg);
-                                }}
-                                title="Enviar WhatsApp"
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all shadow-sm shadow-green-500/20"
-                            >
-                                <WhatsAppIcon size={16} className="text-white fill-white" />
-                                WhatsApp
-                            </button>
-                        </>
+                    {!isEditing && (
+                        <button
+                            onClick={() => setIsQuickOSOpen(true)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white h-11 px-6 rounded-2xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <Zap size={16} className="fill-white" />
+                            OS Rápida
+                        </button>
                     )}
 
-                    <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-                        {!isEditing && (
-                            <button
-                                onClick={() => setIsQuickOSOpen(true)}
-                                className="bg-amber-500 hover:bg-amber-600 text-white h-11 px-6 rounded-2xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
-                            >
-                                <Zap size={16} className="fill-white" />
-                                OS Rápida
-                            </button>
-                        )}
+                    <button
+                        onClick={() => navigate('/service-orders/list')}
+                        className="bg-red-100 hover:bg-red-200 text-red-500 h-11 px-6 rounded-2xl text-sm font-black active:scale-95 transition-all flex items-center justify-center"
+                    >
+                        Cancelar
+                    </button>
 
-                        <button
-                            onClick={() => navigate('/service-orders/list')}
-                            className="bg-red-100 hover:bg-red-200 text-red-500 h-11 px-6 rounded-2xl text-sm font-black active:scale-95 transition-all flex items-center justify-center"
-                        >
-                            Cancelar
-                        </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={isLoading}
+                        className="bg-gray-800 hover:bg-gray-900 text-white h-11 px-8 rounded-2xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                        <Save size={18} />
+                        {isLoading ? 'Salvando...' : 'Salvar OS'}
+                    </button>
 
+                    {/* Botão Faturar — só visível ao editar */}
+                    {isEditing && (
                         <button
-                            onClick={handleSave}
-                            disabled={isLoading}
-                            className="bg-gray-800 hover:bg-gray-900 text-white h-11 px-8 rounded-2xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                            onClick={() => setIsBillingModalOpen(true)}
+                            className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white h-11 px-6 rounded-2xl text-sm font-black shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
                         >
-                            <Save size={18} />
-                            {isLoading ? 'Salvando...' : 'Salvar OS'}
+                            <DollarSign size={17} />
+                            Faturar
                         </button>
-                    </div>
+                    )}
                 </div>
             </div>
 
@@ -1357,11 +1370,35 @@ const ServiceOrderForm: React.FC = () => {
                         responsibleName: users.find(u => u.id === responsibleId)?.name || 'Técnico',
                         attendantId,
                         attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
-                        createdAt: entryDate, // Use entryDate as fallback
+                        createdAt: entryDate,
                         updatedAt: new Date().toISOString()
                     } as any}
                     initialFormat={printFormat}
                     onClose={() => setIsPrintModalOpen(false)}
+                />
+            )}
+
+            {isBillingModalOpen && (
+                <OSBillingModal
+                    isOpen={isBillingModalOpen}
+                    onClose={() => setIsBillingModalOpen(false)}
+                    serviceOrder={{
+                        id: editId || '',
+                        displayId,
+                        customerName: selectedCustomer?.name || 'Cliente',
+                        customerPhone: selectedCustomer?.phone,
+                        deviceModel,
+                        items,
+                        subtotal,
+                        discount,
+                        total,
+                        status: osStatus,
+                    }}
+                    onBilled={handleBilled}
+                    onPrint={(format) => {
+                        setPrintFormat(format);
+                        setIsPrintModalOpen(true);
+                    }}
                 />
             )}
         </div>
