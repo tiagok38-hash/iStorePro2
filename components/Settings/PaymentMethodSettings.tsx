@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { PaymentMethodParameter } from '../../types';
-import { getPaymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod } from '../../services/mockApi';
+import { getOsPaymentMethods, addOsPaymentMethod, updateOsPaymentMethod, deleteOsPaymentMethod } from '../../services/mockApi';
 import Button from '../Button';
 import { PlusIcon, EditIcon, TrashIcon } from '../icons';
 import PaymentMethodModal from '../PaymentMethodModal';
@@ -15,7 +15,7 @@ const PaymentMethodSettings: React.FC = () => {
     const { showToast } = useToast();
     const { permissions, user } = useUser();
 
-    const fetchData = useCallback(async () => { setPaymentMethods(await getPaymentMethods()); }, []);
+    const fetchData = useCallback(async () => { setPaymentMethods(await getOsPaymentMethods()); }, []);
     useEffect(() => { fetchData(); }, [fetchData]);
 
     const handleOpenEdit = (method: PaymentMethodParameter) => { setEditingMethod(method); };
@@ -26,10 +26,10 @@ const PaymentMethodSettings: React.FC = () => {
         setSaving(true);
         try {
             if (item.id) {
-                await updatePaymentMethod(item as PaymentMethodParameter, user?.id, user?.name);
+                await updateOsPaymentMethod(item as PaymentMethodParameter, user?.id, user?.name);
                 showToast('Atualizado!', 'success');
             } else {
-                await addPaymentMethod(item as Omit<PaymentMethodParameter, 'id'>, user?.id, user?.name);
+                await addOsPaymentMethod(item as Omit<PaymentMethodParameter, 'id'>, user?.id, user?.name);
                 showToast('Adicionado!', 'success');
             }
             fetchData();
@@ -44,7 +44,7 @@ const PaymentMethodSettings: React.FC = () => {
     const handleDelete = async () => {
         if (!deletingMethod) return;
         try {
-            await deletePaymentMethod(deletingMethod.id, user?.id, user?.name);
+            await deleteOsPaymentMethod(deletingMethod.id, user?.id, user?.name);
             showToast('Excluído!', 'success');
             fetchData();
             setDeletingMethod(null);

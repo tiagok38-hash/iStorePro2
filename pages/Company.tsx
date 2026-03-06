@@ -1035,6 +1035,8 @@ const AuditoriaTab: React.FC = () => {
     );
 };
 
+
+
 // --- ParameterManager Component ---
 interface ParameterManagerProps<T extends { id: string; name: string;[key: string]: any }> {
     permissions: PermissionSet | null;
@@ -1048,6 +1050,89 @@ interface ParameterManagerProps<T extends { id: string; name: string;[key: strin
     };
     fetchData: () => void;
 }
+
+// --- ItemModal Component (Defined outside to prevent state loss) ---
+interface ItemModalProps<T> {
+    item: Partial<T> | null;
+    fields: { name: keyof T; label: string; type: string }[];
+    onSave: (data: Partial<T>) => void;
+    onClose: () => void;
+    isSaving: boolean;
+}
+
+const ItemModal = <T extends { id: string; name: string;[key: string]: any }>({
+    item, fields, onSave, onClose, isSaving
+}: ItemModalProps<T>) => {
+    const [formData, setFormData] = useState<Partial<T>>(item || {});
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'number' ? (value === '' ? '' : Number(value)) : value
+        }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-in fade-in duration-300">
+            <form
+                onSubmit={handleSubmit}
+                className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md transform transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+            >
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-black text-xl text-primary tracking-tight">
+                        {item?.id ? 'Editar' : 'Novo'} Item
+                    </h3>
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        <XCircleIcon className="h-6 w-6 text-gray-400 hover:text-red-500" />
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    {fields.map((field, idx) => (
+                        <div key={String(field.name)} className="space-y-1.5">
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                                {field.label}
+                            </label>
+                            <input
+                                type={field.type}
+                                name={String(field.name)}
+                                value={(formData as any)[field.name] ?? ''}
+                                onChange={handleChange}
+                                autoFocus={idx === 0}
+                                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-primary focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all"
+                                required
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-6 py-2.5 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                    >
+                        Cancelar
+                    </button>
+                    <Button
+                        type="submit"
+                        variant="success"
+                        loading={isSaving}
+                        className="px-8"
+                    >
+                        Salvar
+                    </Button>
+                </div>
+            </form>
+        </div>
+    );
+};
 
 const ParameterManager = <T extends { id: string; name: string;[key: string]: any }>({
     permissions,
@@ -1102,46 +1187,6 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
         }
     };
 
-    // Modal component
-    const ItemModal: React.FC<{ item: Partial<T> | null, onSave: (data: Partial<T>) => void, onClose: () => void, isSaving: boolean }> = ({ item, onSave, onClose, isSaving }) => {
-        const [formData, setFormData] = useState(item || {});
-
-        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            const { name, value, type } = e.target;
-            setFormData(prev => ({ ...prev, [name]: type === 'number' ? Number(value) : value }));
-        };
-
-        const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
-            onSave(formData);
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-                <form onSubmit={handleSubmit} className="bg-surface rounded-xl shadow-xl p-6 w-full max-w-sm">
-                    <h3 className="font-bold text-lg mb-4">{item?.id ? 'Editar' : 'Novo'} Item</h3>
-                    {fields.map(field => (
-                        <div key={String(field.name)} className="mb-4">
-                            <label className="block text-sm font-medium mb-1">{field.label}</label>
-                            <input
-                                type={field.type}
-                                name={String(field.name)}
-                                value={(formData as any)[field.name] || (field.type === 'number' ? '' : '')}
-                                onChange={handleChange}
-                                className="w-full p-2 border rounded bg-transparent border-border"
-                                required
-                            />
-                        </div>
-                    ))}
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button type="button" onClick={onClose} variant="secondary">Cancelar</Button>
-                        <Button type="submit" variant="success" loading={isSaving}>Salvar</Button>
-                    </div>
-                </form>
-            </div>
-        );
-    };
-
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-2xl">
@@ -1149,43 +1194,48 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
                     <h4 className="text-lg font-semibold text-primary">{title}</h4>
                 </div>
                 {permissions?.canManageParameters && (
-                    <button onClick={() => handleOpenModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400">
-                        <PlusIcon className="h-5 w-5" />
+                    <button onClick={() => handleOpenModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400 transition-all active:scale-95">
+                        <PlusIcon className="h-5 w-5 text-primary" />
                     </button>
                 )}
             </div>
-            <div className="border border-gray-200 rounded-b-2xl overflow-hidden shadow-sm">
+            <div className="border border-gray-200 rounded-b-2xl overflow-hidden shadow-sm bg-white">
                 <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
+                    <thead className="bg-gray-50">
                         <tr>
                             {fields.map(field => (
-                                <th key={String(field.name)} className="p-3 font-semibold text-left">{field.label}</th>
+                                <th key={String(field.name)} className="px-4 py-3 font-semibold text-left text-primary">{field.label}</th>
                             ))}
-                            <th className="p-3 font-semibold text-right">Ações</th>
+                            <th className="px-4 py-3 font-semibold text-right text-primary">Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-100">
                         {items.map(item => (
-                            <tr key={item.id} className="border-t">
+                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                                 {fields.map(field => (
-                                    <td key={String(field.name)} className="p-3">{(item as any)[field.name]}</td>
+                                    <td key={String(field.name)} className="px-4 py-3 text-primary">{(item as any)[field.name]}</td>
                                 ))}
-                                <td className="p-3">
+                                <td className="px-4 py-3">
                                     <div className="flex justify-end items-center gap-2">
                                         {permissions?.canManageParameters && (
                                             <>
-                                                <button onClick={() => handleOpenModal(item)}><EditIcon className="h-5 w-5 text-muted hover:text-primary" /></button>
-                                                <button onClick={() => setDeletingItem(item)}><TrashIcon className="h-5 w-5 text-muted hover:text-danger" /></button>
+                                                <button onClick={() => handleOpenModal(item)} className="p-1.5 hover:bg-primary/10 rounded-lg transition-colors"><EditIcon className="h-5 w-5 text-muted hover:text-primary" /></button>
+                                                <button onClick={() => setDeletingItem(item)} className="p-1.5 hover:bg-danger/10 rounded-lg transition-colors"><TrashIcon className="h-5 w-5 text-muted hover:text-danger" /></button>
                                             </>
                                         )}
                                     </div>
                                 </td>
                             </tr>
                         ))}
+                        {items.length === 0 && (
+                            <tr>
+                                <td colSpan={fields.length + 1} className="px-4 py-8 text-center text-gray-400">Nenhum item cadastrado.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
-            {modalOpen && <ItemModal item={editingItem} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingItem(null); }} isSaving={saving} />}
+            {modalOpen && <ItemModal item={editingItem} fields={fields} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingItem(null); }} isSaving={saving} />}
             <ConfirmationModal isOpen={!!deletingItem} onClose={() => setDeletingItem(null)} onConfirm={handleDelete} title={`Excluir ${deletingItem?.name}`} message="Tem certeza que deseja excluir este item?" />
         </div>
     );

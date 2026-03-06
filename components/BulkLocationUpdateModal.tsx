@@ -8,7 +8,7 @@ interface BulkLocationUpdateModalProps {
     allProducts: Product[];
     purchases: PurchaseOrder[];
     onClose: () => void;
-    onBulkUpdate: (updates: { id: string; storageLocation: string }[]) => Promise<void>;
+    onBulkUpdate: (updates: { id: string; storageLocation: string; quantityToMove?: number }[]) => Promise<void>;
 }
 
 interface LocationChangeHistoryItem {
@@ -31,6 +31,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
     const [isSearching, setIsSearching] = useState(false);
     const [storageLocations, setStorageLocations] = useState<StorageLocationParameter[]>([]);
     const [newLocation, setNewLocation] = useState('');
+    const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
     const [isUpdating, setIsUpdating] = useState(false);
     const [lastAddedProduct, setLastAddedProduct] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
@@ -118,6 +119,10 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
         return groups;
     }, [historyData]);
 
+    const isProductUnique = (product: Product) => {
+        return !!(product.imei1 || product.imei2 || product.serialNumber);
+    };
+
     const handleSearch = (overrideTerm?: string) => {
         const currentTerm = overrideTerm !== undefined ? overrideTerm : searchTerm;
         if (!currentTerm.trim()) {
@@ -162,6 +167,10 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
     const addProductToSelected = (product: Product) => {
         if (!selectedProducts.some(p => p.id === product.id)) {
             setSelectedProducts(prev => [...prev, product]);
+            setSelectedQuantities(prev => ({
+                ...prev,
+                [product.id]: isProductUnique(product) ? 1 : product.stock
+            }));
             setLastAddedProduct(product.id);
             setSearchTerm('');
             setSearchResults([]);
@@ -218,10 +227,22 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
     const handleUpdate = async () => {
         if (selectedProducts.length === 0 || !newLocation) return;
 
+        // Validation: quantities must be > 0 and <= stock
+        const invalid = selectedProducts.find(p => {
+            const qty = selectedQuantities[p.id] || 0;
+            return qty <= 0 || qty > p.stock;
+        });
+
+        if (invalid) {
+            alert(`Quantidade inválida para o produto: ${invalid.model}`);
+            return;
+        }
+
         setIsUpdating(true);
         const updates = selectedProducts.map(p => ({
             id: p.id,
             storageLocation: newLocation,
+            quantityToMove: selectedQuantities[p.id]
         }));
 
         await onBulkUpdate(updates);
@@ -414,6 +435,9 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                     {selectedProducts.map(product => {
                                         const desc = `${product.brand} ${product.model}${product.color && !product.model.toLowerCase().includes(product.color.toLowerCase()) ? ' ' + product.color : ''}`;
                                         const isJustAdded = lastAddedProduct === product.id;
+                                        const isUnique = isProductUnique(product);
+                                        const currentQty = selectedQuantities[product.id] || 0;
+
                                         return (
                                             <div key={product.id} className={`p-3 flex items-center justify-between gap-3 transition-colors ${isJustAdded ? 'bg-emerald-50' : ''}`}>
                                                 <div className="flex-1 min-w-0">
@@ -433,14 +457,43 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                                                 <span className="font-mono text-[10px]">IMEI: {product.imei1}</span>
                                                             </>
                                                         )}
+                                                        {product.serialNumber && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span className="font-mono text-[10px]">SN: {product.serialNumber}</span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => removeProduct(product.id)}
-                                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex-shrink-0"
-                                                >
-                                                    <CloseIcon className="h-4 w-4" />
-                                                </button>
+
+                                                <div className="flex items-center gap-3">
+                                                    {!isUnique ? (
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-[9px] font-bold text-gray-400 uppercase mb-0.5">Mover</span>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                max={product.stock}
+                                                                value={currentQty}
+                                                                onChange={(e) => {
+                                                                    const val = parseInt(e.target.value) || 0;
+                                                                    setSelectedQuantities(prev => ({ ...prev, [product.id]: val }));
+                                                                }}
+                                                                className="w-16 px-1.5 py-1 text-center border border-gray-300 rounded-lg text-sm font-bold bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">
+                                                            <span className="text-xs font-bold text-gray-600">1 un.</span>
+                                                        </div>
+                                                    )}
+                                                    <button
+                                                        onClick={() => removeProduct(product.id)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full flex-shrink-0"
+                                                    >
+                                                        <CloseIcon className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         );
                                     })}

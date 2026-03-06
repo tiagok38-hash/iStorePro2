@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings, InventoryMovement } from '../types.ts';
+import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings, InventoryMovement, FinancialStatus } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
 import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
@@ -1599,7 +1599,7 @@ export const updateProductStock = async (id: string, newStock: number, reason: s
     return data;
 };
 
-export const updateMultipleProducts = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; storageLocation?: string; commission_enabled?: boolean; commission_type?: 'fixed' | 'percentage'; commission_value?: number; discount_limit_type?: 'fixed' | 'percentage'; discount_limit_value?: number }[], userId?: string, userName?: string) => {
+export const updateMultipleProducts = async (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; storageLocation?: string; quantityToMove?: number; commission_enabled?: boolean; commission_type?: 'fixed' | 'percentage'; commission_value?: number; discount_limit_type?: 'fixed' | 'percentage'; discount_limit_value?: number }[], userId?: string, userName?: string) => {
     const now = getNowISO();
 
     const updatedSummaries: any[] = [];
@@ -1714,34 +1714,77 @@ export const updateMultipleProducts = async (updates: { id: string; price?: numb
 
         // Handle storage location update
         if (u.storageLocation !== undefined) {
-            payload.storageLocation = u.storageLocation;
-            if (currentProduct.storageLocation !== u.storageLocation) {
-                // Log to audit_logs
+            const qtyToMove = u.quantityToMove || currentProduct.stock;
+            const isPartialTransfer = qtyToMove < currentProduct.stock;
+
+            if (isPartialTransfer) {
+                // PARTIAL TRANSFER: Split the record
+                const remainingStock = currentProduct.stock - qtyToMove;
+                payload.stock = remainingStock;
+
+                // Create and insert new record for the moved quantity
+                const { id: _, ...productCopy } = currentProduct;
+                const newProductData = {
+                    ...productCopy,
+                    id: crypto.randomUUID(),
+                    stock: qtyToMove,
+                    storageLocation: u.storageLocation,
+                    createdAt: now,
+                    updatedAt: now,
+                    stockHistory: [{
+                        id: crypto.randomUUID(),
+                        oldStock: 0,
+                        newStock: qtyToMove,
+                        adjustment: qtyToMove,
+                        reason: `Transferência de Local (Massa) - Origem: ${currentProduct.storageLocation || 'N/A'}`,
+                        timestamp: now,
+                        changedBy: userName || 'Atualização em Massa',
+                        previousLocation: currentProduct.storageLocation || 'N/A',
+                        newLocation: u.storageLocation
+                    }]
+                };
+
+                await supabase.from('products').insert(newProductData);
+
+                // Log to audit_logs for the original product
                 await addAuditLog(
                     AuditActionType.UPDATE,
                     AuditEntityType.PRODUCT,
                     u.id,
-                    `Atualização em Massa: Local de estoque alterado de "${currentProduct.storageLocation || 'N/A'}" para "${u.storageLocation}"`,
+                    `Atualização em Massa: Transferido ${qtyToMove} un para "${u.storageLocation}". Estoque restante local original: ${remainingStock}`,
                     userId || 'system',
-                    userName || 'Atualização em Massa'
+                    userName || 'Sistema'
                 );
+            } else {
+                // FULL TRANSFER: Original logic
+                payload.storageLocation = u.storageLocation;
+                if (currentProduct.storageLocation !== u.storageLocation) {
+                    // Log to audit_logs
+                    await addAuditLog(
+                        AuditActionType.UPDATE,
+                        AuditEntityType.PRODUCT,
+                        u.id,
+                        `Atualização em Massa: Local de estoque alterado de "${currentProduct.storageLocation || 'N/A'}" para "${u.storageLocation}"`,
+                        userId || 'system',
+                        userName || 'Atualização em Massa'
+                    );
 
-                // --- LOCATION CHANGE TRACKING (BULK) ---
-                const existingStockHistory = currentProduct.stockHistory || [];
-                const newLocationEntry: StockHistoryEntry = {
-                    id: crypto.randomUUID(),
-                    oldStock: currentProduct.stock, // Stock volume doesn't change
-                    newStock: currentProduct.stock,
-                    adjustment: 0,
-                    reason: 'Alteração de Local',
-                    timestamp: now,
-                    changedBy: userName || 'Atualização em Massa',
-                    previousLocation: currentProduct.storageLocation || 'N/A',
-                    newLocation: u.storageLocation
-                };
-                existingStockHistory.push(newLocationEntry);
-                payload.stockHistory = existingStockHistory;
-                // ----------------------------------------
+                    // --- LOCATION CHANGE TRACKING (BULK) ---
+                    const existingStockHistory = currentProduct.stockHistory || [];
+                    const newLocationEntry: StockHistoryEntry = {
+                        id: crypto.randomUUID(),
+                        oldStock: currentProduct.stock,
+                        newStock: currentProduct.stock,
+                        adjustment: 0,
+                        reason: 'Alteração de Local',
+                        timestamp: now,
+                        changedBy: userName || 'Atualização em Massa',
+                        previousLocation: currentProduct.storageLocation || 'N/A',
+                        newLocation: u.storageLocation
+                    };
+                    existingStockHistory.push(newLocationEntry);
+                    payload.stockHistory = existingStockHistory;
+                }
             }
         }
 
@@ -4769,6 +4812,125 @@ export const updateWarranty = (data: any, userId?: string, userName?: string) =>
     updateItem('warranties', { id: data.id, name: data.name, warranty_term: data.warrantyTerm }, 'warranties', userId, userName);
 export const deleteWarranty = (id: string, userId?: string, userName?: string) => deleteItem('warranties', id, 'warranties', userId, userName);
 
+// ==============================================================
+// OS-EXCLUSIVE PARAMETER FUNCTIONS
+// Usam tabelas próprias (os_*) — NÃO afetam o ERP Principal.
+// ==============================================================
+
+// --- OS Warranties (os_warranties) ---
+export const getOsWarranties = async () => {
+    return fetchWithCache('os_warranties', async () => {
+        const { data, error } = await supabase.from('os_warranties').select('*');
+        if (error) throw error;
+        return (data || []).map((w: any) => ({ ...w }));
+    });
+};
+export const addOsWarranty = (data: any, userId?: string, userName?: string) =>
+    addItem('os_warranties', { name: data.name, days: data.days ?? null }, 'os_warranties', userId, userName);
+export const updateOsWarranty = (data: any, userId?: string, userName?: string) =>
+    updateItem('os_warranties', { id: data.id, name: data.name, days: data.days ?? null }, 'os_warranties', userId, userName);
+export const deleteOsWarranty = (id: string, userId?: string, userName?: string) =>
+    deleteItem('os_warranties', id, 'os_warranties', userId, userName);
+
+// --- OS Product Conditions (os_product_conditions) ---
+export const getOsProductConditions = () => getTable('os_product_conditions', 'os_product_conditions');
+export const addOsProductCondition = (data: any, userId?: string, userName?: string) =>
+    addItem('os_product_conditions', data, 'os_product_conditions', userId, userName);
+export const updateOsProductCondition = (data: any, userId?: string, userName?: string) =>
+    updateItem('os_product_conditions', data, 'os_product_conditions', userId, userName);
+export const deleteOsProductCondition = (id: string, userId?: string, userName?: string) =>
+    deleteItem('os_product_conditions', id, 'os_product_conditions', userId, userName);
+
+// --- OS Storage Locations (os_storage_locations) ---
+export const getOsStorageLocations = () => getTable('os_storage_locations', 'os_storage_locations');
+export const addOsStorageLocation = (data: any, userId?: string, userName?: string) =>
+    addItem('os_storage_locations', data, 'os_storage_locations', userId, userName);
+export const updateOsStorageLocation = (data: any, userId?: string, userName?: string) =>
+    updateItem('os_storage_locations', data, 'os_storage_locations', userId, userName);
+export const deleteOsStorageLocation = (id: string, userId?: string, userName?: string) =>
+    deleteItem('os_storage_locations', id, 'os_storage_locations', userId, userName);
+
+// --- OS Payment Methods (os_payment_methods) ---
+export const getOsPaymentMethods = async () => {
+    return fetchWithCache('os_payment_methods', async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase.from('os_payment_methods').select('*');
+            if (error) throw error;
+            return data;
+        }).then(data => {
+            if (!data || data.length === 0) {
+                return [
+                    { id: 'os_1', name: 'Dinheiro', type: 'cash', active: true },
+                    { id: 'os_2', name: 'Pix', type: 'cash', active: true },
+                    { id: 'os_3', name: 'Cartão Débito', type: 'card', active: true },
+                    { id: 'os_4', name: 'Cartão Crédito', type: 'card', active: true },
+                    { id: 'os_5', name: 'Crediário', type: 'cash', active: true }
+                ];
+            }
+            return data.map(deserializePaymentMethod);
+        });
+    });
+};
+export const addOsPaymentMethod = (data: any, userId?: string, userName?: string) => {
+    const paymentMethod = serializePaymentMethod(data);
+    if (!paymentMethod.id) paymentMethod.id = 'os_' + crypto.randomUUID();
+    return addItem('os_payment_methods', paymentMethod, 'os_payment_methods', userId, userName);
+};
+export const updateOsPaymentMethod = (data: any, userId?: string, userName?: string) =>
+    updateItem('os_payment_methods', serializePaymentMethod(data), 'os_payment_methods', userId, userName);
+export const deleteOsPaymentMethod = (id: string, userId?: string, userName?: string) =>
+    deleteItem('os_payment_methods', id, 'os_payment_methods', userId, userName);
+
+// --- OS Receipt Terms (os_receipt_terms) ---
+export const getOsReceiptTerms = async () => {
+    return fetchWithCache('os_receipt_terms', async () => {
+        const { data, error } = await supabase.from('os_receipt_terms').select('*');
+        if (error) throw error;
+        return (data || []).map((term: any) => ({
+            ...term,
+            warrantyTerm: term.warrantyTerm || term.warranty_term,
+            warrantyExclusions: term.warrantyExclusions || term.warranty_exclusions,
+            imageRights: term.imageRights || term.image_rights,
+        }));
+    });
+};
+
+export const addOsReceiptTerm = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+    const payload = {
+        name: data.name || '',
+        warrantyTerm: data.warrantyTerm || null,
+        warrantyExclusions: data.warrantyExclusions || null,
+        imageRights: data.imageRights || null,
+    };
+    const { data: newItem, error } = await supabase.from('os_receipt_terms').insert([payload]).select().single();
+    if (error) throw error;
+    addAuditLog(AuditActionType.CREATE, AuditEntityType.PRODUCT, newItem.id,
+        `Termo OS adicionado: ${newItem.name}`, userId, userName).catch(() => { });
+    clearCache(['os_receipt_terms']);
+    return newItem;
+};
+
+export const updateOsReceiptTerm = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+    const { id, ...rest } = data;
+    const payload = {
+        name: rest.name || '',
+        warrantyTerm: rest.warrantyTerm || null,
+        warrantyExclusions: rest.warrantyExclusions || null,
+        imageRights: rest.imageRights || null,
+    };
+    const { data: updated, error } = await supabase.from('os_receipt_terms').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    addAuditLog(AuditActionType.UPDATE, AuditEntityType.PRODUCT, id,
+        `Termo OS atualizado: ${rest.name}`, userId, userName).catch(() => { });
+    clearCache(['os_receipt_terms']);
+    return updated;
+};
+
+export const deleteOsReceiptTerm = (id: string, userId: string = 'system', userName: string = 'Sistema') =>
+    deleteItem('os_receipt_terms', id, 'os_receipt_terms', userId, userName);
+
+// --- fin OS-exclusive parameters ---
+
 // --- COMPANY INFO ---
 
 export const getCompanyInfo = async (): Promise<CompanyInfo | null> => {
@@ -5783,7 +5945,10 @@ export const addCustomerDevice = async (data: any) => {
 };
 
 export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>) => {
-    const updatePayload: any = { ...data, updated_at: getNowISO() };
+    const updatePayload: any = {
+        ...data,
+        updated_at: getNowISO()
+    };
 
     // Map to snake_case
     if (data.customerId !== undefined) updatePayload.customer_id = data.customerId;
@@ -5803,44 +5968,46 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if (data.attendantObservations !== undefined) updatePayload.attendant_observations = data.attendantObservations;
     if (data.customerDeviceId !== undefined) updatePayload.customer_device_id = data.customerDeviceId;
     if ((data as any).isOrcamentoOnly !== undefined) updatePayload.is_orcamento_only = (data as any).isOrcamentoOnly;
+    if ((data as any).isQuick !== undefined) updatePayload.is_quick = (data as any).isQuick;
+    if ((data as any).phone !== undefined) updatePayload.phone = (data as any).phone;
+
+    // Fix empty UUIDs/strings that should be null
+    const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
+    uuidFields.forEach(field => {
+        if (updatePayload[field] === '') updatePayload[field] = null;
+    });
 
     // Remove camelCase keys
-    delete updatePayload.customerId;
-    delete updatePayload.customerName;
-    delete updatePayload.deviceModel;
-    delete updatePayload.serialNumber;
-    delete updatePayload.patternLock;
-    delete updatePayload.defectDescription;
-    delete updatePayload.technicalReport;
-    delete updatePayload.responsibleId;
-    delete updatePayload.responsibleName;
-    delete updatePayload.attendantId;
-    delete updatePayload.attendantName;
-    delete updatePayload.entryDate;
-    delete updatePayload.exitDate;
-    delete updatePayload.estimatedDate;
-    delete updatePayload.attendantObservations;
-    delete updatePayload.customerDeviceId;
-    delete updatePayload.isOrcamentoOnly;
-    delete updatePayload.id;
-    delete updatePayload.createdAt;
-    delete updatePayload.updatedAt;
-    delete updatePayload.displayId;
+    const camelCaseKeys = [
+        'id', 'customerId', 'customerName', 'deviceModel', 'serialNumber',
+        'patternLock', 'defectDescription', 'technicalReport',
+        'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
+        'entryDate', 'exitDate', 'estimatedDate',
+        'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly',
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone'
+    ];
+    camelCaseKeys.forEach(key => delete updatePayload[key]);
+
+    // Clean undefined keys
+    const payload = Object.fromEntries(
+        Object.entries(updatePayload).filter(([_, v]) => v !== undefined)
+    );
 
     const { data: updated, error } = await supabase
         .from('service_orders')
-        .update(updatePayload)
+        .update(payload)
         .eq('id', id)
         .select()
         .single();
 
     if (error) throw error;
 
+    // Log the change
     await addAuditLog(
         AuditActionType.UPDATE,
         AuditEntityType.SERVICE_ORDER,
         id,
-        `OS #${updated.display_id} atualizada`
+        "Ordem de serviço atualizada"
     );
 
     clearCache(['service_orders']);
@@ -5859,11 +6026,10 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         responsibleName: updated.responsible_name,
         entryDate: updated.entry_date,
         exitDate: updated.exit_date,
-        estimatedDate: updated.estimated_date,
         attendantObservations: updated.attendant_observations,
         customerDeviceId: updated.customer_device_id,
-        isOrcamentoOnly: updated.is_orcamento_only,
         displayId: updated.display_id,
+        isOrcamentoOnly: updated.is_orcamento_only,
     };
 };
 
@@ -6845,7 +7011,18 @@ export const payInstallment = async (
     };
 };
 
+export const updateInstallmentPaymentMethod = async (id: string, newMethod: string): Promise<void> => {
+    const { error } = await supabase
+        .from('credit_installments')
+        .update({ payment_method: newMethod })
+        .eq('id', id);
+
+    if (error) throw error;
+    clearCache(['credit_installments']);
+};
+
 // --- INVENTORY MOVEMENTS ---
+
 
 export const getInventoryMovements = async (startDate?: string, endDate?: string): Promise<InventoryMovement[]> => {
     const cacheKey = `inventory_movements_${startDate || 'all'}_${endDate || 'all'}`;
@@ -7177,4 +7354,546 @@ export const payMultipleBancoHoras = async (ids: string[], userId: string, userN
     );
 
     clearCache(['banco_horas']);
+};
+
+// ============================================================
+// ESTOQUE EXCLUSIVO DE ORDEM DE SERVIÇO (OS)
+// Completamente separado do estoque ERP principal.
+// Peças compradas aqui NÃO aparecem no estoque do ERP.
+// ============================================================
+
+export interface OsPart {
+    id: string;
+    name: string;
+    brand?: string;
+    category?: string;
+    model?: string;
+    sku?: string;
+    costPrice: number;
+    salePrice: number;
+    wholesalePrice: number;
+    stock: number;
+    minimumStock?: number;
+    unit?: string;
+    storageLocation?: string;
+    supplierId?: string;
+    supplierName?: string;
+    observations?: string;
+    condition?: string;
+    warranty?: string;
+    barcode?: string;
+    variations?: any[];
+    isActive: boolean;
+    createdBy?: string;
+    createdByName?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface OsPurchaseOrderItem {
+    id: string;
+    osPartId?: string;
+    partName: string;
+    brand?: string;
+    category?: string;
+    model?: string;
+    condition?: string;
+    warranty?: string;
+    barcode?: string;
+    variations?: any[];
+    storageLocation?: string;
+    wholesalePrice?: number;
+    quantity: number;
+    unitCost: number;
+    finalUnitCost: number;
+}
+
+export interface OsPurchaseOrder {
+    id: string;
+    displayId: number;
+    supplierId?: string;
+    supplierName?: string;
+    purchaseDate: string;
+    total: number;
+    additionalCost: number;
+    stockStatus: 'Lançado' | 'Pendente' | 'Parcialmente Lançado' | 'Cancelada';
+    financialStatus: 'Pendente' | 'Pago';
+    status?: 'Pendente' | 'Cancelada' | 'Finalizada';
+    cancellationReason?: string;
+    observations?: string;
+    purchaseTerm?: string;
+    origin?: string;
+    items: OsPurchaseOrderItem[];
+    createdBy?: string;
+    createdByName?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+const mapOsPart = (p: any): OsPart => ({
+    id: p.id,
+    name: p.name,
+    brand: p.brand,
+    category: p.category,
+    model: p.model,
+    sku: p.sku,
+    costPrice: p.cost_price ?? 0,
+    salePrice: p.sale_price ?? 0,
+    wholesalePrice: p.wholesale_price ?? 0,
+    stock: p.stock ?? 0,
+    minimumStock: p.minimum_stock,
+    unit: p.unit || 'Un',
+    storageLocation: p.storage_location,
+    supplierId: p.supplier_id,
+    observations: p.observations,
+    condition: p.condition,
+    warranty: p.warranty,
+    barcode: p.barcode,
+    variations: p.variations || [],
+    isActive: p.is_active !== false,
+    createdBy: p.created_by,
+    createdByName: p.created_by_name,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+});
+
+const mapOsPurchaseOrder = (p: any): OsPurchaseOrder => ({
+    id: p.id,
+    displayId: p.display_id,
+    supplierId: p.supplier_id,
+    supplierName: p.supplier_name,
+    purchaseDate: p.purchase_date,
+    total: p.total ?? 0,
+    additionalCost: p.additional_cost ?? 0,
+    stockStatus: p.stock_status,
+    financialStatus: p.financial_status,
+    status: p.status,
+    cancellationReason: p.cancellation_reason,
+    observations: p.observations,
+    purchaseTerm: p.purchase_term,
+    origin: p.origin,
+    items: Array.isArray(p.items) ? p.items : [],
+    createdBy: p.created_by,
+    createdByName: p.created_by_name,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+});
+
+// --- GET: Lista todas as peças do estoque de OS ---
+export const getOsParts = async (onlyActive = false): Promise<OsPart[]> => {
+    return fetchWithCache(`os_parts_${onlyActive}`, async () => {
+        let query = supabase.from('os_parts').select('*').order('name');
+        if (onlyActive) query = query.eq('is_active', true);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map(mapOsPart);
+    });
+};
+
+// --- GET: Lista compras do estoque de OS ---
+export const getOsPurchaseOrders = async (): Promise<OsPurchaseOrder[]> => {
+    return fetchWithCache('os_purchase_orders', async () => {
+        const { data, error } = await supabase
+            .from('os_purchase_orders')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(500);
+        if (error) throw error;
+        return (data || []).map(mapOsPurchaseOrder);
+    });
+};
+
+// --- ADD: Adiciona uma peça ao estoque de OS ---
+export const addOsPart = async (
+    data: Partial<OsPart>,
+    userId: string = 'system',
+    userName: string = 'Sistema'
+): Promise<OsPart> => {
+    const now = getNowISO();
+    const { count } = await supabase.from('os_parts').select('*', { count: 'exact', head: true });
+    const nextSku = `OS-${(count || 0) + 1}`;
+
+    const payload: any = {
+        name: data.name,
+        brand: data.brand || null,
+        category: data.category || null,
+        model: data.model || null,
+        sku: data.sku || nextSku,
+        cost_price: data.costPrice ?? 0,
+        sale_price: data.salePrice ?? 0,
+        wholesale_price: data.wholesalePrice ?? 0,
+        stock: data.stock ?? 0,
+        minimum_stock: data.minimumStock ?? 0,
+        unit: data.unit || 'Un',
+        storage_location: data.storageLocation || null,
+        supplier_id: data.supplierId || null,
+        observations: data.observations || null,
+        condition: data.condition || 'Novo',
+        warranty: data.warranty || null,
+        barcode: data.barcode || null,
+        variations: data.variations || [],
+        is_active: true,
+        created_by: userId !== 'system' ? userId : null,
+        created_by_name: userName,
+        created_at: now,
+        updated_at: now,
+    };
+
+    const { data: created, error } = await supabase.from('os_parts').insert([payload]).select().single();
+    if (error) throw error;
+
+    clearCache(['os_parts_false', 'os_parts_true']);
+    return mapOsPart(created);
+};
+
+// --- UPDATE: Atualiza uma peça do estoque de OS ---
+export const updateOsPart = async (
+    id: string,
+    data: Partial<OsPart>,
+    userId: string = 'system',
+    userName: string = 'Sistema'
+): Promise<OsPart> => {
+    const payload: any = { updated_at: getNowISO() };
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.brand !== undefined) payload.brand = data.brand;
+    if (data.category !== undefined) payload.category = data.category;
+    if (data.model !== undefined) payload.model = data.model;
+    if (data.costPrice !== undefined) payload.cost_price = data.costPrice;
+    if (data.salePrice !== undefined) payload.sale_price = data.salePrice;
+    if (data.wholesalePrice !== undefined) payload.wholesale_price = data.wholesalePrice;
+    if (data.stock !== undefined) payload.stock = data.stock;
+    if (data.minimumStock !== undefined) payload.minimum_stock = data.minimumStock;
+    if (data.unit !== undefined) payload.unit = data.unit;
+    if (data.storageLocation !== undefined) payload.storage_location = data.storageLocation;
+    if (data.supplierId !== undefined) payload.supplier_id = data.supplierId || null;
+    if (data.observations !== undefined) payload.observations = data.observations;
+    if (data.condition !== undefined) payload.condition = data.condition;
+    if (data.warranty !== undefined) payload.warranty = data.warranty;
+    if (data.barcode !== undefined) payload.barcode = data.barcode;
+    if (data.variations !== undefined) payload.variations = data.variations;
+    if (data.isActive !== undefined) payload.is_active = data.isActive;
+
+    const { data: updated, error } = await supabase
+        .from('os_parts')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+    clearCache(['os_parts_false', 'os_parts_true']);
+    return mapOsPart(updated);
+};
+
+// --- DELETE: Remove uma peça (soft delete) do estoque de OS ---
+export const deleteOsPart = async (id: string): Promise<void> => {
+    const { error } = await supabase
+        .from('os_parts')
+        .update({ is_active: false, updated_at: getNowISO() })
+        .eq('id', id);
+    if (error) throw error;
+    clearCache(['os_parts_false', 'os_parts_true']);
+};
+
+// --- ADD: Registra uma ordem de compra de peças de OS ---
+export const addOsPurchaseOrder = async (
+    data: Partial<OsPurchaseOrder>,
+    userId: string = 'system',
+    userName: string = 'Sistema'
+): Promise<OsPurchaseOrder> => {
+    const now = getNowISO();
+    const total = (data.items || []).reduce((acc, item) => acc + item.finalUnitCost * item.quantity, 0) + (data.additionalCost || 0);
+
+    const payload: any = {
+        supplier_id: data.supplierId || null,
+        supplier_name: data.supplierName || null,
+        purchase_date: data.purchaseDate || now.split('T')[0],
+        total,
+        additional_cost: data.additionalCost || 0,
+        stock_status: 'Pendente',
+        financial_status: 'Pendente',
+        status: 'Pendente',
+        observations: data.observations || null,
+        purchase_term: data.purchaseTerm || null,
+        origin: data.origin || 'Nacional',
+        items: (data.items || []).map(item => ({
+            id: item.id || crypto.randomUUID(),
+            osPartId: item.osPartId || null,
+            partName: item.partName,
+            brand: item.brand || null,
+            category: item.category || null,
+            model: item.model || null,
+            condition: item.condition || 'Novo',
+            warranty: item.warranty || null,
+            barcode: item.barcode || null,
+            variations: item.variations || [],
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+            finalUnitCost: item.finalUnitCost,
+        })),
+        created_by: userId !== 'system' ? userId : null,
+        created_by_name: userName,
+        created_at: now,
+        updated_at: now,
+    };
+
+    const { data: created, error } = await supabase
+        .from('os_purchase_orders')
+        .insert([payload])
+        .select()
+        .single();
+
+    if (error) throw error;
+    clearCache(['os_purchase_orders']);
+    return mapOsPurchaseOrder(created);
+};
+
+// --- LAUNCH: Lança o estoque de uma compra de OS (adiciona ao estoque de peças) ---
+export const launchOsPurchaseOrder = async (
+    purchaseId: string,
+    userId: string = 'system',
+    userName: string = 'Sistema'
+): Promise<void> => {
+    // 1. Busca a ordem de compra
+    const { data: purchase, error: fetchError } = await supabase
+        .from('os_purchase_orders')
+        .select('*')
+        .eq('id', purchaseId)
+        .single();
+
+    if (fetchError) throw fetchError;
+    if (!purchase) throw new Error('Ordem de compra de OS não encontrada.');
+    if (purchase.stock_status === 'Lançado') throw new Error('Esta compra já foi lançada no estoque.');
+
+    const items: OsPurchaseOrderItem[] = Array.isArray(purchase.items) ? purchase.items : [];
+
+    // 2. Para cada item, atualiza o estoque da peça correspondente
+    for (const item of items) {
+        if (!item.osPartId) {
+            // Cria a peça automaticamente se não existir
+            const { data: newPart, error: createError } = await supabase
+                .from('os_parts')
+                .insert([{
+                    name: item.partName,
+                    brand: item.brand || null,
+                    category: item.category || null,
+                    model: item.model || null,
+                    condition: item.condition || 'Novo',
+                    warranty: item.warranty || null,
+                    barcode: item.barcode || null,
+                    variations: item.variations || [],
+                    storage_location: item.storageLocation || null,
+                    cost_price: item.finalUnitCost,
+                    sale_price: item.finalUnitCost,
+                    wholesale_price: item.wholesalePrice || item.finalUnitCost,
+                    stock: item.quantity,
+                    unit: 'Un',
+                    is_active: true,
+                    supplier_id: purchase.supplier_id || null,
+                    created_by_name: userName,
+                    created_at: getNowISO(),
+                    updated_at: getNowISO(),
+                }])
+                .select()
+                .single();
+
+            if (createError) throw createError;
+
+            // Registra histórico
+            await supabase.from('os_parts_stock_history').insert([{
+                os_part_id: newPart.id,
+                old_stock: 0,
+                new_stock: item.quantity,
+                adjustment: item.quantity,
+                reason: 'Lançamento de Compra (OS)',
+                related_id: purchaseId,
+                changed_by: userId,
+                changed_by_name: userName,
+                details: `Compra OS #${purchase.display_id} - ${item.partName}`,
+            }]);
+        } else {
+            // Atualiza estoque da peça existente
+            const { data: part, error: partError } = await supabase
+                .from('os_parts')
+                .select('stock')
+                .eq('id', item.osPartId)
+                .single();
+
+            if (partError) throw partError;
+
+            const oldStock = part.stock || 0;
+            const newStock = oldStock + item.quantity;
+
+            const { error: updateError } = await supabase
+                .from('os_parts')
+                .update({ stock: newStock, updated_at: getNowISO() })
+                .eq('id', item.osPartId);
+
+            if (updateError) throw updateError;
+
+            // Registra histórico
+            await supabase.from('os_parts_stock_history').insert([{
+                os_part_id: item.osPartId,
+                old_stock: oldStock,
+                new_stock: newStock,
+                adjustment: item.quantity,
+                reason: 'Lançamento de Compra (OS)',
+                related_id: purchaseId,
+                changed_by: userId,
+                changed_by_name: userName,
+                details: `Compra OS #${purchase.display_id} - ${item.partName}`,
+            }]);
+        }
+    }
+
+    // 3. Atualiza status da ordem de compra
+    const { error: updateError } = await supabase
+        .from('os_purchase_orders')
+        .update({
+            stock_status: 'Lançado',
+            status: 'Finalizada',
+            updated_at: getNowISO(),
+        })
+        .eq('id', purchaseId);
+
+    if (updateError) throw updateError;
+
+    clearCache(['os_parts_false', 'os_parts_true', 'os_purchase_orders']);
+};
+
+// --- UPDATE: Atualiza uma ordem de compra de OS ---
+export const updateOsPurchaseOrder = async (
+    id: string,
+    data: Partial<OsPurchaseOrder>,
+    userId?: string,
+    userName?: string
+): Promise<OsPurchaseOrder> => {
+    const now = getNowISO();
+    const total = (data.items || []).reduce((acc, item) => acc + item.finalUnitCost * item.quantity, 0) + (data.additionalCost || 0);
+
+    const payload: any = {
+        supplier_id: data.supplierId || null,
+        supplier_name: data.supplierName || null,
+        purchase_date: data.purchaseDate || now.split('T')[0],
+        total,
+        additional_cost: data.additionalCost || 0,
+        observations: data.observations || null,
+        purchase_term: data.purchaseTerm || null,
+        origin: data.origin || 'Nacional',
+        items: (data.items || []).map(item => ({
+            id: item.id || crypto.randomUUID(),
+            osPartId: item.osPartId || null,
+            partName: item.partName,
+            brand: item.brand || null,
+            category: item.category || null,
+            model: item.model || null,
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+            finalUnitCost: item.finalUnitCost,
+        })),
+        updated_at: now,
+    };
+
+    const { data: updated, error } = await supabase
+        .from('os_purchase_orders')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) throw error;
+    clearCache(['os_purchase_orders']);
+    return mapOsPurchaseOrder(updated);
+};
+
+// --- CANCEL: Cancela uma ordem de compra de OS ---
+export const cancelOsPurchaseOrder = async (
+    id: string,
+    reason: string,
+    userId: string = 'system',
+    userName: string = 'Sistema'
+): Promise<void> => {
+    // 1. Busca a ordem de compra
+    const { data: purchase, error: fetchError } = await supabase
+        .from('os_purchase_orders')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (fetchError) throw fetchError;
+    if (!purchase) throw new Error('Ordem de compra de OS não encontrada.');
+
+    // 2. Se já foi lançada, reverte o estoque
+    if (purchase.stock_status === 'Lançado') {
+        const items = purchase.items || [];
+        for (const item of items) {
+            if (item.osPartId) {
+                const { data: part } = await supabase.from('os_parts').select('stock').eq('id', item.osPartId).single();
+                if (part) {
+                    const newStock = Math.max(0, part.stock - item.quantity);
+                    await supabase.from('os_parts').update({ stock: newStock }).eq('id', item.osPartId);
+
+                    await supabase.from('os_parts_stock_history').insert([{
+                        os_part_id: item.osPartId,
+                        old_stock: part.stock,
+                        new_stock: newStock,
+                        adjustment: -item.quantity,
+                        reason: 'Cancelamento de Compra (OS)',
+                        related_id: id,
+                        changed_by: userId,
+                        changed_by_name: userName,
+                        details: `Cancelamento: ${reason}`,
+                    }]);
+                }
+            }
+        }
+    }
+
+    // 3. Atualiza o status
+    const { error: updateError } = await supabase
+        .from('os_purchase_orders')
+        .update({
+            status: 'Cancelado',
+            stock_status: 'Cancelado',
+            cancellation_reason: reason,
+            updated_at: getNowISO(),
+        })
+        .eq('id', id);
+
+    if (updateError) throw updateError;
+    clearCache(['os_parts_false', 'os_parts_true', 'os_purchase_orders']);
+};
+
+// --- UPDATE FINANCIAL STATUS ---
+export const updateOsPurchaseFinancialStatus = async (
+    id: string,
+    status: FinancialStatus,
+    userId?: string,
+    userName?: string
+): Promise<void> => {
+    const { error } = await supabase
+        .from('os_purchase_orders')
+        .update({
+            financial_status: status,
+            updated_at: getNowISO(),
+        })
+        .eq('id', id);
+
+    if (error) throw error;
+    clearCache(['os_purchase_orders']);
+};
+export const getOsPartsStockStats = async (): Promise<{
+    totalParts: number;
+    totalCost: number;
+    totalSaleValue: number;
+    lowStockCount: number;
+}> => {
+    const parts = await getOsParts(true); // apenas ativas
+
+    const totalParts = parts.reduce((acc, p) => acc + (p.stock || 0), 0);
+    const totalCost = parts.reduce((acc, p) => acc + (p.costPrice || 0) * (p.stock || 0), 0);
+    const totalSaleValue = parts.reduce((acc, p) => acc + (p.salePrice || 0) * (p.stock || 0), 0);
+    const lowStockCount = parts.filter(p => p.stock > 0 && p.minimumStock !== undefined && p.stock <= (p.minimumStock || 0)).length;
+
+    return { totalParts, totalCost, totalSaleValue, lowStockCount };
 };

@@ -10,9 +10,10 @@ interface SearchableDropdownProps {
     placeholder?: string;
     className?: string;
     disabled?: boolean;
+    dropDirection?: 'auto' | 'up' | 'down';
 }
 
-const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value, onChange, placeholder = "Buscar...", className = "", disabled = false }) => {
+const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value, onChange, placeholder = "Buscar...", className = "", disabled = false, dropDirection = 'auto' }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [openUpwards, setOpenUpwards] = useState(false);
@@ -58,9 +59,15 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
             const dropdownHeight = 450; // Increased to show at least 10 items
 
             let upwards = false;
-            // Default to downwards unless there's clearly no space and space above
-            if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+            if (dropDirection === 'up') {
                 upwards = true;
+            } else if (dropDirection === 'down') {
+                upwards = false;
+            } else {
+                // Default to downwards unless there's clearly no space and space above
+                if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+                    upwards = true;
+                }
             }
             setOpenUpwards(upwards);
 

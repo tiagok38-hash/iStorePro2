@@ -5,7 +5,7 @@ import {
     LogoIcon, ChevronLeftIcon,
     UserCircleIcon, LogoutIcon,
     Squares2x2Icon, ArchiveBoxIcon, ShoppingCartIcon, CashRegisterIcon, ChartBarIcon,
-    UsersIcon, BuildingOffice2Icon, BanknotesIcon, WrenchIcon, WalletIcon, DocumentTextIcon
+    UsersIcon, BuildingOffice2Icon, BanknotesIcon, WrenchIcon, WalletIcon, DocumentTextIcon, ReceiptIcon
 } from './icons.tsx';
 // ...
 const NAV_ITEMS = [
@@ -19,42 +19,55 @@ const NAV_ITEMS = [
     { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessServiceOrders' },
     { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
     { name: 'Financeiro', to: '/financeiro', icon: <WalletIcon />, permissionKey: 'canAccessFinanceiro' },
+    { name: 'Fiscal (Em Breve)', to: '#', icon: <ReceiptIcon />, permissionKey: 'canAccessEmpresa' },
     { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
 ];
 
 import { User, PermissionSet } from '../types.ts';
 import { getPermissionProfiles } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';
+import { useToast } from '../contexts/ToastContext.tsx';
 
-const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: string }>, label: string, isCollapsed: boolean, onCloseSidebar: () => void; target?: React.HTMLAttributeAnchorTarget }> = ({ to, icon, label, isCollapsed, onCloseSidebar, target }) => (
-    <div className="relative group">
-        <NavLink
-            to={to}
-            target={target}
-            onClick={onCloseSidebar}
-            title={isCollapsed ? label : undefined}
-            className={({ isActive }) => {
-                const baseClasses = "flex items-center px-3 py-2.5 rounded-xl text-sm transition-all duration-200 font-medium";
-                const activeClasses = 'text-white bg-white/20 shadow-lg ring-1 ring-white/20';
-                const inactiveClasses = 'text-white/70 hover:text-white hover:bg-white/10';
+const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: string }>, label: string, isCollapsed: boolean, onCloseSidebar: () => void; target?: React.HTMLAttributeAnchorTarget; isComingSoon?: boolean }> = ({ to, icon, label, isCollapsed, onCloseSidebar, target, isComingSoon }) => {
+    const { showToast } = useToast();
 
-                if (isCollapsed) {
-                    return `${baseClasses} justify-center ${isActive ? activeClasses : inactiveClasses}`;
-                }
+    return (
+        <div className="relative group">
+            <NavLink
+                to={to}
+                target={target}
+                onClick={(e) => {
+                    if (isComingSoon) {
+                        e.preventDefault();
+                        showToast('As funcionalidades dessa página estão em desenvolvimento. Aguarde...', 'warning');
+                    } else {
+                        onCloseSidebar();
+                    }
+                }}
+                title={isCollapsed ? label : undefined}
+                className={({ isActive }) => {
+                    const baseClasses = "flex items-center px-3 py-2.5 rounded-xl text-sm transition-all duration-200 font-medium";
+                    const activeClasses = 'text-white bg-white/20 shadow-lg ring-1 ring-white/20';
+                    const inactiveClasses = 'text-white/70 hover:text-white hover:bg-white/10';
 
-                return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
-            }}
-        >
-            {React.cloneElement(icon, { className: 'h-6 w-6 flex-shrink-0' })}
-            {!isCollapsed && <span className="ml-3 whitespace-nowrap">{label}</span>}
-        </NavLink>
-        {isCollapsed && (
-            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-white text-accent text-xs rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-bold shadow-sm">
-                {label}
-            </div>
-        )}
-    </div>
-);
+                    if (isCollapsed) {
+                        return `${baseClasses} justify-center ${isActive ? activeClasses : inactiveClasses}`;
+                    }
+
+                    return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
+                }}
+            >
+                {React.cloneElement(icon, { className: 'h-6 w-6 flex-shrink-0' })}
+                {!isCollapsed && <span className="ml-3 whitespace-nowrap">{label}</span>}
+            </NavLink>
+            {isCollapsed && (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-white text-accent text-xs rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-bold shadow-sm">
+                    {label}
+                </div>
+            )}
+        </div>
+    );
+};
 
 interface SidebarProps {
     isOpen: boolean;
@@ -145,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
             <nav className="flex-1 px-3 py-6 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 <div className="space-y-1">
                     {visibleNavItems.map(item => (
-                        <NavItem key={item.name} to={item.to} icon={item.icon} label={item.name} isCollapsed={effectiveIsCollapsed} onCloseSidebar={onCloseSidebar} target={item.target as React.HTMLAttributeAnchorTarget} />
+                        <NavItem key={item.name} to={item.to} icon={item.icon} label={item.name} isCollapsed={effectiveIsCollapsed} onCloseSidebar={onCloseSidebar} target={item.target as React.HTMLAttributeAnchorTarget} isComingSoon={item.name === 'Fiscal (Em Breve)'} />
                     ))}
                 </div>
             </nav>

@@ -511,6 +511,7 @@ export interface PurchaseItem {
         imei2?: string;
         serialNumber?: string;
         batteryHealth?: number;
+        wholesalePrice?: number;
     };
     quantity: number;
     unitCost: number;

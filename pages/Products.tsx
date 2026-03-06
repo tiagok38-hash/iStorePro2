@@ -584,7 +584,7 @@ const Products: React.FC = () => {
         } catch (error) { showToast('Erro ao atualizar produtos em massa.', 'error'); }
     };
 
-    const handleBulkLocationUpdate = async (updates: { id: string; storageLocation: string }[]) => {
+    const handleBulkLocationUpdate = async (updates: { id: string; storageLocation: string, quantityToMove?: number }[]) => {
         try {
             await updateMultipleProducts(updates, user?.id, user?.name);
             showToast(`Local de estoque atualizado para ${updates.length} produto(s)!`, 'success');
@@ -1040,7 +1040,7 @@ const Products: React.FC = () => {
             <div className="bg-surface rounded-3xl border border-border shadow-sm">
                 <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-sm text-left text-muted whitespace-nowrap">
-                        <thead className="text-[10px] font-bold text-secondary uppercase bg-gray-50/50 border-b border-white/20">
+                        <thead className="text-[10px] font-bold text-gray-900 uppercase bg-gray-50/50 border-b border-white/20">
                             <tr>
                                 <th scope="col" className="px-2 py-2 text-center font-bold">ESTOQUE</th>
                                 <th scope="col" className="px-2 py-2 font-bold">DESCRIÇÃO</th>

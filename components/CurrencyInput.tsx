@@ -43,44 +43,65 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({
 
     const displayValue = format(value);
 
-    // Filter out styles that might conflict or duplicate
-    // We intentionally keep text colors if passed
-    const cleanClassName = className?.split(/\s+/).filter(cls =>
-        cls.startsWith('!') || // Keep forced overrides
-        (!cls.startsWith('p-') &&
-            !cls.startsWith('px-') &&
-            !cls.startsWith('py-') &&
-            !cls.startsWith('pl-') &&
-            !cls.startsWith('pr-') &&
-            !cls.startsWith('pt-') &&
-            !cls.startsWith('pb-') &&
-            !cls.startsWith('bg-') &&
-            // We do NOT filter out text- classes here, so they can apply to the parent
-            !cls.startsWith('w-'))
-    ).join(' ') || '';
+    // Separa classes: as que vão só no wrapper vs. as que vão no input também
+    const classes = className?.split(/\s+/) ?? [];
 
-    // Extract text color explicitly to apply to inner elements if needed
-    // But normally inheritance handles it.
-    // Specially handling text-orange-600 passed from parent
-    const isTextOrange = className?.includes('text-orange-600') || className?.includes('text-[#ea580c]');
-    // Check for other text colors if needed, but let's rely on inheritance for now or explicit classes
+    // Classes de texto/fonte que devem ser aplicadas no input interno
+    const inputTextClasses = classes.filter(cls =>
+        cls.startsWith('text-') ||
+        cls.startsWith('font-') ||
+        cls.startsWith('tracking-') ||
+        cls.startsWith('leading-')
+    ).join(' ');
+
+    // Classes de container (excluindo padding/bg/w que conflitam)
+    const wrapperExtraClasses = classes.filter(cls =>
+        !cls.startsWith('p-') &&
+        !cls.startsWith('px-') &&
+        !cls.startsWith('py-') &&
+        !cls.startsWith('pl-') &&
+        !cls.startsWith('pr-') &&
+        !cls.startsWith('pt-') &&
+        !cls.startsWith('pb-') &&
+        !cls.startsWith('bg-') &&
+        !cls.startsWith('w-')
+    ).join(' ');
+
+    // Detecta cor especial de texto para prefixo R$ e valor
+    const isTextOrange = className?.includes('text-orange') || className?.includes('text-[#ea580c]');
+    const isTextSuccess = className?.includes('text-success') || className?.includes('text-green') || className?.includes('text-emerald');
+    const isTextBlue = className?.includes('text-blue');
+
+    // Cor do prefixo R$
+    const prefixColor = isTextOrange
+        ? 'text-orange-500'
+        : isTextSuccess
+            ? 'text-green-500'
+            : isTextBlue
+                ? 'text-blue-400'
+                : 'text-gray-400';
+
+    // Cor inline do valor (garante aplicação mesmo com Tailwind purge)
+    const valueColor = isTextOrange
+        ? '#ea580c'
+        : isTextSuccess
+            ? '#16a34a'
+            : isTextBlue
+                ? '#2563eb'
+                : undefined;
 
     const isCompact = size === 'compact';
 
     return (
-        <div className={`
-            flex items-center gap-2 border rounded-xl bg-white border-gray-200 transition-colors w-full shadow-sm
-            ${isCompact ? 'h-9 px-2 text-xs' : 'h-[48px] px-3 text-sm'} 
-            font-medium text-gray-700
-            hover:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary
-            ${disabled ? 'bg-gray-50 opacity-60 cursor-not-allowed' : ''}
-            ${cleanClassName}
-        `}>
+        <div className={[
+            'flex items-center gap-2 border rounded-xl bg-white border-gray-200 transition-colors w-full shadow-sm',
+            isCompact ? 'h-9 px-2' : 'h-[48px] px-3',
+            'hover:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary',
+            disabled ? 'bg-gray-50 opacity-60 cursor-not-allowed' : '',
+            wrapperExtraClasses,
+        ].join(' ')}>
             {showPrefix && (
-                <span className={`
-                    shrink-0 pointer-events-none select-none
-                    ${isTextOrange ? 'text-[#ea580c] font-bold' : 'text-gray-400'}
-                `}>
+                <span className={`shrink-0 pointer-events-none select-none font-black ${prefixColor} ${isCompact ? 'text-xs' : 'text-sm'}`}>
                     R$
                 </span>
             )}
@@ -89,14 +110,21 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({
                 value={displayValue}
                 onChange={handleChange}
                 placeholder={placeholder}
-                className={`
-                    flex-1 w-full h-full !border-none !outline-none !shadow-none !bg-transparent !p-0 truncate
-                    font-medium appearance-none text-left
-                    focus:!ring-0 focus:!border-none focus:!outline-none
-                    ${disabled ? 'cursor-not-allowed' : ''}
-                    ${isTextOrange ? '!text-[#ea580c] placeholder:text-orange-300 font-bold' : 'text-gray-700 placeholder-gray-400'}
-                `}
-                style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                className={[
+                    'flex-1 w-full h-full bg-transparent p-0 truncate appearance-none text-left',
+                    'border-none outline-none shadow-none',
+                    'focus:ring-0 focus:border-none focus:outline-none',
+                    isCompact ? 'text-xs' : '',
+                    disabled ? 'cursor-not-allowed' : '',
+                    inputTextClasses || 'font-medium text-gray-700',
+                    !inputTextClasses ? 'placeholder-gray-400' : 'placeholder:opacity-40',
+                ].join(' ')}
+                style={{
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    ...(valueColor ? { color: valueColor } : {}),
+                }}
                 disabled={disabled}
                 data-testid="unit-price-input"
             />

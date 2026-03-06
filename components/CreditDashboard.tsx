@@ -8,7 +8,7 @@ import {
     CreditInstallment, Customer
 } from '../types.ts';
 import {
-    getCreditInstallments, formatCurrency, getCustomers, updateCreditSettings, getCreditSettings
+    getCreditInstallments, formatCurrency, getCustomers, updateCreditSettings, getCreditSettings, updateInstallmentPaymentMethod
 } from '../services/mockApi.ts';
 import InstallmentPaymentModal from './modals/InstallmentPaymentModal.tsx';
 import CreditSettingsModal from './modals/CreditSettingsModal.tsx';
@@ -29,6 +29,8 @@ const CreditDashboard: React.FC = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [settings, setSettings] = useState({ defaultInterestRate: 0, lateFeePercentage: 0 });
     const [stats, setStats] = useState({ toReceive: 0, overdue: 0, receivedToday: 0 });
+    const [editMethodInstallment, setEditMethodInstallment] = useState<CreditInstallment | null>(null);
+    const [submittingMethod, setSubmittingMethod] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -353,7 +355,12 @@ const CreditDashboard: React.FC = () => {
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
-                                                            <StatusBadge status={isLate ? 'Atrasado' : inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Em Aberto'} />
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <StatusBadge status={isLate ? 'Atrasado' : inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Em Aberto'} />
+                                                                {inst.status === 'paid' && inst.paymentMethod && (
+                                                                    <span className="text-[9px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded-full">{inst.paymentMethod}</span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="pr-6 sm:pr-10 py-4 text-right">
                                                             <div className="flex items-center justify-end gap-2">
@@ -373,6 +380,16 @@ const CreditDashboard: React.FC = () => {
                                                                         title="Lembrete WhatsApp"
                                                                     >
                                                                         <WhatsAppIcon size={14} />
+                                                                    </button>
+                                                                )}
+
+                                                                {inst.status === 'paid' && (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setEditMethodInstallment(inst); }}
+                                                                        className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100 flex items-center justify-center"
+                                                                        title="Editar Forma de Pagamento"
+                                                                    >
+                                                                        <SettingsIcon size={14} className="text-blue-600" />
                                                                     </button>
                                                                 )}
 
@@ -414,6 +431,58 @@ const CreditDashboard: React.FC = () => {
                     fetchData(); // Reload settings
                 }}
             />
+
+            {editMethodInstallment && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-scale-in">
+                        <h3 className="text-lg font-black text-gray-900 mb-4 uppercase tracking-tighter">Editar Pagamento</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Nova Forma de Pagamento</label>
+                                <select
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                    id="edit-method-select"
+                                    defaultValue={editMethodInstallment.paymentMethod || 'Pix'}
+                                >
+                                    <option value="Pix">Pix</option>
+                                    <option value="Dinheiro">Dinheiro</option>
+                                    <option value="Cartão Crédito">Cartão de Crédito</option>
+                                    <option value="Cartão de débito">Cartão de Débito</option>
+                                </select>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setEditMethodInstallment(null)}
+                                    className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const select = document.getElementById('edit-method-select') as HTMLSelectElement;
+                                        const newMethod = select.value;
+                                        setSubmittingMethod(true);
+                                        try {
+                                            await updateInstallmentPaymentMethod(editMethodInstallment.id, newMethod);
+                                            setInstallments(prev => prev.map(i => i.id === editMethodInstallment.id ? { ...i, paymentMethod: newMethod } : i));
+                                            showToast('Forma de Pagto. atualizada!', 'success');
+                                            setEditMethodInstallment(null);
+                                        } catch (e) {
+                                            showToast('Erro ao atualizar.', 'error');
+                                        } finally {
+                                            setSubmittingMethod(false);
+                                        }
+                                    }}
+                                    disabled={submittingMethod}
+                                    className="flex-1 py-3 bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                >
+                                    {submittingMethod ? 'Salvando...' : 'Salvar Pgto'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

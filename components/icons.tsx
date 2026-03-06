@@ -81,7 +81,9 @@ import {
     Mail,
     ArchiveRestore,
     Wallet,
-    TrendingUp
+    TrendingUp,
+    Construction,
+    ReceiptText
 } from 'lucide-react';
 
 /**
@@ -253,6 +255,8 @@ export const ArchiveBoxArrowDownIcon = wrapIcon(ArchiveRestore);
 export const MoreVerticalIcon = wrapIcon(MoreVertical);
 export const ArrowUpDownIcon = wrapIcon(ArrowUpDown);
 export const WalletIcon = wrapIcon(Wallet);
+export const ConstructionIcon = wrapIcon(Construction);
+export const ReceiptIcon = wrapIcon(ReceiptText);
 
 const Icon = (props: any) => <div {...props} />;
 export default Icon;

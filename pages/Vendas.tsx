@@ -719,7 +719,7 @@ const Vendas: React.FC = () => {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="text-left text-xs text-muted bg-gray-50/50 uppercase border-b border-white/20">
+                                <thead className="text-left text-xs font-bold text-gray-900 bg-gray-50/50 uppercase border-b border-white/20">
                                     <tr>
                                         <th className="px-6 py-4">ID</th>
                                         <th className="px-6 py-4">Data</th>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PurchaseOrder, PurchaseItem, Supplier, ProductCondition, Product, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation, Customer, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter } from '../types.ts';
-import { addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, formatCurrency, findOrCreateSupplierFromCustomer, getProductConditions, getStorageLocations, getWarranties, getReceiptTerms } from '../services/mockApi.ts';
+import { addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, formatCurrency, findOrCreateSupplierFromCustomer, getProductConditions, getStorageLocations, getWarranties, getReceiptTerms, addOsPurchaseOrder, launchOsPurchaseOrder, OsPurchaseOrderItem } from '../services/mockApi.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { XCircleIcon, TrashIcon, PlusIcon, SpinnerIcon, BarcodeIcon, PrinterIcon, ArrowRightCircleIcon, CheckIcon, ChevronLeftIcon, ArchiveBoxIcon } from './icons.tsx';
@@ -13,8 +13,8 @@ import CustomerModal from './CustomerModal.tsx';
 
 interface PurchaseOrderModalProps {
     suppliers: Supplier[];
-    customers: Customer[];
-    products: Product[];
+    customers?: Customer[];
+    products?: Product[];
     brands: Brand[];
     categories: Category[];
     productModels: ProductModel[];
@@ -22,7 +22,10 @@ interface PurchaseOrderModalProps {
     gradeValues: GradeValue[];
     onClose: (refresh: boolean) => void;
     purchaseOrderToEdit?: PurchaseOrder | null;
-    onAddNewSupplier: (supplierData: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
+    onAddNewSupplier?: (supplierData: Omit<Supplier, 'id'>) => Promise<Supplier | null>;
+    mode?: 'erp' | 'os';
+    userId?: string;
+    userName?: string;
 }
 
 type CurrentItemType = Omit<PurchaseItem, 'id'> & { storage?: string, variations: ProductVariation[], barcode?: string };
@@ -43,16 +46,21 @@ const emptyItem: CurrentItemType = {
 
 import { appleProductHierarchy } from '../services/constants.ts';
 
-export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ suppliers, customers, products, brands, categories, productModels, grades, gradeValues, onClose, purchaseOrderToEdit, onAddNewSupplier }) => {
+export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ suppliers, customers = [], products = [], brands, categories, productModels, grades, gradeValues, onClose, purchaseOrderToEdit, onAddNewSupplier, mode = 'erp', userId, userName }) => {
+    const isOsMode = mode === 'os';
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<Partial<PurchaseOrder>>({});
     const [items, setItems] = useState<Partial<PurchaseItem>[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [isStockSearchOpen, setIsStockSearchOpen] = useState(false);
 
-    // Step 2 state
-    const [currentItem, setCurrentItem] = useState<Partial<CurrentItemType>>(JSON.parse(JSON.stringify(emptyItem)));
-    const [productType, setProductType] = useState<'Apple' | 'Produto'>('Apple');
+    // Step 2 state — OS mode always starts as 'Produto'
+    const [currentItem, setCurrentItem] = useState<Partial<CurrentItemType>>(() => {
+        const base = JSON.parse(JSON.stringify(emptyItem));
+        if (isOsMode) { base.productDetails.brand = ''; base.hasImei = false; }
+        return base;
+    });
+    const [productType, setProductType] = useState<'Apple' | 'Produto'>(isOsMode ? 'Produto' : 'Apple');
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [isCustomerPurchase, setIsCustomerPurchase] = useState(false);
     const [currentGradeId, setCurrentGradeId] = useState('');
@@ -82,7 +90,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     const handleCloseInternal = async (refresh: boolean) => {
         // If it's a new purchase (no purchaseOrderToEdit), and a draft was created (formData.id exists),
         // and it has no items, delete the draft as the user "gave up".
-        if (!refresh && !purchaseOrderToEdit && formData.id && items.length === 0) {
+        // Skip this in OS mode as OS doesn't create ERP drafts.
+        if (!isOsMode && !refresh && !purchaseOrderToEdit && formData.id && items.length === 0) {
             try {
                 await deletePurchaseOrder(formData.id);
             } catch (err) {
@@ -192,6 +201,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     }
 
     const saveDraft = async (currentItems: Partial<PurchaseItem>[]) => {
+        // OS mode doesn't use ERP drafts
+        if (isOsMode) return;
         // Only save if we have items or an ID already (to update)
         if (!formData.id && currentItems.length === 0) return;
 
@@ -543,6 +554,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         warranty: item.productDetails?.warranty || '1 ano',
                         storageLocation: item.productDetails?.storageLocation || 'Loja Santa Cruz',
                         batteryHealth: item.productDetails?.batteryHealth,
+                        wholesalePrice: item.productDetails?.wholesalePrice || 0,
                     },
                     barcodes: item.barcode ? [item.barcode] : [],
                     quantity: Number(item.quantity || 0),
@@ -556,6 +568,54 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 };
             }) as PurchaseItem[];
 
+            // ===== MODO OS: Salvar no estoque de Ordem de Serviço =====
+            if (isOsMode) {
+                let currentSupplierName = formData.supplierName;
+                if (!currentSupplierName && formData.supplierId) {
+                    const supplier = suppliers.find(s => s.id === formData.supplierId);
+                    currentSupplierName = supplier?.name || 'Fornecedor';
+                }
+
+                // Converter PurchaseItems para OsPurchaseOrderItems
+                const osItems: OsPurchaseOrderItem[] = sanitizedItems.map(item => ({
+                    id: item.id || crypto.randomUUID(),
+                    partName: item.productDetails?.model || '',
+                    brand: item.productDetails?.brand || '',
+                    category: item.productDetails?.category || '',
+                    model: item.productDetails?.model || '',
+                    condition: item.productDetails?.condition || 'Novo',
+                    warranty: item.productDetails?.warranty || null,
+                    barcode: item.barcodes && item.barcodes.length > 0 ? item.barcodes[0] : null,
+                    variations: (item as any).variations || [],
+                    storageLocation: item.productDetails?.storageLocation || null,
+                    wholesalePrice: item.productDetails?.wholesalePrice || 0,
+                    quantity: item.quantity,
+                    unitCost: item.unitCost,
+                    finalUnitCost: item.finalUnitCost,
+                }));
+
+                const purchase = await addOsPurchaseOrder(
+                    {
+                        supplierId: formData.supplierId || undefined,
+                        supplierName: currentSupplierName || undefined,
+                        purchaseDate: formData.purchaseDate,
+                        additionalCost: formData.additionalCost || 0,
+                        observations: formData.observations || undefined,
+                        origin: formData.origin,
+                        items: osItems,
+                    },
+                    userId || user?.id || 'system',
+                    userName || user?.name || 'Sistema'
+                );
+
+                // Lançar automaticamente no estoque OS
+                await launchOsPurchaseOrder(purchase.id, userId || user?.id || 'system', userName || user?.name || 'Sistema');
+                showToast('Peças/Insumos registrados e estoque OS atualizado!', 'success');
+                onClose(true);
+                return;
+            }
+
+            // ===== MODO ERP: Fluxo original =====
             if (purchaseOrderToEdit || formData.id) {
                 const purchaseData: PurchaseOrder = {
                     ...purchaseOrderToEdit,
@@ -670,8 +730,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         <ArrowRightCircleIcon className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl md:text-2xl font-black text-primary tracking-tight leading-none">Lançamento de Compras</h2>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Registro de entrada de mercadoria</p>
+                        <h2 className="text-xl md:text-2xl font-black text-primary tracking-tight leading-none">{isOsMode ? 'Lançar Peças/Insumos' : 'Lançamento de Compras'}</h2>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{isOsMode ? 'Registro de entrada — Estoque exclusivo de OS' : 'Registro de entrada de mercadoria'}</p>
                     </div>
                 </div>
                 <button type="button" onClick={() => handleCloseInternal(false)} className="p-2 md:p-3 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 group shadow-sm">
@@ -699,27 +759,29 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     </div>
 
                     {formData.origin === 'Importação' && (
-                        <div className="col-span-2 grid grid-cols-2 gap-2 bg-gray-50 border border-dashed border-gray-200 p-2 rounded-lg animate-fade-in">
-                            <div>
-                                <label className="text-[10px] font-bold text-muted block mb-0.5">Dólar (R$)</label>
+                        <div className="col-span-2 flex gap-3 items-end">
+                            <div className="flex-1">
+                                <label className="text-xs font-bold text-muted block mb-1">Dólar (R$)</label>
                                 <CurrencyInput
                                     value={formData.dollarRate}
                                     onChange={(v) => setFormData(prev => ({ ...prev, dollarRate: v || 0 }))}
                                 />
                             </div>
-                            <div className="flex flex-col">
-                                <label className="text-[10px] font-bold text-muted block mb-0.5">Frete</label>
+                            <div className="flex-[1.5] relative top-[-1px]">
+                                <label className="text-xs font-bold text-muted block mb-1 px-1">Frete</label>
                                 <div className="flex gap-1 h-11">
-                                    <CurrencyInput
-                                        value={formData.shippingCost}
-                                        onChange={(v) => setFormData(prev => ({ ...prev, shippingCost: v || 0 }))}
-                                        showPrefix={false}
-                                    />
+                                    <div className="flex-1">
+                                        <CurrencyInput
+                                            value={formData.shippingCost}
+                                            onChange={(v) => setFormData(prev => ({ ...prev, shippingCost: v || 0 }))}
+                                            showPrefix={false}
+                                        />
+                                    </div>
                                     <select
                                         name="shippingType"
                                         value={formData.shippingType || 'R$'}
                                         onChange={(e) => setFormData(prev => ({ ...prev, shippingType: e.target.value as any }))}
-                                        className={`${inputClasses} w-12 px-1 h-full text-xs`}
+                                        className={`${inputClasses} w-[85px] px-1 h-full text-xs font-semibold bg-gray-50`}
                                     >
                                         <option value="R$">R$</option>
                                         <option value="US$">US$</option>
@@ -733,20 +795,11 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:items-end">
                     <div className="md:col-span-2">
-                        <label className="text-[10px] font-bold text-muted uppercase tracking-wider mb-1 ml-1 block">Fornecedor / Cliente*</label>
+                        <label className="text-xs font-bold text-muted block mb-1">Fornecedor*</label>
                         <div className="flex flex-col sm:flex-row gap-2">
-                            <div
-                                onClick={() => setIsCustomerPurchase(!isCustomerPurchase)}
-                                className="flex items-center h-11 bg-gray-100/50 px-3 rounded-lg border border-gray-200 shadow-sm shrink-0 cursor-pointer group"
-                            >
-                                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${isCustomerPurchase ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${isCustomerPurchase ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                </div>
-                                <span className="ml-2 text-xs font-bold text-gray-600 group-hover:text-gray-900 transition-colors">De Cliente</span>
-                            </div>
                             <div className="flex flex-1 gap-2">
                                 <div className="flex-1 min-w-0">
-                                    <SearchableDropdown options={combinedSupplierOptions} value={formData.supplierId || null} onChange={handleSupplierChange} placeholder="Buscar..." />
+                                    <SearchableDropdown options={combinedSupplierOptions} value={formData.supplierId || null} onChange={handleSupplierChange} placeholder="Buscar..." dropDirection="down" />
                                 </div>
                                 <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="h-11 w-11 flex-shrink-0 bg-success text-white rounded-lg flex items-center justify-center hover:bg-success/90 transition-all active:scale-95 shadow-md shadow-success/10">
                                     <PlusIcon className="h-6 w-6" />
@@ -800,8 +853,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         <PlusIcon className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
                     <div>
-                        <h2 className="text-xl md:text-2xl font-black text-primary tracking-tight leading-none">Itens da Compra</h2>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Lançamento detalhado de produtos</p>
+                        <h2 className="text-xl md:text-2xl font-black text-primary tracking-tight leading-none">{isOsMode ? 'Itens — Peças/Insumos OS' : 'Itens da Compra'}</h2>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{isOsMode ? 'Lançamento detalhado de peças e insumos' : 'Lançamento detalhado de produtos'}</p>
                     </div>
                 </div>
                 <button type="button" onClick={() => handleCloseInternal(false)} className="p-2 md:p-3 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all active:scale-95 group shadow-sm">
@@ -813,17 +866,19 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
                     <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                         <div className="flex justify-start items-center p-1 bg-gray-100/50 rounded-xl border border-gray-200 w-fit">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setProductType('Apple');
-                                    const reset = JSON.parse(JSON.stringify(emptyItem));
-                                    setCurrentItem({ ...reset, hasImei: true });
-                                }}
-                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Apple' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
-                            >
-                                Apple
-                            </button>
+                            {!isOsMode && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProductType('Apple');
+                                        const reset = JSON.parse(JSON.stringify(emptyItem));
+                                        setCurrentItem({ ...reset, hasImei: true });
+                                    }}
+                                    className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Apple' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                                >
+                                    Apple
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => {

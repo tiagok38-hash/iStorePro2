@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../contexts/ToastContext';
 import {
-    getServices, addService, updateService, deleteService, getProducts,
-    getSuppliers, addSupplier, getCustomers, getBrands, getCategories, getProductModels, getGrades as getProductGrades, getGradeValues, getWarranties
+    getServices, addService, updateService, deleteService,
+    getSuppliers, addSupplier, getOsParts, addOsPart, updateOsPart, deleteOsPart,
+    getOsPurchaseOrders, cancelOsPurchaseOrder, updateOsPurchaseFinancialStatus,
+    OsPart, OsPurchaseOrder, formatCurrency, getBrands, getCategories, getProductModels, getGrades, getGradeValues
 } from '../../services/mockApi';
-import { Service, Product, Supplier, Customer, Brand, Category, ProductModel, Grade, GradeValue, WarrantyParameter } from '../../types';
+import { Service, Supplier, WarrantyParameter, Brand, Category, ProductModel, Grade, GradeValue } from '../../types';
 import {
-    SearchIcon, PlusIcon, EditIcon, TrashIcon, WrenchIcon, PackageIcon, ShoppingCartIcon
+    SearchIcon, PlusIcon, EditIcon, TrashIcon, WrenchIcon, PackageIcon, ClockIcon, EyeIcon, XCircleIcon
 } from '../../components/icons';
+import { SuccessIcon } from '../../components/icons';
 import Button from '../../components/Button';
 import GlobalLoading from '../../components/GlobalLoading';
 import Modal from '../../components/Modal';
-import { formatCurrency } from '../../services/mockApi';
-import PurchaseOrderModal from '../../components/PurchaseOrderModal';
 import CurrencyInput from '../../components/CurrencyInput';
+import OsPartModal from '../../components/OsPartModal';
+import OsPurchaseModal from '../../components/OsPurchaseModal';
+import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
+import { formatDateBR } from '../../utils/dateUtils';
+import { getOsWarranties } from '../../services/mockApi';
+import { useUser } from '../../contexts/UserContext';
 
 // --- Service Modal Component ---
 interface ServiceModalProps {
@@ -123,6 +130,61 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
                     />
                 </div>
 
+                {/* ─── COMMISSION CONFIGURATION ─── */}
+                <div className="mt-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-[20px] border border-violet-100 p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest">🏷️ Comissão</span>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-gray-600 transition-colors">
+                                {formData.commission_enabled ? 'Ativa' : 'Desativada'}
+                            </span>
+                            <div
+                                className={`w-11 h-6 rounded-full p-1 transition-all relative ${formData.commission_enabled ? 'bg-violet-600 shadow-[0_0_15px_rgba(109,40,217,0.4)]' : 'bg-gray-200'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-all ${formData.commission_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </div>
+                            <input
+                                type="checkbox"
+                                className="hidden"
+                                checked={!!formData.commission_enabled}
+                                onChange={() => setFormData(p => ({ ...p, commission_enabled: !p.commission_enabled }))}
+                            />
+                        </label>
+                    </div>
+
+                    {formData.commission_enabled && (
+                        <div className="grid grid-cols-2 gap-3 animate-fade-in">
+                            <div>
+                                <label className="text-[10px] font-black text-violet-500 uppercase tracking-widest px-1 mb-1 block">Tipo</label>
+                                <select
+                                    value={formData.commission_type || 'percentage'}
+                                    onChange={(e) => setFormData(p => ({ ...p, commission_type: e.target.value as any }))}
+                                    className="w-full p-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 h-10 outline-none"
+                                >
+                                    <option value="percentage">Percentual (%)</option>
+                                    <option value="fixed">Valor Fixo (R$)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-violet-500 uppercase tracking-widest px-1 mb-1 block">
+                                    Valor {formData.commission_type === 'fixed' ? '(R$)' : '(%)'}
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.commission_value ?? ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, commission_value: e.target.value === '' ? 0 : parseFloat(e.target.value) }))}
+                                    className="w-full p-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 h-10 outline-none"
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex justify-end gap-2 mt-6">
                     <Button variant="secondary" onClick={onClose} type="button">Cancelar</Button>
                     <Button variant="primary" type="submit" loading={loading}>Salvar</Button>
@@ -134,62 +196,68 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
 
 // --- Main Page Component ---
 const ServiceOrderProducts: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'services' | 'products'>('products');
+    const [activeTab, setActiveTab] = useState<'services' | 'parts'>('parts');
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
-
+    const { user } = useUser();
 
     // Data States
     const [services, setServices] = useState<Service[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
+    const [osParts, setOsParts] = useState<OsPart[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [warranties, setWarranties] = useState<WarrantyParameter[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [productModels, setProductModels] = useState<ProductModel[]>([]);
     const [grades, setGrades] = useState<Grade[]>([]);
     const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
-    const [warranties, setWarranties] = useState<WarrantyParameter[]>([]);
-
     const [searchTerm, setSearchTerm] = useState('');
+    const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out' | 'low'>('in_stock');
 
     // Service Modal State
     const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
     const [editingService, setEditingService] = useState<Partial<Service> | null>(null);
     const [savingService, setSavingService] = useState(false);
 
-    // Purchase Modal State
-    const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+    // OS Part Modal State
+    const [isPartModalOpen, setIsPartModalOpen] = useState(false);
+    const [editingPart, setEditingPart] = useState<Partial<OsPart> | null>(null);
+    const [savingPart, setSavingPart] = useState(false);
 
-    // Initial Fetch
+    // OS Purchase Modal State
+    const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+    const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
+    const [purchaseToEdit, setPurchaseToEdit] = useState<any>(null);
+
+    // Purchase History (inline) State
+    const [purchaseHistory, setPurchaseHistory] = useState<OsPurchaseOrder[]>([]);
+    const [purchaseHistoryLoading, setPurchaseHistoryLoading] = useState(false);
+    const [purchaseToCancel, setPurchaseToCancel] = useState<OsPurchaseOrder | null>(null);
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [
-                servicesData, productsData, suppliersData, customersData,
-                brandsData, categoriesData, modelsData, gradesData, valuesData, warrantiesData
-            ] = await Promise.all([
+            const [servicesData, partsData, suppliersData, warrantiesData, brandsData, categoriesData, modelsData, gradesData, gradeValuesData] = await Promise.all([
                 getServices(),
-                getProducts(),
+                getOsParts(false), // todas, inclusive inativas para gestão
                 getSuppliers(),
-                getCustomers(),
+                getOsWarranties(),
                 getBrands(),
                 getCategories(),
                 getProductModels(),
-                getProductGrades(),
-                getGradeValues(),
-                getWarranties()
+                getGrades(),
+                getGradeValues()
             ]);
             setServices(servicesData);
-            setProducts(productsData);
+            setOsParts(partsData);
             setSuppliers(suppliersData);
-            setCustomers(customersData);
+            setWarranties(warrantiesData);
             setBrands(brandsData);
             setCategories(categoriesData);
             setProductModels(modelsData);
             setGrades(gradesData);
-            setGradeValues(valuesData);
-            setWarranties(warrantiesData);
+            setGradeValues(gradeValuesData);
         } catch (error) {
             console.error(error);
             showToast('Erro ao carregar dados.', 'error');
@@ -210,14 +278,43 @@ const ServiceOrderProducts: React.FC = () => {
         );
     }, [services, searchTerm]);
 
-    const filteredProducts = useMemo(() => {
-        return products.filter(p =>
-            p.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.brand.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [products, searchTerm]);
+    const filteredParts = useMemo(() => {
+        return osParts.filter(p => {
+            if (!p.isActive) return false;
 
-    // Handlers
+            // Filtro de estoque
+            if (stockFilter === 'in_stock' && p.stock <= 0) return false;
+            if (stockFilter === 'out' && p.stock > 0) return false;
+            if (stockFilter === 'low') {
+                const isLow = p.stock > 0 && p.minimumStock !== undefined && p.stock <= (p.minimumStock || 0);
+                if (!isLow) return false;
+            }
+
+            // Filtro de busca
+            if (searchTerm) {
+                const s = searchTerm.toLowerCase();
+                return (
+                    p.name.toLowerCase().includes(s) ||
+                    (p.brand || '').toLowerCase().includes(s) ||
+                    (p.category || '').toLowerCase().includes(s) ||
+                    (p.model || '').toLowerCase().includes(s)
+                );
+            }
+            return true;
+        });
+    }, [osParts, searchTerm, stockFilter]);
+
+    // Summary stats for OS stock
+    const osStockStats = useMemo(() => {
+        const activeParts = osParts.filter(p => p.isActive);
+        const totalItems = activeParts.reduce((acc, p) => acc + (p.stock || 0), 0);
+        const totalCost = activeParts.reduce((acc, p) => acc + (p.costPrice || 0) * (p.stock || 0), 0);
+        const totalValue = activeParts.reduce((acc, p) => acc + (p.salePrice || 0) * (p.stock || 0), 0);
+        const lowStock = activeParts.filter(p => p.stock > 0 && p.minimumStock !== undefined && p.stock <= (p.minimumStock || 0)).length;
+        return { totalItems, totalCost, totalValue, lowStock };
+    }, [osParts]);
+
+    // Service Handlers
     const handleSaveService = async (data: Partial<Service>) => {
         setSavingService(true);
         try {
@@ -249,72 +346,210 @@ const ServiceOrderProducts: React.FC = () => {
         }
     };
 
-    const openEditService = (service: Service) => {
-        setEditingService(service);
-        setIsServiceModalOpen(true);
+    // OS Part Handlers
+    const handleSavePart = async (data: Partial<OsPart>) => {
+        setSavingPart(true);
+        try {
+            if (data.id) {
+                await updateOsPart(data.id, data, user?.id, user?.name);
+                showToast('Peça atualizada no estoque OS!', 'success');
+            } else {
+                await addOsPart(data, user?.id, user?.name);
+                showToast('Peça cadastrada no estoque OS!', 'success');
+            }
+            setIsPartModalOpen(false);
+            setEditingPart(null);
+            fetchData();
+        } catch (error: any) {
+            showToast(error.message || 'Erro ao salvar peça.', 'error');
+        } finally {
+            setSavingPart(false);
+        }
     };
 
-    const openNewService = () => {
-        setEditingService(null);
-        setIsServiceModalOpen(true);
+    const handleDeletePart = async (id: string) => {
+        if (!confirm('Tem certeza? A peça será desativada (não aparecerá mais no estoque OS).')) return;
+        try {
+            await deleteOsPart(id);
+            showToast('Peça removida do estoque OS.', 'success');
+            fetchData();
+        } catch (error) {
+            showToast('Erro ao remover peça.', 'error');
+        }
     };
 
-    if (loading && services.length === 0 && products.length === 0) return <GlobalLoading />;
+    const handleSaveNewSupplier = async (data: any) => {
+        try {
+            const newSupplier = await addSupplier(data);
+            showToast('Fornecedor cadastrado!', 'success');
+            const updatedSuppliers = await getSuppliers();
+            setSuppliers(updatedSuppliers);
+            return newSupplier;
+        } catch (error) {
+            showToast('Erro ao cadastrar fornecedor.', 'error');
+            return null;
+        }
+    };
+
+    // Purchase History Handlers
+    const fetchPurchaseHistory = async () => {
+        setPurchaseHistoryLoading(true);
+        try {
+            const data = await getOsPurchaseOrders();
+            setPurchaseHistory(data);
+        } catch {
+            showToast('Erro ao carregar histórico de compras.', 'error');
+        } finally {
+            setPurchaseHistoryLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (showPurchaseHistory) fetchPurchaseHistory();
+    }, [showPurchaseHistory]);
+
+    const handleMarkAsPaid = async (purchase: OsPurchaseOrder) => {
+        try {
+            await updateOsPurchaseFinancialStatus(purchase.id, 'Pago');
+            showToast('Compra marcada como Paga.', 'success');
+            fetchPurchaseHistory();
+        } catch {
+            showToast('Erro ao atualizar status.', 'error');
+        }
+    };
+
+    const handleConfirmCancelPurchase = async (reason: string) => {
+        if (!purchaseToCancel) return;
+        try {
+            await cancelOsPurchaseOrder(purchaseToCancel.id, reason);
+            showToast('Compra cancelada com sucesso.', 'success');
+            setIsCancelModalOpen(false);
+            setPurchaseToCancel(null);
+            fetchPurchaseHistory();
+        } catch (error: any) {
+            showToast(error.message || 'Erro ao cancelar.', 'error');
+        }
+    };
+
+    if (loading && services.length === 0 && osParts.length === 0) return <GlobalLoading />;
 
     return (
         <div className="h-full flex flex-col space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Peças e Serviços</h1>
-                    <p className="text-gray-500">Gerencie seu catálogo para Ordens de Serviço</p>
+                <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl">
+                        <PackageIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Peças e Serviços</h1>
+                        <p className="text-gray-500 text-sm">
+                            Catálogo exclusivo de Ordens de Serviço —{' '}
+                            <span className="text-amber-600 font-semibold">Estoque separado do ERP principal</span>
+                        </p>
+                    </div>
                 </div>
-                <div className="flex p-0.5 bg-gray-200/50 rounded-xl border border-gray-200">
+                <div className="flex p-1 bg-gray-100 rounded-2xl border border-gray-200 gap-1">
                     <button
-                        onClick={() => setActiveTab('products')}
-                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
-                            }`}
+                        onClick={() => setActiveTab('parts')}
+                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'parts' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'}`}
                     >
                         Peças
                     </button>
                     <button
                         onClick={() => setActiveTab('services')}
-                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'services' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
-                            }`}
+                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'services' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'}`}
                     >
                         Serviços
                     </button>
                 </div>
             </div>
 
+            {/* OS Stock Summary Cards — visível apenas na aba Peças */}
+            {activeTab === 'parts' && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Qtd. Itens</p>
+                        <p className="text-2xl font-black text-gray-800 mt-1">{osStockStats.totalItems}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">unidades em estoque OS</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Custo Total</p>
+                        <p className="text-xl font-black text-gray-800 mt-1">{formatCurrency(osStockStats.totalCost)}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">investimento em peças OS</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Valor de Venda</p>
+                        <p className="text-xl font-black text-emerald-600 mt-1">{formatCurrency(osStockStats.totalValue)}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">potencial com preço de venda</p>
+                    </div>
+                    <div className={`rounded-2xl border shadow-sm p-4 ${osStockStats.lowStock > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                        <p className={`text-xs font-semibold uppercase tracking-wide ${osStockStats.lowStock > 0 ? 'text-red-600' : 'text-gray-500'}`}>Estoque Baixo</p>
+                        <p className={`text-2xl font-black mt-1 ${osStockStats.lowStock > 0 ? 'text-red-700' : 'text-gray-800'}`}>{osStockStats.lowStock}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">peças abaixo do mínimo</p>
+                    </div>
+                </div>
+            )}
+
             {/* Toolbar */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
-                <div className="relative w-full md:w-96">
-                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder={activeTab === 'services' ? "Buscar serviços..." : "Buscar peças..."}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20"
-                    />
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center">
+                <div className="flex items-center gap-3 w-full md:w-auto flex-1">
+                    <div className="relative flex-1 max-w-sm">
+                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={activeTab === 'services' ? "Buscar serviços..." : "Buscar peças OS..."}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:outline-none text-sm"
+                        />
+                    </div>
+
+                    {/* Stock filter — apenas na aba peças */}
+                    {activeTab === 'parts' && (
+                        <div className="flex items-center gap-1 bg-gray-100 rounded-2xl p-1 border border-gray-200 shrink-0">
+                            {([
+                                { key: 'all', label: 'Todos' },
+                                { key: 'in_stock', label: 'Em Estoque' },
+                                { key: 'out', label: 'Zerado' },
+                                { key: 'low', label: 'Est. Baixo' },
+                            ] as const).map(f => (
+                                <button
+                                    key={f.key}
+                                    onClick={() => setStockFilter(f.key)}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all whitespace-nowrap ${stockFilter === f.key
+                                        ? f.key === 'out' ? 'bg-red-600 text-white shadow-sm'
+                                            : f.key === 'low' ? 'bg-orange-500 text-white shadow-sm'
+                                                : 'bg-gray-800 text-white shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+                                        }`}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                     {activeTab === 'services' && (
-                        <Button onClick={openNewService} icon={<PlusIcon className="h-5 w-5" />}>Novo Serviço</Button>
+                        <Button onClick={() => { setEditingService(null); setIsServiceModalOpen(true); }} icon={<PlusIcon className="h-5 w-5" />}>Novo Serviço</Button>
                     )}
-                    {activeTab === 'products' && (
+                    {activeTab === 'parts' && (
                         <>
-                            <Button
-                                variant="secondary"
-                                onClick={() => setIsPurchaseModalOpen(true)}
-                                icon={<ShoppingCartIcon className="h-5 w-5" />}
+                            <button
+                                onClick={() => setShowPurchaseHistory(!showPurchaseHistory)}
+                                className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-black transition-all shadow-sm active:scale-95 ${showPurchaseHistory ? 'border-gray-800 bg-gray-800 text-white' : 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
                             >
-                                Lançar Compra
-                            </Button>
-                            <Button variant='secondary' onClick={() => window.location.hash = '#/products'} icon={<PackageIcon className="h-5 w-5" />}>
-                                Gerenciar Estoque
-                            </Button>
+                                <ClockIcon className="h-4 w-4" />
+                                {showPurchaseHistory ? 'Voltar ao Estoque' : 'Histórico de compras'}
+                            </button>
+                            <button
+                                onClick={() => setIsPurchaseModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-black transition-all shadow-sm active:scale-95"
+                            >
+                                <PlusIcon className="h-4 w-4" />
+                                Lançar Compra Peça/Suprimentos
+                            </button>
                         </>
                     )}
                 </div>
@@ -327,11 +562,11 @@ const ServiceOrderProducts: React.FC = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Serviço</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Taxa/Garantia</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Preço</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Custo</th>
-                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Serviço</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Taxa/Garantia</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Preço</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Custo</th>
+                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -355,19 +590,13 @@ const ServiceOrderProducts: React.FC = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">
-                                                {service.warranty || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                {formatCurrency(service.price)}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">
-                                                {formatCurrency(service.cost)}
-                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{service.warranty || '-'}</td>
+                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(service.price)}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{formatCurrency(service.cost)}</td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-2">
                                                     <button
-                                                        onClick={() => openEditService(service)}
+                                                        onClick={() => { setEditingService(service); setIsServiceModalOpen(true); }}
                                                         className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-primary transition-colors"
                                                         title="Editar"
                                                     >
@@ -388,53 +617,211 @@ const ServiceOrderProducts: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+                ) : showPurchaseHistory ? (
+                    // Purchase History Inline View
+                    <div className="overflow-x-auto flex-1">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+                            <span className="p-2 bg-gray-900 rounded-xl text-white">
+                                <ClockIcon className="h-5 w-5" />
+                            </span>
+                            <div>
+                                <h2 className="text-lg font-black text-gray-900">Histórico de Compras de Peças/Insumos (OS)</h2>
+                                <p className="text-xs text-gray-400">Todas as entradas de compras no estoque OS</p>
+                            </div>
+                        </div>
+                        {purchaseHistoryLoading ? (
+                            <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>
+                        ) : purchaseHistory.length === 0 ? (
+                            <div className="text-center p-12 text-gray-500">Nenhuma compra encontrada.</div>
+                        ) : (
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase">Data/Hora</th>
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase">OS/ID</th>
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase">Fornecedor</th>
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase text-center">Itens</th>
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase text-right">Total</th>
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase text-center">Financeiro</th>
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase text-center">Status</th>
+                                        <th className="p-4 text-xs font-bold text-gray-900 uppercase text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {purchaseHistory.map(p => {
+                                        const dateLabel = formatDateBR(p.createdAt);
+                                        const hasPendingFinancial = p.financialStatus === 'Pendente';
+                                        return (
+                                            <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="p-4 font-medium text-sm text-gray-900 whitespace-nowrap">
+                                                    {dateLabel}<br /><span className="text-xs text-gray-400 font-normal">por {p.createdByName}</span>
+                                                </td>
+                                                <td className="p-4 text-sm font-semibold text-gray-600">#{p.displayId}</td>
+                                                <td className="p-4 text-sm text-gray-800">{p.supplierName}</td>
+                                                <td className="p-4 text-sm text-gray-600 text-center font-medium">
+                                                    {p.items.reduce((acc: number, i: any) => acc + i.quantity, 0)} un.
+                                                </td>
+                                                <td className="p-4 text-sm font-bold text-gray-900 text-right">{formatCurrency(p.total)}</td>
+                                                <td className="p-4 text-center">
+                                                    <span className={`px-2 py-1 text-xs font-bold rounded-xl ${p.financialStatus === 'Pago' ? 'bg-green-100 text-green-700' :
+                                                        p.financialStatus === 'A Prazo' ? 'bg-blue-100 text-blue-700' :
+                                                            'bg-orange-100 text-orange-700'
+                                                        }`}>
+                                                        {p.financialStatus}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-center">
+                                                    <span className={`px-2 py-1 text-xs font-bold rounded-xl ${p.status === 'Cancelado' ? 'bg-red-100 text-red-700' :
+                                                        p.status === 'Finalizada' ? 'bg-gray-200 text-gray-700' :
+                                                            'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                        {p.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {p.status !== 'Cancelado' && hasPendingFinancial && (
+                                                            <button onClick={() => handleMarkAsPaid(p)} title="Marcar como Pago"
+                                                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded">
+                                                                <SuccessIcon className="h-5 w-5" />
+                                                            </button>
+                                                        )}
+                                                        {p.status !== 'Cancelado' && (
+                                                            <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); setShowPurchaseHistory(false); }}
+                                                                title="Visualizar"
+                                                                className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded">
+                                                                <EyeIcon className="h-5 w-5" />
+                                                            </button>
+                                                        )}
+                                                        {p.status !== 'Cancelado' && (
+                                                            <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); setShowPurchaseHistory(false); }}
+                                                                title="Editar"
+                                                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
+                                                                <EditIcon className="h-5 w-5" />
+                                                            </button>
+                                                        )}
+                                                        {p.status !== 'Cancelado' && (
+                                                            <button onClick={() => { setPurchaseToCancel(p); setIsCancelModalOpen(true); }}
+                                                                title="Cancelar Compra"
+                                                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
+                                                                <XCircleIcon className="h-5 w-5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 ) : (
-                    // Products View (Simplified)
+                    // OS Parts View
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Peça</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estoque</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Preço</th>
-                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">Estoque</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Peça (Estoque OS)</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Cadastro</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Fornecedor</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Custo</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Atacado</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Venda</th>
+                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredProducts.length === 0 ? (
+                                {filteredParts.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                                            Nenhum produto encontrado.
+                                        <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                                            <PackageIcon className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                                            <p className="font-semibold">Nenhuma peça no estoque OS.</p>
+                                            <p className="text-sm mt-1">Use "Lançar Compra OS" ou "Nova Peça OS" para começar.</p>
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredProducts.map((product) => (
-                                        <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">
-                                                        <PackageIcon className="h-5 w-5" />
+                                    filteredParts.map((part) => {
+                                        const supplierName = part.supplierId
+                                            ? suppliers.find(s => s.id === part.supplierId)?.name || '-'
+                                            : '-';
+                                        const createdDate = part.createdAt
+                                            ? new Date(part.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                            : '-';
+                                        const createdTime = part.createdAt
+                                            ? new Date(part.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                                            : '';
+                                        return (
+                                            <tr key={part.id} className="hover:bg-gray-50 transition-colors group">
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-col items-center">
+                                                        <span className={`px-2 py-1 text-sm font-bold rounded-xl border ${part.stock > 0 ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+                                                            {part.stock}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-400 font-bold mt-1 uppercase">{part.unit || 'Un'}</span>
+                                                        {part.minimumStock !== undefined && part.stock <= (part.minimumStock || 0) && part.stock > 0 && (
+                                                            <span className="text-[8px] text-red-600 font-bold uppercase leading-tight text-center mt-1">Abaixo do<br />mínimo</span>
+                                                        )}
                                                     </div>
-                                                    <div>
-                                                        <p className="font-semibold text-gray-900">{product.model}</p>
-                                                        <p className="text-xs text-gray-500">{product.brand}</p>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                                                            <PackageIcon className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="font-semibold text-gray-900 truncate">{part.name}</p>
+                                                            <p className="text-xs text-gray-400 truncate">
+                                                                {[part.brand, part.category, part.model].filter(Boolean).join(' · ') || 'Sem detalhes'}
+                                                            </p>
+                                                            {(part.barcode || part.sku) && (
+                                                                <p className="text-[10px] text-gray-400 mt-0.5 flex gap-2">
+                                                                    {part.sku && <span>SKU: <strong>{part.sku}</strong></span>}
+                                                                    {part.barcode && <span>Cód. Barras: <strong>{part.barcode}</strong></span>}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                                                {product.stock} un
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">
-                                                {formatCurrency(product.price)}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${product.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                                    }`}>
-                                                    {product.stock > 0 ? 'Em Estoque' : 'Esgotado'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="text-sm text-gray-700 font-medium whitespace-nowrap">{createdDate}</div>
+                                                    <div className="text-[10px] text-gray-400">{createdTime}</div>
+                                                    {part.createdByName && (
+                                                        <div className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[120px]">por {part.createdByName}</div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 max-w-[140px] truncate" title={supplierName}>{supplierName}</td>
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-700">{formatCurrency(part.costPrice)}</td>
+                                                <td className="px-4 py-3 text-sm text-orange-600 font-bold">{formatCurrency(part.wholesalePrice || 0)}</td>
+                                                <td className="px-4 py-3 text-sm text-emerald-600 font-medium">{formatCurrency(part.salePrice)}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${part.stock > 0 ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                                                        {part.stock > 0 ? 'Em Estoque' : 'Esgotado'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <button
+                                                            onClick={() => { setEditingPart(part); setIsPartModalOpen(true); }}
+                                                            className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-primary transition-colors"
+                                                            title="Editar"
+                                                        >
+                                                            <EditIcon className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeletePart(part.id)}
+                                                            className="p-2 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600 transition-colors"
+                                                            title="Desativar"
+                                                        >
+                                                            <TrashIcon className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -442,44 +829,59 @@ const ServiceOrderProducts: React.FC = () => {
                 )}
             </div>
 
+            {/* Modals */}
             <ServiceModal
                 isOpen={isServiceModalOpen}
-                onClose={() => setIsServiceModalOpen(false)}
+                onClose={() => { setIsServiceModalOpen(false); setEditingService(null); }}
                 onSave={handleSaveService}
                 service={editingService}
                 loading={savingService}
                 warrantyOptions={warranties}
             />
 
+            <OsPartModal
+                isOpen={isPartModalOpen}
+                onClose={() => { setIsPartModalOpen(false); setEditingPart(null); }}
+                onSave={handleSavePart}
+                part={editingPart}
+                loading={savingPart}
+                suppliers={suppliers}
+                brands={brands}
+                categories={categories}
+                productModels={productModels}
+                grades={grades}
+                gradeValues={gradeValues}
+                onSaveNewSupplier={handleSaveNewSupplier}
+            />
+
             {isPurchaseModalOpen && (
-                <PurchaseOrderModal
+                <OsPurchaseModal
+                    isOpen={isPurchaseModalOpen}
+                    onClose={(refresh) => {
+                        setIsPurchaseModalOpen(false);
+                        setPurchaseToEdit(null);
+                        if (refresh) fetchData();
+                    }}
+                    osParts={osParts}
                     suppliers={suppliers}
-                    customers={customers}
-                    products={products}
+                    userId={user?.id}
+                    userName={user?.name}
                     brands={brands}
                     categories={categories}
                     productModels={productModels}
                     grades={grades}
                     gradeValues={gradeValues}
-                    onClose={(refresh) => {
-                        setIsPurchaseModalOpen(false);
-                        if (refresh) fetchData();
-                    }}
-                    onAddNewSupplier={async (supplierData) => {
-                        try {
-                            const newSupplier = await addSupplier(supplierData);
-                            // Refresh suppliers list
-                            const updatedSuppliers = await getSuppliers();
-                            setSuppliers(updatedSuppliers);
-                            return newSupplier;
-                        } catch (error) {
-                            console.error("Error adding supplier:", error);
-                            showToast("Erro ao criar fornecedor.", "error");
-                            return null;
-                        }
-                    }}
+                    purchaseOrderToEdit={purchaseToEdit}
                 />
             )}
+
+            <DeleteWithReasonModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onConfirm={handleConfirmCancelPurchase}
+                title="Cancelar Compra de OS"
+                message={`Tem certeza que deseja cancelar a compra de OS #${purchaseToCancel?.displayId}?`}
+            />
         </div>
     );
 };

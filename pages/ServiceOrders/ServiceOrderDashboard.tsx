@@ -17,7 +17,7 @@ import {
     Wrench
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getServiceOrders } from '../../services/mockApi';
+import { getServiceOrders, getOsPartsStockStats } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
 import {
     BarChart,
@@ -55,9 +55,10 @@ const ServiceOrderDashboard: React.FC = () => {
         return saved ? JSON.parse(saved) : [];
     });
     const [isLoading, setIsLoading] = useState(true);
-    const [periodFilter, setPeriodFilter] = useState('month'); // today, yesterday, week, month, custom
+    const [periodFilter, setPeriodFilter] = useState('month');
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
+    const [osPartsStats, setOsPartsStats] = useState<{ totalParts: number; totalCost: number; totalSaleValue: number; lowStockCount: number } | null>(null);
 
     useEffect(() => {
         loadData();
@@ -65,8 +66,12 @@ const ServiceOrderDashboard: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const data = await getServiceOrders();
+            const [data, partsStats] = await Promise.all([
+                getServiceOrders(),
+                getOsPartsStockStats(),
+            ]);
             setOrders(data || []);
+            setOsPartsStats(partsStats);
             // Update expenses from local storage in case they changed
             const saved = localStorage.getItem('os_expenses');
             if (saved) setExpenses(JSON.parse(saved));
@@ -358,11 +363,53 @@ const ServiceOrderDashboard: React.FC = () => {
                 })}
             </div>
 
+            {/* Card de Estoque Exclusivo de OS */}
+            {osPartsStats && (
+                <div
+                    onClick={() => navigate('/service-orders/products')}
+                    className="cursor-pointer bg-gradient-to-br from-amber-50 via-white to-orange-50 border border-amber-200 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl">
+                                <Package size={22} strokeWidth={1.5} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black text-amber-700 uppercase tracking-widest">Estoque Peças OS</p>
+                                <p className="text-[10px] text-amber-500 font-semibold">Separado do ERP principal</p>
+                            </div>
+                        </div>
+                        <ArrowRight size={18} className="text-amber-400" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-white/80 rounded-xl p-3 border border-amber-100">
+                            <p className="text-xs text-gray-500 font-semibold uppercase">Qtd. Itens</p>
+                            <p className="text-xl font-black text-gray-800 mt-0.5">{osPartsStats.totalParts}</p>
+                        </div>
+                        <div className="bg-white/80 rounded-xl p-3 border border-amber-100">
+                            <p className="text-xs text-gray-500 font-semibold uppercase">Custo Total</p>
+                            <p className="text-sm font-black text-gray-700 mt-0.5">{formatCurrency(osPartsStats.totalCost)}</p>
+                        </div>
+                        <div className="bg-white/80 rounded-xl p-3 border border-amber-100">
+                            <p className="text-xs text-gray-500 font-semibold uppercase">Valor Venda</p>
+                            <p className="text-sm font-black text-emerald-600 mt-0.5">{formatCurrency(osPartsStats.totalSaleValue)}</p>
+                        </div>
+                    </div>
+                    {osPartsStats.lowStockCount > 0 && (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-red-600 font-bold bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                            <AlertCircle size={14} />
+                            {osPartsStats.lowStockCount} peça(s) com estoque abaixo do mínimo
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* 3. Main Dashboard Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* 3.1 Weekly Flow Chart (Bar) */}
                 <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-white/40 p-6 rounded-3xl shadow-sm">
+
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h3 className="font-bold text-lg text-primary">Fluxo Semanal</h3>

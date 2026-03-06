@@ -4,6 +4,7 @@ import { findOrCreateSupplierFromCustomer, formatCurrency, getProductConditions,
 import { useToast } from '../contexts/ToastContext.tsx';
 import { CloseIcon, PlusIcon, SpinnerIcon, PhotographIcon, TrashIcon } from './icons.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
+import { useUser } from '../contexts/UserContext.tsx';
 import CameraModal from './CameraModal.tsx';
 import CustomDatePicker from './CustomDatePicker.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
@@ -31,6 +32,7 @@ const accessoryItems = [
 const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, customer, products }) => {
     const [activeTab, setActiveTab] = useState<'aparelho' | 'checklist' | 'fotos_acessorios'>('aparelho');
     const { showToast } = useToast();
+    const { user } = useUser();
     const [isSaving, setIsSaving] = useState(false);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
 
@@ -224,7 +226,8 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                 supplierId: supplier.id, // This is the Trade-In Customer as Supplier ID
                 supplierName: deviceData.supplierName, // Required for Stock History log details
                 origin: 'Troca' as const,
-                createdBy: 'Vendedor', // Mocked
+                createdBy: user?.id || null, // Real user
+                createdByName: user?.name || 'Sistema',
                 checklist,
                 selectedCustomerId: customer.id, // For history tracking
                 photos: photos,

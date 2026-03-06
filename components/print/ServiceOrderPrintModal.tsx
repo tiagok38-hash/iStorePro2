@@ -1,7 +1,7 @@
 import React, { useId, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ServiceOrder, CompanyInfo, Product, Customer } from '../../types.ts';
-import { formatCurrency, getCompanyInfo, getCustomers } from '../../services/mockApi.ts';
+import { ServiceOrder, CompanyInfo, Product, Customer, ChecklistItemParameter } from '../../types.ts';
+import { formatCurrency, getCompanyInfo, getCustomers, getChecklistItems } from '../../services/mockApi.ts';
 import { CloseIcon, PrinterIcon, SpinnerIcon, WhatsAppIcon } from '../icons.tsx';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
 
@@ -22,23 +22,32 @@ const formatDoc = (doc?: string): string => {
     return doc;
 };
 
-// Default Checklist required
-const DEFAULT_CHECKLIST = [
-    { id: 'vidro', name: 'Vidro' },
-    { id: 'tela', name: 'Tela' },
-    { id: 'carcaca', name: 'Carcaça' },
-    { id: 'botoes', name: 'Botões' },
-    { id: 'sinal', name: 'Sinal' },
-    { id: 'sensores', name: 'Sensores' },
-    { id: 'alto_falantes', name: 'Alto-falantes' },
-    { id: 'microfones', name: 'Microfones' },
-    { id: 'touch_id', name: 'Touch ID / Face ID' },
-    { id: 'vibra', name: 'Vibra' },
-    { id: 'cameras', name: 'Câmeras' },
-    { id: 'flash', name: 'Flash' },
-    { id: 'wifi', name: 'Wi-Fi / Bluetooth' },
-    { id: 'carga', name: 'Carga' }
-];
+// Helper: extracts only the checked items from the OS checklist, resolving UUIDs to names
+const getCheckedItems = (checklist: any, checklistItemsMap: Record<string, string>): { id: string; name: string }[] => {
+    if (!checklist || typeof checklist !== 'object') return [];
+    const skipKeys = ['othersDescription', 'notes', 'services', 'checklistDate', 'repairCost'];
+    const items: { id: string; name: string }[] = [];
+    for (const [key, value] of Object.entries(checklist)) {
+        if (skipKeys.includes(key)) continue;
+        if (value === true) {
+            // Resolve UUID to human-readable name using the map, fallback to key itself
+            const displayName = checklistItemsMap[key] || key;
+            // Skip if the name still looks like a UUID (not resolved)
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(displayName);
+            if (!isUUID) {
+                items.push({ id: key, name: displayName });
+            }
+        }
+    }
+    // Handle "Outros" with description
+    if (checklist.others && checklist.othersDescription) {
+        const idx = items.findIndex(i => i.id === 'others');
+        if (idx >= 0) {
+            items[idx].name = `Outros: ${checklist.othersDescription}`;
+        }
+    }
+    return items;
+};
 
 
 interface Props {
@@ -47,7 +56,7 @@ interface Props {
     initialFormat?: 'A4' | 'thermal';
 }
 
-const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null }> = ({ os, companyInfo, customerInfo }) => {
+const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null; checklistItemsMap: Record<string, string> }> = ({ os, companyInfo, customerInfo, checklistItemsMap }) => {
     return (
         <div className="font-sans text-black receipt-body bg-white text-xs">
             {/* Header */}
@@ -108,42 +117,34 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                 </div>
             </section>
 
-            {/* CHECKLIST */}
-            <section className="mt-3">
-                <h2 className="font-bold text-[11px] mb-1 bg-gray-100 py-1 px-2 border border-gray-200">CHECKLIST DE ENTRADA</h2>
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-y-1 gap-x-2 px-2 text-[9px] mb-2">
-                    {DEFAULT_CHECKLIST.map(item => {
-                        // try to match with boolean property roughly
-                        const isChecked = os.checklist && (
-                            os.checklist[item.id as keyof typeof os.checklist] ||
-                            os.checklist[item.name as keyof typeof os.checklist] ||
-                            (item.id === 'tela' && os.checklist.cracked_screen) ||
-                            (item.id === 'carcaca' && os.checklist.dented) ||
-                            (item.id === 'wifi' && os.checklist.no_wifi) ||
-                            (item.id === 'alto_falantes' && os.checklist.no_sound) ||
-                            (item.id === 'microfones' && os.checklist.mic_fail) ||
-                            (item.id === 'carga' && os.checklist.no_power)
-                        );
-                        return (
-                            <div key={item.id} className="flex items-center gap-1">
-                                <span className="border border-black w-3 h-3 inline-flex items-center justify-center font-bold text-[8px]">
-                                    {isChecked ? 'X' : ' '}
-                                </span>
-                                {item.name}
-                            </div>
-                        );
-                    })}
-                </div>
-            </section>
+            {/* CHECKLIST - Dynamic: shows only checked items */}
+            {(() => {
+                const checkedItems = getCheckedItems(os.checklist, checklistItemsMap);
+                return checkedItems.length > 0 ? (
+                    <section className="mt-3">
+                        <h2 className="font-bold text-[11px] mb-1 bg-gray-100 py-1 px-2 border border-gray-200">CHECKLIST DE ENTRADA</h2>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-2 text-[10px] mb-2">
+                            {checkedItems.map(item => (
+                                <div key={item.id} className="flex items-center gap-1.5">
+                                    <span className="w-3.5 h-3.5 border-2 border-gray-800 rounded-sm inline-flex items-center justify-center text-gray-800 font-bold" style={{ fontSize: '9px', lineHeight: 1 }}>✓</span>
+                                    <span className="font-semibold text-gray-800">{item.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                ) : null;
+            })()}
 
             {/* DEFECTS & OBS */}
-            <section className="mt-3">
-                <h2 className="font-bold text-[11px] mb-1 bg-gray-100 py-1 px-2 border border-gray-200">DEFEITO E OBSERVAÇÕES</h2>
-                <div className="px-2 space-y-2 text-[10px]">
-                    <div><span className="font-bold text-gray-700">DEFEITO RELATADO:</span> {os.defectDescription || '-'}</div>
-                    <div><span className="font-bold text-gray-700">OBSERVAÇÕES DO ATENDIMENTO:</span> {os.attendantObservations || '-'}</div>
+            <section className="mt-4">
+                <h2 className="font-bold text-[12px] mb-2 bg-gray-100 py-1.5 px-2 border border-gray-200">DEFEITO E OBSERVAÇÕES</h2>
+                <div className="px-2 space-y-3 text-[12px]">
+                    <div><span className="font-bold text-gray-700 block mb-0.5">DEFEITO RELATADO:</span> {os.defectDescription || '-'}</div>
+                    {os.attendantObservations && (
+                        <div><span className="font-bold text-gray-700 block mb-0.5">OBSERVAÇÕES DO ATENDIMENTO:</span> {os.attendantObservations}</div>
+                    )}
                     {os.technicalReport && (
-                        <div><span className="font-bold text-gray-700">LAUDO TÉCNICO:</span> {os.technicalReport}</div>
+                        <div><span className="font-bold text-gray-700 block mb-0.5">LAUDO TÉCNICO:</span> {os.technicalReport}</div>
                     )}
                 </div>
             </section>
@@ -191,14 +192,14 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
             </section>
 
             {/* SIGNATURES */}
-            <section className="mt-12 flex justify-between px-8 text-[10px] text-center">
-                <div className="w-1/3">
-                    <p className="mb-1 text-left">Data: ____/____/________</p>
+            <section className="mt-12 flex items-end justify-between px-8 text-[10px] text-center">
+                <div className="w-1/4 text-left pb-[14px]">
+                    <span>Data: ____/____/________</span>
                 </div>
-                <div className="w-1/3">
+                <div className="w-[30%]">
                     <div className="border-t border-black pt-1">Assinatura do Cliente</div>
                 </div>
-                <div className="w-1/3 ml-4">
+                <div className="w-[30%] ml-4">
                     <div className="border-t border-black pt-1">Assinatura do Técnico Responsável</div>
                 </div>
             </section>
@@ -211,7 +212,7 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
     );
 };
 
-const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null }> = ({ os, companyInfo, customerInfo }) => {
+const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null; checklistItemsMap: Record<string, string> }> = ({ os, companyInfo, customerInfo, checklistItemsMap }) => {
     return (
         <div className="w-[80mm] mx-auto p-2 bg-white text-black font-mono text-[10px] receipt-body" id="receipt-content">
             <div className="text-center space-y-1 pb-1">
@@ -246,28 +247,23 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
 
             <div className="border-t border-dashed border-black my-2"></div>
 
-            <div>
-                <p className="font-bold mb-1">Checklist:</p>
-                <div className="grid grid-cols-2 gap-y-1 text-[9px]">
-                    {DEFAULT_CHECKLIST.map(item => {
-                        const isChecked = os.checklist && (
-                            os.checklist[item.id as keyof typeof os.checklist] ||
-                            os.checklist[item.name as keyof typeof os.checklist] ||
-                            (item.id === 'tela' && os.checklist.cracked_screen) ||
-                            (item.id === 'carcaca' && os.checklist.dented) ||
-                            (item.id === 'wifi' && os.checklist.no_wifi) ||
-                            (item.id === 'alto_falantes' && os.checklist.no_sound) ||
-                            (item.id === 'microfones' && os.checklist.mic_fail) ||
-                            (item.id === 'carga' && os.checklist.no_power)
-                        );
-                        return (
-                            <div key={item.id}>
-                                [{isChecked ? 'X' : ' '}] {item.name}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+            {/* Checklist - Dynamic: shows only checked items */}
+            {(() => {
+                const checkedItems = getCheckedItems(os.checklist, checklistItemsMap);
+                return checkedItems.length > 0 ? (
+                    <div>
+                        <p className="font-bold mb-1">Checklist:</p>
+                        <div className="grid grid-cols-2 gap-y-1 text-[9px]">
+                            {checkedItems.map(item => (
+                                <div key={item.id} className="flex items-center gap-1">
+                                    <span className="font-bold">[✓]</span>
+                                    <span>{item.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : null;
+            })()}
 
             <div className="border-t border-dashed border-black my-2"></div>
 
@@ -281,10 +277,10 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
 
             <div className="border-t border-dashed border-black my-2"></div>
 
-            <div className="space-y-1">
-                <p><span className="font-bold">Defeito:</span> {os.defectDescription || '-'}</p>
-                {os.attendantObservations && <p><span className="font-bold">Obs:</span> {os.attendantObservations}</p>}
-                {os.technicalReport && <p><span className="font-bold">Laudo:</span> {os.technicalReport}</p>}
+            <div className="space-y-2 text-[11px]">
+                <p><span className="font-bold block">Defeito:</span> {os.defectDescription || '-'}</p>
+                {os.attendantObservations && <p><span className="font-bold block">Obs:</span> {os.attendantObservations}</p>}
+                {os.technicalReport && <p><span className="font-bold block">Laudo:</span> {os.technicalReport}</p>}
             </div>
 
             <div className="border-t-2 border-dashed border-black my-2"></div>
@@ -307,17 +303,17 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
 
             <div className="border-t border-dashed border-black my-2"></div>
 
-            <div className="space-y-0.5 text-right font-bold">
+            <div className="space-y-0.5 font-bold">
                 {os.discount > 0 && <div className="flex justify-between"><span>SUBTOTAL:</span><span>{formatCurrency(os.subtotal)}</span></div>}
                 {os.discount > 0 && <div className="flex justify-between"><span>DESC:</span><span>{formatCurrency(os.discount)}</span></div>}
-                <div className="flex justify-between text-[13px] mt-1 pt-1 border-t border-dashed border-black">
+                <div className={`flex justify-between text-[13px] ${os.discount > 0 ? 'mt-1 pt-1 border-t border-dashed border-black' : ''}`}>
                     <span>TOTAL OS:</span><span>{formatCurrency(os.total)}</span>
                 </div>
             </div>
 
-            <div className="mt-8 text-center">
-                <p>___________________________________</p>
-                <p className="mt-1">{os.customerName || 'Assinatura do Cliente'}</p>
+            <div className="mt-8 text-center px-4">
+                <div className="border-t border-black mb-1 mx-auto w-3/4"></div>
+                <p>{os.customerName || 'Assinatura do Cliente'}</p>
             </div>
 
             <div className="mt-4 pt-2 border-t-2 border-dashed border-black text-justify" style={{ fontSize: '8px' }}>
@@ -345,14 +341,27 @@ const ServiceOrderPrintModal: React.FC<Props> = ({ serviceOrder, onClose, initia
     const [format, setFormat] = useState<'A4' | 'thermal'>(initialFormat);
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     const [customerInfo, setCustomerInfo] = useState<Customer | null>(null);
+    const [checklistItemsMap, setChecklistItemsMap] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const info = await getCompanyInfo();
+                const [info, checklistItems] = await Promise.all([
+                    getCompanyInfo(),
+                    getChecklistItems()
+                ]);
                 setCompanyInfo(info);
+
+                // Build UUID -> name map for checklist items
+                const itemsMap: Record<string, string> = {};
+                if (checklistItems && Array.isArray(checklistItems)) {
+                    checklistItems.forEach((item: ChecklistItemParameter) => {
+                        itemsMap[item.id] = item.name;
+                    });
+                }
+                setChecklistItemsMap(itemsMap);
 
                 // Fetch customer details if id is available
                 if (serviceOrder.customerId) {
@@ -509,9 +518,9 @@ const ServiceOrderPrintModal: React.FC<Props> = ({ serviceOrder, onClose, initia
                     ) : (
                         <div className={`shadow-xl ring-1 ring-gray-900/5 print:shadow-none print:ring-0 bg-white ${format === 'A4' ? 'w-[210mm] min-h-[297mm] p-8' : 'w-[80mm] p-2'}`}>
                             {format === 'A4' ? (
-                                <A4Layout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} />
+                                <A4Layout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} checklistItemsMap={checklistItemsMap} />
                             ) : (
-                                <ThermalLayout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} />
+                                <ThermalLayout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} checklistItemsMap={checklistItemsMap} />
                             )}
                         </div>
                     )}

@@ -36,12 +36,13 @@ import {
     formatCurrency,
     getPermissionProfiles,
     getServices,
-    getProducts,
+    getOsParts,
+    OsPart,
     getCustomerDevices,
     getChecklistItems
 } from '../../services/mockApi';
 import { WhatsAppIcon } from '../../components/icons';
-import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, Product, CustomerDevice, ChecklistItemParameter } from '../../types';
+import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
 import QuickOSModal from '../../components/QuickOSModal';
 import CameraModal from '../../components/CameraModal';
@@ -83,7 +84,7 @@ const ServiceOrderForm: React.FC = () => {
 
     // Catalogs
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
-    const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+    const [availableOsParts, setAvailableOsParts] = useState<OsPart[]>([]);
     const [customerDevices, setCustomerDevices] = useState<CustomerDevice[]>([]);
     const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
 
@@ -177,11 +178,11 @@ const ServiceOrderForm: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const [usersData, customersData, servicesData, productsData, devicesData, checklistData, profilesData] = await Promise.all([
+            const [usersData, customersData, servicesData, osPartsData, devicesData, checklistData, profilesData] = await Promise.all([
                 getUsers(),
                 getCustomers(),
                 getServices(),
-                getProducts(),
+                getOsParts(true), // Apenas peças ativas do estoque de OS (separado do ERP)
                 getCustomerDevices(),
                 getChecklistItems(),
                 getPermissionProfiles()
@@ -189,7 +190,7 @@ const ServiceOrderForm: React.FC = () => {
             setUsers(usersData);
             setCustomers(customersData);
             setAvailableServices(servicesData);
-            setAvailableProducts(productsData);
+            setAvailableOsParts(osPartsData);
             setCustomerDevices(devicesData);
             setAvailableChecklistItems(checklistData);
             setProfiles(profilesData);
@@ -341,17 +342,17 @@ const ServiceOrderForm: React.FC = () => {
         setItems([...items, newItem]);
     };
 
-    const handleAddItemFromCatalog = (item: Service | Product, type: 'service' | 'part') => {
+    const handleAddItemFromCatalog = (item: Service | OsPart, type: 'service' | 'part') => {
         const newItem: ServiceOrderItem = {
             id: Date.now().toString(),
-            catalogItemId: item.id, // Adicionado para cálculo de lucro
-            description: type === 'service' ? (item as Service).name : (item as Product).model,
+            catalogItemId: item.id,
+            description: type === 'service' ? (item as Service).name : (item as OsPart).name,
             type: type,
-            price: item.price,
+            price: type === 'service' ? (item as Service).price : (item as OsPart).salePrice,
             quantity: 1
         };
         setItems([...items, newItem]);
-        toast.success(`${type === 'service' ? 'Serviço' : 'Peça'} adicionado(a)!`);
+        toast.success(`${type === 'service' ? 'Serviço' : 'Peça OS'} adicionado(a)!`);
     };
 
     const removeItem = (id: string) => {
@@ -1291,10 +1292,17 @@ const ServiceOrderForm: React.FC = () => {
             <ItemSelectionModal
                 isOpen={isProductModalOpen}
                 onClose={() => setIsProductModalOpen(false)}
-                title="Selecionar Peça"
+                title="Selecionar Peça (Estoque OS)"
                 type="part"
-                items={availableProducts}
-                onSelect={(item) => handleAddItemFromCatalog(item, 'part')}
+                items={availableOsParts.map(p => ({
+                    id: p.id,
+                    model: p.name,
+                    brand: p.brand || p.category || '',
+                    stock: p.stock,
+                    price: p.salePrice,
+                    _osPart: p, // referência original
+                }))}
+                onSelect={(item) => handleAddItemFromCatalog(item._osPart || item, 'part')}
             />
 
             {isDeviceModalOpen && (

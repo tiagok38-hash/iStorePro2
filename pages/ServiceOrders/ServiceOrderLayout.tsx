@@ -11,24 +11,28 @@ import {
     BarChart2,
     Package,
     Smartphone,
-    UserCircleIcon
+    UserCircleIcon,
+    ReceiptText
 } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext.tsx';
 
 const NAV_ITEMS = [
     { label: 'Dashboard', path: '/service-orders', icon: LayoutGrid },
     { label: 'Ordens de Serviço', path: '/service-orders/list', icon: ClipboardListIcon },
     { label: 'Nova OS', path: '/service-orders/new', icon: WrenchIcon },
     { label: 'Clientes e Fornecedores', path: '/service-orders/customers', icon: UserCircleIcon },
-    { label: 'Eletrônicos', path: '/service-orders/devices', icon: Smartphone },
+    { label: 'Eletrônicos Cadastrados', path: '/service-orders/devices', icon: Smartphone },
     { label: 'Peças e Serviços', path: '/service-orders/products', icon: Package },
     { label: 'Financeiro', path: '/service-orders/financial', icon: DollarSign },
     { label: 'Relatórios', path: '/service-orders/reports', icon: BarChart2 },
+    { label: 'Fiscal (Em Breve)', path: '#', icon: ReceiptText },
     { label: 'Configurações', path: '/service-orders/settings', icon: Settings },
 ];
 
 const ServiceOrderLayout: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
     const isActive = (path: string) => {
         if (path === '/service-orders' && location.pathname === '/service-orders') return true;
@@ -61,7 +65,13 @@ const ServiceOrderLayout: React.FC = () => {
                         return (
                             <button
                                 key={item.path}
-                                onClick={() => navigate(item.path)}
+                                onClick={() => {
+                                    if (item.label === 'Fiscal (Em Breve)') {
+                                        showToast('As funcionalidades dessa página estão em desenvolvimento. Aguarde...', 'warning');
+                                    } else {
+                                        navigate(item.path);
+                                    }
+                                }}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative
                                     ${active
                                         ? 'bg-accent text-white shadow-lg shadow-accent/25 font-semibold'

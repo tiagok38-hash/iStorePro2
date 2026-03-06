@@ -3,10 +3,10 @@ import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../contexts/ToastContext';
 import { ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter, ChecklistItemParameter, PermissionSet } from '../../types';
 import {
-    getProductConditions, addProductCondition, updateProductCondition, deleteProductCondition,
-    getStorageLocations, addStorageLocation, updateStorageLocation, deleteStorageLocation,
-    getWarranties, addWarranty, updateWarranty, deleteWarranty,
-    getReceiptTerms, addReceiptTerm, updateReceiptTerm, deleteReceiptTerm,
+    getOsProductConditions, addOsProductCondition, updateOsProductCondition, deleteOsProductCondition,
+    getOsStorageLocations, addOsStorageLocation, updateOsStorageLocation, deleteOsStorageLocation,
+    getOsWarranties, addOsWarranty, updateOsWarranty, deleteOsWarranty,
+    getOsReceiptTerms, addOsReceiptTerm, updateOsReceiptTerm, deleteOsReceiptTerm,
     getChecklistItems, addChecklistItem, updateChecklistItem, deleteChecklistItem
 } from '../../services/mockApi';
 import Button from '../Button';
@@ -14,7 +14,8 @@ import { PlusIcon, EditIcon, TrashIcon } from '../icons';
 import ReceiptTermModal from '../ReceiptTermModal';
 import ConfirmationModal from '../ConfirmationModal';
 
-// --- ParameterManager Component ---
+
+// --- Types ---
 interface ParameterManagerProps<T extends { id: string; name: string;[key: string]: any }> {
     permissions: PermissionSet | null;
     title: string;
@@ -28,6 +29,73 @@ interface ParameterManagerProps<T extends { id: string; name: string;[key: strin
     fetchData: () => void;
 }
 
+// --- ItemModal Component (Defined outside to prevent state loss) ---
+const ItemModal = <T extends { id: string; name: string;[key: string]: any }>({
+    item,
+    fields,
+    onSave,
+    onClose,
+    isSaving
+}: {
+    item: Partial<T> | null,
+    fields: { name: keyof T; label: string; type: 'text' | 'number' }[],
+    onSave: (data: Partial<T>) => void,
+    onClose: () => void,
+    isSaving: boolean
+}) => {
+    const [formData, setFormData] = useState(item || {});
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'number' ? (value === '' ? '' : Number(value)) : value
+        }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+            <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md border border-gray-100 animate-in fade-in zoom-in duration-200">
+                <h3 className="font-black text-2xl mb-6 text-gray-900 tracking-tight">
+                    {item?.id ? 'Editar' : 'Novo'} Item
+                </h3>
+                <div className="space-y-5">
+                    {fields.map(field => (
+                        <div key={String(field.name)}>
+                            <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">
+                                {field.label}
+                            </label>
+                            <input
+                                type={field.type}
+                                name={String(field.name)}
+                                value={(formData as any)[field.name] ?? ''}
+                                onChange={handleChange}
+                                className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all outline-none text-gray-900 font-medium placeholder:text-gray-300"
+                                required
+                                autoFocus
+                            />
+                        </div>
+                    ))}
+                </div>
+                <div className="flex gap-3 mt-8">
+                    <Button type="button" onClick={onClose} variant="secondary" className="flex-1 h-14 rounded-2xl font-black text-sm uppercase tracking-widest">
+                        Cancelar
+                    </Button>
+                    <Button type="submit" variant="success" loading={isSaving} className="flex-1 h-14 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-green-500/20">
+                        Salvar
+                    </Button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+// --- ParameterManager Component ---
 const ParameterManager = <T extends { id: string; name: string;[key: string]: any }>({
     permissions,
     title,
@@ -81,91 +149,76 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
         }
     };
 
-    // Modal component
-    const ItemModal: React.FC<{ item: Partial<T> | null, onSave: (data: Partial<T>) => void, onClose: () => void, isSaving: boolean }> = ({ item, onSave, onClose, isSaving }) => {
-        const [formData, setFormData] = useState(item || {});
-
-        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            const { name, value, type } = e.target;
-            setFormData(prev => ({ ...prev, [name]: type === 'number' ? Number(value) : value }));
-        };
-
-        const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
-            onSave(formData);
-        };
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-                <form onSubmit={handleSubmit} className="bg-surface rounded-xl shadow-xl p-6 w-full max-w-sm">
-                    <h3 className="font-bold text-lg mb-4">{item?.id ? 'Editar' : 'Novo'} Item</h3>
-                    {fields.map(field => (
-                        <div key={String(field.name)} className="mb-4">
-                            <label className="block text-sm font-medium mb-1">{field.label}</label>
-                            <input
-                                type={field.type}
-                                name={String(field.name)}
-                                value={(formData as any)[field.name] || (field.type === 'number' ? '' : '')}
-                                onChange={handleChange}
-                                className="w-full p-2 border rounded bg-transparent border-border"
-                                required
-                            />
-                        </div>
-                    ))}
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button type="button" onClick={onClose} variant="secondary">Cancelar</Button>
-                        <Button type="submit" variant="success" loading={isSaving}>Salvar</Button>
-                    </div>
-                </form>
-            </div>
-        );
-    };
-
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-2xl">
+            <div className="flex justify-between items-center bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
                 <div>
-                    <h4 className="text-lg font-semibold text-primary">{title}</h4>
+                    <h4 className="text-xl font-black text-gray-900 tracking-tight">{title}</h4>
+                    <p className="text-sm text-gray-500 font-medium">Gerencie as opções disponíveis no sistema</p>
                 </div>
                 {permissions?.canManageParameters && (
-                    <button onClick={() => handleOpenModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400">
-                        <PlusIcon className="h-5 w-5" />
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="w-12 h-12 flex items-center justify-center bg-primary text-white rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                    >
+                        <PlusIcon className="h-6 w-6" />
                     </button>
                 )}
             </div>
-            <div className="border border-gray-200 rounded-b-2xl overflow-hidden shadow-sm">
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            {fields.map(field => (
-                                <th key={String(field.name)} className="p-3 font-semibold text-left">{field.label}</th>
-                            ))}
-                            <th className="p-3 font-semibold text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map(item => (
-                            <tr key={item.id} className="border-t">
+
+            <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm bg-white">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-gray-50/50">
                                 {fields.map(field => (
-                                    <td key={String(field.name)} className="p-3">{(item as any)[field.name]}</td>
+                                    <th key={String(field.name)} className="px-5 py-3 font-black uppercase tracking-widest text-[10px] text-gray-400 text-left">{field.label}</th>
                                 ))}
-                                <td className="p-3">
-                                    <div className="flex justify-end items-center gap-2">
-                                        {permissions?.canManageParameters && (
-                                            <>
-                                                <button onClick={() => handleOpenModal(item)}><EditIcon className="h-5 w-5 text-muted hover:text-primary" /></button>
-                                                <button onClick={() => setDeletingItem(item)}><TrashIcon className="h-5 w-5 text-muted hover:text-danger" /></button>
-                                            </>
-                                        )}
-                                    </div>
-                                </td>
+                                <th className="px-5 py-3 font-black uppercase tracking-widest text-[10px] text-gray-400 text-right">Ações</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {items.map(item => (
+                                <tr key={item.id} className="hover:bg-gray-50/30 transition-colors">
+                                    {fields.map(field => (
+                                        <td key={String(field.name)} className="px-5 py-2 font-semibold text-gray-700 text-sm">{(item as any)[field.name]}</td>
+                                    ))}
+                                    <td className="px-5 py-2 text-right">
+                                        <div className="flex justify-end items-center gap-1">
+                                            {permissions?.canManageParameters && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleOpenModal(item)}
+                                                        className="p-1.5 hover:bg-primary/10 rounded-lg transition-all group"
+                                                    >
+                                                        <EditIcon className="h-4 w-4 text-gray-400 group-hover:text-primary" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletingItem(item)}
+                                                        className="p-1.5 hover:bg-red-50 rounded-lg transition-all group"
+                                                    >
+                                                        <TrashIcon className="h-4 w-4 text-gray-400 group-hover:text-red-500" />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {items.length === 0 && (
+                                <tr>
+                                    <td colSpan={fields.length + 1} className="px-5 py-10 text-center text-gray-400 font-medium text-sm">
+                                        Nenhum item cadastrado.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            {modalOpen && <ItemModal item={editingItem} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingItem(null); }} isSaving={saving} />}
-            <ConfirmationModal isOpen={!!deletingItem} onClose={() => setDeletingItem(null)} onConfirm={handleDelete} title={`Excluir ${deletingItem?.name}`} message="Tem certeza que deseja excluir este item?" />
+
+            {modalOpen && <ItemModal item={editingItem} fields={fields} onSave={handleSave} onClose={() => { setModalOpen(false); setEditingItem(null); }} isSaving={saving} />}
+            <ConfirmationModal isOpen={!!deletingItem} onClose={() => setDeletingItem(null)} onConfirm={handleDelete} title={`Excluir ${deletingItem?.name}`} message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita." />
         </div>
     );
 };
@@ -185,14 +238,18 @@ const ParameterSettings: React.FC = () => {
     const { permissions, user } = useUser();
 
     const fetchData = useCallback(async () => {
-        const [c, l, w, t, ch] = await Promise.all([
-            getProductConditions(),
-            getStorageLocations(),
-            getWarranties(),
-            getReceiptTerms(),
-            getChecklistItems()
-        ]);
-        setConditions(c); setLocations(l); setWarranties(w); setReceiptTerms(t); setChecklistItems(ch);
+        try {
+            const [c, l, w, t, ch] = await Promise.all([
+                getOsProductConditions(),
+                getOsStorageLocations(),
+                getOsWarranties(),
+                getOsReceiptTerms(),
+                getChecklistItems()
+            ]);
+            setConditions(c); setLocations(l); setWarranties(w); setReceiptTerms(t); setChecklistItems(ch);
+        } catch (error) {
+            console.error('Failed to fetch parameter settings:', error);
+        }
     }, []);
 
     useEffect(() => { fetchData(); }, [fetchData]);
@@ -200,18 +257,19 @@ const ParameterSettings: React.FC = () => {
     const handleOpenTermModal = (item: Partial<ReceiptTermParameter> | null = null) => {
         setEditingTerm(item || {});
         setIsTermModalOpen(true);
-    }
+    };
+
     const [savingTerm, setSavingTerm] = useState(false);
 
     const handleSaveTerm = async (item: Partial<ReceiptTermParameter>) => {
         setSavingTerm(true);
         try {
             if (item.id) {
-                await updateReceiptTerm(item as ReceiptTermParameter, user?.id, user?.name);
-                showToast('Termo atualizado!', 'success');
+                await updateOsReceiptTerm(item as ReceiptTermParameter, user?.id, user?.name);
+                showToast('Termo atualizado com sucesso!', 'success');
             } else {
-                await addReceiptTerm(item as Omit<ReceiptTermParameter, 'id'>, user?.id, user?.name);
-                showToast('Termo adicionado!', 'success');
+                await addOsReceiptTerm(item as Omit<ReceiptTermParameter, 'id'>, user?.id, user?.name);
+                showToast('Termo adicionado com sucesso!', 'success');
             }
             fetchData();
             setIsTermModalOpen(false);
@@ -222,11 +280,12 @@ const ParameterSettings: React.FC = () => {
             setSavingTerm(false);
         }
     };
+
     const handleDeleteTerm = async () => {
         if (!deletingTerm) return;
         try {
-            await deleteReceiptTerm(deletingTerm.id, user?.id, user?.name);
-            showToast('Termo excluído!', 'success');
+            await deleteOsReceiptTerm(deletingTerm.id, user?.id, user?.name);
+            showToast('Termo excluído com sucesso!', 'success');
             fetchData();
             setDeletingTerm(null);
         } catch (error: any) {
@@ -234,55 +293,84 @@ const ParameterSettings: React.FC = () => {
         }
     };
 
-    const tabClasses = (tabName: string) => `px-5 py-2 rounded-xl text-[10.5px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeSubTab === tabName ? 'bg-primary text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`;
+    const tabClasses = (tabName: string) => `px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeSubTab === tabName ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'text-gray-500 hover:text-gray-900 hover:bg-white border border-transparent shadow-none'}`;
 
     return (
-        <div className="bg-surface rounded-3xl border border-border p-6 space-y-4 shadow-sm">
-            <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm flex-wrap">
+        <div className="bg-surface rounded-[2.5rem] border border-gray-100 p-8 space-y-8 shadow-sm max-w-[886px]">
+            <div className="flex items-center gap-2 bg-gray-100/50 p-2 rounded-[1.5rem] border border-gray-100 shadow-inner flex-nowrap overflow-x-auto no-scrollbar">
                 <button onClick={() => setActiveSubTab('condicao')} className={tabClasses('condicao')}>Condição</button>
                 <button onClick={() => setActiveSubTab('local')} className={tabClasses('local')}>Local de estoque</button>
                 <button onClick={() => setActiveSubTab('garantia')} className={tabClasses('garantia')}>Garantia</button>
                 <button onClick={() => setActiveSubTab('termos')} className={tabClasses('termos')}>Termos de Garantia</button>
                 <button onClick={() => setActiveSubTab('checklist')} className={tabClasses('checklist')}>Checklist Físico</button>
             </div>
-            {activeSubTab === 'condicao' && <ParameterManager permissions={permissions} title="Condições de Produto" items={conditions} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addProductCondition, update: updateProductCondition, del: deleteProductCondition }} fetchData={fetchData} />}
-            {activeSubTab === 'local' && <ParameterManager permissions={permissions} title="Locais de Estoque" items={locations} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addStorageLocation, update: updateStorageLocation, del: deleteStorageLocation }} fetchData={fetchData} />}
-            {activeSubTab === 'garantia' && <ParameterManager permissions={permissions} title="Garantias" items={warranties} fields={[{ name: 'name', label: 'Nome', type: 'text' }, { name: 'days', label: 'Dias', type: 'number' }]} api={{ add: addWarranty, update: updateWarranty, del: deleteWarranty }} fetchData={fetchData} />}
-            {activeSubTab === 'checklist' && <ParameterManager permissions={permissions} title="Itens de Checklist (OS)" items={checklistItems} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addChecklistItem, update: updateChecklistItem, del: deleteChecklistItem }} fetchData={fetchData} />}
-            {activeSubTab === 'termos' && (
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-2xl">
-                        <div>
-                            <h4 className="text-lg font-semibold text-primary">Termos de Garantia</h4>
-                            <p className="text-sm text-muted">Crie termos personalizados para cada tipo de situação. Ex: Termos para vendas de Apple, Xiaomi, etc.</p>
+
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {activeSubTab === 'condicao' && <ParameterManager permissions={permissions} title="Condições de Produto (OS)" items={conditions} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addOsProductCondition, update: updateOsProductCondition, del: deleteOsProductCondition }} fetchData={fetchData} />}
+                {activeSubTab === 'local' && <ParameterManager permissions={permissions} title="Locais de Estoque (OS)" items={locations} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addOsStorageLocation, update: updateOsStorageLocation, del: deleteOsStorageLocation }} fetchData={fetchData} />}
+                {activeSubTab === 'garantia' && <ParameterManager permissions={permissions} title="Garantias (OS)" items={warranties} fields={[{ name: 'name', label: 'Nome', type: 'text' }, { name: 'days', label: 'Dias', type: 'number' }]} api={{ add: addOsWarranty, update: updateOsWarranty, del: deleteOsWarranty }} fetchData={fetchData} />}
+                {activeSubTab === 'checklist' && <ParameterManager permissions={permissions} title="Itens de Checklist (OS)" items={checklistItems} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addChecklistItem, update: updateChecklistItem, del: deleteChecklistItem }} fetchData={fetchData} />}
+                {activeSubTab === 'termos' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
+                            <div>
+                                <h4 className="text-xl font-black text-gray-900 tracking-tight">Termos de Garantia</h4>
+                                <p className="text-sm text-gray-500 font-medium">Crie termos personalizados para cada tipo de situação.</p>
+                            </div>
+                            {permissions?.canManageParameters && (
+                                <button
+                                    onClick={() => handleOpenTermModal()}
+                                    className="w-12 h-12 flex items-center justify-center bg-primary text-white rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                                >
+                                    <PlusIcon className="h-6 w-6" />
+                                </button>
+                            )}
                         </div>
-                        {permissions?.canManageParameters && <button onClick={() => handleOpenTermModal()} className="p-2 bg-gray-300 rounded-full hover:bg-gray-400"><PlusIcon className="h-5 w-5" /></button>}
-                    </div>
-                    <div className="border border-gray-200 rounded-b-2xl overflow-hidden shadow-sm">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-100"><tr><th className="p-3 font-semibold text-left">Nome</th><th className="p-3 font-semibold text-right">Ações</th></tr></thead>
-                            <tbody>
-                                {receiptTerms.map(term => (
-                                    <tr key={term.id} className="border-t">
-                                        <td className="p-3">{term.name}</td>
-                                        <td className="p-3"><div className="flex justify-end items-center gap-2">
-                                            {permissions?.canManageParameters && (
-                                                <>
-                                                    <button onClick={() => handleOpenTermModal(term)}><EditIcon className="h-5 w-5 text-muted hover:text-primary" /></button>
-                                                    {term.name !== 'Padrão' && <button onClick={() => setDeletingTerm(term)}><TrashIcon className="h-5 w-5 text-muted hover:text-danger" /></button>}
-                                                </>
-                                            )}
-                                        </div></td>
+                        <div className="border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-sm bg-white">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gray-50/50">
+                                        <th className="px-8 py-5 font-black uppercase tracking-widest text-[10px] text-gray-400 text-left">Nome</th>
+                                        <th className="px-8 py-5 font-black uppercase tracking-widest text-[10px] text-gray-400 text-right">Ações</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {receiptTerms.map(term => (
+                                        <tr key={term.id} className="hover:bg-gray-50/30 transition-colors">
+                                            <td className="px-8 py-5 font-bold text-gray-700">{term.name}</td>
+                                            <td className="px-8 py-5 text-right">
+                                                <div className="flex justify-end items-center gap-2">
+                                                    {permissions?.canManageParameters && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleOpenTermModal(term)}
+                                                                className="p-2.5 hover:bg-primary/10 rounded-xl transition-all group"
+                                                            >
+                                                                <EditIcon className="h-5 w-5 text-gray-400 group-hover:text-primary" />
+                                                            </button>
+                                                            {term.name !== 'Padrão' && (
+                                                                <button
+                                                                    onClick={() => setDeletingTerm(term)}
+                                                                    className="p-2.5 hover:bg-red-50 rounded-xl transition-all group"
+                                                                >
+                                                                    <TrashIcon className="h-5 w-5 text-gray-400 group-hover:text-red-500" />
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             {isTermModalOpen && <ReceiptTermModal item={editingTerm} onClose={() => { setIsTermModalOpen(false); setEditingTerm(null); }} onSave={handleSaveTerm} isSaving={savingTerm} />}
-            <ConfirmationModal isOpen={!!deletingTerm} onClose={() => setDeletingTerm(null)} onConfirm={handleDeleteTerm} title="Excluir Termo" message={`Deseja excluir o termo "${deletingTerm?.name}"?`} />
+            <ConfirmationModal isOpen={!!deletingTerm} onClose={() => setDeletingTerm(null)} onConfirm={handleDeleteTerm} title="Excluir Termo" message={`Deseja excluir o termo "${deletingTerm?.name}"? Esta ação não pode ser desfeita.`} />
         </div>
     );
 };

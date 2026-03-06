@@ -928,7 +928,7 @@ const CustomersAndSuppliers: React.FC = () => {
                         {/* Desktop View: Table */}
                         <div className="hidden md:flex flex-col overflow-x-auto">
                             <table className="w-full text-sm text-left text-muted min-w-[1000px]">
-                                <thead className="text-xs text-secondary uppercase bg-surface-secondary">
+                                <thead className="text-xs font-bold text-gray-900 uppercase bg-surface-secondary">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">Nome</th>
                                         <th scope="col" className="px-6 py-3">Email</th>
@@ -1124,7 +1124,7 @@ const CustomersAndSuppliers: React.FC = () => {
                         {/* Desktop View: Table */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-sm text-left text-muted min-w-[1000px]">
-                                <thead className="text-xs text-secondary uppercase bg-surface-secondary">
+                                <thead className="text-xs font-bold text-gray-900 uppercase bg-surface-secondary">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">Fornecedor</th>
                                         <th scope="col" className="px-6 py-3">Tipo</th>

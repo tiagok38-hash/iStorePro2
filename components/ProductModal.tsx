@@ -1159,7 +1159,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                     <label className={labelClasses}>Fornecedor</label>
                                     <div className="flex gap-2">
                                         <div className="flex-grow">
-                                            <SearchableDropdown options={supplierOptions} value={formData.supplierId || null} onChange={(val) => setFormData(p => ({ ...p, supplierId: val || undefined }))} placeholder="Buscar..." />
+                                            <SearchableDropdown options={supplierOptions} value={formData.supplierId || null} onChange={(val) => setFormData(p => ({ ...p, supplierId: val || undefined }))} placeholder="Buscar..." dropDirection="down" />
                                         </div>
                                         <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="p-3 bg-gray-100 text-gray-500 hover:bg-primary/10 hover:text-primary rounded-xl transition-all"><PlusIcon className="h-6 w-6" /></button>
                                     </div>

@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices, getSuppliers } from '../services/mockApi.ts';
-import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service, Supplier } from '../types.ts';
+import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices, getSuppliers, getCreditInstallments } from '../services/mockApi.ts';
+import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service, Supplier, CreditInstallment } from '../types.ts';
 import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon, BoltIcon } from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
@@ -633,7 +633,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products:
     return (
         <>
             <div
-                className={`p-6 glass-card h-full flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}
+                className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] h-full flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}
                 onClick={handleNavigate}
             >
                 <div className="flex justify-between items-center mb-6">
@@ -766,7 +766,7 @@ const BillingChart: React.FC<{
     onNavigate?: () => void;
 }> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode, onNavigate }) => {
     return (
-        <div className={`p-6 glass-card h-full flex flex-col transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] h-full flex flex-col transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
@@ -824,7 +824,7 @@ const BillingChart: React.FC<{
     );
 });
 
-const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ sales, activeMethods, className, isPrivacyMode, onNavigate }) => {
+const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; creditInstallments: CreditInstallment[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ sales, activeMethods, creditInstallments, className, isPrivacyMode, onNavigate }) => {
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
     const getColorForMethod = (method: string) => {
@@ -907,12 +907,46 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                 if (normalizeMap[methodKey] && allMethodNames.includes(normalizeMap[methodKey])) {
                     methodKey = normalizeMap[methodKey];
                 }
-                if (totals[methodKey] === undefined) totals[methodKey] = 0;
-                totals[methodKey] += payment.value;
+
+                if (['Crediário', 'Crediario', 'Promissória'].includes(methodKey)) {
+                    // Calculate from actual installments if we have them
+                    const saleInstallments = creditInstallments.filter(i => i.saleId === sale.id);
+                    if (saleInstallments.length > 0) {
+                        const pendingSum = saleInstallments.reduce((sum, inst) => sum + (inst.amount - inst.amountPaid), 0);
+                        if (totals[methodKey] === undefined) totals[methodKey] = 0;
+                        totals[methodKey] += pendingSum;
+                    } else {
+                        if (totals[methodKey] === undefined) totals[methodKey] = 0;
+                        totals[methodKey] += payment.value;
+                    }
+                } else {
+                    if (totals[methodKey] === undefined) totals[methodKey] = 0;
+                    totals[methodKey] += payment.value;
+                }
             });
         });
+
+        creditInstallments.forEach(inst => {
+            if (inst.paidAt && inst.amountPaid > 0) {
+                const paidDate = new Date(inst.paidAt);
+                if (paidDate >= startDate && paidDate <= endDate) {
+                    let methodKey = inst.paymentMethod || 'Dinheiro';
+                    const normalizeMap: Record<string, string> = {
+                        'Crédito': 'Cartão Crédito',
+                        'Cartão de crédito': 'Cartão Crédito',
+                        'Débito': 'Cartão de débito'
+                    };
+                    if (normalizeMap[methodKey] && allMethodNames.includes(normalizeMap[methodKey])) {
+                        methodKey = normalizeMap[methodKey];
+                    }
+                    if (totals[methodKey] === undefined) totals[methodKey] = 0;
+                    totals[methodKey] += inst.amountPaid;
+                }
+            }
+        });
+
         return totals;
-    }, [sales, period, allMethodNames]);
+    }, [sales, period, allMethodNames, creditInstallments]);
 
     const grandTotal = useMemo(() =>
         Object.values(paymentTotals).reduce((sum: number, val: number) => sum + val, 0)
@@ -1489,6 +1523,7 @@ const Dashboard: React.FC = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
     const [services, setServices] = useState<Service[]>([]);
+    const [installments, setInstallments] = useState<CreditInstallment[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
     const [billingPeriod, setBillingPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all_years'>('year');
     const [isPrivacyMode, setIsPrivacyMode] = useState(() => {
@@ -1563,6 +1598,7 @@ const Dashboard: React.FC = () => {
             fetchItem('Services', () => getServices(), []).then(setServices);
             fetchItem('Suppliers', () => getSuppliers(), []).then(setSuppliers);
             fetchItem('ActiveMethods', getPaymentMethods, []).then(setPaymentMethods);
+            fetchItem('CreditInstallments', getCreditInstallments, []).then(setInstallments);
             fetchItem('Users', getUsers, []).then(setUsers);
 
         } catch (error: any) {
@@ -1880,7 +1916,7 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentAddedProductsCard products={recentAddedProducts} suppliers={suppliers} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <ProtectedLink to="/products?type=troca" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentTradeInProductsCard products={recentTradeInProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
-                <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateVendas} />
+                <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} creditInstallments={installments} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateVendas} />
                 <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentSoldProductsCard soldItems={recentSoldItems} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
             </div>
             {/* Permission Denied Toast */}

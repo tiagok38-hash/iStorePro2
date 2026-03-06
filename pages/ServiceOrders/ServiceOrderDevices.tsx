@@ -175,7 +175,7 @@ const ServiceOrderDevices: React.FC = () => {
                         <Smartphone size={24} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-primary">Eletrônicos</h1>
+                        <h1 className="text-2xl font-black text-primary">Eletrônicos Cadastrados</h1>
                         <p className="text-sm text-secondary font-medium">Gestão e histórico de aparelhos cadastrados</p>
                     </div>
                 </div>

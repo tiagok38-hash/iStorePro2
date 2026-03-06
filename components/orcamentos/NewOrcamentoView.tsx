@@ -391,10 +391,10 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                             {/* Desktop Table View */}
                             <div className="hidden md:block glass-panel border border-white/20 rounded-xl overflow-x-auto bg-gray-50/30">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-gray-100/80 text-gray-800 font-black uppercase text-[10px] tracking-tighter">
-                                        <tr className="text-left border-b border-gray-200">
-                                            <th className="px-4 py-3 w-[40%]">ITEM / DESCRIÇÃO</th>
-                                            <th className="px-4 py-3 text-center w-24">QTD.</th>
+                                    <thead className="bg-gray-50 border-b border-gray-100 text-[10px] text-gray-900 font-bold uppercase tracking-widest leading-none">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left w-[45%]">PRODUTO / SERVIÇO</th>
+                                            <th className="px-4 py-3 text-center w-36">QTD</th>
                                             <th className="px-4 py-3 text-center w-[180px]">PREÇO UNITÁRIO</th>
                                             <th className="px-4 py-3 text-center w-[140px]">DESCONTO</th>
                                             <th className="px-4 py-3 text-right w-40">SUBTOTAL</th>
@@ -704,7 +704,7 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                     <div className="rounded-xl border border-white/20 overflow-hidden bg-white/40">
                                         <table className="w-full text-xs">
                                             <thead className="bg-gray-50">
-                                                <tr className="text-left font-bold text-muted uppercase text-[9px]">
+                                                <tr className="text-left font-bold text-gray-900 uppercase text-[9px]">
                                                     <th className="px-3 py-1.5">Método</th>
                                                     <th className="px-3 py-1.5 text-right">Valor</th>
                                                     <th className="px-3 py-1.5 text-center"></th>
@@ -1153,7 +1153,7 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                 <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <span className="block text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">Qtd. Orçamento</span>
+                                            <span className="block text-[10px] text-gray-900 font-bold uppercase tracking-widest leading-none mb-1">Qtd. Orçamento</span>
                                             <span className="text-[10px] font-bold text-gray-400">Total estoque: {productToConfirm.stock}</span>
                                         </div>
 
@@ -1242,13 +1242,14 @@ export default function NewOrcamentoView(props: { onCancel: () => void; onSaved:
         let isMounted = true;
         async function fetchAll() {
             try {
+                const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value,barcodes';
                 const [
                     customers, users, products, suppliers,
                     permissionProfiles, brands, categories,
                     productModels, grades, gradeValues,
                     receiptTerms, paymentMethods
                 ] = await Promise.all([
-                    getCustomers(false), getUsers(), getProducts(), getSuppliers(),
+                    getCustomers(false), getUsers(), getProducts({ select: productSelect }), getSuppliers(),
                     getPermissionProfiles(), getBrands(), getCategories(),
                     getProductModels(), getGrades(), getGradeValues(),
                     getReceiptTerms(), getPaymentMethods()
