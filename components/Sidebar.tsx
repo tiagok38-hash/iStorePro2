@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
     LogoIcon, ChevronLeftIcon,
     UserCircleIcon, LogoutIcon,
@@ -28,8 +28,14 @@ import { getPermissionProfiles } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 
-const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: string }>, label: string, isCollapsed: boolean, onCloseSidebar: () => void; target?: React.HTMLAttributeAnchorTarget; isComingSoon?: boolean }> = ({ to, icon, label, isCollapsed, onCloseSidebar, target, isComingSoon }) => {
+const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: string }>, label: string, isCollapsed: boolean, onCloseSidebar: () => void; target?: React.HTMLAttributeAnchorTarget; isComingSoon?: boolean; pathname: string }> = ({ to, icon, label, isCollapsed, onCloseSidebar, target, isComingSoon, pathname }) => {
     const { showToast } = useToast();
+
+    const isActive = React.useMemo(() => {
+        if (isComingSoon || to === '#') return false;
+        if (to === '/') return pathname === '/';
+        return pathname === to || pathname.startsWith(`${to}/`);
+    }, [pathname, to, isComingSoon]);
 
     return (
         <div className="relative group">
@@ -45,7 +51,7 @@ const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: str
                     }
                 }}
                 title={isCollapsed ? label : undefined}
-                className={({ isActive }) => {
+                className={() => {
                     const baseClasses = "flex items-center px-3 py-2.5 rounded-xl text-sm transition-all duration-200 font-medium";
                     const activeClasses = 'text-white bg-white/20 shadow-lg ring-1 ring-white/20';
                     const inactiveClasses = 'text-white/70 hover:text-white hover:bg-white/10';
@@ -115,6 +121,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
         });
     }, [permissions]);
 
+    const location = useLocation();
+
     return (
         <aside
             onMouseEnter={() => setIsHovered(true)}
@@ -158,7 +166,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
             <nav className="flex-1 px-3 py-6 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 <div className="space-y-1">
                     {visibleNavItems.map(item => (
-                        <NavItem key={item.name} to={item.to} icon={item.icon} label={item.name} isCollapsed={effectiveIsCollapsed} onCloseSidebar={onCloseSidebar} target={item.target as React.HTMLAttributeAnchorTarget} isComingSoon={item.name === 'Fiscal (Em Breve)'} />
+                        <NavItem key={item.name} to={item.to} icon={item.icon} label={item.name} isCollapsed={effectiveIsCollapsed} onCloseSidebar={onCloseSidebar} target={item.target as React.HTMLAttributeAnchorTarget} isComingSoon={item.name === 'Fiscal (Em Breve)'} pathname={location.pathname} />
                     ))}
                 </div>
             </nav>
