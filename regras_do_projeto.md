@@ -39,3 +39,15 @@ Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicaçã
 ## 9. Auditoria de Segurança e Logs
 - Se uma nova funcionalidade modificar, deletar ou criar movimentações críticas (excluir ou reverter venda, ajustar estoque manualmente, estornar financeiro, dar desconto drástico), procure integrar o disparo automático de registros para as tabelas de auditoria do Supabase (`audit_logs` ou `stock_history`).
 - Isso garante a rastreabilidade segura da aplicação a nível gerencial (quem fez, o que fez e quando).
+
+## 10. Prevenção de Loops Infinitos (useEffect)
+- Em componentes React que disparam chamadas ao banco ou funções em ciclo de vida (`useEffect`), preste EXTREMA atenção às arrays de dependência `[deps]`.
+- Nunca passe objetos não estabilizados ou funções como dependência a menos que estejam encapsulados com `useCallback` ou `useMemo` para evitar que a tela entre em loops de renderização infinitos prejudicando o banco Supabase.
+
+## 11. Otimização de Performance e Lazy Rendering
+- Se tivermos modais pesados de funcionalidade e listagens (ex: Adicionar Venda, Peça Complexa, Relatórios), eles nunca devem vir totalmente renderizados escondidos pela tela. 
+- Utilize renderização condicional pesada `{isOpen && <Componente />}` logo acima do retorno visual para prevenir gasto de memória desnecessário em dispositivos de poucos recursos (celular dos técnicos na bancada).
+
+## 12. Modularização Obrigatória de Componentes
+- Nenhum arquivo `.tsx` novo ou componente já existente deverá crescer descontroladamente após 400-500 linhas de código.
+- Extrapolou o limite visual? Identifique sub-partes complexas e quebre-as OBRIGATORIAMENTE num componente separado dentro de uma pasta estruturada. Não aceite o desenvolvimento de "Monólitos Inquebráveis" prejudiciais.
