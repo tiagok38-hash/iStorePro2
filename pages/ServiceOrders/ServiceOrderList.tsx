@@ -19,11 +19,12 @@ import { ServiceOrder } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import QuickOSModal from '../../components/QuickOSModal';
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
+import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
 
 // --- Constants ---
-type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardando Peça' | 'Pronto' | 'Entregue';
+type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardando Peça' | 'Pronto' | 'Entregue' | 'Cancelada';
 
-const STATUS_COLUMNS: OSStatus[] = ['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue'];
+const STATUS_COLUMNS: OSStatus[] = ['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'];
 
 const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: string, dot: string, gradient: string, dropBg: string }> = {
     'Orçamento': { color: 'text-red-700', bg: 'bg-red-100/80', border: 'border-red-200', dot: 'bg-red-500', gradient: 'from-red-100 to-red-50', dropBg: 'bg-red-50' },
@@ -33,6 +34,7 @@ const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: strin
     'Aguardando Peça': { color: 'text-amber-700', bg: 'bg-amber-100/80', border: 'border-amber-200', dot: 'bg-amber-500', gradient: 'from-amber-100 to-amber-50', dropBg: 'bg-amber-50' },
     'Pronto': { color: 'text-purple-700', bg: 'bg-purple-100/80', border: 'border-purple-300', dot: 'bg-purple-600', gradient: 'from-purple-100 to-purple-50', dropBg: 'bg-purple-50' },
     'Entregue': { color: 'text-emerald-700', bg: 'bg-emerald-100/80', border: 'border-emerald-200', dot: 'bg-emerald-500', gradient: 'from-emerald-100 to-emerald-50', dropBg: 'bg-emerald-50' },
+    'Cancelada': { color: 'text-red-700', bg: 'bg-red-100/80', border: 'border-red-200', dot: 'bg-red-500', gradient: 'from-red-100 to-red-50', dropBg: 'bg-red-50' },
 };
 
 // --- Components ---
@@ -52,21 +54,35 @@ interface KanbanCardProps {
     onDragStart: (e: React.DragEvent, os: any) => void;
     onDragEnd: (e: React.DragEvent) => void;
     isDragging: boolean;
+    onCancel: (osId: string) => void;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDragEnd, isDragging }) => (
+const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDragEnd, isDragging, onCancel }) => (
     <div
         draggable
         onDragStart={(e) => onDragStart(e, os)}
         onDragEnd={onDragEnd}
         onClick={onClick}
-        className={`bg-white p-3 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-accent/40 transition-all cursor-grab active:cursor-grabbing group relative select-none
-            ${isDragging ? 'opacity-40 scale-95 rotate-1' : 'opacity-100'}`}
+        className={`p-3 rounded-xl shadow-sm border hover:shadow-md transition-all cursor-grab active:cursor-grabbing group relative select-none
+            ${isDragging ? 'opacity-40 scale-95 rotate-1' : 'opacity-100'}
+            ${os.status === 'Cancelada'
+                ? 'bg-red-50/80 border-red-200 hover:border-red-300'
+                : os.isOrcamentoOnly
+                    ? 'bg-amber-100/60 border-amber-200/80 hover:border-amber-400/50 hover:bg-amber-100/80 transition-all'
+                    : 'bg-white border-gray-100 hover:border-accent/40'}
+            `}
     >
         <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] font-bold text-secondary bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
-                OS-{os.displayId}
-            </span>
+            <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-secondary bg-white px-1.5 py-0.5 rounded border border-gray-200 shadow-sm">
+                    OS-{os.displayId}
+                </span>
+                {os.status === 'Cancelada' && (
+                    <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded border border-red-200">
+                        Cancelada
+                    </span>
+                )}
+            </div>
             <div className="flex items-center gap-1">
                 {os.isQuick && (
                     <span title="OS Rápida" className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-100">
@@ -74,6 +90,15 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
                     </span>
                 )}
                 {os.priority === 'Urgent' && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Urgente" />}
+                {os.status !== 'Cancelada' && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onCancel(os.id); }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 transition-all"
+                        title="Cancelar OS"
+                    >
+                        <XCircle size={12} />
+                    </button>
+                )}
             </div>
         </div>
 
@@ -82,8 +107,17 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
             <User size={10} /> {os.customerName}
         </p>
 
-        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-            <div className="flex items-center gap-1 text-[10px] text-gray-400">
+        {os.isOrcamentoOnly && os.status !== 'Cancelada' && (
+            <div className="mb-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-black text-amber-600 bg-amber-50/50 border border-amber-200/60 shadow-sm">
+                <div className="w-6 h-3.5 bg-amber-500 rounded-full relative flex-shrink-0 shadow-inner">
+                    <div className="absolute right-0.5 top-[2px] w-2.5 h-2.5 bg-white rounded-full shadow-sm"></div>
+                </div>
+                Orçamento
+            </div>
+        )}
+
+        <div className="flex items-center justify-between pt-2 border-t border-black/5">
+            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium">
                 <Clock size={10} /> {os.entryDate ? new Date(os.entryDate).toLocaleDateString() : '-'}
             </div>
             {os.total > 0 && <span className="text-xs font-bold text-emerald-600">R$ {os.total.toLocaleString()}</span>}
@@ -105,6 +139,8 @@ const ServiceOrderList: React.FC = () => {
     const [isQuickOSOpen, setIsQuickOSOpen] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [selectedOSForPrint, setSelectedOSForPrint] = useState<any>(null);
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [osToCancel, setOsToCancel] = useState<string | null>(null);
 
     // Drag & Drop state
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -199,6 +235,22 @@ const ServiceOrderList: React.FC = () => {
         }
     };
 
+    const handleCancelOS = async (reason: string) => {
+        if (!osToCancel) return;
+        try {
+            await updateServiceOrder(osToCancel, {
+                status: 'Cancelada',
+                cancellationReason: reason
+            } as any);
+            showToast('OS cancelada com sucesso.', 'success');
+            setIsCancelModalOpen(false);
+            setOsToCancel(null);
+            loadOrders();
+        } catch {
+            showToast('Erro ao cancelar a OS.', 'error');
+        }
+    };
+
     return (
         <>
             <div className="flex flex-col h-full">
@@ -246,6 +298,7 @@ const ServiceOrderList: React.FC = () => {
                                 <option value="Aguardando Peça">Aguardando Peça</option>
                                 <option value="Pronto">Pronto</option>
                                 <option value="Entregue">Entregue</option>
+                                <option value="Cancelada">Cancelada</option>
                             </select>
                         )}
 
@@ -297,7 +350,7 @@ const ServiceOrderList: React.FC = () => {
                                         </tr>
                                     ) : (
                                         filteredOrders.map(os => (
-                                            <tr key={os.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60' : 'hover:bg-gray-50/50'}`}>
                                                 <td className="px-4 py-3 font-medium text-primary">
                                                     <div className="flex items-center gap-1">
                                                         {os.isQuick && <Zap size={11} className="text-amber-500 fill-amber-400 flex-shrink-0" />}
@@ -338,14 +391,9 @@ const ServiceOrderList: React.FC = () => {
                                                             <Printer size={14} />
                                                         </button>
                                                         <button
-                                                            onClick={async () => {
-                                                                if (confirm('Cancelar esta OS?')) {
-                                                                    try {
-                                                                        await updateServiceOrder(os.id, { status: 'Entregue' } as any);
-                                                                        showToast('OS cancelada.', 'success');
-                                                                        loadOrders();
-                                                                    } catch { showToast('Erro ao cancelar.', 'error'); }
-                                                                }
+                                                            onClick={() => {
+                                                                setOsToCancel(os.id);
+                                                                setIsCancelModalOpen(true);
                                                             }}
                                                             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
                                                             title="Cancelar OS"
@@ -369,7 +417,7 @@ const ServiceOrderList: React.FC = () => {
                                 <div className="p-8 text-center text-secondary">Nenhuma ordem de serviço encontrada.</div>
                             ) : (
                                 filteredOrders.map(os => (
-                                    <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className="p-4 active:bg-gray-50 transition-colors cursor-pointer">
+                                    <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60 active:bg-amber-200/40' : 'active:bg-gray-50'}`}>
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-bold text-primary">OS-{os.displayId}</span>
@@ -451,6 +499,10 @@ const ServiceOrderList: React.FC = () => {
                                                             onDragStart={handleDragStart}
                                                             onDragEnd={handleDragEnd}
                                                             isDragging={draggingId === os.id}
+                                                            onCancel={(id) => {
+                                                                setOsToCancel(id);
+                                                                setIsCancelModalOpen(true);
+                                                            }}
                                                         />
                                                     ))}
                                                     {columnItems.length === 0 && (
@@ -492,6 +544,19 @@ const ServiceOrderList: React.FC = () => {
                     }}
                 />
             )}
+
+            {/* Cancel Modal with Reason */}
+            <DeleteWithReasonModal
+                isOpen={isCancelModalOpen}
+                onClose={() => {
+                    setIsCancelModalOpen(false);
+                    setOsToCancel(null);
+                }}
+                onConfirm={handleCancelOS}
+                title="Cancelar Ordem de Serviço"
+                message="Informe o motivo do cancelamento. Esta ação não poderá ser desfeita."
+                reasonLabel="Motivo do Cancelamento*"
+            />
         </>
     );
 };

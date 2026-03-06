@@ -36,11 +36,11 @@ export const getWhatsAppLink = (phone: string | undefined | null, message?: stri
 
     // Se não houver telefone, gera um link de compartilhamento genérico (abre a lista de contatos)
     if (!formattedPhone) {
-        return `https://wa.me/?text=${encodeURIComponent(message || '')}`;
+        return `https://api.whatsapp.com/send?text=${encodeURIComponent(message || '')}`;
     }
 
-    const textParam = message ? `?text=${encodeURIComponent(message)}` : '';
-    return `https://wa.me/${formattedPhone}${textParam}`;
+    const textParam = message ? `&text=${encodeURIComponent(message)}` : '';
+    return `https://api.whatsapp.com/send?phone=${formattedPhone}${textParam}`;
 };
 
 /**

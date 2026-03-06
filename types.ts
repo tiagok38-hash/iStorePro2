@@ -387,6 +387,10 @@ export interface ServiceOrder {
     attendantObservations?: string;
     customerDeviceId?: string;
     trackingToken?: string;
+    phone?: string;
+    isOrcamentoOnly?: boolean;
+    isQuick?: boolean;
+    cancellationReason?: string;
 }
 
 // CartItem interface to be used across components like NewSaleModal.

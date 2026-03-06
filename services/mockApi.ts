@@ -5755,9 +5755,15 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
                 responsibleName: so.responsible_name,
                 entryDate: so.entry_date,
                 exitDate: so.exit_date,
+                attendantId: so.attendant_id,
+                attendantName: so.attendant_name,
+                estimatedDate: so.estimated_date,
                 attendantObservations: so.attendant_observations,
                 customerDeviceId: so.customer_device_id,
                 displayId: so.display_id,
+                isOrcamentoOnly: so.is_orcamento_only,
+                isQuick: so.is_quick,
+                phone: so.phone,
             }));
         });
     });
@@ -5970,6 +5976,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).isOrcamentoOnly !== undefined) updatePayload.is_orcamento_only = (data as any).isOrcamentoOnly;
     if ((data as any).isQuick !== undefined) updatePayload.is_quick = (data as any).isQuick;
     if ((data as any).phone !== undefined) updatePayload.phone = (data as any).phone;
+    if (data.cancellationReason !== undefined) updatePayload.cancellation_reason = data.cancellationReason;
 
     // Fix empty UUIDs/strings that should be null
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
@@ -5984,7 +5991,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone'
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 
@@ -6030,6 +6037,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         customerDeviceId: updated.customer_device_id,
         displayId: updated.display_id,
         isOrcamentoOnly: updated.is_orcamento_only,
+        cancellationReason: updated.cancellation_reason,
     };
 };
 
