@@ -7,7 +7,7 @@ As regras listadas neste arquivo devem ser estritamente seguidas pela inteligên
 
 ## 2. Formatação de Moeda
 - Sempre que criarmos ou formatarmos campos de valores monetários, deixe-os prontos com o padrão de Real Brasileiro: **R$ 1.234,99**.
-- Aplique máscaras de centavos e pontuação correta em campos de input (`toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })` ou bibliotecas de máscara).
+- Aplique máscaras de centavos e pontuação correta em campos de input (`toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })` ou bibliotecas de máscara correspondentes da base de código).
 
 ## 3. Banco de Dados e Multi-Tenant
 Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicação iStorePro, ela DEVE OBRIGATORIAMENTE seguir o padrão Multi-Tenant da aplicação. Você deve sempre:
@@ -18,4 +18,24 @@ Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicaçã
 
 ## 4. Preservação de UI e Design
 - Quando eu pedir para mudar algo, principalmente no design ou interface, **tenha extremo cuidado para não mudar ou apagar coisas que eu não pedi**.
-- Seja cirúrgico: altere apenas o escopo solicitado e mantenha a integridade visual, classes e componentes ao redor intactos.
+- Seja cirúrgico: altere apenas o escopo solicitado e mantenha a integridade visual, classes (especialmente Tailwind se houver) e componentes ao redor intactos.
+
+## 5. Centralização da Lógica de Banco de Dados
+- NUNCA escreva chamadas diretas ou lógica pesada do Supabase dentro dos componentes visuais `.tsx`.
+- Sempre crie, atualize e chame funções encapsuladas dentro da pasta `services` (ex: `mockApi.ts`), mantendo uma separação clara de responsabilidades. Isso garante que a interface do usuário não fique poluída com código de banco de dados e bugs sejam fáceis de encontrar/corrigir.
+
+## 6. Sincronização Estrita de Tipos (TypeScript)
+- Sempre que adicionar uma nova tabela, coluna ou mudar as chamadas de banco de dados, você **deve OBRIGATORIAMENTE** atualizar imediatamente o arquivo central de tipagem `types.ts`.
+- Evite ao máximo o uso do tipo genérico `any` para tapar buracos; faça uma tipagem correta, precisa e documentada das interfaces.
+
+## 7. Gerenciamento de Cache
+- No sistema atual da iStorePro, após toda e qualquer operação de modificação no banco de dados (INSERT, UPDATE ou DELETE), certifique-se OBRIGATORIAMENTE se é necessário chamar a função de revalidação de cache (`clearCache(['nome_da_chave'])`) implementada no arquivo `services` para garantir que as telas do painel logo atualizem a informação para o usuário e não mostrem dados desatualizados (stale data).
+
+## 8. Tratamento Fino de Erros e Feedback (UX)
+- Ao adicionar botões com ações assíncronas no painel, você deve SEMPRE utilizar blocos `try/catch`.
+- Caso ocorra um erro, **jamais deixe a tela travar de forma silenciosa** ou apresentar uma tela branca de quebra (crash).
+- Exiba feedback visual limpo e claro - use a biblioteca de notificações do sistema (Toasts/Alerts) para informar ao usuário o que ocorreu de errado de forma amigável em português. Faça o mesmo notificando proativamente o sucesso das operações.
+
+## 9. Auditoria de Segurança e Logs
+- Se uma nova funcionalidade modificar, deletar ou criar movimentações críticas (excluir ou reverter venda, ajustar estoque manualmente, estornar financeiro, dar desconto drástico), procure integrar o disparo automático de registros para as tabelas de auditoria do Supabase (`audit_logs` ou `stock_history`).
+- Isso garante a rastreabilidade segura da aplicação a nível gerencial (quem fez, o que fez e quando).
