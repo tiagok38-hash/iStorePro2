@@ -145,7 +145,7 @@ const App: React.FC = () => {
                                     </Route>
 
                                     {/* Service Order Module (Immersive) */}
-                                    <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
+                                    <Route element={<ProtectedRoute permissionKey="canAccessServiceOrders" />}>
                                         <Route path="/service-orders" element={<ServiceOrderLayout />}>
                                             <Route index element={<ServiceOrderDashboard />} />
                                             <Route path="list" element={<ServiceOrderList />} />
