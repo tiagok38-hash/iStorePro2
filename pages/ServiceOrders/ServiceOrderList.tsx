@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     SearchIcon,
     Columns,
@@ -11,11 +11,14 @@ import {
     Eye,
     Edit2,
     Printer,
-    XCircle
+    XCircle,
+    Wrench,
+    ShieldCheck
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getServiceOrders, updateServiceOrder } from '../../services/mockApi';
+import { getServiceOrders, updateServiceOrder, returnOsPartsStock } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
+import { calculateWarrantyExpiry, getRemainingDays, formatDateBR } from '../../utils/dateUtils';
 import { useToast } from '../../contexts/ToastContext';
 import QuickOSModal from '../../components/QuickOSModal';
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
@@ -116,12 +119,18 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
             </div>
         )}
 
-        <div className="flex items-center justify-between pt-2 border-t border-black/5">
-            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium">
-                <Clock size={10} /> {os.entryDate ? new Date(os.entryDate).toLocaleDateString() : '-'}
+        <div className="flex flex-col gap-1 pt-2 border-t border-black/5">
+            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium whitespace-nowrap overflow-hidden">
+                <Clock size={10} className="shrink-0" /> {os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
             </div>
-            {os.total > 0 && <span className="text-xs font-bold text-emerald-600">R$ {os.total.toLocaleString()}</span>}
+            {os.status === 'Cancelada' && os.cancellationReason && (
+                <div className="bg-red-100/50 p-1.5 rounded-lg border border-red-200 mt-1">
+                    <p className="text-[9px] font-bold text-red-600 uppercase tracking-tighter mb-0.5">Motivo Cancelamento:</p>
+                    <p className="text-[10px] text-red-700 leading-tight italic line-clamp-2" title={os.cancellationReason}>"{os.cancellationReason}"</p>
+                </div>
+            )}
         </div>
+        {os.total > 0 && <span className="text-xs font-bold text-emerald-600 mt-1 block">R$ {os.total.toLocaleString()}</span>}
     </div>
 );
 
@@ -131,7 +140,13 @@ const ServiceOrderList: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { showToast } = useToast();
-    const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+    const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() => {
+        return (localStorage.getItem('os_view_mode') as 'kanban' | 'list') || 'kanban';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('os_view_mode', viewMode);
+    }, [viewMode]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('Todos');
     const [orders, setOrders] = useState<any[]>([]);
@@ -145,6 +160,7 @@ const ServiceOrderList: React.FC = () => {
     // Drag & Drop state
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dragOverColumn, setDragOverColumn] = useState<OSStatus | null>(null);
+    const [warrantyFilter, setWarrantyFilter] = useState<'all' | 'active' | 'expiring_month'>('all');
 
     const loadOrders = async () => {
         setIsLoading(true);
@@ -172,13 +188,45 @@ const ServiceOrderList: React.FC = () => {
     }, [location.search]);
 
     const filteredOrders = orders.filter(os => {
+        const searchLower = searchTerm.toLowerCase();
         const matchSearch =
-            (os.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (os.deviceModel || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (os.customerName || '').toLowerCase().includes(searchLower) ||
+            (os.deviceModel || '').toLowerCase().includes(searchLower) ||
+            (os.imei || '').toLowerCase().includes(searchLower) ||
+            (os.serialNumber || '').toLowerCase().includes(searchLower) ||
             (os.displayId?.toString() || '').includes(searchTerm) ||
             os.id.includes(searchTerm);
         const matchStatus = statusFilter === 'Todos' || os.status === statusFilter;
-        return matchSearch && matchStatus;
+
+        let matchWarranty = true;
+        if (warrantyFilter !== 'all') {
+            const items = os.items || [];
+            const osExitDate = os.exitDate;
+            if (!osExitDate) {
+                matchWarranty = false;
+            } else {
+                const itemExpiries = items
+                    .filter((i: any) => i.warranty)
+                    .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
+
+                if (itemExpiries.length === 0) {
+                    matchWarranty = false;
+                } else {
+                    const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d.getTime())));
+                    const now = new Date();
+
+                    if (warrantyFilter === 'active') {
+                        matchWarranty = latestExpiry > now;
+                    } else if (warrantyFilter === 'expiring_month') {
+                        const currentMonth = now.getMonth();
+                        const currentYear = now.getFullYear();
+                        matchWarranty = latestExpiry.getMonth() === currentMonth && latestExpiry.getFullYear() === currentYear;
+                    }
+                }
+            }
+        }
+
+        return matchSearch && matchStatus && matchWarranty;
     });
 
     // ---- DRAG & DROP HANDLERS ----
@@ -238,6 +286,15 @@ const ServiceOrderList: React.FC = () => {
     const handleCancelOS = async (reason: string) => {
         if (!osToCancel) return;
         try {
+            // Se a OS era 'Entregue', devolver peças ao estoque
+            const osData = orders.find(o => o.id === osToCancel);
+            if (osData && osData.status === 'Entregue') {
+                try {
+                    await returnOsPartsStock(osToCancel);
+                } catch (e) {
+                    console.error('Erro ao devolver peças ao estoque:', e);
+                }
+            }
             await updateServiceOrder(osToCancel, {
                 status: 'Cancelada',
                 cancellationReason: reason
@@ -254,8 +311,19 @@ const ServiceOrderList: React.FC = () => {
     return (
         <>
             <div className="flex flex-col h-full">
+                {/* Page Title */}
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-primary rounded-2xl text-white shadow-lg shadow-primary/20">
+                        <Wrench size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-primary tracking-tight">Ordens de Serviço</h1>
+                        <p className="text-sm font-medium text-secondary">Gerenciamento completo de atendimentos</p>
+                    </div>
+                </div>
+
                 {/* Header Controls */}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sticky top-0 z-30 bg-[#F6F5FB]/90 backdrop-blur-sm py-2">
+                <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 sticky top-0 z-30 bg-[#F6F5FB]/90 backdrop-blur-sm py-2">
                     <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-gray-200 p-1">
                         <button
                             onClick={() => setViewMode('kanban')}
@@ -273,7 +341,7 @@ const ServiceOrderList: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                         <div className="relative flex-1 sm:flex-initial">
                             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary/50" size={16} />
                             <input
@@ -290,15 +358,30 @@ const ServiceOrderList: React.FC = () => {
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer"
+                                className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer border-r-8 border-transparent"
                             >
-                                <option value="Todos">Todos os status</option>
+                                <option value="Todos">Status</option>
                                 <option value="Orçamento">Orçamento</option>
+                                <option value="Análise">Análise</option>
+                                <option value="Aprovado">Aprovado</option>
                                 <option value="Em Reparo">Em Reparo</option>
                                 <option value="Aguardando Peça">Aguardando Peça</option>
                                 <option value="Pronto">Pronto</option>
                                 <option value="Entregue">Entregue</option>
                                 <option value="Cancelada">Cancelada</option>
+                            </select>
+                        )}
+
+                        {/* Warranty filter - only in list mode */}
+                        {viewMode === 'list' && (
+                            <select
+                                value={warrantyFilter}
+                                onChange={(e) => setWarrantyFilter(e.target.value as any)}
+                                className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer border-r-8 border-transparent"
+                            >
+                                <option value="all">Garantias (Todas)</option>
+                                <option value="active">Garantias Ativas</option>
+                                <option value="expiring_month">Expiram este Mês</option>
                             </select>
                         )}
 
@@ -335,6 +418,7 @@ const ServiceOrderList: React.FC = () => {
                                         <th className="px-4 py-3 font-bold">Técnico</th>
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Entrada</th>
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Prevista</th>
+                                        {warrantyFilter !== 'all' && <th className="px-4 py-3 font-bold">Garantia</th>}
                                         <th className="px-4 py-3 font-bold text-right">Valor</th>
                                         <th className="px-4 py-3 font-bold text-right">Ações</th>
                                     </tr>
@@ -361,8 +445,43 @@ const ServiceOrderList: React.FC = () => {
                                                 <td className="px-4 py-3 font-medium text-primary">{os.deviceModel}</td>
                                                 <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
                                                 <td className="px-4 py-3 text-secondary text-sm">{os.responsibleName || '-'}</td>
-                                                <td className="px-4 py-3 text-secondary text-sm">{os.entryDate ? new Date(os.entryDate).toLocaleDateString('pt-BR') : '-'}</td>
-                                                <td className="px-4 py-3 text-secondary text-sm">{os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}</td>
+                                                <td className="px-4 py-3 text-secondary text-sm">
+                                                    {os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-secondary text-sm">
+                                                    {os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}
+                                                </td>
+                                                {warrantyFilter !== 'all' && (
+                                                    <td className="px-4 py-3">
+                                                        {(() => {
+                                                            const items = os.items || [];
+                                                            const osExitDate = os.exitDate;
+                                                            if (!osExitDate) return <span className="text-gray-400 text-[10px]">—</span>;
+
+                                                            const itemExpiries = items
+                                                                .filter((i: any) => i.warranty)
+                                                                .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
+
+                                                            if (itemExpiries.length === 0) return <span className="text-gray-400 text-[10px]">—</span>;
+
+                                                            const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d!.getTime())));
+                                                            const days = getRemainingDays(latestExpiry);
+                                                            const isExpired = days < 0;
+
+                                                            return (
+                                                                <div className="flex flex-col">
+                                                                    <div className={`flex items-center gap-1 text-[10px] font-black ${isExpired ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                                        <ShieldCheck size={10} />
+                                                                        {formatDateBR(latestExpiry)}
+                                                                    </div>
+                                                                    <span className={`text-[9px] font-bold ${isExpired ? 'text-red-400' : 'text-gray-400'}`}>
+                                                                        {isExpired ? 'Expirada' : `Faltam ${days} dias`}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </td>
+                                                )}
                                                 <td className="px-4 py-3 text-right font-bold text-emerald-600">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-1 justify-end">
@@ -421,7 +540,7 @@ const ServiceOrderList: React.FC = () => {
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-bold text-primary">OS-{os.displayId}</span>
-                                                <span className="text-[10px] text-gray-400">{os.entryDate ? new Date(os.entryDate).toLocaleDateString() : '-'}</span>
+                                                <span className="text-[10px] text-gray-400">{os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}</span>
                                             </div>
                                             <StatusBadge status={os.status} />
                                         </div>

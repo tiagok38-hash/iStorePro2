@@ -326,6 +326,9 @@ export interface Service {
     price: number;
     cost: number;
     warranty?: string; // e.g. "90 dias", "3 meses"
+    commission_enabled?: boolean;
+    commission_type?: 'fixed' | 'percentage';
+    commission_value?: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -352,6 +355,7 @@ export interface ServiceOrderItem {
     type: 'service' | 'part';
     price: number;
     quantity: number;
+    warranty?: string;
 }
 
 export interface ServiceOrder {
@@ -370,6 +374,7 @@ export interface ServiceOrder {
     observations?: string;
     status: 'Aberto' | 'Em Análise' | 'Aguardando Aprovação' | 'Aprovado' | 'Em Andamento' | 'Concluído' | 'Entregue' | 'Cancelado';
     items: ServiceOrderItem[];
+    payments?: Payment[];
     subtotal: number;
     discount: number;
     total: number;

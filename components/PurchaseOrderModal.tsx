@@ -121,10 +121,37 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     useEffect(() => {
         if (purchaseOrderToEdit) {
             setFormData(purchaseOrderToEdit);
-            setItems(purchaseOrderToEdit.items);
+            // Se for modo OS, converter itens do formato OS para PurchaseItem
+            if (isOsMode && purchaseOrderToEdit.items) {
+                const convertedItems = purchaseOrderToEdit.items.map((item: any) => ({
+                    id: item.id || crypto.randomUUID(),
+                    productDetails: {
+                        brand: item.brand || '',
+                        category: item.category || '',
+                        model: item.partName || item.model || '',
+                        color: '',
+                        condition: item.condition || 'Novo',
+                        warranty: item.warranty || '',
+                        storageLocation: item.storageLocation || '',
+                    },
+                    barcodes: item.barcode ? [item.barcode] : [],
+                    barcode: item.barcode || '',
+                    quantity: item.quantity || 1,
+                    unitCost: item.unitCost || 0,
+                    additionalUnitCost: 0,
+                    finalUnitCost: item.finalUnitCost || item.unitCost || 0,
+                    hasImei: false,
+                    variations: item.variations || [],
+                    minimumStock: 0,
+                    controlByBarcode: !!item.barcode,
+                }));
+                setItems(convertedItems);
+            } else {
+                setItems(purchaseOrderToEdit.items);
+            }
             setIsCustomerPurchase(purchaseOrderToEdit.isCustomerPurchase || false);
             // Restore minimum stock toggle if any item has it configured
-            const hasMinStock = purchaseOrderToEdit.items.some(item => item.minimumStock && item.minimumStock > 0);
+            const hasMinStock = purchaseOrderToEdit.items.some((item: any) => item.minimumStock && item.minimumStock > 0);
             setIsMinimumStockEnabled(hasMinStock);
             setStep(1); // Start editing from Step 1
         } else {

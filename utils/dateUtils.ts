@@ -176,4 +176,39 @@ export const toDateValue = (date?: Date | string): string => {
     return `${year}-${month}-${day}`;
 };
 
+export const calculateWarrantyExpiry = (startDate: string | Date, warranty: string): Date | null => {
+    if (!startDate || !warranty) return null;
+    let date: Date;
+    if (typeof startDate === 'string') {
+        date = new Date(startDate);
+    } else {
+        date = new Date(startDate.getTime());
+    }
+
+    const value = parseInt(warranty.replace(/\D/g, ''));
+    if (isNaN(value)) return null;
+
+    const lowerWarranty = warranty.toLowerCase();
+    if (lowerWarranty.includes('dia')) {
+        date.setDate(date.getDate() + value);
+    } else if (lowerWarranty.includes('mês') || lowerWarranty.includes('mes')) {
+        date.setMonth(date.getMonth() + value);
+    } else if (lowerWarranty.includes('ano')) {
+        date.setFullYear(date.getFullYear() + value);
+    } else {
+        // Default to days if not specified
+        date.setDate(date.getDate() + value);
+    }
+    return date;
+};
+
+export const getRemainingDays = (expiryDate: Date | string): number => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = typeof expiryDate === 'string' ? new Date(expiryDate) : new Date(expiryDate.getTime());
+    expiry.setHours(0, 0, 0, 0);
+    const diffTime = expiry.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
 export const TIMEZONE = BRAZIL_TIMEZONE;

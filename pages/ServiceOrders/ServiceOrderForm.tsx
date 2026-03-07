@@ -11,6 +11,7 @@ import {
     Plus,
     Trash2,
     Unlock,
+    Lock,
     Camera,
     Image as ImageIcon,
     X,
@@ -21,10 +22,13 @@ import {
     Printer,
     Tag,
     Zap,
-    DollarSign
+    DollarSign,
+    PencilLine,
+    ShieldCheck
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
+import { calculateWarrantyExpiry, formatDateBR } from '../../utils/dateUtils.ts';
 import { useToast } from '../../contexts/ToastContext';
 import { useUser } from '../../contexts/UserContext';
 import {
@@ -38,10 +42,13 @@ import {
     getPermissionProfiles,
     getServices,
     getOsParts,
+    getOsWarranties,
     OsPart,
     getCustomerDevices,
     getChecklistItems,
-    getCompanyInfo
+    getCompanyInfo,
+    deductOsPartsStock,
+    returnOsPartsStock
 } from '../../services/mockApi';
 import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo } from '../../types';
@@ -80,6 +87,10 @@ const ServiceOrderForm: React.FC = () => {
     const [isLoadingEdit, setIsLoadingEdit] = useState(isEditing);
     const [displayId, setDisplayId] = useState<number | null>(null);
     const [isQuickOSOpen, setIsQuickOSOpen] = useState(false);
+    // Bloqueio de edição para OS Entregues
+    const [isLocked, setIsLocked] = useState(false);
+    // Marcação de edição
+    const [isEdited, setIsEdited] = useState(false);
 
     // Data Sources
     const [users, setUsers] = useState<User[]>([]);
@@ -91,6 +102,7 @@ const ServiceOrderForm: React.FC = () => {
     const [availableOsParts, setAvailableOsParts] = useState<OsPart[]>([]);
     const [customerDevices, setCustomerDevices] = useState<CustomerDevice[]>([]);
     const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
+    const [osWarranties, setOsWarranties] = useState<any[]>([]);
 
     // Selection Modals
     const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -134,12 +146,15 @@ const ServiceOrderForm: React.FC = () => {
     // Orçamento only toggle (para criação)
     const [isOrcamentoOnly, setIsOrcamentoOnly] = useState(false);
     // Datas
-    const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [entryDate, setEntryDate] = useState(() => new Date().toISOString());
     const [estimatedDate, setEstimatedDate] = useState('');
+    const [exitDate, setExitDate] = useState<string | null>(null);
+    const [justBilled, setJustBilled] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [printFormat, setPrintFormat] = useState<'A4' | 'thermal'>('thermal');
     const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [cancellationReason, setCancellationReason] = useState<string | null>(null);
 
     // Refs para controle de clique fora
     const customerSearchRef = useRef<HTMLDivElement>(null);
@@ -173,19 +188,13 @@ const ServiceOrderForm: React.FC = () => {
         }
     }, [currentUser]);
 
-    // Carrega dados da OS ao editar
-    useEffect(() => {
-        if (isEditing && editId) {
-            loadServiceOrderData(editId);
-        }
-    }, [editId]);
 
     const [availableChecklistItems, setAvailableChecklistItems] = useState<ChecklistItemParameter[]>([]);
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
 
     const loadData = async () => {
         try {
-            const [usersData, customersData, servicesData, osPartsData, devicesData, checklistData, profilesData, cInfo] = await Promise.all([
+            const [usersData, customersData, servicesData, osPartsData, devicesData, checklistData, profilesData, cInfo, warrantyData] = await Promise.all([
                 getUsers(),
                 getCustomers(),
                 getServices(),
@@ -193,7 +202,8 @@ const ServiceOrderForm: React.FC = () => {
                 getCustomerDevices(),
                 getChecklistItems(),
                 getPermissionProfiles(),
-                getCompanyInfo()
+                getCompanyInfo(),
+                getOsWarranties()
             ]);
             setUsers(usersData);
             setCustomers(customersData);
@@ -203,13 +213,19 @@ const ServiceOrderForm: React.FC = () => {
             setAvailableChecklistItems(checklistData);
             setProfiles(profilesData);
             setCompanyInfo(cInfo);
+            setOsWarranties(warrantyData || []);
+
+            // Carrega OS DEPOIS que os dados base estiverem prontos (evita race condition)
+            if (isEditing && editId) {
+                await loadServiceOrderData(editId, customersData);
+            }
         } catch (error) {
             console.error("Error loading data:", error);
             toast.error("Erro ao carregar dados iniciais.");
         }
     };
 
-    const loadServiceOrderData = async (id: string) => {
+    const loadServiceOrderData = async (id: string, preloadedCustomers?: any[]) => {
         setIsLoadingEdit(true);
         try {
             const so = await getServiceOrder(id);
@@ -240,26 +256,32 @@ const ServiceOrderForm: React.FC = () => {
             setOsStatus(so.status || 'Orçamento');
             setIsOrcamentoOnly(!!(so as any).isOrcamentoOnly);
             setDisplayId(so.displayId || null);
-            if ((so as any).entryDate) setEntryDate(new Date((so as any).entryDate).toISOString().slice(0, 10));
+            if ((so as any).entryDate) setEntryDate(new Date((so as any).entryDate).toISOString());
             if ((so as any).estimatedDate) setEstimatedDate(new Date((so as any).estimatedDate).toISOString().slice(0, 10));
+            if ((so as any).exitDate) setExitDate((so as any).exitDate);
+            setCancellationReason((so as any).cancellationReason || null);
+            // Bloquear edição para OS Entregues
+            if (so.status === 'Entregue') setIsLocked(true);
+            // Carregar estado de edição anterior
+            if ((so as any).isEdited) setIsEdited(true);
 
-            // Carregar e selecionar cliente
-            if (so.customerName) {
-                setCustomerSearch(so.customerName);
-                // Buscar cliente completo por ID
-                if (so.customerId) {
-                    const custList = await getCustomers();
-                    const cust = custList.find(c => c.id === so.customerId);
-                    if (cust) {
-                        setSelectedCustomer(cust);
-                    } else {
-                        // Fallback: criar objeto parcial
-                        setSelectedCustomer({
-                            id: so.customerId,
-                            name: so.customerName,
-                            phone: so.phone,
-                        } as Customer);
-                    }
+            // Carregar e selecionar cliente — usando lista já carregada para evitar race condition
+            if (so.customerId || so.customerName) {
+                setCustomerSearch(so.customerName || '');
+                // Usar lista já disponível ou buscar novamente
+                const custList = preloadedCustomers && preloadedCustomers.length > 0
+                    ? preloadedCustomers
+                    : await getCustomers();
+                const cust = so.customerId ? custList.find((c: any) => c.id === so.customerId) : null;
+                if (cust) {
+                    setSelectedCustomer(cust);
+                } else {
+                    // Fallback: criar objeto parcial com os dados da OS
+                    setSelectedCustomer({
+                        id: so.customerId || 'os-fallback',
+                        name: so.customerName || 'Cliente',
+                        phone: (so as any).phone,
+                    } as Customer);
                 }
             }
         } catch (error) {
@@ -359,7 +381,8 @@ const ServiceOrderForm: React.FC = () => {
             description: type === 'service' ? (item as Service).name : (item as OsPart).name,
             type: type,
             price: type === 'service' ? (item as Service).price : (item as OsPart).salePrice,
-            quantity: 1
+            quantity: 1,
+            warranty: item.warranty || ''
         };
         setItems([...items, newItem]);
         toast.success(`${type === 'service' ? 'Serviço' : 'Peça OS'} adicionado(a)!`);
@@ -380,9 +403,14 @@ const ServiceOrderForm: React.FC = () => {
     // --- Save ---
     const buildServiceOrderData = (overrideStatus?: string) => {
         const responsible = users.find(u => u.id === responsibleId);
+        // Garante que IDs que podem ser 'os-fallback' ou vazios virem como null (UUID válido ou null)
+        const safeCustomerId = selectedCustomer?.id && selectedCustomer.id !== 'os-fallback' ? selectedCustomer.id : null;
+        const safeResponsibleId = responsibleId && responsibleId.trim() !== '' ? responsibleId : null;
+        const safeAttendantId = attendantId && attendantId.trim() !== '' ? attendantId : null;
+        const safeCustomerDeviceId = customerDeviceId && customerDeviceId.trim() !== '' ? customerDeviceId : null;
         return {
-            customerId: selectedCustomer!.id,
-            customerName: selectedCustomer!.name,
+            customerId: safeCustomerId,
+            customerName: selectedCustomer?.name || '',
             deviceModel,
             imei,
             serialNumber,
@@ -402,19 +430,20 @@ const ServiceOrderForm: React.FC = () => {
             subtotal,
             discount,
             total,
-            responsibleId,
-            responsibleName: responsible?.name || 'Sistema',
-            attendantId,
-            attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
+            responsibleId: safeResponsibleId,
+            responsibleName: responsible?.name || '',
+            attendantId: safeAttendantId,
+            attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || '',
             photos,
-            entryDate: entryDate ? new Date(entryDate + 'T12:00:00').toISOString() : new Date().toISOString(),
+            entryDate: entryDate || new Date().toISOString(),
             estimatedDate: estimatedDate ? new Date(estimatedDate + 'T12:00:00').toISOString() : undefined,
-            customerDeviceId
+            customerDeviceId: safeCustomerDeviceId,
+            cancellationReason
         };
     };
 
     const handleSave = async () => {
-        if (!selectedCustomer) {
+        if (!selectedCustomer && !isEditing) {
             toast.error("Selecione um cliente.");
             return;
         }
@@ -422,7 +451,8 @@ const ServiceOrderForm: React.FC = () => {
             toast.error("Informe o modelo do aparelho.");
             return;
         }
-        if (!responsibleId) {
+        // Em edição, o responsável já pode estar nulo no banco — não bloquear
+        if (!responsibleId && !isEditing) {
             toast.error("Selecione o responsável.");
             return;
         }
@@ -431,7 +461,8 @@ const ServiceOrderForm: React.FC = () => {
         try {
             const serviceOrderData = buildServiceOrderData();
             if (isEditing && editId) {
-                await updateServiceOrder(editId, serviceOrderData);
+                await updateServiceOrder(editId, { ...serviceOrderData, isEdited: true } as any);
+                setIsEdited(true);
                 toast.success("Ordem de Serviço atualizada com sucesso!");
             } else {
                 await addServiceOrder(serviceOrderData);
@@ -446,12 +477,20 @@ const ServiceOrderForm: React.FC = () => {
     };
 
     // --- Faturar ---
-    const handleBilled = async (_paymentMethodId: string, _paymentMethodName: string) => {
+    const handleBilled = async (_paymentMethodId: string, _paymentMethodName: string, payments: any[] = []) => {
         if (!editId) return;
         // Salva OS com status Entregue
         const data = buildServiceOrderData('Entregue');
-        await updateServiceOrder(editId, data);
+        // Add payments array
+        await updateServiceOrder(editId, { ...data, payments } as any);
+        // Baixar peças do estoque
+        try {
+            await deductOsPartsStock(editId, displayId || 0, items);
+        } catch (e) {
+            console.error('Erro ao baixar estoque:', e);
+        }
         setOsStatus('Entregue');
+        setJustBilled(true);
         toast.success('OS faturada e marcada como Entregue!');
     };
 
@@ -518,13 +557,34 @@ const ServiceOrderForm: React.FC = () => {
                                     : 'Nova Ordem de Serviço'
                                 }
                             </h1>
+                            {isEdited && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-100 border border-violet-200 text-[11px] font-black text-violet-700">
+                                    <PencilLine size={10} /> Editada
+                                </span>
+                            )}
+                            {isLocked && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-black text-gray-500">
+                                    <Lock size={10} /> Somente Leitura
+                                </span>
+                            )}
                         </div>
                         <p className="text-secondary text-sm mt-0.5">
-                            {isEditing ? 'Editar dados do atendimento' : 'Preencha os dados do atendimento'}
+                            {isEditing ? (isLocked ? 'OS faturada — clique em Habilitar Edição para modificar' : 'Editar dados do atendimento') : 'Preencha os dados do atendimento'}
                         </p>
                     </div>
                 </div>
             </div>
+
+            {/* Banner de OS bloqueada */}
+            {isLocked && (
+                <div className="mb-6 flex items-center gap-3 bg-violet-50 border border-violet-200 rounded-2xl px-5 py-3.5">
+                    <Lock size={16} className="text-violet-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-violet-800">OS Entregue — Edição bloqueada</p>
+                        <p className="text-xs text-violet-600">Esta OS já foi faturada. Clique no botão <strong>Habilitar Edição</strong> abaixo para fazer alterações.</p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* Left Column - Navigation & Progress */}
@@ -572,7 +632,7 @@ const ServiceOrderForm: React.FC = () => {
                     </button>
 
                     {/* Attendant + Responsible Selectors in Sidebar */}
-                    <div className="mt-8 p-4 bg-white/50 rounded-2xl border border-gray-100 space-y-4">
+                    <fieldset disabled={isLocked} className="mt-8 p-4 bg-white/50 rounded-2xl border border-gray-100 space-y-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Atendente (Entrada)</label>
                             <select
@@ -606,11 +666,11 @@ const ServiceOrderForm: React.FC = () => {
                                 }
                             </select>
                         </div>
-                    </div>
+                    </fieldset>
 
                     {/* Status selector em modo edição */}
                     {isEditing && (
-                        <div className="p-4 bg-white/50 rounded-2xl border border-gray-100">
+                        <fieldset disabled={isLocked} className="p-4 bg-white/50 rounded-2xl border border-gray-100">
                             <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Status da OS</label>
                             <select
                                 value={osStatus}
@@ -638,6 +698,13 @@ const ServiceOrderForm: React.FC = () => {
                                 ))}
                             </select>
 
+                            {osStatus === 'Cancelada' && cancellationReason && (
+                                <div className="mt-3 p-3 bg-red-100/50 border border-red-200 rounded-xl">
+                                    <p className="text-[10px] font-black text-red-600 uppercase mb-1">Motivo do Cancelamento</p>
+                                    <p className="text-xs text-red-700 italic">"{cancellationReason}"</p>
+                                </div>
+                            )}
+
                             <div className="mt-3">
                                 <button
                                     type="button"
@@ -655,7 +722,7 @@ const ServiceOrderForm: React.FC = () => {
                                     Notificar Status via WhatsApp
                                 </button>
                             </div>
-                        </div>
+                        </fieldset>
                     )}
                 </div>
 
@@ -724,14 +791,27 @@ const ServiceOrderForm: React.FC = () => {
                                 Cancelar
                             </button>
 
-                            <button
-                                onClick={handleSave}
-                                disabled={isLoading}
-                                className="bg-gray-800 hover:bg-gray-900 text-white h-9 px-5 rounded-xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
-                            >
-                                <Save size={16} />
-                                {isLoading ? 'Salvando...' : 'Salvar OS'}
-                            </button>
+                            {/* Botão principal: Habilitar Edição (se bloqueada) ou Salvar OS */}
+                            {isLocked ? (
+                                <button
+                                    onClick={() => {
+                                        setIsLocked(false);
+                                        toast.info('Edição habilitada. Salve ao terminar.');
+                                    }}
+                                    className="bg-violet-600 hover:bg-violet-700 text-white h-9 px-5 rounded-xl text-sm font-black shadow-lg shadow-violet-500/30 active:scale-95 transition-all flex items-center gap-2"
+                                >
+                                    <Unlock size={16} /> Habilitar Edição
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isLoading}
+                                    className="bg-gray-800 hover:bg-gray-900 text-white h-9 px-5 rounded-xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    <Save size={16} />
+                                    {isLoading ? 'Salvando...' : 'Salvar OS'}
+                                </button>
+                            )}
 
                             {/* Botão Faturar — só visível ao editar */}
                             {isEditing && (
@@ -746,7 +826,7 @@ const ServiceOrderForm: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 p-6 sm:p-8 rounded-3xl shadow-sm min-h-[600px] flex flex-col">
+                    <fieldset disabled={isLocked} className="bg-white border border-gray-200 p-6 sm:p-8 rounded-3xl shadow-sm min-h-[600px] flex flex-col relative transition-opacity duration-300">
 
                         {/* TAB 1: CLIENT & DEVICE */}
                         {activeTab === 'client_device' && (
@@ -802,13 +882,16 @@ const ServiceOrderForm: React.FC = () => {
                                         )}
 
                                         {/* Data Entrada - fully clickable */}
-                                        <div className="flex flex-col min-w-[130px]">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Data Entrada</label>
+                                        <div className="flex flex-col min-w-[170px]">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Data/Hora Entrada</label>
                                             <label className="relative cursor-pointer">
                                                 <input
-                                                    type="date"
-                                                    value={entryDate}
-                                                    onChange={e => setEntryDate(e.target.value)}
+                                                    type="datetime-local"
+                                                    value={entryDate ? entryDate.slice(0, 16) : ''}
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        if (val) setEntryDate(new Date(val).toISOString());
+                                                    }}
                                                     className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
                                                 />
                                             </label>
@@ -1145,12 +1228,13 @@ const ServiceOrderForm: React.FC = () => {
                                     <table className="w-full text-sm">
                                         <thead className="bg-gray-50 border-b border-gray-200 text-left text-xs font-bold text-secondary uppercase">
                                             <tr>
-                                                <th className="px-4 py-4">Descrição</th>
-                                                <th className="px-4 py-4 w-48">Tipo</th>
-                                                <th className="px-4 py-4 w-28 text-center">Qtd</th>
-                                                <th className="px-4 py-4 w-32 text-right">Valor Unit.</th>
-                                                <th className="px-4 py-4 w-32 text-right">Total</th>
-                                                <th className="px-4 py-4 w-10"></th>
+                                                <th className="px-3 py-4">Descrição</th>
+                                                <th className="px-2 py-4 w-28">Tipo</th>
+                                                <th className="px-2 py-4 w-36">Garantia</th>
+                                                <th className="px-2 py-4 w-20 text-center">Qtd</th>
+                                                <th className="px-2 py-4 w-32 text-right">Valor Unit.</th>
+                                                <th className="px-2 py-4 w-28 text-right">Total</th>
+                                                <th className="px-2 py-4 w-10"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -1174,10 +1258,38 @@ const ServiceOrderForm: React.FC = () => {
                                                                 value={item.type}
                                                                 onChange={e => updateItem(item.id, 'type', e.target.value)}
                                                                 className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm focus:border-accent transition-all"
+                                                                disabled={isLocked}
                                                             >
                                                                 <option value="service">Serviço</option>
                                                                 <option value="part">Peça</option>
                                                             </select>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <input
+                                                                type="text"
+                                                                list={`warranty-options-${item.id}`}
+                                                                value={item.warranty || ''}
+                                                                onChange={e => updateItem(item.id, 'warranty', e.target.value)}
+                                                                className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-accent font-medium text-sm transition-all"
+                                                                placeholder="Garantia"
+                                                                disabled={isLocked}
+                                                            />
+                                                            <datalist id={`warranty-options-${item.id}`}>
+                                                                {osWarranties.map(w => (
+                                                                    <option key={w.id} value={w.name}>{w.name}</option>
+                                                                ))}
+                                                            </datalist>
+                                                            {item.warranty && exitDate && (
+                                                                (() => {
+                                                                    const expiry = calculateWarrantyExpiry(exitDate, item.warranty);
+                                                                    return expiry ? (
+                                                                        <div className="flex items-center gap-1 mt-1 text-[10px] font-black text-emerald-600">
+                                                                            <ShieldCheck size={10} />
+                                                                            Expira: {formatDateBR(expiry)}
+                                                                        </div>
+                                                                    ) : null;
+                                                                })()
+                                                            )}
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
                                                             <input
@@ -1283,39 +1395,40 @@ const ServiceOrderForm: React.FC = () => {
                                 </button>
                             )}
                         </div>
-
-                    </div>
+                    </fieldset>
                 </div>
             </div>
 
-            {isCustomerModalOpen && (
-                <CustomerModal
-                    entity={null}
-                    initialType="Cliente"
-                    onClose={() => setIsCustomerModalOpen(false)}
-                    onSave={async (data) => {
-                        try {
-                            const newCustomer = await addCustomer({
-                                ...data,
-                                createdAt: new Date().toISOString()
-                            }, currentUser?.id, currentUser?.name);
+            {
+                isCustomerModalOpen && (
+                    <CustomerModal
+                        entity={null}
+                        initialType="Cliente"
+                        onClose={() => setIsCustomerModalOpen(false)}
+                        onSave={async (data) => {
+                            try {
+                                const newCustomer = await addCustomer({
+                                    ...data,
+                                    createdAt: new Date().toISOString()
+                                }, currentUser?.id, currentUser?.name);
 
-                            if (newCustomer) {
-                                // Update local list
-                                setCustomers(prev => [...prev, newCustomer]);
-                                // Auto-select
-                                handleSelectCustomer(newCustomer);
-                                toast.success("Cliente cadastrado e selecionado!");
+                                if (newCustomer) {
+                                    // Update local list
+                                    setCustomers(prev => [...prev, newCustomer]);
+                                    // Auto-select
+                                    handleSelectCustomer(newCustomer);
+                                    toast.success("Cliente cadastrado e selecionado!");
+                                }
+                            } catch (error) {
+                                console.error("Error creating customer from OS:", error);
+                                toast.error("Erro ao criar cliente.");
+                            } finally {
+                                setIsCustomerModalOpen(false);
                             }
-                        } catch (error) {
-                            console.error("Error creating customer from OS:", error);
-                            toast.error("Erro ao criar cliente.");
-                        } finally {
-                            setIsCustomerModalOpen(false);
-                        }
-                    }}
-                />
-            )}
+                        }}
+                    />
+                )
+            }
 
             <CameraModal
                 isOpen={isCameraOpen}
@@ -1348,89 +1461,112 @@ const ServiceOrderForm: React.FC = () => {
                 onSelect={(item) => handleAddItemFromCatalog(item._osPart || item, 'part')}
             />
 
-            {isDeviceModalOpen && (
-                <CustomerDeviceModal
-                    isOpen={isDeviceModalOpen}
-                    onClose={() => setIsDeviceModalOpen(false)}
-                    customer={selectedCustomer}
-                    onSuccess={(device) => {
-                        setCustomerDevices([...customerDevices, device]);
-                        handleSelectDevice(device);
-                    }}
-                />
-            )}
+            {
+                isDeviceModalOpen && (
+                    <CustomerDeviceModal
+                        isOpen={isDeviceModalOpen}
+                        onClose={() => setIsDeviceModalOpen(false)}
+                        customer={selectedCustomer}
+                        onSuccess={(device) => {
+                            setCustomerDevices([...customerDevices, device]);
+                            handleSelectDevice(device);
+                        }}
+                    />
+                )
+            }
 
-            {isQuickOSOpen && (
-                <QuickOSModal
-                    onClose={() => setIsQuickOSOpen(false)}
-                    onSaved={() => {
-                        setIsQuickOSOpen(false);
-                        navigate('/service-orders/list');
-                    }}
-                />
-            )}
+            {
+                isQuickOSOpen && (
+                    <QuickOSModal
+                        onClose={() => setIsQuickOSOpen(false)}
+                        onSaved={() => {
+                            setIsQuickOSOpen(false);
+                            navigate('/service-orders/list');
+                        }}
+                    />
+                )
+            }
 
-            {isPrintModalOpen && (
-                <ServiceOrderPrintModal
-                    serviceOrder={{
-                        id: editId || '',
-                        displayId: displayId || 0,
-                        customerId: selectedCustomer?.id || '',
-                        customerName: selectedCustomer?.name || 'Cliente Avulso',
-                        customerDeviceId,
-                        deviceModel,
-                        imei,
-                        serialNumber,
-                        passcode,
-                        patternLock,
-                        checklist: { ...checklist, othersDescription },
-                        defectDescription,
-                        attendantObservations,
-                        technicalReport,
-                        observations,
-                        photos,
-                        items,
-                        discount,
-                        subtotal: items.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-                        total: items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - discount,
-                        status: osStatus,
-                        entryDate,
-                        estimatedDate,
-                        responsibleId,
-                        responsibleName: users.find(u => u.id === responsibleId)?.name || 'Técnico',
-                        attendantId,
-                        attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
-                        createdAt: entryDate,
-                        updatedAt: new Date().toISOString()
-                    } as any}
-                    initialFormat={printFormat}
-                    onClose={() => setIsPrintModalOpen(false)}
-                />
-            )}
+            {
+                isPrintModalOpen && (
+                    <ServiceOrderPrintModal
+                        serviceOrder={{
+                            id: editId || '',
+                            displayId: displayId || 0,
+                            customerId: selectedCustomer?.id || '',
+                            customerName: selectedCustomer?.name || 'Cliente Avulso',
+                            customerDeviceId,
+                            deviceModel,
+                            imei,
+                            serialNumber,
+                            passcode,
+                            patternLock,
+                            checklist: { ...checklist, othersDescription },
+                            defectDescription,
+                            attendantObservations,
+                            technicalReport,
+                            observations,
+                            photos,
+                            items,
+                            discount,
+                            subtotal: items.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+                            total: items.reduce((acc, item) => acc + (item.price * item.quantity), 0) - discount,
+                            status: osStatus,
+                            entryDate,
+                            estimatedDate,
+                            exitDate: exitDate || undefined,
+                            responsibleId,
+                            responsibleName: users.find(u => u.id === responsibleId)?.name || 'Técnico',
+                            attendantId,
+                            attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
+                            createdAt: entryDate,
+                            updatedAt: new Date().toISOString()
+                        } as any}
+                        initialFormat={printFormat}
+                        onClose={() => {
+                            setIsPrintModalOpen(false);
+                            if (justBilled) {
+                                navigate('/service-orders/list');
+                            }
+                        }}
+                    />
+                )
+            }
 
-            {isBillingModalOpen && (
-                <OSBillingModal
-                    isOpen={isBillingModalOpen}
-                    onClose={() => setIsBillingModalOpen(false)}
-                    serviceOrder={{
-                        id: editId || '',
-                        displayId,
-                        customerName: selectedCustomer?.name || 'Cliente',
-                        customerPhone: selectedCustomer?.phone,
-                        deviceModel,
-                        items,
-                        subtotal,
-                        discount,
-                        total,
-                        status: osStatus,
-                    }}
-                    onBilled={handleBilled}
-                    onPrint={(format) => {
-                        setPrintFormat(format);
-                        setIsPrintModalOpen(true);
-                    }}
-                />
-            )}
+            {
+                isBillingModalOpen && (
+                    <OSBillingModal
+                        isOpen={isBillingModalOpen}
+                        onClose={() => setIsBillingModalOpen(false)}
+                        serviceOrder={{
+                            id: editId || '',
+                            displayId,
+                            customerName: selectedCustomer?.name || 'Cliente',
+                            customerPhone: selectedCustomer?.phone,
+                            deviceModel,
+                            items,
+                            subtotal,
+                            discount,
+                            total,
+                            status: osStatus,
+                            defectDescription,
+                            technicalReport,
+                            observations,
+                            attendantObservations,
+                            entryDate,
+                            attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || 'Sistema',
+                            responsibleName: users.find(u => u.id === responsibleId)?.name || 'Técnico',
+                            checklist,
+                            checklistItems: availableChecklistItems,
+                        }}
+                        onBilled={handleBilled}
+                        onPrint={(format) => {
+                            setPrintFormat(format);
+                            setIsPrintModalOpen(true);
+                        }}
+                    />
+                )
+            }
 
             <DeleteWithReasonModal
                 isOpen={isCancelModalOpen}
@@ -1443,6 +1579,7 @@ const ServiceOrderForm: React.FC = () => {
                             cancellationReason: reason
                         } as any);
                         setOsStatus('Cancelada');
+                        setCancellationReason(reason);
                         toast.success("OS cancelada com sucesso!");
                         setIsCancelModalOpen(false);
                     } catch (err) {
@@ -1453,7 +1590,7 @@ const ServiceOrderForm: React.FC = () => {
                 message="Tem certeza que deseja cancelar esta OS? Informe o motivo obrigatório."
                 reasonLabel="Motivo do Cancelamento*"
             />
-        </div>
+        </div >
     );
 };
 

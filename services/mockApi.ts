@@ -5956,6 +5956,10 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         updated_at: getNowISO()
     };
 
+    if (data.status === 'Entregue' && (!data.exitDate && !updatePayload.exit_date)) {
+        updatePayload.exit_date = getNowISO();
+    }
+
     // Map to snake_case
     if (data.customerId !== undefined) updatePayload.customer_id = data.customerId;
     if (data.customerName !== undefined) updatePayload.customer_name = data.customerName;
@@ -5977,11 +5981,16 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).isQuick !== undefined) updatePayload.is_quick = (data as any).isQuick;
     if ((data as any).phone !== undefined) updatePayload.phone = (data as any).phone;
     if (data.cancellationReason !== undefined) updatePayload.cancellation_reason = data.cancellationReason;
+    if ((data as any).isEdited !== undefined) updatePayload.is_edited = (data as any).isEdited;
 
-    // Fix empty UUIDs/strings that should be null
+    // Fix empty/invalid UUIDs that should be null
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
+    const _uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     uuidFields.forEach(field => {
-        if (updatePayload[field] === '') updatePayload[field] = null;
+        const val = updatePayload[field];
+        if (!val || (typeof val === 'string' && !_uuidRegex.test(val))) {
+            updatePayload[field] = null;
+        }
     });
 
     // Remove camelCase keys
@@ -5991,7 +6000,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason'
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 
@@ -6039,6 +6048,122 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         isOrcamentoOnly: updated.is_orcamento_only,
         cancellationReason: updated.cancellation_reason,
     };
+};
+
+// --- OS Part Stock Management ---
+
+/**
+ * Deduz o estoque das peças ao faturar a OS.
+ * Cria um registro de uso da peça com referência à OS.
+ */
+export const deductOsPartsStock = async (
+    serviceOrderId: string,
+    serviceOrderDisplayId: number,
+    items: any[]
+): Promise<void> => {
+    const partItems = items.filter((item: any) => item.type === 'part' && item.catalogItemId);
+    if (partItems.length === 0) return;
+
+    for (const item of partItems) {
+        // Buscar o estoque atual da peça
+        const { data: part, error: fetchError } = await supabase
+            .from('os_parts')
+            .select('id, stock, name')
+            .eq('id', item.catalogItemId)
+            .single();
+
+        if (fetchError || !part) continue;
+
+        const newStock = Math.max(0, (part.stock || 0) - (item.quantity || 1));
+
+        // Atualizar estoque
+        await supabase
+            .from('os_parts')
+            .update({ stock: newStock, updated_at: getNowISO() })
+            .eq('id', item.catalogItemId);
+
+        // Registrar histórico de uso
+        await supabase
+            .from('os_part_usage_history')
+            .insert([{
+                os_part_id: item.catalogItemId,
+                service_order_id: serviceOrderId,
+                service_order_display_id: serviceOrderDisplayId,
+                part_name: part.name || item.description,
+                quantity: item.quantity || 1,
+                action: 'deducted',
+                created_at: getNowISO()
+            }]);
+    }
+
+    clearCache(['os_parts_false', 'os_parts_true']);
+};
+
+/**
+ * Retorna as peças ao estoque quando uma OS é cancelada.
+ * Remove os registros de uso da peça.
+ */
+export const returnOsPartsStock = async (
+    serviceOrderId: string
+): Promise<void> => {
+    // Buscar registros de uso da OS
+    const { data: usageRecords, error } = await supabase
+        .from('os_part_usage_history')
+        .select('*')
+        .eq('service_order_id', serviceOrderId)
+        .eq('action', 'deducted');
+
+    if (error || !usageRecords || usageRecords.length === 0) return;
+
+    for (const record of usageRecords) {
+        // Buscar estoque atual
+        const { data: part } = await supabase
+            .from('os_parts')
+            .select('id, stock')
+            .eq('id', record.os_part_id)
+            .single();
+
+        if (!part) continue;
+
+        // Devolver ao estoque
+        const newStock = (part.stock || 0) + (record.quantity || 1);
+        await supabase
+            .from('os_parts')
+            .update({ stock: newStock, updated_at: getNowISO() })
+            .eq('id', record.os_part_id);
+    }
+
+    // Marcar registros como devolvidos
+    await supabase
+        .from('os_part_usage_history')
+        .update({ action: 'returned', updated_at: getNowISO() })
+        .eq('service_order_id', serviceOrderId)
+        .eq('action', 'deducted');
+
+    clearCache(['os_parts_false', 'os_parts_true']);
+};
+
+/**
+ * Retorna o histórico de uso de uma peça (em quais OS foi usada).
+ */
+export const getOsPartUsageHistory = async (osPartId: string): Promise<any[]> => {
+    const { data, error } = await supabase
+        .from('os_part_usage_history')
+        .select('*')
+        .eq('os_part_id', osPartId)
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map((r: any) => ({
+        id: r.id,
+        osPartId: r.os_part_id,
+        serviceOrderId: r.service_order_id,
+        serviceOrderDisplayId: r.service_order_display_id,
+        partName: r.part_name,
+        quantity: r.quantity,
+        action: r.action,
+        createdAt: r.created_at,
+    }));
 };
 
 

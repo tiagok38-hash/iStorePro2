@@ -4,6 +4,7 @@ import { ServiceOrder, CompanyInfo, Product, Customer, ChecklistItemParameter } 
 import { formatCurrency, getCompanyInfo, getCustomers, getChecklistItems } from '../../services/mockApi.ts';
 import { CloseIcon, PrinterIcon, SpinnerIcon, WhatsAppIcon } from '../icons.tsx';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
+import { calculateWarrantyExpiry, formatDateBR } from '../../utils/dateUtils.ts';
 
 // Format CNPJ: 22.333.930/0001-08
 const formatCNPJ = (cnpj?: string): string => {
@@ -113,7 +114,7 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                     <div><span className="font-semibold text-gray-700">Status OS:</span> <span className="font-bold uppercase">{os.status}</span></div>
                     <div><span className="font-semibold text-gray-700">Data Inicial:</span> {new Date(os.entryDate).toLocaleDateString('pt-BR')}</div>
                     <div><span className="font-semibold text-gray-700">Data Final:</span> {os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}</div>
-                    <div><span className="font-semibold text-gray-700">Garantia:</span> A definir</div>
+                    <div><span className="font-semibold text-gray-700">Garantia:</span> {os.status === 'Entregue' ? 'Ativa' : 'Sobre Peças/Serviços'}</div>
                 </div>
             </section>
 
@@ -157,19 +158,31 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                         <tr className="border-b-2 border-gray-300">
                             <th className="py-1 px-2">Qtd</th>
                             <th className="py-1 px-2">Descrição</th>
+                            <th className="py-1 px-2">Garantia</th>
                             <th className="py-1 px-2 text-right">Preço Unit.</th>
                             <th className="py-1 px-2 text-right">Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {os.items.length > 0 ? os.items.map((item, index) => (
-                            <tr key={item.id || index} className="border-b border-gray-100">
-                                <td className="py-1 px-2">{item.quantity}</td>
-                                <td className="py-1 px-2">{item.description}</td>
-                                <td className="py-1 px-2 text-right">{formatCurrency(item.price)}</td>
-                                <td className="py-1 px-2 text-right font-medium">{formatCurrency(item.price * item.quantity)}</td>
-                            </tr>
-                        )) : (
+                        {os.items.length > 0 ? os.items.map((item, index) => {
+                            const expiryDate = (item.warranty && os.exitDate) ? calculateWarrantyExpiry(os.exitDate, item.warranty) : null;
+                            return (
+                                <tr key={item.id || index} className="border-b border-gray-100">
+                                    <td className="py-1 px-2">{item.quantity}</td>
+                                    <td className="py-1 px-2">{item.description}</td>
+                                    <td className="py-1 px-2 text-[9px]">
+                                        {item.warranty ? (
+                                            <div className="flex flex-col">
+                                                <span>{item.warranty}</span>
+                                                {expiryDate && <span className="font-bold text-emerald-600">Até {formatDateBR(expiryDate)}</span>}
+                                            </div>
+                                        ) : '-'}
+                                    </td>
+                                    <td className="py-1 px-2 text-right">{formatCurrency(item.price)}</td>
+                                    <td className="py-1 px-2 text-right font-medium">{formatCurrency(item.price * item.quantity)}</td>
+                                </tr>
+                            );
+                        }) : (
                             <tr><td colSpan={4} className="text-center py-2 italic text-gray-500">Nenhum item adicionado à OS.</td></tr>
                         )}
                     </tbody>
@@ -185,6 +198,18 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                         <span>Valor Total da OS:</span> <span>{formatCurrency(os.total)}</span>
                     </div>
                 </div>
+
+                {os.payments && os.payments.length > 0 && os.status === 'Entregue' && (
+                    <div className="flex flex-col items-end mt-2 pr-2 text-[10px]">
+                        <span className="font-bold text-gray-700 uppercase mb-1">Formas de Pagamento</span>
+                        {os.payments.map((p, idx) => (
+                            <div key={idx} className="flex w-48 justify-between text-[9px]">
+                                <span className="text-gray-600 truncate mr-2">{p.card || p.method} {p.installments ? `(${p.installments}x)` : ''}</span>
+                                <span>{formatCurrency(p.value)}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </section>
 
             <section className="mt-6 border-t border-gray-200 pt-2 text-center text-[8px] text-gray-500">
@@ -271,7 +296,9 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
                 <p><span className="font-bold">Status:</span> {os.status}</p>
                 <div className="flex justify-between">
                     <p><span className="font-bold">Entrada:</span> {new Date(os.entryDate).toLocaleDateString('pt-BR')}</p>
-                    <p><span className="font-bold">Garantia:</span> 90d</p>
+                    {os.exitDate && (
+                        <p><span className="font-bold">Saída:</span> {new Date(os.exitDate).toLocaleDateString('pt-BR')}</p>
+                    )}
                 </div>
             </div>
 
@@ -288,15 +315,23 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
             <p className="font-bold text-center mb-1">PRODUTOS E SERVIÇOS</p>
 
             <div className="space-y-1">
-                {os.items.length > 0 ? os.items.map((item, i) => (
-                    <div key={item.id || i} className="mb-1 text-[9px]">
-                        <p className="font-bold truncate">{item.description}</p>
-                        <div className="flex justify-between">
-                            <span>{item.quantity} x {formatCurrency(item.price)}</span>
-                            <span>{formatCurrency(item.price * item.quantity)}</span>
+                {os.items.length > 0 ? os.items.map((item, i) => {
+                    const expiryDate = (item.warranty && os.exitDate) ? calculateWarrantyExpiry(os.exitDate, item.warranty) : null;
+                    return (
+                        <div key={item.id || i} className="mb-1 text-[9px]">
+                            <p className="font-bold truncate">{item.description}</p>
+                            <div className="flex justify-between">
+                                <span>{item.quantity} x {formatCurrency(item.price)}</span>
+                                <div className="text-right">
+                                    {item.warranty && (
+                                        <p className="font-bold text-[8px] uppercase">Garantia: {item.warranty} {expiryDate ? `(${formatDateBR(expiryDate)})` : ''}</p>
+                                    )}
+                                    <span>{formatCurrency(item.price * item.quantity)}</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                )) : (
+                    );
+                }) : (
                     <p className="text-center italic">Nenhum item adicionado.</p>
                 )}
             </div>
@@ -310,6 +345,18 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
                     <span>TOTAL OS:</span><span>{formatCurrency(os.total)}</span>
                 </div>
             </div>
+
+            {os.payments && os.payments.length > 0 && os.status === 'Entregue' && (
+                <div className="mt-2 text-[9px]">
+                    <p className="font-bold border-b border-dashed border-black mb-1">PAGAMENTO(S)</p>
+                    {os.payments.map((p, idx) => (
+                        <div key={idx} className="flex justify-between">
+                            <span className="truncate mr-2">{p.card || p.method} {p.installments ? `(${p.installments}x)` : ''}</span>
+                            <span>{formatCurrency(p.value)}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             <div className="mt-8 text-center px-4">
                 <div className="border-t border-black mb-1 mx-auto w-3/4"></div>

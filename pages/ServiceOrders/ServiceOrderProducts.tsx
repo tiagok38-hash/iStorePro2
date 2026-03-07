@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import {
     getServices, addService, updateService, deleteService,
@@ -18,6 +19,7 @@ import CurrencyInput from '../../components/CurrencyInput';
 import OsPartModal from '../../components/OsPartModal';
 import OsPurchaseModal from '../../components/OsPurchaseModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
+import OsPurchaseDetailModal from '../../components/OsPurchaseDetailModal';
 import { formatDateBR } from '../../utils/dateUtils';
 import { getOsWarranties } from '../../services/mockApi';
 import { useUser } from '../../contexts/UserContext';
@@ -42,15 +44,26 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
     });
 
     useEffect(() => {
-        if (service) {
-            setFormData({
-                ...service,
-                warranty: service.warranty || '90 dias'
-            });
-        } else {
-            setFormData({ name: '', description: '', price: 0, cost: 0, warranty: '90 dias' });
+        if (isOpen) {
+            if (service) {
+                setFormData({
+                    ...service,
+                    warranty: service.warranty || '90 dias'
+                });
+            } else {
+                setFormData({
+                    name: '',
+                    description: '',
+                    price: 0,
+                    cost: 0,
+                    warranty: '90 dias',
+                    commission_enabled: false,
+                    commission_type: 'percentage',
+                    commission_value: 0
+                });
+            }
         }
-    }, [service]);
+    }, [service, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -196,10 +209,14 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
 
 // --- Main Page Component ---
 const ServiceOrderProducts: React.FC = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<'services' | 'parts'>('parts');
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
     const { user } = useUser();
+
+    // URL Filter sync
+    const urlFilter = searchParams.get('filter');
 
     // Data States
     const [services, setServices] = useState<Service[]>([]);
@@ -212,7 +229,14 @@ const ServiceOrderProducts: React.FC = () => {
     const [grades, setGrades] = useState<Grade[]>([]);
     const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out' | 'low'>('in_stock');
+    const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out' | 'low'>((urlFilter as any) || 'in_stock');
+
+    useEffect(() => {
+        if (urlFilter && ['all', 'in_stock', 'out', 'low'].includes(urlFilter)) {
+            setStockFilter(urlFilter as any);
+            setActiveTab('parts');
+        }
+    }, [urlFilter]);
 
     // Service Modal State
     const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -234,6 +258,7 @@ const ServiceOrderProducts: React.FC = () => {
     const [purchaseHistoryLoading, setPurchaseHistoryLoading] = useState(false);
     const [purchaseToCancel, setPurchaseToCancel] = useState<OsPurchaseOrder | null>(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [purchaseToView, setPurchaseToView] = useState<OsPurchaseOrder | null>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -518,7 +543,7 @@ const ServiceOrderProducts: React.FC = () => {
                                     onClick={() => setStockFilter(f.key)}
                                     className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all whitespace-nowrap ${stockFilter === f.key
                                         ? f.key === 'out' ? 'bg-red-600 text-white shadow-sm'
-                                            : f.key === 'low' ? 'bg-orange-500 text-white shadow-sm'
+                                            : f.key === 'low' ? 'bg-red-500 text-white shadow-sm'
                                                 : 'bg-gray-800 text-white shadow-sm'
                                         : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
                                         }`}
@@ -687,7 +712,7 @@ const ServiceOrderProducts: React.FC = () => {
                                                             </button>
                                                         )}
                                                         {p.status !== 'Cancelado' && (
-                                                            <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); setShowPurchaseHistory(false); }}
+                                                            <button onClick={() => setPurchaseToView(p)}
                                                                 title="Visualizar"
                                                                 className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded">
                                                                 <EyeIcon className="h-5 w-5" />
@@ -722,14 +747,16 @@ const ServiceOrderProducts: React.FC = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">Estoque</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Peça (Estoque OS)</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Cadastro</th>
+                                    <th className="pl-4 pr-2 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider w-16">Estoque</th>
+                                    <th className="pl-0 pr-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Peça (Estoque OS)</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Fornecedor</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Local</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Custo</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Atacado</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Venda</th>
-                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Garantia</th>
+                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">Un. Medida</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Cadastro</th>
                                     <th className="px-4 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
@@ -755,51 +782,43 @@ const ServiceOrderProducts: React.FC = () => {
                                             : '';
                                         return (
                                             <tr key={part.id} className="hover:bg-gray-50 transition-colors group">
-                                                <td className="px-4 py-3">
+                                                <td className="pl-4 pr-2 py-3 text-center">
                                                     <div className="flex flex-col items-center">
-                                                        <span className={`px-2 py-1 text-sm font-bold rounded-xl border ${part.stock > 0 ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+                                                        <span className={`px-2 py-1 text-sm font-bold rounded-xl border ${part.stock <= (part.minimumStock || 0) ? 'bg-red-100 text-red-700 border-red-200' : 'bg-green-100 text-green-700 border-green-200'}`}>
                                                             {part.stock}
                                                         </span>
-                                                        <span className="text-[10px] text-gray-400 font-bold mt-1 uppercase">{part.unit || 'Un'}</span>
-                                                        {part.minimumStock !== undefined && part.stock <= (part.minimumStock || 0) && part.stock > 0 && (
-                                                            <span className="text-[8px] text-red-600 font-bold uppercase leading-tight text-center mt-1">Abaixo do<br />mínimo</span>
-                                                        )}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="pl-0 pr-4 py-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
-                                                            <PackageIcon className="h-5 w-5" />
-                                                        </div>
                                                         <div className="min-w-0">
                                                             <p className="font-semibold text-gray-900 truncate">{part.name}</p>
-                                                            <p className="text-xs text-gray-400 truncate">
-                                                                {[part.brand, part.category, part.model].filter(Boolean).join(' · ') || 'Sem detalhes'}
-                                                            </p>
                                                             {(part.barcode || part.sku) && (
                                                                 <p className="text-[10px] text-gray-400 mt-0.5 flex gap-2">
                                                                     {part.sku && <span>SKU: <strong>{part.sku}</strong></span>}
-                                                                    {part.barcode && <span>Cód. Barras: <strong>{part.barcode}</strong></span>}
+                                                                    {part.barcode && <span>Cód. Barras: <strong className="text-emerald-500">{part.barcode}</strong></span>}
                                                                 </p>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="text-sm text-gray-700 font-medium whitespace-nowrap">{createdDate}</div>
-                                                    <div className="text-[10px] text-gray-400">{createdTime}</div>
-                                                    {part.createdByName && (
-                                                        <div className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[120px]">por {part.createdByName}</div>
-                                                    )}
-                                                </td>
                                                 <td className="px-4 py-3 text-sm text-gray-600 max-w-[140px] truncate" title={supplierName}>{supplierName}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 truncate">{part.storageLocation || '-'}</td>
                                                 <td className="px-4 py-3 text-sm font-medium text-gray-700">{formatCurrency(part.costPrice)}</td>
                                                 <td className="px-4 py-3 text-sm text-orange-600 font-bold">{formatCurrency(part.wholesalePrice || 0)}</td>
                                                 <td className="px-4 py-3 text-sm text-emerald-600 font-medium">{formatCurrency(part.salePrice)}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 truncate">{part.warranty || '-'}</td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${part.stock > 0 ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                                                        {part.stock > 0 ? 'Em Estoque' : 'Esgotado'}
+                                                    <span className="text-[10px] font-bold text-gray-600 uppercase">
+                                                        {part.unit || 'Un'}
                                                     </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="text-sm text-gray-700 font-medium whitespace-nowrap">{createdDate}</div>
+                                                    <div className="text-[10px] text-gray-800 font-bold">{createdTime}</div>
+                                                    {part.createdByName && (
+                                                        <div className="text-[10px] text-gray-800 font-bold mt-0.5 truncate max-w-[120px]">por {part.createdByName}</div>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="flex items-center justify-end gap-1">
@@ -882,6 +901,13 @@ const ServiceOrderProducts: React.FC = () => {
                 title="Cancelar Compra de OS"
                 message={`Tem certeza que deseja cancelar a compra de OS #${purchaseToCancel?.displayId}?`}
             />
+
+            {purchaseToView && (
+                <OsPurchaseDetailModal
+                    purchase={purchaseToView}
+                    onClose={() => setPurchaseToView(null)}
+                />
+            )}
         </div>
     );
 };
