@@ -357,6 +357,7 @@ const CustomersAndSuppliers: React.FC = () => {
     const [customerForHistory, setCustomerForHistory] = useState<Customer | null>(null);
     const [customerToInactivate, setCustomerToInactivate] = useState<Customer | null>(null);
     const [showInactive, setShowInactive] = useState(false);
+    const [showQuickOSOnly, setShowQuickOSOnly] = useState(false);
     const [productMap, setProductMap] = useState<Record<string, Product>>({});
     const [products, setProducts] = useState<Product[]>([]);
     const [customerSortOrder, setCustomerSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -492,6 +493,7 @@ const CustomersAndSuppliers: React.FC = () => {
                     credit_limit: entityData.credit_limit,
                     credit_used: entityData.credit_used,
                     allow_credit: entityData.allow_credit,
+                    customTag: (entityData.customTag === 'OS Rápida' && (entityData.cpf || (entityData.address && entityData.address.street))) ? null : entityData.customTag,
                 };
                 if (personType === 'Pessoa Física') {
                     customerPayload.cpf = entityData.cpf;
@@ -606,6 +608,10 @@ const CustomersAndSuppliers: React.FC = () => {
         // Se showInactive está ligado, mostra APENAS os inativos. Se desligado, mostra apenas os ativos.
         let filtered = customers.filter(c => (showInactive ? c.active === false : c.active !== false) && ((c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || c.email?.toLowerCase().includes(searchTerm.toLowerCase())));
 
+        if (showQuickOSOnly) {
+            filtered = filtered.filter(c => c.customTag === 'OS Rápida');
+        }
+
         if (birthdayFilter !== 'none') {
             filtered = filtered.filter(c => isBirthdayInPeriod(c.birthDate, birthdayFilter));
         }
@@ -634,7 +640,7 @@ const CustomersAndSuppliers: React.FC = () => {
             }
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
-    }, [customers, searchTerm, customerSortOrder, birthdayFilter, rankingFilter, allSales, showDebtorsOnly]);
+    }, [customers, searchTerm, customerSortOrder, birthdayFilter, rankingFilter, allSales, showDebtorsOnly, showQuickOSOnly]);
 
     const handleDeleteCustomerConfirm = async () => {
         if (!customerToDelete) return;
@@ -754,6 +760,14 @@ const CustomersAndSuppliers: React.FC = () => {
                         <EyeSlashIcon className={`h-4 w-4 ${showInactive ? 'text-white' : 'text-orange-500'}`} />
                         <span>Inativos ({customers.filter(c => c.active === false).length})</span>
                     </button>
+
+                    <button
+                        onClick={() => setShowQuickOSOnly(prev => !prev)}
+                        className={`shrink-0 h-10 px-4 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all ${showQuickOSOnly ? 'bg-blue-500 text-white border border-blue-600' : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'}`}
+                    >
+                        <ClockIcon className={`h-4 w-4 ${showQuickOSOnly ? 'text-white' : 'text-blue-500'}`} />
+                        <span>Concluir Cadastro ({customers.filter(c => c.customTag === 'OS Rápida').length})</span>
+                    </button>
                 </div>
 
                 {permissions?.canCreateCustomer && (
@@ -832,6 +846,14 @@ const CustomersAndSuppliers: React.FC = () => {
                     >
                         <EyeSlashIcon className={`h-4 w-4 ${showInactive ? 'text-white' : 'text-orange-500'}`} />
                         <span>Inativos ({customers.filter(c => c.active === false).length})</span>
+                    </button>
+
+                    <button
+                        onClick={() => setShowQuickOSOnly(prev => !prev)}
+                        className={`h-10 px-3 rounded-xl flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${showQuickOSOnly ? 'bg-blue-600 text-white border-blue-700 shadow-sm' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'}`}
+                    >
+                        <ClockIcon className={`h-4 w-4 ${showQuickOSOnly ? 'text-white' : 'text-blue-500'}`} />
+                        <span>Concluir Cadastro ({customers.filter(c => c.customTag === 'OS Rápida').length})</span>
                     </button>
                 </div>
 

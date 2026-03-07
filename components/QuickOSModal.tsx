@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Zap, X } from 'lucide-react';
-import { addServiceOrder } from '../services/mockApi';
+import { addServiceOrder, addCustomer } from '../services/mockApi';
 import { useToast } from '../contexts/ToastContext';
 
 interface QuickOSModalProps {
@@ -28,8 +28,14 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
         if (!form.deviceModel.trim()) { showToast('Informe o modelo do aparelho.', 'error'); return; }
         setIsSaving(true);
         try {
+            const newCustomer = await addCustomer({
+                name: form.customerName.trim(),
+                phone: form.phone.trim(),
+                customTag: 'OS Rápida'
+            }, 'system', 'Sistema');
+
             await addServiceOrder({
-                customerId: '',
+                customerId: newCustomer.id,
                 customerName: form.customerName.trim(),
                 deviceModel: form.deviceModel.trim(),
                 passcode: passType === 'alpha' ? form.passcode : '',
