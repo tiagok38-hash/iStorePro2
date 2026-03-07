@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Smartphone, Plus, Search, Clock, Calendar, Cpu, FileText, User, Wrench, Image as ImageIcon, ShoppingCart, Edit, Trash2, CheckCircle } from 'lucide-react';
 import Modal from '../../components/Modal';
+import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrderElectronicDevicesModal';
+import { Customer, Brand, Category, ProductModel, Grade, GradeValue } from '../../types';
+import { getCustomers, getBrands, getCategories, getProductModels, getGrades, getGradeValues } from '../../services/mockApi';
 
 // Types and Mock Data Interfaces
 export type ElectronicType = 'Produtos Apple' | 'Smartphone' | 'Tablets' | 'Computadores' | 'Notebooks' | 'Caixas de Som' | 'Outros';
@@ -113,6 +116,28 @@ const FILTER_OPTIONS: (ElectronicType | 'Todos')[] = [
 ];
 
 const ServiceOrderDevices: React.FC = () => {
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [productModels, setProductModels] = useState<ProductModel[]>([]);
+    const [grades, setGrades] = useState<Grade[]>([]);
+    const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
+
+    useEffect(() => {
+        const loadReferenceData = async () => {
+            const [fetchedCustomers, fetchedBrands, fetchedCats, fetchedModels, fetchedGrades, fetchedGradeValues] = await Promise.all([
+                getCustomers(), getBrands(), getCategories(), getProductModels(), getGrades(), getGradeValues()
+            ]);
+            setCustomers(fetchedCustomers);
+            setBrands(fetchedBrands);
+            setCategories(fetchedCats);
+            setProductModels(fetchedModels);
+            setGrades(fetchedGrades);
+            setGradeValues(fetchedGradeValues);
+        };
+        loadReferenceData();
+    }, []);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<ElectronicType | 'Todos'>('Todos');
     const [selectedDevice, setSelectedDevice] = useState<ElectronicDevice | null>(null);
@@ -164,6 +189,13 @@ const ServiceOrderDevices: React.FC = () => {
         setIsAddModalOpen(false);
         setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei1: '', customerName: '' });
         window.alert("Eletrônico salvo com sucesso!");
+    };
+
+    const handleSaveNewDevice = (newDevice: any) => {
+        MOCK_DEVICES.unshift(newDevice);
+        // Force refresh for mock
+        setSearchTerm(searchTerm + ' ');
+        setTimeout(() => setSearchTerm(searchTerm), 0);
     };
 
     return (
@@ -452,127 +484,17 @@ const ServiceOrderDevices: React.FC = () => {
             </Modal>
 
             {/* Add / Edit Form Modal */}
-            <Modal
-                isOpen={isAddModalOpen}
+            <ServiceOrderElectronicDevicesModal
+                isOpen={isAddModalOpen && !formData.id}
                 onClose={() => setIsAddModalOpen(false)}
-                title={formData.id ? "Editar Eletrônico" : "Adicionar Eletrônico"}
-            >
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-bold text-primary mb-1">Tipo de Aparelho *</label>
-                        <select
-                            value={formData.type || 'Smartphone'}
-                            onChange={(e) => setFormData({ ...formData, type: e.target.value as ElectronicType })}
-                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
-                        >
-                            {FILTER_OPTIONS.filter(o => o !== 'Todos').map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold text-primary mb-1">Marca *</label>
-                            <input
-                                type="text"
-                                value={formData.brand || ''}
-                                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                                placeholder="Ex: Apple"
-                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-primary mb-1">Modelo *</label>
-                            <input
-                                type="text"
-                                value={formData.model || ''}
-                                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                                placeholder="Ex: iPhone 13"
-                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold text-primary mb-1">Cor</label>
-                            <input
-                                type="text"
-                                value={formData.color || ''}
-                                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                                placeholder="Ex: Prata"
-                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-primary mb-1">Cliente Vinculado</label>
-                            <input
-                                type="text"
-                                value={formData.customerName || ''}
-                                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                                placeholder="Nome do Cliente"
-                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-bold text-primary mb-1">IMEI 1 *</label>
-                        <input
-                            type="text"
-                            value={formData.imei1 || ''}
-                            onChange={(e) => setFormData({ ...formData, imei1: e.target.value })}
-                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold text-primary mb-1">IMEI 2</label>
-                        <input
-                            type="text"
-                            value={formData.imei2 || ''}
-                            onChange={(e) => setFormData({ ...formData, imei2: e.target.value })}
-                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold text-primary mb-1">Cód. Série</label>
-                            <input
-                                type="text"
-                                value={formData.serialNumber || ''}
-                                onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-primary mb-1">EAN</label>
-                            <input
-                                type="text"
-                                value={formData.ean || ''}
-                                onChange={(e) => setFormData({ ...formData, ean: e.target.value })}
-                                className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-accent focus:bg-white text-sm font-mono"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
-                        <button
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="px-4 py-2 border border-gray-200 rounded-lg text-secondary font-bold hover:bg-gray-50"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={handleSaveDevice}
-                            className="px-4 py-2 bg-accent text-white rounded-lg font-bold shadow-md hover:bg-accent/90"
-                        >
-                            Salvar
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                customers={customers}
+                brands={brands}
+                categories={categories}
+                productModels={productModels}
+                grades={grades}
+                gradeValues={gradeValues}
+                onSave={handleSaveNewDevice}
+            />
         </div >
     );
 };
