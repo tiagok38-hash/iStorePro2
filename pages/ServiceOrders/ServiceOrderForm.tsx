@@ -1349,7 +1349,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                         const numeric = Number(raw) / 100;
                                                                         updateItem(item.id, 'price', isNaN(numeric) ? 0 : numeric);
                                                                     }}
-                                                                    className="w-full text-right bg-transparent outline-none font-medium text-primary text-sm"
+                                                                    className="flex-1 w-full h-full bg-transparent border-none outline-none focus:ring-0 text-right font-medium text-primary text-sm p-0"
                                                                 />
                                                             </div>
                                                         </td>
