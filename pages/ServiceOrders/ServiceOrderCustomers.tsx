@@ -12,6 +12,7 @@ import {
     TrashIcon,
     UserCircleIcon,
     FilterIcon,
+    ClockIcon,
     WhatsAppIcon,
     EnvelopeIcon
 } from '../../components/icons';
@@ -23,6 +24,7 @@ const ServiceOrderCustomers: React.FC = () => {
     const { toast, showToast } = useToast();
     const { user: currentUser } = useUser();
     const [activeTab, setActiveTab] = useState<'customers' | 'suppliers'>('customers');
+    const [showQuickOSOnly, setShowQuickOSOnly] = useState(false);
 
     // Data Stats
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -59,12 +61,18 @@ const ServiceOrderCustomers: React.FC = () => {
 
     const filteredData = useMemo(() => {
         const data = activeTab === 'customers' ? customers : suppliers;
-        return data.filter(item =>
+        let filtered = data.filter(item =>
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.phone.includes(searchTerm) ||
             item.email.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [activeTab, customers, suppliers, searchTerm]);
+
+        if (showQuickOSOnly && activeTab === 'customers') {
+            filtered = filtered.filter(item => (item as Customer).customTag === 'OS Rápida');
+        }
+
+        return filtered;
+    }, [activeTab, customers, suppliers, searchTerm, showQuickOSOnly]);
 
     const handleSave = async (data: any, entityType: 'Cliente' | 'Fornecedor' | 'Ambos', personType: string) => {
         try {
@@ -74,6 +82,7 @@ const ServiceOrderCustomers: React.FC = () => {
             // Helper to prepare payload
             const preparePayload = (baseData: any) => ({
                 ...baseData,
+                customTag: (baseData.customTag === 'OS Rápida' && (baseData.cpf || (baseData.address && baseData.address.street))) ? null : baseData.customTag,
                 // Ensure dynamic fields if needed
             });
 
@@ -185,15 +194,26 @@ const ServiceOrderCustomers: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="relative w-full sm:w-96">
-                    <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder={`Buscar ${activeTab === 'customers' ? 'cliente' : 'fornecedor'}...`}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 h-11 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all"
-                    />
+                <div className="flex gap-2 w-full sm:w-auto">
+                    {activeTab === 'customers' && (
+                        <button
+                            onClick={() => setShowQuickOSOnly(prev => !prev)}
+                            className={`flex items-center gap-2 h-11 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all sm:w-auto w-full justify-center ${showQuickOSOnly ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                            <ClockIcon className={`w-4 h-4 ${showQuickOSOnly ? 'text-white' : 'text-blue-500'}`} />
+                            <span className="whitespace-nowrap">Concluir Cadastro ({customers.filter(c => c.customTag === 'OS Rápida').length})</span>
+                        </button>
+                    )}
+                    <div className="relative w-full sm:w-96">
+                        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={`Buscar ${activeTab === 'customers' ? 'cliente' : 'fornecedor'}...`}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-12 pr-4 h-11 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all outline-none"
+                        />
+                    </div>
                 </div>
             </div>
 
