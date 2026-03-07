@@ -4,6 +4,8 @@ import { Smartphone, XCircleIcon, PlusIcon, Search, Cpu, User, Image as ImageIco
 import { Customer, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation } from '../types';
 import { appleProductHierarchy } from '../services/constants';
 import SearchableDropdown from './SearchableDropdown';
+import CustomerModal from './CustomerModal';
+import { addCustomer } from '../services/mockApi';
 
 interface ServiceOrderElectronicDevicesModalProps {
     isOpen: boolean;
@@ -47,6 +49,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
     const [formData, setFormData] = useState({ ...emptyItem });
     const [productType, setProductType] = useState<'Apple' | 'Produto'>('Apple');
     const [showVariations, setShowVariations] = useState(false);
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [currentGradeId, setCurrentGradeId] = useState('');
     const [currentValueId, setCurrentValueId] = useState('');
 
@@ -435,18 +438,40 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                     />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-end">
+                                <div className="md:col-span-2">
                                     <label className={labelClasses}>Cliente Vinculado</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Nome do cliente"
-                                        value={formData.customerName}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                                        className={inputClasses}
-                                    />
+                                    <div className="h-11">
+                                        <SearchableDropdown
+                                            options={customers.map(c => ({ value: c.id, label: c.name }))}
+                                            value={customers.find(c => c.name === formData.customerName)?.id || null}
+                                            onChange={val => {
+                                                const selected = customers.find(c => c.id === val);
+                                                if (selected) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        customerName: selected.name,
+                                                        customerCpf: selected.cpf || ''
+                                                    }));
+                                                } else {
+                                                    setFormData(prev => ({ ...prev, customerName: '', customerCpf: '' }));
+                                                }
+                                            }}
+                                            placeholder="Buscar cliente..."
+                                        />
+                                    </div>
                                 </div>
-                                <div>
+                                <div className="flex justify-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCustomerModalOpen(true)}
+                                        className="h-11 w-11 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-xl shadow-lg shadow-green-500/20 transition-all"
+                                        title="Cadastrar novo cliente"
+                                    >
+                                        <PlusIcon className="h-6 w-6" />
+                                    </button>
+                                </div>
+                                <div className="md:col-span-1">
                                     <label className={labelClasses}>CPF do Cliente</label>
                                     <input
                                         type="text"
@@ -479,7 +504,36 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                     </button>
                 </div>
             </div>
-        </div >,
+
+            {isCustomerModalOpen && (
+                <CustomerModal
+                    entity={null}
+                    initialType="Cliente"
+                    onClose={() => setIsCustomerModalOpen(false)}
+                    onSave={async (data, type, person) => {
+                        try {
+                            const newCustomer = await addCustomer({
+                                ...data,
+                                id: Math.random().toString(36).substr(2, 9),
+                            } as any);
+
+                            // Update local form with new customer
+                            setFormData(prev => ({
+                                ...prev,
+                                customerName: newCustomer.name,
+                                customerCpf: newCustomer.cpf || ''
+                            }));
+
+                            // Note: parent customers list might not update instantly in this mock setup
+                            // but for the current form it's filled.
+                            setIsCustomerModalOpen(false);
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    }}
+                />
+            )}
+        </div>,
         document.body
     );
 };
