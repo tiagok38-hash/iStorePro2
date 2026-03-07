@@ -16,7 +16,7 @@ const NAV_ITEMS = [
     { name: 'Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessCatalog' },
     { name: 'PDV (Frente de Caixa)', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS', target: '_blank' },
     { name: 'Clientes e Fornecedores', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
-    { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessServiceOrders' },
+    { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessServiceOrders', target: '_blank' },
     { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
     { name: 'Financeiro', to: '/financeiro', icon: <WalletIcon />, permissionKey: 'canAccessFinanceiro' },
     { name: 'Fiscal (Em Breve)', to: '#', icon: <ReceiptIcon />, permissionKey: 'canAccessEmpresa' },

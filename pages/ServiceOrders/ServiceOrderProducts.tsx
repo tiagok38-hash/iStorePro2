@@ -250,7 +250,7 @@ const ServiceOrderProducts: React.FC = () => {
 
     // OS Purchase Modal State
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-    const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
+    const [partsSubTab, setPartsSubTab] = useState<'estoque' | 'compras'>('estoque');
     const [purchaseToEdit, setPurchaseToEdit] = useState<any>(null);
 
     // Purchase History (inline) State
@@ -430,8 +430,8 @@ const ServiceOrderProducts: React.FC = () => {
     };
 
     useEffect(() => {
-        if (showPurchaseHistory) fetchPurchaseHistory();
-    }, [showPurchaseHistory]);
+        if (partsSubTab === 'compras') fetchPurchaseHistory();
+    }, [partsSubTab]);
 
     const handleMarkAsPaid = async (purchase: OsPurchaseOrder) => {
         try {
@@ -560,25 +560,36 @@ const ServiceOrderProducts: React.FC = () => {
                         <Button onClick={() => { setEditingService(null); setIsServiceModalOpen(true); }} icon={<PlusIcon className="h-5 w-5" />}>Novo Serviço</Button>
                     )}
                     {activeTab === 'parts' && (
-                        <>
-                            <button
-                                onClick={() => setShowPurchaseHistory(!showPurchaseHistory)}
-                                className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-black transition-all shadow-sm active:scale-95 ${showPurchaseHistory ? 'border-gray-800 bg-gray-800 text-white' : 'border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
-                            >
-                                <ClockIcon className="h-4 w-4" />
-                                {showPurchaseHistory ? 'Voltar ao Estoque' : 'Histórico de compras'}
-                            </button>
-                            <button
-                                onClick={() => setIsPurchaseModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-black transition-all shadow-sm active:scale-95"
-                            >
-                                <PlusIcon className="h-4 w-4" />
-                                Lançar Compra Peça/Suprimentos
-                            </button>
-                        </>
+                        <button
+                            onClick={() => setIsPurchaseModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-black transition-all shadow-sm active:scale-95"
+                        >
+                            <PlusIcon className="h-4 w-4" />
+                            Lançar Compra Peça/Suprimentos
+                        </button>
                     )}
                 </div>
             </div>
+
+            {/* Sub-tabs for parts */}
+            {
+                activeTab === 'parts' && (
+                    <div className="flex border-b border-gray-200 gap-6 px-1">
+                        <button
+                            onClick={() => setPartsSubTab('estoque')}
+                            className={`py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${partsSubTab === 'estoque' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Estoque
+                        </button>
+                        <button
+                            onClick={() => setPartsSubTab('compras')}
+                            className={`py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${partsSubTab === 'compras' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Compras (Histórico)
+                        </button>
+                    </div>
+                )
+            }
 
             {/* List Content */}
             <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
@@ -642,7 +653,7 @@ const ServiceOrderProducts: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
-                ) : showPurchaseHistory ? (
+                ) : partsSubTab === 'compras' ? (
                     // Purchase History Inline View
                     <div className="overflow-x-auto flex-1">
                         <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
@@ -719,7 +730,7 @@ const ServiceOrderProducts: React.FC = () => {
                                                             </button>
                                                         )}
                                                         {p.status !== 'Cancelado' && (
-                                                            <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); setShowPurchaseHistory(false); }}
+                                                            <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); setPartsSubTab('estoque'); }}
                                                                 title="Editar"
                                                                 className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
                                                                 <EditIcon className="h-5 w-5" />
@@ -873,26 +884,28 @@ const ServiceOrderProducts: React.FC = () => {
                 onSaveNewSupplier={handleSaveNewSupplier}
             />
 
-            {isPurchaseModalOpen && (
-                <OsPurchaseModal
-                    isOpen={isPurchaseModalOpen}
-                    onClose={(refresh) => {
-                        setIsPurchaseModalOpen(false);
-                        setPurchaseToEdit(null);
-                        if (refresh) fetchData();
-                    }}
-                    osParts={osParts}
-                    suppliers={suppliers}
-                    userId={user?.id}
-                    userName={user?.name}
-                    brands={brands}
-                    categories={categories}
-                    productModels={productModels}
-                    grades={grades}
-                    gradeValues={gradeValues}
-                    purchaseOrderToEdit={purchaseToEdit}
-                />
-            )}
+            {
+                isPurchaseModalOpen && (
+                    <OsPurchaseModal
+                        isOpen={isPurchaseModalOpen}
+                        onClose={(refresh) => {
+                            setIsPurchaseModalOpen(false);
+                            setPurchaseToEdit(null);
+                            if (refresh) fetchData();
+                        }}
+                        osParts={osParts}
+                        suppliers={suppliers}
+                        userId={user?.id}
+                        userName={user?.name}
+                        brands={brands}
+                        categories={categories}
+                        productModels={productModels}
+                        grades={grades}
+                        gradeValues={gradeValues}
+                        purchaseOrderToEdit={purchaseToEdit}
+                    />
+                )
+            }
 
             <DeleteWithReasonModal
                 isOpen={isCancelModalOpen}
@@ -902,13 +915,15 @@ const ServiceOrderProducts: React.FC = () => {
                 message={`Tem certeza que deseja cancelar a compra de OS #${purchaseToCancel?.displayId}?`}
             />
 
-            {purchaseToView && (
-                <OsPurchaseDetailModal
-                    purchase={purchaseToView}
-                    onClose={() => setPurchaseToView(null)}
-                />
-            )}
-        </div>
+            {
+                purchaseToView && (
+                    <OsPurchaseDetailModal
+                        purchase={purchaseToView}
+                        onClose={() => setPurchaseToView(null)}
+                    />
+                )
+            }
+        </div >
     );
 };
 

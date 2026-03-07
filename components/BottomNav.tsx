@@ -56,13 +56,13 @@ const BottomNav: React.FC = () => {
         >
             <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] px-2">
                 {visibleNavItems.map((item) => {
-                    const isPDV = item.name === 'PDV';
+                    const isNewTabItem = item.name === 'PDV' || item.name === 'Ordem de Serviço';
                     const linkClasses = ({ isActive }: { isActive: boolean }) => `
                         flex flex-col items-center justify-center py-2 transition-all duration-200 ${itemWidthClass} rounded-xl
                         ${isActive ? 'text-white bg-white/20 shadow-lg ring-1 ring-white/20' : 'text-white/70 hover:text-white hover:bg-white/10'}
                     `;
 
-                    if (isPDV) {
+                    if (isNewTabItem) {
                         return (
                             <a
                                 key={item.to}
