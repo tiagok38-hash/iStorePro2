@@ -698,7 +698,7 @@ const Vendas: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-surface rounded-3xl border border-border shadow-sm">
+            <div className="card-premium">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-12">
                         <SuspenseFallback />
