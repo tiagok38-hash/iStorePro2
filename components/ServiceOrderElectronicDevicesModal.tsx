@@ -389,7 +389,11 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                     <input
                                         type="text"
                                         value={formData.imei1}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, imei1: e.target.value }))}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '').slice(0, 15);
+                                            setFormData(prev => ({ ...prev, imei1: val }));
+                                        }}
+                                        maxLength={15}
                                         className={inputClasses}
                                     />
                                 </div>
@@ -398,7 +402,11 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                     <input
                                         type="text"
                                         value={formData.imei2}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, imei2: e.target.value }))}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '').slice(0, 15);
+                                            setFormData(prev => ({ ...prev, imei2: val }));
+                                        }}
+                                        maxLength={15}
                                         className={inputClasses}
                                     />
                                 </div>
