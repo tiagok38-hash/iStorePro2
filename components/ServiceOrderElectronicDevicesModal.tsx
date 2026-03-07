@@ -34,6 +34,7 @@ const emptyItem = {
     ean: '',
     customerName: '',
     customerCpf: '',
+    customerId: '',
     variations: [] as ProductVariation[],
 };
 
@@ -104,7 +105,12 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                 setProductType(initialData.type === 'Produtos Apple' ? 'Apple' : 'Produto');
             } else {
                 // Modo Novo Cadastro
-                setFormData({ ...emptyItem });
+                setFormData({
+                    ...emptyItem,
+                    customerName: initialData?.customerName || '',
+                    customerCpf: initialData?.customerCpf || '',
+                    customerId: initialData?.customerId || ''
+                });
                 setProductType('Apple');
             }
             setShowVariations(false);
@@ -511,17 +517,18 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                     <div className="h-11">
                                         <SearchableDropdown
                                             options={localCustomers.map(c => ({ value: c.id, label: c.name }))}
-                                            value={localCustomers.find(c => c.name === formData.customerName)?.id || null}
+                                            value={formData.customerId || null}
                                             onChange={val => {
                                                 const selected = localCustomers.find(c => c.id === val);
                                                 if (selected) {
                                                     setFormData(prev => ({
                                                         ...prev,
+                                                        customerId: selected.id,
                                                         customerName: selected.name,
                                                         customerCpf: selected.cpf || ''
                                                     }));
                                                 } else {
-                                                    setFormData(prev => ({ ...prev, customerName: '', customerCpf: '' }));
+                                                    setFormData(prev => ({ ...prev, customerId: '', customerName: '', customerCpf: '' }));
                                                 }
                                             }}
                                             placeholder="Buscar cliente..."

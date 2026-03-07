@@ -45,18 +45,24 @@ import {
     getOsWarranties,
     OsPart,
     getCustomerDevices,
+    addCustomerDevice,
+    getBrands,
+    getCategories,
+    getProductModels,
+    getGrades,
+    getGradeValues,
     getChecklistItems,
     getCompanyInfo,
     deductOsPartsStock,
     returnOsPartsStock
 } from '../../services/mockApi';
 import { WhatsAppIcon } from '../../components/icons';
-import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo } from '../../types';
+import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
 import QuickOSModal from '../../components/QuickOSModal';
 import CameraModal from '../../components/CameraModal';
 import ItemSelectionModal from '../../components/ItemSelectionModal';
-import CustomerDeviceModal from '../../components/CustomerDeviceModal';
+import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrderElectronicDevicesModal';
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
 import OSBillingModal from '../../components/OSBillingModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
@@ -103,6 +109,12 @@ const ServiceOrderForm: React.FC = () => {
     const [customerDevices, setCustomerDevices] = useState<CustomerDevice[]>([]);
     const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
     const [osWarranties, setOsWarranties] = useState<any[]>([]);
+
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [productModels, setProductModels] = useState<ProductModel[]>([]);
+    const [grades, setGrades] = useState<Grade[]>([]);
+    const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
 
     // Selection Modals
     const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -194,16 +206,36 @@ const ServiceOrderForm: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const [usersData, customersData, servicesData, osPartsData, devicesData, checklistData, profilesData, cInfo, warrantyData] = await Promise.all([
+            const [
+                usersData,
+                customersData,
+                servicesData,
+                osPartsData,
+                devicesData,
+                checklistData,
+                profilesData,
+                cInfo,
+                warrantyData,
+                brandsData,
+                categoriesData,
+                modelsData,
+                gradesData,
+                gradeValuesData
+            ] = await Promise.all([
                 getUsers(),
                 getCustomers(),
                 getServices(),
-                getOsParts(true), // Apenas peças ativas do estoque de OS (separado do ERP)
+                getOsParts(true),
                 getCustomerDevices(),
                 getChecklistItems(),
                 getPermissionProfiles(),
                 getCompanyInfo(),
-                getOsWarranties()
+                getOsWarranties(),
+                getBrands(),
+                getCategories(),
+                getProductModels(),
+                getGrades(),
+                getGradeValues()
             ]);
             setUsers(usersData);
             setCustomers(customersData);
@@ -214,6 +246,11 @@ const ServiceOrderForm: React.FC = () => {
             setProfiles(profilesData);
             setCompanyInfo(cInfo);
             setOsWarranties(warrantyData || []);
+            setBrands(brandsData);
+            setCategories(categoriesData);
+            setProductModels(modelsData);
+            setGrades(gradesData);
+            setGradeValues(gradeValuesData);
 
             // Carrega OS DEPOIS que os dados base estiverem prontos (evita race condition)
             if (isEditing && editId) {
@@ -1467,13 +1504,29 @@ const ServiceOrderForm: React.FC = () => {
 
             {
                 isDeviceModalOpen && (
-                    <CustomerDeviceModal
+                    <ServiceOrderElectronicDevicesModal
                         isOpen={isDeviceModalOpen}
                         onClose={() => setIsDeviceModalOpen(false)}
-                        customer={selectedCustomer}
-                        onSuccess={(device) => {
-                            setCustomerDevices([...customerDevices, device]);
-                            handleSelectDevice(device);
+                        customers={customers}
+                        brands={brands}
+                        categories={categories}
+                        productModels={productModels}
+                        grades={grades}
+                        gradeValues={gradeValues}
+                        initialData={selectedCustomer ? {
+                            customerId: selectedCustomer.id,
+                            customerName: selectedCustomer.name,
+                            customerCpf: selectedCustomer.cpf
+                        } : undefined}
+                        onSave={async (device) => {
+                            try {
+                                const savedDevice = await addCustomerDevice(device);
+                                setCustomerDevices([...customerDevices, savedDevice]);
+                                handleSelectDevice(savedDevice);
+                                toast.success("Aparelho cadastrado e vinculado!");
+                            } catch (err) {
+                                toast.error("Erro ao salvar aparelho.");
+                            }
                         }}
                     />
                 )
