@@ -1,15 +1,65 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart2, Package, Wrench, Users, TrendingUp, AlertCircle, Download, ChevronRight } from 'lucide-react';
-import { getServiceOrders, getOsParts, getOsPartsStockStats, formatCurrency, OsPart } from '../../services/mockApi';
+import { BarChart2, Package, Wrench, Users, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
+import { getServiceOrders, getOsParts, formatCurrency, OsPart } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
 
 type ReportTab = 'stock' | 'services' | 'technicians' | 'os';
+type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
+
+const getStartOfDay = (d: Date) => { const r = new Date(d); r.setHours(0, 0, 0, 0); return r; };
+const getEndOfDay = (d: Date) => { const r = new Date(d); r.setHours(23, 59, 59, 999); return r; };
+
+const computePeriodDates = (period: PeriodKey): { start: Date; end: Date } => {
+    const now = new Date();
+    switch (period) {
+        case 'today':
+            return { start: getStartOfDay(now), end: getEndOfDay(now) };
+        case 'yesterday': {
+            const y = new Date(now);
+            y.setDate(y.getDate() - 1);
+            return { start: getStartOfDay(y), end: getEndOfDay(y) };
+        }
+        case 'week': {
+            const s = new Date(now);
+            s.setDate(s.getDate() - s.getDay());
+            return { start: getStartOfDay(s), end: getEndOfDay(now) };
+        }
+        case 'month': {
+            const s = new Date(now.getFullYear(), now.getMonth(), 1);
+            return { start: getStartOfDay(s), end: getEndOfDay(now) };
+        }
+        default:
+            return { start: getStartOfDay(now), end: getEndOfDay(now) };
+    }
+};
+
+const formatDateInput = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
 
 const ServiceOrderReports: React.FC = () => {
     const [activeReport, setActiveReport] = useState<ReportTab>('stock');
     const [orders, setOrders] = useState<ServiceOrder[]>([]);
     const [osParts, setOsParts] = useState<OsPart[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Period filter
+    const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>('month');
+    const initDates = computePeriodDates('month');
+    const [startDate, setStartDate] = useState(formatDateInput(initDates.start));
+    const [endDate, setEndDate] = useState(formatDateInput(initDates.end));
+
+    const handlePeriodChange = (period: PeriodKey) => {
+        setSelectedPeriod(period);
+        if (period !== 'custom') {
+            const { start, end } = computePeriodDates(period);
+            setStartDate(formatDateInput(start));
+            setEndDate(formatDateInput(end));
+        }
+    };
 
     useEffect(() => {
         const load = async () => {
@@ -30,7 +80,17 @@ const ServiceOrderReports: React.FC = () => {
         load();
     }, []);
 
-    // OS Parts Stats
+    // Filter orders by date
+    const filteredOrders = useMemo(() => {
+        const start = getStartOfDay(new Date(startDate + 'T00:00:00'));
+        const end = getEndOfDay(new Date(endDate + 'T23:59:59'));
+        return orders.filter(o => {
+            const d = new Date(o.createdAt || o.entryDate);
+            return d >= start && d <= end;
+        });
+    }, [orders, startDate, endDate]);
+
+    // OS Parts Stats (not date-filtered — stock is always current)
     const partsStats = useMemo(() => {
         const active = osParts.filter(p => p.isActive);
         const totalQty = active.reduce((acc, p) => acc + (p.stock || 0), 0);
@@ -41,10 +101,10 @@ const ServiceOrderReports: React.FC = () => {
         return { active, totalQty, totalCost, totalSaleValue, lowStock, outOfStock };
     }, [osParts]);
 
-    // Technicians performance
+    // Technicians performance (date filtered)
     const techStats = useMemo(() => {
         const map = new Map<string, { name: string; completed: number; revenue: number }>();
-        orders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').forEach(o => {
+        filteredOrders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').forEach(o => {
             const tech = o.responsibleName || 'Sem técnico';
             const current = map.get(tech) || { name: tech, completed: 0, revenue: 0 };
             current.completed++;
@@ -52,12 +112,12 @@ const ServiceOrderReports: React.FC = () => {
             map.set(tech, current);
         });
         return Array.from(map.values()).sort((a, b) => b.completed - a.completed);
-    }, [orders]);
+    }, [filteredOrders]);
 
-    // Service type stats
+    // Service type stats (date filtered)
     const serviceTypeStats = useMemo(() => {
         const map = new Map<string, { name: string; count: number; revenue: number }>();
-        orders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').forEach(o => {
+        filteredOrders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').forEach(o => {
             (o.items || []).filter(item => item.type === 'service').forEach(item => {
                 const key = item.description;
                 const curr = map.get(key) || { name: key, count: 0, revenue: 0 };
@@ -67,13 +127,20 @@ const ServiceOrderReports: React.FC = () => {
             });
         });
         return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
-    }, [orders]);
+    }, [filteredOrders]);
 
     const REPORTS = [
         { key: 'stock' as ReportTab, label: 'Estoque OS', icon: Package, color: 'bg-amber-100 text-amber-700 border-amber-300' },
         { key: 'services' as ReportTab, label: 'Serviços', icon: Wrench, color: 'bg-blue-100 text-blue-700 border-blue-300' },
         { key: 'technicians' as ReportTab, label: 'Técnicos', icon: Users, color: 'bg-violet-100 text-violet-700 border-violet-300' },
         { key: 'os' as ReportTab, label: 'Ordens de Serviço', icon: TrendingUp, color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+    ];
+
+    const PERIOD_BUTTONS: { key: PeriodKey; label: string }[] = [
+        { key: 'today', label: 'Hoje' },
+        { key: 'yesterday', label: 'Ontem' },
+        { key: 'week', label: 'Semana' },
+        { key: 'month', label: 'Mês' },
     ];
 
     return (
@@ -85,6 +152,45 @@ const ServiceOrderReports: React.FC = () => {
                 <div>
                     <h1 className="text-2xl font-black text-gray-900">Relatórios — OS</h1>
                     <p className="text-sm text-gray-500">Dados exclusivos do módulo de Ordens de Serviço</p>
+                </div>
+            </div>
+
+            {/* Period Filter Bar — Fixed */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                        <Calendar size={16} className="text-gray-400" />
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Período:</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {PERIOD_BUTTONS.map(btn => (
+                            <button
+                                key={btn.key}
+                                onClick={() => handlePeriodChange(btn.key)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${selectedPeriod === btn.key
+                                        ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-2 ml-auto">
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => { setStartDate(e.target.value); setSelectedPeriod('custom'); }}
+                            className="h-9 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all"
+                        />
+                        <span className="text-xs text-gray-400 font-bold">até</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => { setEndDate(e.target.value); setSelectedPeriod('custom'); }}
+                            className="h-9 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -207,10 +313,10 @@ const ServiceOrderReports: React.FC = () => {
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-100">
                                 <h3 className="font-black text-gray-800">Serviços Mais Realizados</h3>
-                                <p className="text-xs text-gray-400 mt-0.5">Top 10 por faturamento (OS entregues)</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Top 10 por faturamento (OS entregues no período)</p>
                             </div>
                             {serviceTypeStats.length === 0 ? (
-                                <div className="p-12 text-center text-gray-400">Nenhum serviço registrado ainda.</div>
+                                <div className="p-12 text-center text-gray-400">Nenhum serviço registrado no período.</div>
                             ) : (
                                 <table className="w-full">
                                     <thead className="bg-gray-50">
@@ -241,10 +347,10 @@ const ServiceOrderReports: React.FC = () => {
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-100">
                                 <h3 className="font-black text-gray-800">Desempenho por Técnico</h3>
-                                <p className="text-xs text-gray-400 mt-0.5">OS concluídas e receita gerada</p>
+                                <p className="text-xs text-gray-400 mt-0.5">OS concluídas e receita gerada no período</p>
                             </div>
                             {techStats.length === 0 ? (
-                                <div className="p-12 text-center text-gray-400">Nenhuma OS concluída ainda.</div>
+                                <div className="p-12 text-center text-gray-400">Nenhuma OS concluída no período.</div>
                             ) : (
                                 <table className="w-full">
                                     <thead className="bg-gray-50">
@@ -282,10 +388,10 @@ const ServiceOrderReports: React.FC = () => {
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {[
-                                    { label: 'Total OS', value: orders.length, color: 'text-gray-800' },
-                                    { label: 'Entregues', value: orders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').length, color: 'text-emerald-600' },
-                                    { label: 'Em aberto', value: orders.filter(o => !['Entregue', 'Concluído', 'Cancelada'].includes(o.status)).length, color: 'text-orange-500' },
-                                    { label: 'Canceladas', value: orders.filter(o => o.status === 'Cancelada').length, color: 'text-red-600' },
+                                    { label: 'Total OS', value: filteredOrders.length, color: 'text-gray-800' },
+                                    { label: 'Entregues', value: filteredOrders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').length, color: 'text-emerald-600' },
+                                    { label: 'Em aberto', value: filteredOrders.filter(o => !['Entregue', 'Concluído', 'Cancelada'].includes(o.status)).length, color: 'text-orange-500' },
+                                    { label: 'Canceladas', value: filteredOrders.filter(o => o.status === 'Cancelada').length, color: 'text-red-600' },
                                 ].map(stat => (
                                     <div key={stat.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">{stat.label}</p>
@@ -300,8 +406,8 @@ const ServiceOrderReports: React.FC = () => {
                                 </div>
                                 <div className="p-6 space-y-3">
                                     {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'].map(status => {
-                                        const count = orders.filter(o => o.status === status).length;
-                                        const pct = orders.length > 0 ? (count / orders.length) * 100 : 0;
+                                        const count = filteredOrders.filter(o => o.status === status).length;
+                                        const pct = filteredOrders.length > 0 ? (count / filteredOrders.length) * 100 : 0;
                                         return (
                                             <div key={status} className="flex items-center gap-3">
                                                 <span className="text-sm font-semibold text-gray-600 w-36 shrink-0">{status}</span>

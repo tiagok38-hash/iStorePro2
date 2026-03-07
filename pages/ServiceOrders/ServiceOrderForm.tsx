@@ -374,14 +374,14 @@ const ServiceOrderForm: React.FC = () => {
         setItems([...items, newItem]);
     };
 
-    const handleAddItemFromCatalog = (item: Service | OsPart, type: 'service' | 'part') => {
+    const handleAddItemFromCatalog = (item: Service | OsPart, type: 'service' | 'part', quantity: number = 1) => {
         const newItem: ServiceOrderItem = {
             id: Date.now().toString(),
             catalogItemId: item.id,
             description: type === 'service' ? (item as Service).name : (item as OsPart).name,
             type: type,
             price: type === 'service' ? (item as Service).price : (item as OsPart).salePrice,
-            quantity: 1,
+            quantity: quantity,
             warranty: item.warranty || ''
         };
         setItems([...items, newItem]);
@@ -1452,13 +1452,17 @@ const ServiceOrderForm: React.FC = () => {
                 type="part"
                 items={availableOsParts.map(p => ({
                     id: p.id,
+                    name: p.name,
                     model: p.name,
-                    brand: p.brand || p.category || '',
+                    brand: p.brand || '',
+                    category: p.category || '',
                     stock: p.stock,
                     price: p.salePrice,
-                    _osPart: p, // referência original
+                    salePrice: p.salePrice,
+                    warranty: p.warranty || '',
+                    _osPart: p,
                 }))}
-                onSelect={(item) => handleAddItemFromCatalog(item._osPart || item, 'part')}
+                onSelect={(item, quantity) => handleAddItemFromCatalog(item._osPart || item, 'part', quantity || 1)}
             />
 
             {
