@@ -253,7 +253,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                 }}
                                 className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Apple' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                             >
-                                Produto Apple
+                                Apple
                             </button>
                             <button
                                 type="button"
@@ -263,7 +263,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                 }}
                                 className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Produto' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
                             >
-                                Não Apple
+                                Variados
                             </button>
                         </div>
 
@@ -383,29 +383,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
 
                         {/* Additional Info (Customer, IMEI, etc) */}
                         <div className="pt-4 border-t border-gray-200">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label className={labelClasses}>Cliente Vinculado</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Nome do cliente"
-                                        value={formData.customerName}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                                        className={inputClasses}
-                                    />
-                                </div>
-                                <div>
-                                    <label className={labelClasses}>CPF do Cliente</label>
-                                    <input
-                                        type="text"
-                                        placeholder="000.000.000-00"
-                                        value={formData.customerCpf}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, customerCpf: e.target.value }))}
-                                        className={inputClasses}
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 <div>
                                     <label className={labelClasses}>IMEI 1</label>
                                     <input
@@ -439,6 +417,28 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                         type="text"
                                         value={formData.ean}
                                         onChange={(e) => setFormData(prev => ({ ...prev, ean: e.target.value }))}
+                                        className={inputClasses}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelClasses}>Cliente Vinculado</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nome do cliente"
+                                        value={formData.customerName}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                                        className={inputClasses}
+                                    />
+                                </div>
+                                <div>
+                                    <label className={labelClasses}>CPF do Cliente</label>
+                                    <input
+                                        type="text"
+                                        placeholder="000.000.000-00"
+                                        value={formData.customerCpf}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, customerCpf: e.target.value }))}
                                         className={inputClasses}
                                     />
                                 </div>
