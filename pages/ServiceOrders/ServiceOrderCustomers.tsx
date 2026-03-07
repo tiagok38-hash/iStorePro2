@@ -12,7 +12,7 @@ import {
     TrashIcon,
     UserCircleIcon,
     FilterIcon,
-    PhoneIcon,
+    WhatsAppIcon,
     EnvelopeIcon
 } from '../../components/icons';
 import Button from '../../components/Button';
@@ -218,7 +218,7 @@ const ServiceOrderCustomers: React.FC = () => {
                                 <h3 className="font-bold text-gray-800 truncate pr-6">{item.name}</h3>
                                 <div className="space-y-1 mt-1">
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                                        <PhoneIcon className="w-3.5 h-3.5" />
+                                        <WhatsAppIcon className="w-3.5 h-3.5" />
                                         <span>{item.phone}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-xs text-gray-500">

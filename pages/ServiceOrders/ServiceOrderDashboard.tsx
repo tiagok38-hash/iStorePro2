@@ -305,7 +305,7 @@ const ServiceOrderDashboard: React.FC = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="flex flex-wrap items-center gap-2 bg-white/50 backdrop-blur-md p-2 rounded-2xl border border-white/40 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2 bg-white/50 backdrop-blur-md p-2 rounded-2xl border border-gray-200/60 shadow-[0_0_15px_rgba(0,0,0,0.1)]">
                 <button
                     onClick={() => setPeriodFilter('today')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${periodFilter === 'today' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-white'}`}
@@ -356,7 +356,7 @@ const ServiceOrderDashboard: React.FC = () => {
             {/* Financial & Status KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 {/* Financial Totals */}
-                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 p-5 rounded-3xl shadow-[0_0_15px_rgba(0,0,0,0.1)] hover:shadow-[0_0_25px_rgba(0,0,0,0.15)] transition-all group overflow-hidden relative">
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform">
                         <TrendingUp size={100} className="text-emerald-500" />
                     </div>
@@ -371,7 +371,7 @@ const ServiceOrderDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 p-5 rounded-3xl shadow-[0_0_15px_rgba(0,0,0,0.1)] hover:shadow-[0_0_25px_rgba(0,0,0,0.15)] transition-all group overflow-hidden relative">
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform">
                         <TrendingDown size={100} className="text-red-500" />
                     </div>
@@ -390,7 +390,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 {KPI_CONFIG.map((config, idx) => {
                     const count = filteredOrders.filter(os => os.status === config.key).length;
                     return (
-                        <div key={idx} className="bg-white/70 backdrop-blur-sm border border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                        <div key={idx} className="bg-white/70 backdrop-blur-sm border border-gray-200/60 p-5 rounded-3xl shadow-[0_0_15px_rgba(0,0,0,0.1)] hover:shadow-[0_0_25px_rgba(0,0,0,0.15)] transition-all group overflow-hidden relative">
                             <div className="flex justify-between items-start mb-4">
                                 <div className={`p-3 rounded-2xl ${config.bg} ${config.color} group-hover:scale-110 transition-transform`}>
                                     <config.icon size={24} strokeWidth={1.5} />
@@ -411,7 +411,7 @@ const ServiceOrderDashboard: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* 3.1 Weekly Flow Chart (Bar) */}
-                <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-white/40 p-8 rounded-[32px] shadow-sm flex flex-col">
+                <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-gray-200/60 p-8 rounded-[32px] shadow-[0_0_15px_rgba(0,0,0,0.1)] flex flex-col">
 
                     <div className="flex items-center justify-between mb-8">
                         <div>
@@ -452,7 +452,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 {/* 3.2 Agenda / Schedule */}
                 <div
                     onClick={() => navigate('/service-orders/list')}
-                    className="cursor-pointer bg-white/95 backdrop-blur-xl border border-gray-100 p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col hover:shadow-md transition-all group"
+                    className="cursor-pointer bg-white/95 backdrop-blur-xl border border-gray-200/80 p-8 rounded-[32px] shadow-[0_0_15px_rgba(0,0,0,0.1)] flex flex-col hover:shadow-[0_0_25px_rgba(0,0,0,0.15)] transition-all group"
                 >
                     <div className="flex items-center justify-between mb-8">
                         <div>
@@ -490,7 +490,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 {osPartsStats && (
                     <div
                         onClick={() => navigate('/service-orders/products')}
-                        className="cursor-pointer bg-white/70 backdrop-blur-sm border border-white/40 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
+                        className="cursor-pointer bg-white/70 backdrop-blur-sm border border-gray-200/60 rounded-[32px] p-6 shadow-[0_0_15px_rgba(0,0,0,0.1)] hover:shadow-[0_0_25px_rgba(0,0,0,0.15)] transition-all flex flex-col justify-between group"
                     >
                         <div>
                             <div className="flex items-center justify-between mb-6">
@@ -525,7 +525,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 {osPartsStats && osPartsStats.lowStockCount > 0 ? (
                     <div
                         onClick={() => navigate('/service-orders/products?filter=low')}
-                        className="cursor-pointer bg-white/70 backdrop-blur-sm border border-white/40 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group"
+                        className="cursor-pointer bg-white/70 backdrop-blur-sm border border-gray-200/60 rounded-[32px] p-6 shadow-[0_0_15px_rgba(0,0,0,0.1)] hover:shadow-[0_0_25px_rgba(0,0,0,0.15)] transition-all flex flex-col justify-between relative overflow-hidden group"
                     >
                         <div className="absolute -right-8 -top-8 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
                             <AlertCircle size={180} className="text-red-500" />
@@ -548,7 +548,7 @@ const ServiceOrderDashboard: React.FC = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white/70 backdrop-blur-sm border border-white/40 rounded-[32px] p-6 shadow-sm flex flex-col items-center justify-center text-center opacity-60">
+                    <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 rounded-[32px] p-6 shadow-[0_0_15px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center text-center opacity-60">
                         <CheckCircle2 size={40} className="text-emerald-400 mb-3" />
                         <p className="text-lg font-black text-gray-600">Estoque Saudável</p>
                         <p className="text-sm text-gray-400 font-medium">Nenhuma peça com urgência</p>
@@ -556,7 +556,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 )}
 
                 {/* 3. Ranking de Serviços */}
-                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-6 rounded-[32px] shadow-sm flex flex-col">
+                <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 p-6 rounded-[32px] shadow-[0_0_15px_rgba(0,0,0,0.1)] flex flex-col">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl">
                             <Wrench size={26} strokeWidth={2} />
@@ -587,7 +587,7 @@ const ServiceOrderDashboard: React.FC = () => {
             {/* 4. Secondary Grid: Financials, Technicians & Active Warranties */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* 4.1 Revenue Donut */}
-                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-6 rounded-[32px] shadow-sm flex flex-col">
+                <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 p-6 rounded-[32px] shadow-[0_0_15px_rgba(0,0,0,0.1)] flex flex-col">
                     <h3 className="font-black text-xl text-primary mb-1">Receita Técnica</h3>
                     <p className="text-sm font-bold text-secondary mb-6">Peças vs. Mão de Obra</p>
 
@@ -627,7 +627,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 </div>
 
                 {/* 4.2 Ranking de Técnicos (Moved from above, now occupies 1 column) */}
-                <div className="bg-white/70 backdrop-blur-sm border border-white/40 p-6 rounded-[32px] shadow-sm flex flex-col">
+                <div className="bg-white/70 backdrop-blur-sm border border-gray-200/60 p-6 rounded-[32px] shadow-[0_0_15px_rgba(0,0,0,0.1)] flex flex-col">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl">
                             <Users size={26} strokeWidth={2} />
@@ -655,7 +655,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 </div>
 
                 {/* 4.3 Warranties List (Takes 2 columns) */}
-                <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-white/40 text-primary p-8 rounded-[32px] shadow-sm relative overflow-hidden flex flex-col">
+                <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm border border-gray-200/60 text-primary p-8 rounded-[32px] shadow-[0_0_15px_rgba(0,0,0,0.1)] relative overflow-hidden flex flex-col">
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 w-80 h-80 bg-accent/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
 

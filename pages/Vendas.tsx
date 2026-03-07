@@ -842,16 +842,16 @@ const Vendas: React.FC = () => {
                                                             const itemName = item.name || product?.model || 'Produto Desconhecido';
 
                                                             return (
-                                                                <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-400 group-hover:text-gray-500 transition-colors max-w-[95%]">
-                                                                    <span className="font-bold text-gray-500 group-hover:text-gray-700 max-w-[180px] sm:max-w-[250px] truncate" title={itemName}>{itemName}</span>
+                                                                <div key={idx} className="flex flex-wrap items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-500 group-hover:text-gray-600 transition-colors w-full font-bold">
+                                                                    <span className="text-gray-500 group-hover:text-gray-700" title={itemName}>{itemName}</span>
                                                                     {identifiers.length > 0 && (
                                                                         <>
-                                                                            <span className="text-gray-200 hidden sm:inline">•</span>
-                                                                            <span className="font-mono tracking-tight text-[9px] sm:text-[10px] truncate max-w-[200px] sm:max-w-none opacity-60 group-hover:opacity-80">{identifiers.join(' | ')}</span>
+                                                                            <span className="text-gray-300 hidden sm:inline">•</span>
+                                                                            <span className="font-mono tracking-tight text-[9px] sm:text-[10px] opacity-100 break-all">{identifiers.join(' | ')}</span>
                                                                         </>
                                                                     )}
-                                                                    <span className="text-gray-200 hidden sm:inline">•</span>
-                                                                    <span className="font-bold text-gray-500 group-hover:text-gray-600 whitespace-nowrap">{priceStr}</span>
+                                                                    <span className="text-gray-300 hidden sm:inline">•</span>
+                                                                    <span className="whitespace-nowrap">{priceStr}</span>
                                                                 </div>
                                                             );
                                                         })}

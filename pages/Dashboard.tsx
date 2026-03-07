@@ -82,7 +82,7 @@ const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacy
 
     return (
         <div
-            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
             <div className="flex justify-between items-center mb-4">
@@ -243,7 +243,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
     return (
         <div
-            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
             <div className="flex flex-row justify-between items-start mb-4 gap-4">
@@ -350,7 +350,7 @@ const LowStockBulkProductsCard: React.FC<{ products: Product[]; isPrivacyMode?: 
 
     return (
         <div
-            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
+            className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group transition-all duration-300 ${to ? 'hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
             onClick={() => to && navigate(to)}
         >
             <div className="flex justify-between items-center mb-4">
@@ -412,7 +412,7 @@ const ProfitTooltip: React.FC<any> = ({ active, payload, label, period }) => {
         })();
 
         return (
-            <div className="bg-white/95 backdrop-blur-md p-4 border border-border rounded-3xl shadow-2xl shadow-emerald-500/10 ring-1 ring-black/5 animate-fade-in">
+            <div className="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] animate-fade-in">
                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 border-b border-emerald-50 pb-2 flex items-center gap-2">
                     <ClockIcon className="w-3 h-3" /> {formattedLabel}
                 </p>
@@ -517,7 +517,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full justify-between transition-all duration-300 ${className || ''}`}>
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full justify-between transition-all duration-300 ${className || ''}`}>
             <div className="flex flex-row justify-between items-start mb-4 gap-4">
                 <div className="flex items-center gap-4 w-full xl:w-auto">
                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
@@ -633,7 +633,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products:
     return (
         <>
             <div
-                className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] h-full flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}
+                className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] h-full flex flex-col group transition-all duration-300 ${to ? 'hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}
                 onClick={handleNavigate}
             >
                 <div className="flex justify-between items-center mb-6">
@@ -734,7 +734,7 @@ const BillingTooltip: React.FC<any> = ({ active, payload, label }) => {
         })();
 
         return (
-            <div className="bg-white/95 backdrop-blur-md p-4 border border-border rounded-3xl shadow-2xl shadow-indigo-500/10 ring-1 ring-black/5 animate-fade-in">
+            <div className="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] animate-fade-in">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-2 flex items-center gap-2">
                     <ClockIcon className="w-3 h-3" /> {formattedLabel}
                 </p>
@@ -766,7 +766,7 @@ const BillingChart: React.FC<{
     onNavigate?: () => void;
 }> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode, onNavigate }) => {
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] h-full flex flex-col transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] h-full flex flex-col transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
@@ -968,7 +968,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
     }, [paymentTotals]);
 
     return (
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-orange-50 text-orange-600 rounded-xl shadow-sm">
@@ -1042,7 +1042,7 @@ interface SoldItemInfo {
 const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ soldItems, className, isPrivacyMode }) => {
     return (
 
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
                     <TagIcon className="h-6 w-6" />
@@ -1097,7 +1097,7 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; suppliers: Suppli
 
     return (
 
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
                     <PlusIcon className="h-6 w-6" />
@@ -1163,7 +1163,7 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; suppliers: Suppli
 const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     return (
 
-        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group hover:shadow-[0_16px_40px_rgba(123,97,255,0.22)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
+        <div className={`p-6 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
             <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
                     <DeviceExchangeIcon className="h-6 w-6" />
@@ -1245,7 +1245,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     }, [products]);
 
     return (
-        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full group transition-all duration-300 cursor-pointer ${className || ''}`}
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full group transition-all duration-300 cursor-pointer ${className || ''}`}
             onClick={() => onNavigate?.()}
         >
             <div className="flex justify-between items-center mb-4">
@@ -1266,7 +1266,7 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
 
             <div className="grid grid-cols-2 gap-4 flex-1">
                 {/* Apple Section */}
-                <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-300/80 shadow-sm relative overflow-hidden">
+                <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-sm relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-3 relative z-10">
                         <div className="w-8 h-8 flex items-center justify-center rounded-xl overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-black">
                             <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-contain p-0.5" />
@@ -1438,7 +1438,7 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
 
 
     return (
-        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl border border-gray-300/80 shadow-[0_8px_30px_rgba(123,97,255,0.15)] flex flex-col h-full justify-between transition-all duration-300 ${className || ''}`}>
+        <div className={`p-5 bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] flex flex-col h-full justify-between transition-all duration-300 ${className || ''}`}>
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shadow-sm">
