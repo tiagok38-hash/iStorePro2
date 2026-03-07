@@ -267,6 +267,13 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                             </button>
                         </div>
 
+                        {/* Link to Settings */}
+                        <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-xl flex items-center justify-center">
+                            <p className="text-blue-600 text-[13px] font-medium">
+                                Para cadastrar Marcas, Categorias, Modelos e Grades, <a href="#/company?tab=marcas" target="_blank" className="font-black underline hover:text-blue-700 transition-colors">clique aqui</a>
+                            </p>
+                        </div>
+
                         {/* Hierarchical Filters */}
                         {productType === 'Apple' ? (
                             <div className="space-y-4">
@@ -473,7 +480,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                     </button>
                 </div>
             </div>
-        </div>,
+        </div >,
         document.body
     );
 };
