@@ -157,33 +157,41 @@ const ServiceOrderDashboard: React.FC = () => {
     // Compute chart data dynamically
     const weeklyFlowData = useMemo(() => {
         const flow = [
-            { name: 'Dom', entrada: 0, saida: 0 },
-            { name: 'Seg', entrada: 0, saida: 0 },
-            { name: 'Ter', entrada: 0, saida: 0 },
-            { name: 'Qua', entrada: 0, saida: 0 },
-            { name: 'Qui', entrada: 0, saida: 0 },
-            { name: 'Sex', entrada: 0, saida: 0 },
-            { name: 'Sáb', entrada: 0, saida: 0 }
+            { name: 'Dom', receita: 0, despesas: 0, lucro: 0 },
+            { name: 'Seg', receita: 0, despesas: 0, lucro: 0 },
+            { name: 'Ter', receita: 0, despesas: 0, lucro: 0 },
+            { name: 'Qua', receita: 0, despesas: 0, lucro: 0 },
+            { name: 'Qui', receita: 0, despesas: 0, lucro: 0 },
+            { name: 'Sex', receita: 0, despesas: 0, lucro: 0 },
+            { name: 'Sáb', receita: 0, despesas: 0, lucro: 0 }
         ];
 
         filteredOrders.forEach(os => {
-            const entryDate = new Date(os.entryDate || os.createdAt);
-            if (entryDate instanceof Date && !isNaN(entryDate.getTime())) {
-                flow[entryDate.getDay()].entrada += 1;
-            }
-
             if (os.status === 'Entregue' || os.status === 'Concluído') {
                 const exitDateStr = os.exitDate || os.updatedAt || os.createdAt;
                 const exitDate = new Date(exitDateStr);
                 if (exitDate instanceof Date && !isNaN(exitDate.getTime())) {
-                    flow[exitDate.getDay()].saida += 1;
+                    flow[exitDate.getDay()].receita += (os.total || 0);
                 }
             }
         });
 
+        filteredExpenses.forEach(exp => {
+            const expDateStr = exp.date || exp.createdAt;
+            const expDate = new Date(expDateStr);
+            if (expDate instanceof Date && !isNaN(expDate.getTime())) {
+                const day = expDate.getDay();
+                flow[day].despesas += (exp.amount || 0);
+            }
+        });
+
+        flow.forEach(f => {
+            f.lucro = f.receita - f.despesas;
+        });
+
         // Reorder to start from Monday for better visualization in Brazil
         return [...flow.slice(1), flow[0]];
-    }, [filteredOrders]);
+    }, [filteredOrders, filteredExpenses]);
 
     const revenueChartData = useMemo(() => {
         let services = 0;
@@ -236,13 +244,15 @@ const ServiceOrderDashboard: React.FC = () => {
     }, [filteredOrders]);
 
     const weeklyTotals = useMemo(() => {
-        let entrada = 0;
-        let saida = 0;
+        let receita = 0;
+        let despesas = 0;
+        let lucro = 0;
         weeklyFlowData.forEach(d => {
-            entrada += d.entrada;
-            saida += d.saida;
+            receita += d.receita;
+            despesas += d.despesas;
+            lucro += d.lucro;
         });
-        return { entrada, saida };
+        return { receita, despesas, lucro };
     }, [weeklyFlowData]);
 
     return (
@@ -416,19 +426,23 @@ const ServiceOrderDashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h3 className="font-black text-2xl text-primary">Fluxo Semanal</h3>
-                            <p className="text-base font-medium text-secondary mt-1">Entrada vs. Saída de Aparelhos</p>
+                            <p className="text-base font-medium text-secondary mt-1">Balanço Financeiro (Receita vs Despesas)</p>
                             <div className="flex gap-4 mt-3">
-                                <div className="bg-accent/10 px-4 py-1.5 rounded-xl border border-accent/20">
-                                    <span className="text-sm text-accent font-black">{weeklyTotals.entrada} Entradas</span>
+                                <div className="bg-blue-100 px-4 py-1.5 rounded-xl border border-blue-200">
+                                    <span className="text-sm text-blue-600 font-black">{formatCurrency(weeklyTotals.receita)} Receita</span>
+                                </div>
+                                <div className="bg-red-100 px-4 py-1.5 rounded-xl border border-red-200">
+                                    <span className="text-sm text-red-600 font-black">{formatCurrency(weeklyTotals.despesas)} Despesas</span>
                                 </div>
                                 <div className="bg-emerald-100 px-4 py-1.5 rounded-xl border border-emerald-200">
-                                    <span className="text-sm text-emerald-600 font-black">{weeklyTotals.saida} Saídas</span>
+                                    <span className="text-sm text-emerald-600 font-black">{formatCurrency(weeklyTotals.lucro)} Lucro</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-3 text-sm font-black">
-                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-accent rounded-full"></span> Entrada</span>
-                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span> Saída</span>
+                        <div className="flex flex-col gap-3 text-sm font-black text-gray-600">
+                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-blue-500 rounded-full"></span> Receita</span>
+                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-red-400 rounded-full"></span> Despesas</span>
+                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span> Lucro</span>
                         </div>
                     </div>
 
@@ -437,13 +451,15 @@ const ServiceOrderDashboard: React.FC = () => {
                             <BarChart data={weeklyFlowData} barGap={8}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 13, fontWeight: 'bold' }} dy={10} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 13, fontWeight: 'bold' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 13, fontWeight: 'bold' }} tickFormatter={(value) => `R$ ${value}`} />
                                 <Tooltip
                                     cursor={{ fill: '#F3F4F6' }}
+                                    formatter={(value: number) => formatCurrency(value)}
                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '12px 16px', fontWeight: 'bold' }}
                                 />
-                                <Bar dataKey="entrada" fill="#7B61FF" radius={[8, 8, 8, 8]} barSize={24} />
-                                <Bar dataKey="saida" fill="#34D399" radius={[8, 8, 8, 8]} barSize={24} />
+                                <Bar dataKey="receita" name="Receita" fill="#3B82F6" radius={[8, 8, 8, 8]} barSize={16} />
+                                <Bar dataKey="despesas" name="Despesas" fill="#F87171" radius={[8, 8, 8, 8]} barSize={16} />
+                                <Bar dataKey="lucro" name="Lucro" fill="#34D399" radius={[8, 8, 8, 8]} barSize={16} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
