@@ -218,17 +218,30 @@ export interface Customer {
     allow_credit?: boolean;
 }
 
+export type ElectronicType = 'Produtos Apple' | 'Smartphone' | 'Tablets' | 'Computadores' | 'Notebooks' | 'Caixas de Som' | 'Outros';
+
 export interface CustomerDevice {
     id: string;
-    customerId: string;
+    customerId?: string;
     brand: string;
     category: string;
     model: string;
     imei?: string;
+    imei2?: string;
     serialNumber?: string;
+    ean?: string;
+    type: ElectronicType;
+    rawModel?: string;
+    storage?: string;
+    color: string;
+    soldInStore: boolean;
+    hasPreviousRepair: boolean;
+    customerName: string;
+    customerCpf?: string;
     createdAt: string;
     updatedAt: string;
     observations?: string;
+    history?: any[];
 }
 
 export type ProductCondition = 'Novo' | 'Seminovo' | 'CPO' | 'Openbox' | 'Reservado';

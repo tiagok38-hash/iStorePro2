@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings, InventoryMovement, FinancialStatus } from '../types.ts';
+import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings, InventoryMovement, FinancialStatus, CustomerDevice, ElectronicType } from '../types.ts';
 import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
 import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
@@ -5890,65 +5890,13 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         attendantObservations: created.attendant_observations,
         customerDeviceId: created.customer_device_id,
         displayId: created.display_id,
+        isOrcamentoOnly: created.is_orcamento_only,
+        isQuick: created.is_quick,
+        phone: created.phone,
     };
 };
 
-// --- CUSTOMER DEVICES (SERVICE ORDERS) ---
-
-export const getCustomerDevices = async (): Promise<any[]> => {
-    return fetchWithCache('customer_devices', async () => {
-        return fetchWithRetry(async () => {
-            const { data, error } = await supabase
-                .from('customer_devices')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            return (data || []).map((device: any) => ({
-                id: device.id,
-                customerId: device.customer_id,
-                brand: device.brand,
-                category: device.category,
-                model: device.model,
-                imei: device.imei,
-                serialNumber: device.serial_number,
-                observations: device.observations,
-                createdAt: device.created_at,
-                updatedAt: device.updated_at,
-            }));
-        });
-    });
-};
-
-export const addCustomerDevice = async (data: any) => {
-    const payload = {
-        customer_id: data.customerId,
-        brand: data.brand,
-        category: data.category,
-        model: data.model,
-        imei: data.imei,
-        serial_number: data.serialNumber,
-        observations: data.observations,
-    };
-
-    const { data: created, error } = await supabase.from('customer_devices').insert([payload]).select().single();
-    if (error) throw error;
-
-    clearCache(['customer_devices']);
-    return {
-        id: created.id,
-        customerId: created.customer_id,
-        brand: created.brand,
-        category: created.category,
-        model: created.model,
-        imei: created.imei,
-        serialNumber: created.serial_number,
-        observations: created.observations,
-        createdAt: created.created_at,
-        updatedAt: created.updated_at,
-    };
-};
+// (Funções de CustomerDevice movidas para o final do arquivo para suporte completo)
 
 export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>) => {
     const updatePayload: any = {
@@ -8029,4 +7977,118 @@ export const getOsPartsStockStats = async (): Promise<{
     const lowStockCount = parts.filter(p => p.stock > 0 && p.minimumStock !== undefined && p.stock <= (p.minimumStock || 0)).length;
 
     return { totalParts, totalCost, totalSaleValue, lowStockCount };
+};
+
+// --- CUSTOMER DEVICES (Eletrônicos de Clientes) ---
+
+export const getCustomerDevices = async (): Promise<CustomerDevice[]> => {
+    return fetchWithCache('customer_devices', async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase.from('customer_devices').select('*').order('created_at', { ascending: false });
+            if (error) {
+                console.error('Error fetching customer_devices:', error);
+                throw error;
+            }
+            return (data || []).map(d => ({
+                id: d.id,
+                customerId: d.customer_id,
+                brand: d.brand,
+                category: d.category,
+                model: d.model,
+                imei: d.imei || '',
+                imei2: d.imei2 || '',
+                serialNumber: d.serial_number || '',
+                ean: d.ean || '',
+                type: (d.type as ElectronicType) || 'Produtos Apple',
+                color: d.color || '',
+                storage: d.storage || '',
+                rawModel: d.raw_model || '',
+                soldInStore: d.sold_in_store || false,
+                hasPreviousRepair: d.has_previous_repair || false,
+                customerName: d.customer_name || '',
+                customerCpf: d.customer_cpf || '',
+                createdAt: d.created_at,
+                updatedAt: d.updated_at,
+                observations: d.observations || '',
+                history: [] // Histórico será carregado sob demanda se necessário
+            }));
+        });
+    });
+};
+
+export const addCustomerDevice = async (device: any): Promise<CustomerDevice> => {
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+    const id = device.id || crypto.randomUUID();
+    const now = getNowISO();
+
+    const payload = {
+        id,
+        customer_id: device.customerId || null,
+        brand: device.brand,
+        category: device.category || device.type,
+        model: device.model,
+        imei: device.imei || device.imei1 || '',
+        imei2: device.imei2 || '',
+        serial_number: device.serialNumber || '',
+        ean: device.ean || '',
+        observations: device.observations || '',
+        type: device.type || 'Produtos Apple',
+        color: device.color || '',
+        storage: device.storage || '',
+        raw_model: device.rawModel || device.model,
+        sold_in_store: device.soldInStore || false,
+        has_previous_repair: device.hasPreviousRepair || false,
+        customer_name: device.customerName,
+        customer_cpf: device.customerCpf,
+        company_id: userCompanyId,
+        created_at: now,
+        updated_at: now
+    };
+
+    const { data, error } = await supabase.from('customer_devices').insert([payload]).select().single();
+    if (error) {
+        console.error('Error adding customer_device:', error);
+        throw error;
+    }
+    clearCache(['customer_devices']);
+    return data;
+};
+
+export const updateCustomerDevice = async (id: string, device: any): Promise<CustomerDevice> => {
+    const payload = {
+        brand: device.brand,
+        category: device.category || device.type,
+        model: device.model,
+        imei: device.imei || device.imei1 || '',
+        imei2: device.imei2 || '',
+        serial_number: device.serialNumber || '',
+        ean: device.ean || '',
+        observations: device.observations || '',
+        type: device.type || 'Produtos Apple',
+        color: device.color || '',
+        storage: device.storage || '',
+        raw_model: device.rawModel || device.model,
+        sold_in_store: device.soldInStore || false,
+        has_previous_repair: device.hasPreviousRepair || false,
+        customer_name: device.customerName,
+        customer_cpf: device.customerCpf,
+        updated_at: getNowISO()
+    };
+
+    const { data, error } = await supabase.from('customer_devices').update(payload).eq('id', id).select().single();
+    if (error) {
+        console.error('Error updating customer_device:', error);
+        throw error;
+    }
+    clearCache(['customer_devices']);
+    return data;
+};
+
+export const deleteCustomerDevice = async (id: string): Promise<void> => {
+    const { error } = await supabase.from('customer_devices').delete().eq('id', id);
+    if (error) {
+        console.error('Error deleting customer_device:', error);
+        throw error;
+    }
+    clearCache(['customer_devices']);
 };

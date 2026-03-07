@@ -1,108 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Plus, Search, Clock, Calendar, Cpu, FileText, User, Wrench, Image as ImageIcon, ShoppingCart, Edit, Trash2, CheckCircle } from 'lucide-react';
+import { Smartphone, Plus, Search, Clock, Calendar, Cpu, FileText, User, Wrench, Image as ImageIcon, ShoppingCart, Edit, Trash2, CheckCircle, MessageCircle } from 'lucide-react';
 import Modal from '../../components/Modal';
+import { WhatsAppIcon } from '../../components/icons';
 import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrderElectronicDevicesModal';
-import { Customer, Brand, Category, ProductModel, Grade, GradeValue } from '../../types';
-import { getCustomers, getBrands, getCategories, getProductModels, getGrades, getGradeValues } from '../../services/mockApi';
+import { Customer, Brand, Category, ProductModel, Grade, GradeValue, CustomerDevice } from '../../types';
+import { getCustomers, getBrands, getCategories, getProductModels, getGrades, getGradeValues, getCustomerDevices, addCustomerDevice, updateCustomerDevice, deleteCustomerDevice } from '../../services/mockApi';
 
 // Types and Mock Data Interfaces
 export type ElectronicType = 'Produtos Apple' | 'Smartphone' | 'Tablets' | 'Computadores' | 'Notebooks' | 'Caixas de Som' | 'Outros';
 
-interface ElectronicHistory {
-    id: string;
-    osId: string;
-    date: Date;
-    customer: string;
-    problemsReported: string[];
-    attendant: string;
-    technician: string;
-    status: 'Concluído' | 'Em Reparo' | 'Aberto';
-    photos: string[];
-}
-
-interface ElectronicDevice {
-    id: string;
-    type: ElectronicType;
-    model: string;
-    brand: string;
-    color: string;
-    imei1: string;
-    imei2?: string;
-    serialNumber?: string;
-    ean?: string;
-    soldInStore: boolean;
-    hasPreviousRepair: boolean;
-    customerName: string;
-    customerCpf?: string;
-    history: ElectronicHistory[];
-}
-
-// Mock Data
-let MOCK_DEVICES: ElectronicDevice[] = [
-    {
-        id: '1',
-        type: 'Produtos Apple',
-        model: 'iPhone 13 Pro Max',
-        brand: 'Apple',
-        color: 'Grafite',
-        imei1: '123456789012345',
-        serialNumber: 'F1234567890',
-        soldInStore: true,
-        hasPreviousRepair: true,
-        customerName: 'João Silva',
-        customerCpf: '111.222.333-44',
-        history: [
-            {
-                id: 'h1',
-                osId: 'OS-2026-001',
-                date: new Date('2026-02-15T14:30:00'),
-                customer: 'João Silva',
-                problemsReported: ['Tela trincada', 'Bateria Viciada'],
-                attendant: 'Maria (Balcão)',
-                technician: 'Carlos (Técnico Nível 2)',
-                status: 'Concluído',
-                photos: ['https://via.placeholder.com/150', 'https://via.placeholder.com/150']
-            },
-            {
-                id: 'h2',
-                osId: 'OS-2026-089',
-                date: new Date('2026-03-01T10:15:00'),
-                customer: 'João Silva',
-                problemsReported: ['Não está carregando'],
-                attendant: 'Pedro (Balcão)',
-                technician: 'Carlos (Técnico Nível 2)',
-                status: 'Em Reparo',
-                photos: []
-            }
-        ]
-    },
-    {
-        id: '2',
-        type: 'Smartphone',
-        model: 'Galaxy S23 Ultra',
-        brand: 'Samsung',
-        color: 'Preto',
-        imei1: '987654321098765',
-        imei2: '111122223333444',
-        ean: '8801234567890',
-        soldInStore: false,
-        hasPreviousRepair: false,
-        customerName: 'Ana Souza',
-        history: [
-            {
-                id: 'h3',
-                osId: 'OS-2026-095',
-                date: new Date('2026-03-03T09:00:00'),
-                customer: 'Ana Souza',
-                problemsReported: ['Câmera traseira sem foco'],
-                attendant: 'Maria (Balcão)',
-                technician: 'TBD',
-                status: 'Aberto',
-                photos: ['https://via.placeholder.com/150']
-            }
-        ]
-    }
-];
+// O MOCK_DEVICES agora é carregado do banco de dados via API.
 
 const FILTER_OPTIONS: (ElectronicType | 'Todos')[] = [
     'Todos',
@@ -123,10 +30,14 @@ const ServiceOrderDevices: React.FC = () => {
     const [grades, setGrades] = useState<Grade[]>([]);
     const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
 
-    useEffect(() => {
-        const loadReferenceData = async () => {
-            const [fetchedCustomers, fetchedBrands, fetchedCats, fetchedModels, fetchedGrades, fetchedGradeValues] = await Promise.all([
-                getCustomers(), getBrands(), getCategories(), getProductModels(), getGrades(), getGradeValues()
+    const [devices, setDevices] = useState<CustomerDevice[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const loadData = async () => {
+        setIsLoading(true);
+        try {
+            const [fetchedCustomers, fetchedBrands, fetchedCats, fetchedModels, fetchedGrades, fetchedGradeValues, fetchedDevices] = await Promise.all([
+                getCustomers(), getBrands(), getCategories(), getProductModels(), getGrades(), getGradeValues(), getCustomerDevices()
             ]);
             setCustomers(fetchedCustomers);
             setBrands(fetchedBrands);
@@ -134,51 +45,71 @@ const ServiceOrderDevices: React.FC = () => {
             setProductModels(fetchedModels);
             setGrades(fetchedGrades);
             setGradeValues(fetchedGradeValues);
-        };
-        loadReferenceData();
+            setDevices(fetchedDevices);
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
     }, []);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<ElectronicType | 'Todos'>('Todos');
-    const [selectedDevice, setSelectedDevice] = useState<ElectronicDevice | null>(null);
+    const [selectedDevice, setSelectedDevice] = useState<CustomerDevice | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     // Form state (simplified for example)
-    const [formData, setFormData] = useState<Partial<ElectronicDevice>>({
+    const [formData, setFormData] = useState<Partial<CustomerDevice>>({
         type: 'Smartphone',
         model: '',
         brand: '',
         color: '',
-        imei1: '',
+        imei: '',
         customerName: '',
     });
 
-    const filteredDevices = MOCK_DEVICES.filter(device => {
+    const filteredDevices = devices.filter(device => {
         const lowerSearch = searchTerm.toLowerCase();
         const matchesSearch = device.model.toLowerCase().includes(lowerSearch) ||
-            device.imei1.includes(searchTerm) ||
+            (device.imei && device.imei.includes(searchTerm)) ||
             (device.imei2 && device.imei2.includes(searchTerm)) ||
             (device.serialNumber && device.serialNumber.toLowerCase().includes(lowerSearch)) ||
             (device.ean && device.ean.includes(searchTerm)) ||
             device.customerName.toLowerCase().includes(lowerSearch) ||
             (device.customerCpf && device.customerCpf.includes(searchTerm)) ||
-            device.history.some(h => h.osId.toLowerCase().includes(lowerSearch));
+            (device.history || []).some(h => (h.osId || '').toLowerCase().includes(lowerSearch));
 
         const matchesType = typeFilter === 'Todos' || device.type === typeFilter;
         return matchesSearch && matchesType;
     });
 
-    const handleDelete = (id: string) => {
-        if (window.confirm('Tem certeza que deseja excluir este eletrônico?')) {
-            MOCK_DEVICES = MOCK_DEVICES.filter(d => d.id !== id);
-            setSelectedDevice(null);
-            // Re-render would happen automatically if MOCK_DEVICES was state, but since it's just a mock let's trick it:
-            setSearchTerm(searchTerm + ' ');
-            setTimeout(() => setSearchTerm(searchTerm), 0);
+    const handleDelete = async (id: string) => {
+        const reason = window.prompt('Motivo da exclusão (Obrigatório):');
+        if (reason === null) {
+            return;
+        }
+        if (reason.trim() === '') {
+            window.alert('O motivo da exclusão é obrigatório.');
+            return;
+        }
+        if (window.confirm(`Tem certeza que deseja excluir este eletrônico?\n\nMotivo informado: ${reason}`)) {
+            try {
+                await deleteCustomerDevice(id);
+                setDevices(prev => prev.filter(d => d.id !== id));
+                setSelectedDevice(null);
+                window.alert("Eletrônico excluído com sucesso!");
+            } catch (error) {
+                console.error("Erro ao excluir:", error);
+                window.alert("Erro ao excluir o eletrônico.");
+            }
         }
     };
 
-    const handleEdit = (device: ElectronicDevice) => {
+    const handleEdit = (device: CustomerDevice) => {
         setFormData(device);
         setIsAddModalOpen(true);
         setSelectedDevice(null);
@@ -187,15 +118,26 @@ const ServiceOrderDevices: React.FC = () => {
     const handleSaveDevice = () => {
         // Implement save logic for add/edit
         setIsAddModalOpen(false);
-        setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei1: '', customerName: '' });
+        setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei: '', customerName: '' });
         window.alert("Eletrônico salvo com sucesso!");
     };
 
-    const handleSaveNewDevice = (newDevice: any) => {
-        MOCK_DEVICES.unshift(newDevice);
-        // Force refresh for mock
-        setSearchTerm(searchTerm + ' ');
-        setTimeout(() => setSearchTerm(searchTerm), 0);
+    const handleSaveNewDevice = async (deviceData: any) => {
+        try {
+            if (deviceData.id && devices.some(d => d.id === deviceData.id)) {
+                // Edit
+                await updateCustomerDevice(deviceData.id, deviceData);
+                window.alert("Eletrônico atualizado com sucesso!");
+            } else {
+                // New
+                await addCustomerDevice(deviceData);
+                window.alert("Eletrônico cadastrado com sucesso!");
+            }
+            loadData(); // Reload all to be sure
+        } catch (error) {
+            console.error("Erro ao salvar:", error);
+            window.alert("Erro ao salvar o eletrônico.");
+        }
     };
 
     return (
@@ -236,7 +178,7 @@ const ServiceOrderDevices: React.FC = () => {
                         </select>
                         <button
                             onClick={() => {
-                                setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei1: '', customerName: '' });
+                                setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei: '', customerName: '' });
                                 setIsAddModalOpen(true);
                             }}
                             className="h-11 px-5 bg-accent hover:bg-accent/90 text-white rounded-xl shadow-lg shadow-accent/20 transition-all flex items-center gap-2 font-bold text-sm shrink-0"
@@ -251,8 +193,9 @@ const ServiceOrderDevices: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {filteredDevices.map(device => {
-                    const isEmReparo = device.history.some(h => h.status === 'Em Reparo' || h.status === 'Aberto');
-                    const isEntregue = device.history.some(h => h.status === 'Concluído') && !isEmReparo && device.history.length > 0;
+                    const history = device.history || [];
+                    const isEmReparo = history.some(h => (h.status as any) === 'Em Reparo' || (h.status as any) === 'Aberto');
+                    const isEntregue = history.some(h => (h.status as any) === 'Concluído') && !isEmReparo && history.length > 0;
 
                     return (
                         <div
@@ -264,7 +207,7 @@ const ServiceOrderDevices: React.FC = () => {
                                 <div className="flex justify-between items-start mb-2 gap-2">
                                     <div className="flex-1">
                                         <h3 className="font-bold text-primary text-sm leading-tight group-hover:text-accent transition-colors">
-                                            {device.model} <span className="text-secondary font-medium">({device.color})</span>
+                                            {device.model} {!device.model.toLowerCase().includes(device.color.toLowerCase()) && <span className="text-secondary font-medium">({device.color})</span>}
                                         </h3>
                                         <p className="text-[11px] text-secondary font-medium">{device.type} • {device.brand}</p>
                                     </div>
@@ -288,7 +231,7 @@ const ServiceOrderDevices: React.FC = () => {
 
                                 <div className="space-y-1 mb-3">
                                     <div className="text-[11px] font-mono text-gray-500 bg-gray-50 p-1 rounded flex items-center gap-1.5 truncate">
-                                        <Cpu size={10} className="shrink-0" /> IMEI: {device.imei1}
+                                        <Cpu size={10} className="shrink-0" /> IMEI: {device.imei}
                                     </div>
                                     <div className="text-[11px] text-secondary flex items-center gap-1.5 font-medium">
                                         <User size={10} className="shrink-0" /> {device.customerName}
@@ -339,7 +282,7 @@ const ServiceOrderDevices: React.FC = () => {
                 isOpen={!!selectedDevice}
                 onClose={() => setSelectedDevice(null)}
                 title="Detalhes do Eletrônico"
-                className="max-w-4xl"
+                className="!max-w-3xl md:!max-w-4xl"
             >
                 {selectedDevice && (
                     <div className="space-y-6">
@@ -363,7 +306,12 @@ const ServiceOrderDevices: React.FC = () => {
                                     )}
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
-                                    <h2 className="text-2xl font-black text-primary mb-1 leading-tight">{selectedDevice.model} ({selectedDevice.color})</h2>
+                                    <h2 className="text-2xl font-black text-primary mb-1 leading-tight">
+                                        {selectedDevice.model}
+                                        {!selectedDevice.model.toLowerCase().includes(selectedDevice.color.toLowerCase()) && (
+                                            <span className="text-secondary font-medium"> ({selectedDevice.color})</span>
+                                        )}
+                                    </h2>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <button onClick={() => handleEdit(selectedDevice)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                                             <Edit size={18} />
@@ -373,24 +321,31 @@ const ServiceOrderDevices: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                                <p className="text-secondary font-medium mb-4">{selectedDevice.brand} • Cliente: <span className="font-bold text-primary">{selectedDevice.customerName}</span></p>
+                                <p className="text-secondary font-medium mb-4">
+                                    {selectedDevice.brand} • Cliente: <span className="font-bold text-primary">{selectedDevice.customerName}</span>
+                                    {customers.find(c => c.name === selectedDevice.customerName)?.phone && (
+                                        <span className="ml-3 inline-flex items-center gap-1.5 text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg text-xs border border-emerald-100">
+                                            <WhatsAppIcon size={14} /> {customers.find(c => c.name === selectedDevice.customerName)?.phone}
+                                        </span>
+                                    )}
+                                </p>
 
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">IMEI 1</p>
-                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.imei1 || '-'}</p>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm mt-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">IMEI 1</span>
+                                        <span className="text-sm font-mono text-primary font-bold truncate" title={selectedDevice.imei}>{selectedDevice.imei || '-'}</span>
                                     </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">IMEI 2</p>
-                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.imei2 || '-'}</p>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">IMEI 2</span>
+                                        <span className="text-sm font-mono text-primary font-bold truncate" title={selectedDevice.imei2}>{selectedDevice.imei2 || '-'}</span>
                                     </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Cód. Série</p>
-                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.serialNumber || '-'}</p>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Número de série</span>
+                                        <span className="text-sm font-mono text-primary font-bold truncate" title={selectedDevice.serialNumber}>{selectedDevice.serialNumber || '-'}</span>
                                     </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">EAN</p>
-                                        <p className="text-sm font-mono text-primary font-bold">{selectedDevice.ean || '-'}</p>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">EAN</span>
+                                        <span className="text-sm font-mono text-primary font-bold truncate" title={selectedDevice.ean}>{selectedDevice.ean || '-'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -402,11 +357,11 @@ const ServiceOrderDevices: React.FC = () => {
                                 <Clock className="text-accent" size={20} /> Histórico de OS do Aparelho
                             </h3>
 
-                            {selectedDevice.history.length === 0 ? (
+                            {(selectedDevice.history || []).length === 0 ? (
                                 <p className="text-center text-gray-400 py-4 text-sm">Nenhum histórico de conserto encontrado.</p>
                             ) : (
                                 <div className="relative border-l-2 border-gray-100 ml-4 space-y-6 pb-2">
-                                    {selectedDevice.history.map((record, index) => (
+                                    {(selectedDevice.history || []).map((record, index) => (
                                         <div key={record.id} className="relative pl-6">
                                             {/* Status Dot */}
                                             <div className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-4 border-white ${record.status === 'Concluído' ? 'bg-emerald-500' :
@@ -485,7 +440,7 @@ const ServiceOrderDevices: React.FC = () => {
 
             {/* Add / Edit Form Modal */}
             <ServiceOrderElectronicDevicesModal
-                isOpen={isAddModalOpen && !formData.id}
+                isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 customers={customers}
                 brands={brands}
@@ -494,6 +449,7 @@ const ServiceOrderDevices: React.FC = () => {
                 grades={grades}
                 gradeValues={gradeValues}
                 onSave={handleSaveNewDevice}
+                initialData={formData}
             />
         </div >
     );

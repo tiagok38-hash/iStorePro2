@@ -6,6 +6,7 @@ import { appleProductHierarchy } from '../services/constants';
 import SearchableDropdown from './SearchableDropdown';
 import CustomerModal from './CustomerModal';
 import { addCustomer } from '../services/mockApi';
+import { useToast } from '../contexts/ToastContext';
 
 interface ServiceOrderElectronicDevicesModalProps {
     isOpen: boolean;
@@ -17,6 +18,7 @@ interface ServiceOrderElectronicDevicesModalProps {
     grades: Grade[];
     gradeValues: GradeValue[];
     onSave: (device: any) => void;
+    initialData?: any;
 }
 
 const emptyItem = {
@@ -26,7 +28,7 @@ const emptyItem = {
     model: '',
     storage: '',
     color: '',
-    imei1: '',
+    imei: '',
     imei2: '',
     serialNumber: '',
     ean: '',
@@ -44,14 +46,21 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
     productModels,
     grades,
     gradeValues,
-    onSave
+    onSave,
+    initialData
 }) => {
+    const { showToast } = useToast();
     const [formData, setFormData] = useState({ ...emptyItem });
     const [productType, setProductType] = useState<'Apple' | 'Produto'>('Apple');
     const [showVariations, setShowVariations] = useState(false);
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [currentGradeId, setCurrentGradeId] = useState('');
     const [currentValueId, setCurrentValueId] = useState('');
+    const [localCustomers, setLocalCustomers] = useState<Customer[]>(customers);
+
+    useEffect(() => {
+        setLocalCustomers(customers);
+    }, [customers]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,8 +68,45 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
         };
 
         if (isOpen) {
-            setFormData({ ...emptyItem });
-            setProductType('Apple');
+            if (initialData && (initialData.model || initialData.rawModel)) {
+                // Modo Edição
+                const mappedData = { ...emptyItem, ...initialData };
+
+                // Se for Apple ou tiver rawModel, usamos o rawModel para preencher o campo de modelo da hierarquia
+                if (initialData.rawModel) {
+                    mappedData.model = initialData.rawModel;
+                } else if (initialData.category && appleProductHierarchy[initialData.category as keyof typeof appleProductHierarchy]) {
+                    // Try to infer model from the full string if missing
+                    const models = Object.keys(appleProductHierarchy[initialData.category as keyof typeof appleProductHierarchy] || {});
+                    // find the longest matching model (e.g. iPhone 17 Pro Max vs iPhone 17)
+                    models.sort((a, b) => b.length - a.length);
+                    const foundModel = models.find(m => initialData.model && initialData.model.includes(m));
+                    if (foundModel) {
+                        mappedData.model = foundModel;
+                    }
+                }
+
+                if (initialData.storage) {
+                    mappedData.storage = initialData.storage;
+                } else if (initialData.category && mappedData.model) {
+                    // Try to infer storage from the full string if missing
+                    const storages = Object.keys((appleProductHierarchy as any)?.[initialData.category]?.[mappedData.model] || {});
+                    const foundStorage = storages.find(s => initialData.model && initialData.model.includes(s));
+                    if (foundStorage) {
+                        mappedData.storage = foundStorage;
+                    }
+                }
+
+                // Garante que o IMEI seja carregado independentemente da chave (imei ou imei1)
+                mappedData.imei = initialData.imei || initialData.imei1 || '';
+
+                setFormData(mappedData);
+                setProductType(initialData.type === 'Produtos Apple' ? 'Apple' : 'Produto');
+            } else {
+                // Modo Novo Cadastro
+                setFormData({ ...emptyItem });
+                setProductType('Apple');
+            }
             setShowVariations(false);
             setCurrentGradeId('');
             setCurrentValueId('');
@@ -72,7 +118,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
             document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = 'unset';
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, initialData]);
 
     const isMemoryless = useMemo(() => {
         const cat = formData.category;
@@ -184,11 +230,24 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
         if (productType === 'Apple') {
             finalBrandName = 'Apple';
             finalType = 'Produtos Apple';
-            if (formData.model.includes(formData.category)) {
-                finalModelName = `${formData.model} ${formData.storage} ${formData.color} ${variationString}`.trim().replace(/\s+/g, ' ');
-            } else {
-                finalModelName = `${formData.category} ${formData.model} ${formData.storage} ${formData.color} ${variationString}`.trim().replace(/\s+/g, ' ');
-            }
+
+            // Tenta identificar se o model já é o nome completo (caso de edição)
+            // Se for Apple, o ideal é recomeçar do modelo base se possível, ou evitar duplicar
+            let baseModel = formData.model;
+
+            // Se o modelo já contém a categoria, armazenamento ou cor, não adicionamos de novo
+            const hasCategory = baseModel.toLowerCase().includes(formData.category.toLowerCase());
+            const hasStorage = formData.storage && baseModel.toLowerCase().includes(formData.storage.toLowerCase());
+            const hasColor = formData.color && baseModel.toLowerCase().includes(formData.color.toLowerCase());
+
+            let nameParts = [];
+            if (!hasCategory) nameParts.push(formData.category);
+            nameParts.push(baseModel);
+            if (!hasStorage && formData.storage) nameParts.push(formData.storage);
+            if (!hasColor && formData.color) nameParts.push(formData.color);
+            if (variationString) nameParts.push(variationString);
+
+            finalModelName = nameParts.join(' ').trim().replace(/\s+/g, ' ');
         } else {
             const brandObj = brands.find(b => b.id === formData.brand);
             finalBrandName = brandObj?.name || formData.brand;
@@ -201,18 +260,26 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
             const modelObj = productModels.find(m => m.id === formData.model);
             const modelName = modelObj?.name || formData.model;
 
-            finalModelName = `${categoryName} ${finalBrandName} ${modelName} ${variationString}`.trim().replace(/\s+/g, ' ');
+            // Evita duplicar se o modelName já tiver a marca ou categoria
+            let nameParts = [];
+            if (!modelName.toLowerCase().includes(categoryName.toLowerCase())) nameParts.push(categoryName);
+            if (!modelName.toLowerCase().includes(finalBrandName.toLowerCase())) nameParts.push(finalBrandName);
+            nameParts.push(modelName);
+            if (variationString) nameParts.push(variationString);
+
+            finalModelName = nameParts.join(' ').trim().replace(/\s+/g, ' ');
         }
 
         const newDevice = {
             ...formData,
-            id: crypto.randomUUID(),
+            id: initialData?.id || crypto.randomUUID(),
             type: finalType,
             brand: finalBrandName,
-            model: finalModelName,
-            soldInStore: false,
-            hasPreviousRepair: false,
-            history: [] // start with empty history
+            model: finalModelName, // Nome completo para exibição
+            rawModel: formData.model, // Nome/ID original para edição
+            soldInStore: initialData?.soldInStore || false,
+            hasPreviousRepair: initialData?.hasPreviousRepair || false,
+            history: initialData?.history || []
         };
 
         onSave(newDevice);
@@ -397,10 +464,10 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                     <label className={labelClasses}>IMEI 1</label>
                                     <input
                                         type="text"
-                                        value={formData.imei1}
+                                        value={formData.imei}
                                         onChange={(e) => {
                                             const val = e.target.value.replace(/\D/g, '').slice(0, 15);
-                                            setFormData(prev => ({ ...prev, imei1: val }));
+                                            setFormData(prev => ({ ...prev, imei: val }));
                                         }}
                                         maxLength={15}
                                         className={inputClasses}
@@ -420,7 +487,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                     />
                                 </div>
                                 <div>
-                                    <label className={labelClasses}>Cód. Série</label>
+                                    <label className={labelClasses}>Número de série</label>
                                     <input
                                         type="text"
                                         value={formData.serialNumber}
@@ -438,15 +505,15 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                     />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-end">
-                                <div className="md:col-span-2">
+                            <div className="flex flex-col md:flex-row md:items-end gap-2">
+                                <div className="flex-1 md:flex-[2]">
                                     <label className={labelClasses}>Cliente Vinculado</label>
                                     <div className="h-11">
                                         <SearchableDropdown
-                                            options={customers.map(c => ({ value: c.id, label: c.name }))}
-                                            value={customers.find(c => c.name === formData.customerName)?.id || null}
+                                            options={localCustomers.map(c => ({ value: c.id, label: c.name }))}
+                                            value={localCustomers.find(c => c.name === formData.customerName)?.id || null}
                                             onChange={val => {
-                                                const selected = customers.find(c => c.id === val);
+                                                const selected = localCustomers.find(c => c.id === val);
                                                 if (selected) {
                                                     setFormData(prev => ({
                                                         ...prev,
@@ -458,10 +525,11 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                                 }
                                             }}
                                             placeholder="Buscar cliente..."
+                                            dropDirection="down"
                                         />
                                     </div>
                                 </div>
-                                <div className="flex justify-center">
+                                <div className="flex-none flex justify-center">
                                     <button
                                         type="button"
                                         onClick={() => setIsCustomerModalOpen(true)}
@@ -471,7 +539,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                         <PlusIcon className="h-6 w-6" />
                                     </button>
                                 </div>
-                                <div className="md:col-span-1">
+                                <div className="flex-1">
                                     <label className={labelClasses}>CPF do Cliente</label>
                                     <input
                                         type="text"
@@ -524,11 +592,14 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                 customerCpf: newCustomer.cpf || ''
                             }));
 
-                            // Note: parent customers list might not update instantly in this mock setup
-                            // but for the current form it's filled.
+                            // Add to local list to ensure dropdown displays the name immediately
+                            setLocalCustomers(prev => [...prev, newCustomer]);
+
+                            showToast('Cliente cadastrado com sucesso!', 'success');
                             setIsCustomerModalOpen(false);
-                        } catch (err) {
+                        } catch (err: any) {
                             console.error(err);
+                            showToast(err.message || 'Erro ao cadastrar cliente.', 'error');
                         }
                     }}
                 />
