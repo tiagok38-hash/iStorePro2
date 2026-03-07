@@ -51,14 +51,25 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
     const [currentValueId, setCurrentValueId] = useState('');
 
     useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+
         if (isOpen) {
             setFormData({ ...emptyItem });
             setProductType('Apple');
             setShowVariations(false);
             setCurrentGradeId('');
             setCurrentValueId('');
+            document.addEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'hidden';
         }
-    }, [isOpen]);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen, onClose]);
 
     const isMemoryless = useMemo(() => {
         const cat = formData.category;
@@ -454,7 +465,8 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
