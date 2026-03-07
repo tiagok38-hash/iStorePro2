@@ -244,32 +244,31 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                 <div className="p-5 flex-1 overflow-y-auto space-y-6">
                     {/* Toggle Apple/Não Apple */}
                     <div className="bg-gray-50/50 p-4 md:p-5 rounded-lg border border-gray-100 space-y-5">
-                        <div className="flex justify-start items-center p-1 bg-gray-100/50 rounded-xl border border-gray-200 w-fit">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setProductType('Apple');
-                                    setFormData({ ...emptyItem, type: 'Produtos Apple' });
-                                }}
-                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Apple' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
-                            >
-                                Apple
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setProductType('Produto');
-                                    setFormData({ ...emptyItem, type: 'Outros', brand: '' });
-                                }}
-                                className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Produto' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
-                            >
-                                Variados
-                            </button>
-                        </div>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center p-1 bg-gray-100/50 rounded-xl border border-gray-200 w-fit">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProductType('Apple');
+                                        setFormData({ ...emptyItem, type: 'Produtos Apple' });
+                                    }}
+                                    className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Apple' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                                >
+                                    Apple
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setProductType('Produto');
+                                        setFormData({ ...emptyItem, type: 'Outros', brand: '' });
+                                    }}
+                                    className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all duration-300 ${productType === 'Produto' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
+                                >
+                                    Variados
+                                </button>
+                            </div>
 
-                        {/* Link to Settings */}
-                        <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-xl flex items-center justify-center">
-                            <p className="text-blue-600 text-[13px] font-medium">
+                            <p className="text-blue-600 text-[13px] font-medium bg-blue-50/50 border border-blue-100 px-4 py-2 rounded-xl shadow-sm">
                                 Para cadastrar Marcas, Categorias, Modelos e Grades, <a href="#/company?tab=marcas" target="_blank" className="font-black underline hover:text-blue-700 transition-colors">clique aqui</a>
                             </p>
                         </div>
