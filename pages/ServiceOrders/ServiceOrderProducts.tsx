@@ -460,32 +460,35 @@ const ServiceOrderProducts: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col gap-4 border-b border-gray-100 pb-5">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl">
-                        <PackageIcon className="h-5 w-5" />
+                    <div className="p-3 bg-amber-100 text-amber-600 rounded-xl shadow-sm">
+                        <PackageIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Peças e Serviços</h1>
-                        <p className="text-gray-500 text-sm">
+                        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Peças e Serviços</h1>
+                        <p className="text-gray-500 text-sm font-medium">
                             Catálogo exclusivo de Ordens de Serviço —{' '}
-                            <span className="text-amber-600 font-semibold">Estoque separado do ERP principal</span>
+                            <span className="text-amber-600 font-bold">Estoque separado do ERP principal</span>
                         </p>
                     </div>
                 </div>
-                <div className="flex p-1 bg-gray-100 rounded-2xl border border-gray-200 gap-1">
-                    <button
-                        onClick={() => setActiveTab('parts')}
-                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'parts' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'}`}
-                    >
-                        Peças
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('services')}
-                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'services' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'}`}
-                    >
-                        Serviços
-                    </button>
+
+                <div className="flex items-center gap-2 mt-2">
+                    <div className="flex p-1.5 bg-gray-100/90 rounded-[20px] border border-gray-200/70 gap-1 w-max shadow-sm">
+                        <button
+                            onClick={() => setActiveTab('parts')}
+                            className={`px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'parts' ? 'bg-[#1a1b23] text-white shadow-md' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
+                        >
+                            Peças
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('services')}
+                            className={`px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'services' ? 'bg-[#1a1b23] text-white shadow-md' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
+                        >
+                            Serviços
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -574,16 +577,16 @@ const ServiceOrderProducts: React.FC = () => {
             {/* Sub-tabs for parts */}
             {
                 activeTab === 'parts' && (
-                    <div className="flex border-b border-gray-200 gap-6 px-1">
+                    <div className="flex p-1.5 bg-gray-100/80 rounded-2xl border border-gray-200/60 gap-1 w-max shadow-sm">
                         <button
                             onClick={() => setPartsSubTab('estoque')}
-                            className={`py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${partsSubTab === 'estoque' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${partsSubTab === 'estoque' ? 'bg-[#1a1b23] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
                         >
                             Estoque
                         </button>
                         <button
                             onClick={() => setPartsSubTab('compras')}
-                            className={`py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${partsSubTab === 'compras' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${partsSubTab === 'compras' ? 'bg-[#1a1b23] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
                         >
                             Compras (Histórico)
                         </button>
