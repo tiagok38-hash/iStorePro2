@@ -1085,7 +1085,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                             min="1"
                                             value={currentItem.minimumStock ?? 1}
                                             onChange={(e) => handleCurrentItemChange('minimumStock', parseInt(e.target.value) || 1)}
-                                            className="w-10 bg-transparent text-center font-black text-sm outline-none transition-colors border-none"
+                                            className="w-10 bg-transparent text-center font-black text-sm transition-colors !border-none !outline-none !shadow-none !ring-0 !bg-transparent !p-0"
+                                            style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}
                                         />
                                     </div>
                                 </div>
@@ -1103,7 +1104,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                                                 e.preventDefault();
                                             }
                                         }}
-                                        className="bg-transparent border-none text-sm outline-none w-full placeholder:text-gray-400 font-bold"
+                                        className="w-full text-sm font-bold placeholder:text-gray-400 !border-none !outline-none !shadow-none !ring-0 !bg-transparent !p-0"
+                                        style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}
                                         placeholder="CÓDIGO DE BARRAS..."
                                     />
                                 </div>

@@ -112,8 +112,8 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({
                 placeholder={placeholder}
                 className={[
                     'flex-1 w-full h-full bg-transparent p-0 truncate appearance-none text-left',
-                    'border-none outline-none shadow-none',
-                    'focus:ring-0 focus:border-none focus:outline-none',
+                    '!border-none !outline-none !shadow-none !ring-0 !bg-transparent',
+                    'focus:!ring-0 focus:!border-none focus:!outline-none',
                     isCompact ? 'text-xs' : '',
                     disabled ? 'cursor-not-allowed' : '',
                     inputTextClasses || 'font-medium text-gray-700',

@@ -150,7 +150,8 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Modelo, IMEI ou Serial..."
-                            className="flex-1 w-full py-3 sm:py-4 px-3 sm:px-4 text-base sm:text-lg font-medium outline-none bg-transparent border-none focus:ring-0"
+                            className="flex-1 w-full py-3 sm:py-4 px-3 sm:px-4 text-base sm:text-lg font-medium bg-transparent !border-none !outline-none !shadow-none !ring-0 !bg-transparent"
+                            style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}
                         />
                     </div>
                 </div>

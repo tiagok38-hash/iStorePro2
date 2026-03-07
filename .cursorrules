@@ -50,3 +50,9 @@ Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicaçã
 ## 12. Modularização Obrigatória de Componentes
 - Nenhum arquivo `.tsx` novo ou componente já existente deverá crescer descontroladamente após 400-500 linhas de código sem revisão de viés.
 - Extrapolou o limite visual das responsabilidades do React? Identifique sub-partes complexas e quebre-as OBRIGATORIAMENTE em pequenos componentes reaproveitáveis separados dentro da sua pasta estruturada e modular.
+
+## 13. Prevenção de Bordas Duplas (Inner Borders) em Inputs
+- Quando construir um contêiner customizado que visualmente atue como um campo de texto/número (ex: uma `div` com `border`, `rounded` e efeitos `focus-within` contendo ícones ou sufixos/prefixos) envolta de uma tag `<input>`, você deve OBRIGATORIAMENTE blindar a tag `<input>` interna contra a injeção de estilos padrão do navegador ou de plugins do Tailwind (como o `@tailwindcss/forms`).
+- Sempre aplique as seguintes classes modificadoras com `!` Important na tag `<input>` interna:
+  `!border-none !outline-none !shadow-none !ring-0 !bg-transparent` e utilize `p-0` ou zere espacamentos caso necessário, além de aplicar `style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}` se os estilos nativos insistirem.
+- Nunca deixe ocorrer o bug de "borda dupla" (caixa dentro de caixa). A borda estritamente deve pertencer apenas ao contêiner pai estilizado.
