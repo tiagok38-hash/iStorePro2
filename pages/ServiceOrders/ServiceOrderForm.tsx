@@ -1265,13 +1265,13 @@ const ServiceOrderForm: React.FC = () => {
                                     <table className="w-full text-sm">
                                         <thead className="bg-gray-50 border-b border-gray-200 text-left text-xs font-bold text-secondary uppercase">
                                             <tr>
-                                                <th className="px-3 py-4">Descrição</th>
-                                                <th className="px-2 py-4 w-28">Tipo</th>
-                                                <th className="px-2 py-4 w-36">Garantia</th>
-                                                <th className="px-2 py-4 w-20 text-center">Qtd</th>
-                                                <th className="px-2 py-4 w-32 text-right">Valor Unit.</th>
-                                                <th className="px-2 py-4 w-28 text-right">Total</th>
-                                                <th className="px-2 py-4 w-10"></th>
+                                                <th className="px-1.5 py-4">Descrição</th>
+                                                <th className="px-1.5 py-4 w-28">Tipo</th>
+                                                <th className="px-1.5 py-4 w-36">Garantia</th>
+                                                <th className="px-1.5 py-4 w-20 text-center">Qtd</th>
+                                                <th className="px-1.5 py-4 w-32 text-right">Valor Unit.</th>
+                                                <th className="px-1.5 py-4 w-28 text-right">Total</th>
+                                                <th className="px-1.5 py-4 w-10"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -1282,7 +1282,7 @@ const ServiceOrderForm: React.FC = () => {
                                             ) : (
                                                 items.map((item) => (
                                                     <tr key={item.id}>
-                                                        <td className="px-4 py-3">
+                                                        <td className="px-1.5 py-3">
                                                             <input
                                                                 type="text"
                                                                 value={item.description}
@@ -1290,7 +1290,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                 className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-accent font-medium text-sm transition-all"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-3">
+                                                        <td className="px-1.5 py-3">
                                                             <select
                                                                 value={item.type}
                                                                 onChange={e => updateItem(item.id, 'type', e.target.value)}
@@ -1301,7 +1301,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                 <option value="part">Peça</option>
                                                             </select>
                                                         </td>
-                                                        <td className="px-4 py-3">
+                                                        <td className="px-1.5 py-3">
                                                             <input
                                                                 type="text"
                                                                 list={`warranty-options-${item.id}`}
@@ -1328,7 +1328,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                 })()
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 text-center">
+                                                        <td className="px-1.5 py-3 text-center">
                                                             <input
                                                                 type="number"
                                                                 value={item.quantity}
@@ -1336,7 +1336,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                 className="w-full h-11 px-2 text-center bg-white border border-gray-200 rounded-lg outline-none focus:border-accent transition-all" min="1"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-3 text-right">
+                                                        <td className="px-1.5 py-3 text-right">
                                                             <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg h-11 px-3 focus-within:border-accent transition-all">
                                                                 <span className="text-gray-300 text-sm font-medium flex-shrink-0">R$</span>
                                                                 <input
@@ -1353,10 +1353,10 @@ const ServiceOrderForm: React.FC = () => {
                                                                 />
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-right font-medium text-primary">
+                                                        <td className="px-1.5 py-3 text-right font-medium text-primary">
                                                             {formatCurrency(item.price * item.quantity)}
                                                         </td>
-                                                        <td className="px-4 py-3 text-center">
+                                                        <td className="px-1.5 py-3 text-center">
                                                             <button
                                                                 onClick={() => removeItem(item.id)}
                                                                 className="text-gray-400 hover:text-red-500 transition-colors"
