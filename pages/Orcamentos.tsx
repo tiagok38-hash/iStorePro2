@@ -534,7 +534,7 @@ const OrcamentoDetailsModal = ({ orcamento, onClose, onEdit, onDelete, onConvert
                                                 <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-gray-500 uppercase font-black">
                                                     {item.sku_snapshot && <span>SKU: {item.sku_snapshot}</span>}
                                                     {item.metadata_snapshot?.imei1 && <span>IMEI: {item.metadata_snapshot.imei1}</span>}
-                                                    {item.metadata_snapshot?.serialNumber && <span>SN: {item.metadata_snapshot.serialNumber}</span>}
+                                                    {item.metadata_snapshot?.serialNumber && <span>N/S: {item.metadata_snapshot.serialNumber}</span>}
                                                     {item.metadata_snapshot?.barcodes && item.metadata_snapshot.barcodes[0] && <span>EAN: {item.metadata_snapshot.barcodes[0]}</span>}
                                                 </div>
                                             </div>

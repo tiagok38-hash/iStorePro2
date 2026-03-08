@@ -474,7 +474,7 @@ const StockInModal: React.FC<{
                     });
 
                     setDuplicateErrors(serverDupErrors);
-                    message = 'Existem produtos já cadastrados no sistema com os mesmos IMEIs ou Serial Number. Verifique os campos destacados.';
+                    message = 'Existem produtos já cadastrados no sistema com os mesmos IMEIs ou Número de série. Verifique os campos destacados.';
                 }
             } catch (e) {
                 // Not a JSON error, treat as generic string

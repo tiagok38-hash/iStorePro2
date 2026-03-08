@@ -130,7 +130,16 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
                 </div>
             )}
         </div>
-        {os.total > 0 && <span className="text-xs font-bold text-emerald-600 mt-1 block">R$ {os.total.toLocaleString()}</span>}
+        <div className="flex justify-between items-end mt-1">
+            {os.total > 0 && <span className="text-xs font-black text-gray-900">R$ {os.total.toLocaleString()}</span>}
+            {(() => {
+                const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
+                const profit = (os.total || 0) - totalCost;
+                return profit > 0 ? (
+                    <span className="text-[10px] font-bold text-emerald-600">Lucro: R$ {profit.toLocaleString()}</span>
+                ) : null;
+            })()}
+        </div>
     </div>
 );
 
@@ -420,109 +429,116 @@ const ServiceOrderList: React.FC = () => {
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Prevista</th>
                                         {warrantyFilter !== 'all' && <th className="px-4 py-3 font-bold">Garantia</th>}
                                         <th className="px-4 py-3 font-bold text-right">Valor</th>
+                                        <th className="px-4 py-3 font-bold text-right">Lucro</th>
                                         <th className="px-4 py-3 font-bold text-right">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={9} className="px-6 py-12 text-center text-secondary">Carregando...</td>
+                                            <td colSpan={10} className="px-6 py-12 text-center text-secondary">Carregando...</td>
                                         </tr>
                                     ) : filteredOrders.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="px-6 py-12 text-center text-secondary">Nenhuma ordem de serviço encontrada.</td>
+                                            <td colSpan={10} className="px-6 py-12 text-center text-secondary">Nenhuma ordem de serviço encontrada.</td>
                                         </tr>
                                     ) : (
-                                        filteredOrders.map(os => (
-                                            <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60' : 'hover:bg-gray-50/50'}`}>
-                                                <td className="px-4 py-3 font-medium text-primary">
-                                                    <div className="flex items-center gap-1">
-                                                        {os.isQuick && <Zap size={11} className="text-amber-500 fill-amber-400 flex-shrink-0" />}
-                                                        <span className="cursor-pointer hover:text-accent" onClick={() => navigate(`/service-orders/edit/${os.id}`)}>OS-{os.displayId}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-secondary">{os.customerName}</td>
-                                                <td className="px-4 py-3 font-medium text-primary">{os.deviceModel}</td>
-                                                <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
-                                                <td className="px-4 py-3 text-secondary text-sm">{os.responsibleName || '-'}</td>
-                                                <td className="px-4 py-3 text-secondary text-sm">
-                                                    {os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
-                                                </td>
-                                                <td className="px-4 py-3 text-secondary text-sm">
-                                                    {os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}
-                                                </td>
-                                                {warrantyFilter !== 'all' && (
-                                                    <td className="px-4 py-3">
-                                                        {(() => {
-                                                            const items = os.items || [];
-                                                            const osExitDate = os.exitDate;
-                                                            if (!osExitDate) return <span className="text-gray-400 text-[10px]">—</span>;
+                                        filteredOrders.map(os => {
+                                            const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
+                                            const profit = (os.total || 0) - totalCost;
 
-                                                            const itemExpiries = items
-                                                                .filter((i: any) => i.warranty)
-                                                                .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
-
-                                                            if (itemExpiries.length === 0) return <span className="text-gray-400 text-[10px]">—</span>;
-
-                                                            const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d!.getTime())));
-                                                            const days = getRemainingDays(latestExpiry);
-                                                            const isExpired = days < 0;
-
-                                                            return (
-                                                                <div className="flex flex-col">
-                                                                    <div className={`flex items-center gap-1 text-[10px] font-black ${isExpired ? 'text-red-500' : 'text-emerald-600'}`}>
-                                                                        <ShieldCheck size={10} />
-                                                                        {formatDateBR(latestExpiry)}
-                                                                    </div>
-                                                                    <span className={`text-[9px] font-bold ${isExpired ? 'text-red-400' : 'text-gray-400'}`}>
-                                                                        {isExpired ? 'Expirada' : `Faltam ${days} dias`}
-                                                                    </span>
-                                                                </div>
-                                                            );
-                                                        })()}
+                                            return (
+                                                <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60' : 'hover:bg-gray-50/50'}`}>
+                                                    <td className="px-4 py-3 font-medium text-primary">
+                                                        <div className="flex items-center gap-1">
+                                                            {os.isQuick && <Zap size={11} className="text-amber-500 fill-amber-400 flex-shrink-0" />}
+                                                            <span className="cursor-pointer hover:text-accent" onClick={() => navigate(`/service-orders/edit/${os.id}`)}>OS-{os.displayId}</span>
+                                                        </div>
                                                     </td>
-                                                )}
-                                                <td className="px-4 py-3 text-right font-bold text-emerald-600">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-1 justify-end">
-                                                        <button
-                                                            onClick={() => navigate(`/service-orders/edit/${os.id}`)}
-                                                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                                                            title="Visualizar / Editar"
-                                                        >
-                                                            <Eye size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => navigate(`/service-orders/edit/${os.id}`)}
-                                                            className="p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/10 transition-all"
-                                                            title="Editar"
-                                                        >
-                                                            <Edit2 size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedOSForPrint(os);
-                                                                setIsPrintModalOpen(true);
-                                                            }}
-                                                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-                                                            title="Re-imprimir"
-                                                        >
-                                                            <Printer size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setOsToCancel(os.id);
-                                                                setIsCancelModalOpen(true);
-                                                            }}
-                                                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                                                            title="Cancelar OS"
-                                                        >
-                                                            <XCircle size={14} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                    <td className="px-4 py-3 text-secondary">{os.customerName}</td>
+                                                    <td className="px-4 py-3 font-medium text-primary">{os.deviceModel}</td>
+                                                    <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
+                                                    <td className="px-4 py-3 text-secondary text-sm">{os.responsibleName || '-'}</td>
+                                                    <td className="px-4 py-3 text-secondary text-sm">
+                                                        {os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-secondary text-sm">
+                                                        {os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}
+                                                    </td>
+                                                    {warrantyFilter !== 'all' && (
+                                                        <td className="px-4 py-3">
+                                                            {(() => {
+                                                                const items = os.items || [];
+                                                                const osExitDate = os.exitDate;
+                                                                if (!osExitDate) return <span className="text-gray-400 text-[10px]">—</span>;
+
+                                                                const itemExpiries = items
+                                                                    .filter((i: any) => i.warranty)
+                                                                    .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
+
+                                                                if (itemExpiries.length === 0) return <span className="text-gray-400 text-[10px]">—</span>;
+
+                                                                const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d!.getTime())));
+                                                                const days = getRemainingDays(latestExpiry);
+                                                                const isExpired = days < 0;
+
+                                                                return (
+                                                                    <div className="flex flex-col">
+                                                                        <div className={`flex items-center gap-1 text-[10px] font-black ${isExpired ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                                            <ShieldCheck size={10} />
+                                                                            {formatDateBR(latestExpiry)}
+                                                                        </div>
+                                                                        <span className={`text-[9px] font-bold ${isExpired ? 'text-red-400' : 'text-gray-400'}`}>
+                                                                            {isExpired ? 'Expirada' : `Faltam ${days} dias`}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </td>
+                                                    )}
+                                                    <td className="px-4 py-3 text-right font-black text-gray-900">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
+                                                    <td className="px-4 py-3 text-right font-bold text-emerald-600">{profit > 0 ? `R$ ${profit.toLocaleString()}` : '-'}</td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-1 justify-end">
+                                                            <button
+                                                                onClick={() => navigate(`/service-orders/edit/${os.id}`)}
+                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                                                title="Visualizar / Editar"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => navigate(`/service-orders/edit/${os.id}`)}
+                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/10 transition-all"
+                                                                title="Editar"
+                                                            >
+                                                                <Edit2 size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedOSForPrint(os);
+                                                                    setIsPrintModalOpen(true);
+                                                                }}
+                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
+                                                                title="Re-imprimir"
+                                                            >
+                                                                <Printer size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setOsToCancel(os.id);
+                                                                    setIsCancelModalOpen(true);
+                                                                }}
+                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                                                title="Cancelar OS"
+                                                            >
+                                                                <XCircle size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -535,28 +551,38 @@ const ServiceOrderList: React.FC = () => {
                             ) : filteredOrders.length === 0 ? (
                                 <div className="p-8 text-center text-secondary">Nenhuma ordem de serviço encontrada.</div>
                             ) : (
-                                filteredOrders.map(os => (
-                                    <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60 active:bg-amber-200/40' : 'active:bg-gray-50'}`}>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-primary">OS-{os.displayId}</span>
-                                                <span className="text-[10px] text-gray-400">{os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}</span>
+                                filteredOrders.map(os => {
+                                    const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
+                                    const profit = (os.total || 0) - totalCost;
+
+                                    return (
+                                        <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60 active:bg-amber-200/40' : 'active:bg-gray-50'}`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold text-primary">OS-{os.displayId}</span>
+                                                    <span className="text-[10px] text-gray-400">{os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}</span>
+                                                </div>
+                                                <StatusBadge status={os.status} />
                                             </div>
-                                            <StatusBadge status={os.status} />
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <h4 className="font-bold text-sm text-primary mb-0.5">{os.deviceModel}</h4>
-                                                <p className="text-xs text-secondary flex items-center gap-1">
-                                                    <User size={12} /> {os.customerName}
-                                                </p>
+                                            <div className="flex justify-between items-end">
+                                                <div>
+                                                    <h4 className="font-bold text-sm text-primary mb-0.5">{os.deviceModel}</h4>
+                                                    <p className="text-xs text-secondary flex items-center gap-1">
+                                                        <User size={12} /> {os.customerName}
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    {os.total > 0 && (
+                                                        <span className="font-black text-gray-900 text-sm">R$ {os.total.toLocaleString()}</span>
+                                                    )}
+                                                    {profit > 0 && (
+                                                        <span className="font-bold text-emerald-600 text-[10px]">Lucro: R$ {profit.toLocaleString()}</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {os.total > 0 && (
-                                                <span className="font-bold text-emerald-600 text-sm">R$ {os.total.toLocaleString()}</span>
-                                            )}
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>

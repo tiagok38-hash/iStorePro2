@@ -217,17 +217,25 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         is_orcamento_only: (data as any).isOrcamentoOnly ?? false,
         is_quick: (data as any).isQuick ?? false,
         phone: (data as any).phone || null,
+        cancellation_reason: data.cancellationReason || null,
     };
 
-    if (!newOrder.responsible_id) newOrder.responsible_id = null;
-    if (!newOrder.customer_id) newOrder.customer_id = null;
+    const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
+    const _uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    uuidFields.forEach(field => {
+        const val = newOrder[field];
+        if (!val || (typeof val === 'string' && !_uuidRegex.test(val))) {
+            newOrder[field] = null;
+        }
+    });
 
     const camelCaseKeys = [
         'customerId', 'customerName', 'deviceModel', 'serialNumber',
         'patternLock', 'defectDescription', 'technicalReport',
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
-        'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly', 'isQuick', 'phone'
+        'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly', 'isQuick', 'phone',
+        'cancellationReason', 'isEdited'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 

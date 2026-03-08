@@ -418,6 +418,7 @@ const ServiceOrderForm: React.FC = () => {
             description: type === 'service' ? (item as Service).name : (item as OsPart).name,
             type: type,
             price: type === 'service' ? (item as Service).price : (item as OsPart).salePrice,
+            cost: type === 'service' ? (item as Service).cost : (item as OsPart).costPrice,
             quantity: quantity,
             warranty: item.warranty || ''
         };
@@ -482,6 +483,10 @@ const ServiceOrderForm: React.FC = () => {
     const handleSave = async () => {
         if (!selectedCustomer && !isEditing) {
             toast.error("Selecione um cliente.");
+            return;
+        }
+        if (imei && imei.length !== 15) {
+            toast.error("O IMEI deve ter exatamente 15 números.");
             return;
         }
         if (!deviceModel) {
@@ -1007,7 +1012,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                     <div className="font-bold text-primary">{d.brand} {d.model}</div>
                                                                     <div className="text-xs text-secondary font-mono">
                                                                         {d.imei && `IMEI: ${d.imei} `}
-                                                                        {d.serialNumber && `SN: ${d.serialNumber}`}
+                                                                        {d.serialNumber && `N/S: ${d.serialNumber}`}
                                                                     </div>
                                                                 </button>
                                                             ))
@@ -1036,12 +1041,13 @@ const ServiceOrderForm: React.FC = () => {
                                                         type="text"
                                                         placeholder="IMEI"
                                                         value={imei}
-                                                        onChange={e => setImei(e.target.value)}
+                                                        onChange={e => setImei(e.target.value.replace(/\D/g, '').slice(0, 15))}
+                                                        maxLength={15}
                                                         className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm font-mono focus:border-accent"
                                                     />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Serial Number</label>
+                                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Número de série</label>
                                                     <input
                                                         type="text"
                                                         placeholder="Opcional"

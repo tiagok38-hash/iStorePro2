@@ -228,6 +228,14 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
     };
 
     const handleSubmit = () => {
+        if (formData.imei && formData.imei.length !== 15) {
+            showToast('O IMEI 1 deve ter exatamente 15 números.', 'error');
+            return;
+        }
+        if (formData.imei2 && formData.imei2.length !== 15) {
+            showToast('O IMEI 2 deve ter exatamente 15 números.', 'error');
+            return;
+        }
         let finalModelName = formData.model;
         let finalBrandName = formData.brand;
         let finalType = formData.type;

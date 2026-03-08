@@ -163,11 +163,11 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
         }
         const isValidImei = (val: string) => /^\d{15}$/.test(val || '');
         if (deviceData.imei1 && !isValidImei(deviceData.imei1)) {
-            showToast('O IMEI 1 deve ter 15 números.', 'error');
+            showToast('O IMEI 1 deve ter exatamente 15 números.', 'error');
             return;
         }
         if (deviceData.imei2 && !isValidImei(deviceData.imei2)) {
-            showToast('O IMEI 2 deve ter 15 números.', 'error');
+            showToast('O IMEI 2 deve ter exatamente 15 números.', 'error');
             return;
         }
         if (deviceData.costPrice <= 0) {
@@ -293,7 +293,7 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
                             <div className="md:col-span-1"><label className={labelClasses}>IMEI1</label><input name="imei1" value={deviceData.imei1} onChange={handleDeviceChange} className={inputClasses} /></div>
                             <div className="md:col-span-1"><label className={labelClasses}>IMEI2</label><input name="imei2" value={deviceData.imei2} onChange={handleDeviceChange} className={inputClasses} /></div>
-                            <div className="md:col-span-1"><label className={labelClasses}>Serial Number (SN)</label><input name="serialNumber" value={deviceData.serialNumber} onChange={handleDeviceChange} className={inputClasses} /></div>
+                            <div className="md:col-span-1"><label className={labelClasses}>Número de série</label><input name="serialNumber" value={deviceData.serialNumber} onChange={handleDeviceChange} className={inputClasses} /></div>
                             <div><label className={labelClasses}>Garantia*</label><select name="warranty" value={deviceData.warranty} onChange={handleDeviceChange} className={`${inputClasses} ${(!deviceData.warranty || deviceData.warranty === 'Selecione...') ? 'border-red-500' : ''}`}><option value="">Selecione...</option>{deviceData.warranty && deviceData.warranty !== 'Selecione...' && !warrantyOptions.some(w => w.name.toLowerCase() === deviceData.warranty?.toLowerCase()) && <option value={deviceData.warranty}>{deviceData.warranty}</option>}{warrantyOptions.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}</select></div>
                             <div><label className={labelClasses}>Saúde Bateria</label><input name="batteryHealth" type="number" value={deviceData.batteryHealth} onChange={handleNumericDeviceChange} className={inputClasses} /></div>
                         </div>

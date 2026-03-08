@@ -342,7 +342,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                     {p.serialNumber && (
                                                                         <>
                                                                             {(p.condition || p.warranty) && <span className="opacity-30">|</span>}
-                                                                            <span>SN: {p.serialNumber}</span>
+                                                                            <span>N/S: {p.serialNumber}</span>
                                                                         </>
                                                                     )}
                                                                     {p.imei1 && (
@@ -417,7 +417,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     <div className="flex flex-col truncate">
                                                         <span className="font-black text-[15px] text-gray-900 truncate" title={item.model}>{item.model}</span>
                                                         <div className="text-[11px] font-bold text-gray-600 flex flex-col gap-0.5 mt-1">
-                                                            {item.serialNumber && <span className="truncate">SN: <span className="font-mono text-gray-700">{item.serialNumber}</span></span>}
+                                                            {item.serialNumber && <span className="truncate">N/S: <span className="font-mono text-gray-700">{item.serialNumber}</span></span>}
                                                             {item.imei1 && <span className="truncate">IMEI: <span className="font-mono text-gray-700">{item.imei1}</span></span>}
                                                             <div className="flex items-center gap-2 truncate">
                                                                 {item.condition && <span>{item.condition}</span>}
@@ -539,7 +539,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             <div className="flex-1 min-w-0 pr-2">
                                                 <h4 className="font-black text-gray-900 text-[13px] leading-tight break-words">{item.model}</h4>
                                                 <div className="text-[10px] text-muted space-y-0.5 mt-1 capitalize">
-                                                    {item.serialNumber && <p>SN: <span className="font-mono text-gray-600">{item.serialNumber}</span></p>}
+                                                    {item.serialNumber && <p>N/S: <span className="font-mono text-gray-600">{item.serialNumber}</span></p>}
                                                     {item.imei1 && <p>IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></p>}
                                                     <p>
                                                         {item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && (

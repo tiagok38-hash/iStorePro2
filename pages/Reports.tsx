@@ -868,7 +868,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                                                 )}
                                                 {product.serialNumber && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold bg-white text-gray-400 border border-gray-100 uppercase tracking-tighter">
-                                                        SN: {product.serialNumber}
+                                                        N/S: {product.serialNumber}
                                                     </span>
                                                 )}
                                                 {product.variations && product.variations.length > 0 && (

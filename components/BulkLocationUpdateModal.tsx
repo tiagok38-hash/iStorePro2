@@ -272,7 +272,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                 {showHistory ? 'Histórico de Alterações' : 'Atualização de Local em Massa'}
                             </h2>
                             <p className="text-xs text-gray-500">
-                                {showHistory ? 'Alterações de local de estoque realizadas' : 'Bipe o IMEI/Serial ou busque por descrição'}
+                                {showHistory ? 'Alterações de local de estoque realizadas' : 'Bipe o IMEI/Nº de série ou busque por descrição'}
                             </p>
                         </div>
                     </div>
@@ -330,7 +330,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                                         )}
                                                         {item.serialNumber && (
                                                             <span className="font-mono text-[9px] text-gray-500 bg-gray-50 px-1 rounded whitespace-nowrap" title={`S/N: ${item.serialNumber}`}>
-                                                                SN:{item.serialNumber}
+                                                                N/S:{item.serialNumber}
                                                             </span>
                                                         )}
                                                         {item.barcode && (
@@ -362,7 +362,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                     <input
                                         ref={inputRef}
                                         type="text"
-                                        placeholder="Bipe IMEI/Serial ou busque por descrição/localizador..."
+                                        placeholder="Bipe IMEI/Nº de série ou busque por descrição/localizador..."
                                         value={searchTerm}
                                         onChange={handleInputChange}
                                         onKeyDown={handleKeyDown}
@@ -411,7 +411,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                                                 }`}>{product.condition}</span>
                                                             {product.storageLocation && <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">📍 {product.storageLocation}</span>}
                                                             {product.imei1 && <span className="text-[10px] font-mono text-gray-400">IMEI: {product.imei1}</span>}
-                                                            {product.serialNumber && <span className="text-[10px] font-mono text-gray-400">S/N: {product.serialNumber}</span>}
+                                                            {product.serialNumber && <span className="text-[10px] font-mono text-gray-400">N/S: {product.serialNumber}</span>}
                                                         </div>
                                                     </div>
                                                     <PlusIcon className="h-5 w-5 text-gray-300 group-hover:text-emerald-600 transition-colors" />
@@ -460,7 +460,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                                         {product.serialNumber && (
                                                             <>
                                                                 <span>•</span>
-                                                                <span className="font-mono text-[10px]">SN: {product.serialNumber}</span>
+                                                                <span className="font-mono text-[10px]">N/S: {product.serialNumber}</span>
                                                             </>
                                                         )}
                                                     </div>
@@ -500,7 +500,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full p-8">
-                                    <p className="text-gray-500 text-sm text-center">Nenhum produto na lista.<br />Bipe um IMEI/Serial ou faça uma busca.</p>
+                                    <p className="text-gray-500 text-sm text-center">Nenhum produto na lista.<br />Bipe um IMEI/Nº de série ou faça uma busca.</p>
                                 </div>
                             )}
                         </div>

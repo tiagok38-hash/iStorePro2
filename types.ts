@@ -392,6 +392,7 @@ export interface ServiceOrderItem {
     description: string;
     type: 'service' | 'part';
     price: number;
+    cost?: number;
     quantity: number;
     warranty?: string;
 }
