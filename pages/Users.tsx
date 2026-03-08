@@ -44,9 +44,11 @@ const permissionSections: {
     permissions: { key: keyof PermissionSet; label: string }[];
 }[] = [
         {
-            title: 'Dashboard',
-            sectionToggleKey: 'canAccessDashboard',
-            permissions: [],
+            title: 'Acessos e seções simples',
+            permissions: [
+                { key: 'canAccessDashboard', label: 'Dashboard' },
+                { key: 'canAccessRelatorios', label: 'Relatórios' },
+            ],
         },
         {
             title: 'Estoque',
@@ -104,7 +106,11 @@ const permissionSections: {
         {
             title: 'PDV (Frente de Caixa)',
             sectionToggleKey: 'canAccessPOS',
-            permissions: [],
+            permissions: [
+                { key: 'posCanCreateSale', label: 'Criar vendas' },
+                { key: 'posCanEditSale', label: 'Editar vendas' },
+                { key: 'posCanCancelSale', label: 'Cancelar vendas' }
+            ],
         },
         {
             title: 'Clientes',
@@ -154,11 +160,7 @@ const permissionSections: {
                 { key: 'osCanAccessSettings', label: 'Acessar Configurações' },
             ],
         },
-        {
-            title: 'Relatórios',
-            sectionToggleKey: 'canAccessRelatorios',
-            permissions: [],
-        },
+
         {
             title: 'Financeiro',
             sectionToggleKey: 'canAccessFinanceiro',
@@ -251,7 +253,7 @@ const PermissionSectionCard: React.FC<{
     onPermissionChange: (key: keyof PermissionSet, value: boolean) => void;
     onSectionToggle: (key: keyof PermissionSet, value: boolean) => void;
 }> = ({ section, permissions, onPermissionChange, onSectionToggle }) => {
-    const isSectionOn = section.sectionToggleKey ? !!permissions[section.sectionToggleKey] : false;
+    const isSectionOn = section.sectionToggleKey ? !!permissions[section.sectionToggleKey] : true;
     const isComingSoon = section.isComingSoon;
     const hasSubPermissions = section.permissions.length > 0;
 
@@ -270,14 +272,14 @@ const PermissionSectionCard: React.FC<{
         <div
             className={`rounded-2xl border transition-all duration-200 ${isComingSoon
                 ? 'opacity-[0.45] border-gray-200 bg-gray-50/80'
-                : isSectionOn
+                : isSectionOn || !section.sectionToggleKey
                     ? 'border-[#7B61FF]/15 bg-white shadow-sm'
                     : 'border-gray-100 bg-white'
                 }`}
         >
             {/* Section Header */}
             <div
-                className={`flex items-center justify-between px-4 py-2.5 cursor-pointer select-none rounded-t-2xl transition-colors duration-200 ${isSectionOn ? 'bg-[#7B61FF]/5' : 'bg-transparent'}`}
+                className={`flex items-center justify-between px-4 py-2.5 select-none rounded-t-2xl transition-colors duration-200 ${section.sectionToggleKey ? 'cursor-pointer' : ''} ${isSectionOn && section.sectionToggleKey ? 'bg-[#7B61FF]/5' : 'bg-transparent'}`}
                 onClick={() => {
                     if (!isComingSoon && section.sectionToggleKey) {
                         handleSectionToggle(!isSectionOn);
@@ -297,13 +299,15 @@ const PermissionSectionCard: React.FC<{
                         </span>
                     )}
                 </div>
-                <LilacToggle
-                    checked={isSectionOn}
-                    onChange={handleSectionToggle}
-                    disabled={isComingSoon || !section.sectionToggleKey}
-                    size="md"
-                    ariaLabel={`Ativar/desativar ${section.title}`}
-                />
+                {section.sectionToggleKey && (
+                    <LilacToggle
+                        checked={isSectionOn}
+                        onChange={handleSectionToggle}
+                        disabled={isComingSoon || !section.sectionToggleKey}
+                        size="md"
+                        ariaLabel={`Ativar/desativar ${section.title}`}
+                    />
+                )}
             </div>
 
             {/* Sub-permissions */}

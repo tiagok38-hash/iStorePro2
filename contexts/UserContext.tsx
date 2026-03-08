@@ -50,6 +50,7 @@ const defaultPermissions: PermissionSet = {
   canCreateSale: true, canCancelSale: true,
   canViewSalesKPIs: true, canEditSale: true,
   canViewAllSales: true,
+  posCanCreateSale: true, posCanEditSale: true, posCanCancelSale: true,
   canManageCompanyData: true, canManageUsers: true,
   canManagePermissions: true, canViewAudit: true,
   canEditOwnProfile: true, canManageMarcasECategorias: true,

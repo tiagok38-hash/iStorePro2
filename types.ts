@@ -41,6 +41,11 @@ export interface PermissionSet {
     canEditSale: boolean;
     canViewAllSales: boolean;
 
+    // POS specific permissions
+    posCanCreateSale: boolean;
+    posCanEditSale: boolean;
+    posCanCancelSale: boolean;
+
     // Company permissions
     canManageCompanyData: boolean;
     canManageUsers: boolean;

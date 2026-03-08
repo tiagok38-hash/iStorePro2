@@ -176,6 +176,9 @@ const ServiceOrderSettingsUsers: React.FC = () => {
         canCancelSale: false,
         canViewSalesKPIs: false,
         canEditSale: false,
+        posCanCreateSale: false,
+        posCanEditSale: false,
+        posCanCancelSale: false,
         canManageCompanyData: false,
         canManageUsers: false,
         canManagePermissions: false,
@@ -509,6 +512,12 @@ const ServiceOrderSettingsUsers: React.FC = () => {
                             { key: 'canCancelSale', label: 'Cancelar Venda' },
                             { key: 'canViewSalesKPIs', label: 'Ver Indicadores de Vendas' },
                         ], "canAccessVendas")}
+
+                        {renderPermissionGroup("PDV (Caixa)", [
+                            { key: 'posCanCreateSale', label: 'Criar Venda no PDV' },
+                            { key: 'posCanEditSale', label: 'Editar Venda no PDV' },
+                            { key: 'posCanCancelSale', label: 'Cancelar Venda no PDV' },
+                        ], "canAccessPOS")}
 
                         {renderPermissionGroup("Estoque e Produtos", [
                             { key: 'canCreateProduct', label: 'Criar Produto' },
