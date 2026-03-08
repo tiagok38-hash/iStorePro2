@@ -163,6 +163,7 @@ const permissionSections: {
                 { key: 'osCanAccessReports', label: 'Acessar Relatórios' },
                 { key: 'osCanAccessFiscal', label: 'Acessar Fiscal (Em breve)' },
                 { key: 'osCanAccessSettings', label: 'Acessar Configurações' },
+                { key: 'canViewServiceOrderProfit', label: 'Visualizar Lucro' },
             ],
         },
 

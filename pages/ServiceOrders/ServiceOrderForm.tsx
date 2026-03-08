@@ -257,7 +257,6 @@ const ServiceOrderForm: React.FC = () => {
                 await loadServiceOrderData(editId, customersData);
             }
         } catch (error) {
-            console.error("Error loading data:", error);
             toast.error("Erro ao carregar dados iniciais.");
         }
     };
@@ -322,7 +321,6 @@ const ServiceOrderForm: React.FC = () => {
                 }
             }
         } catch (error) {
-            console.error("Error loading service order:", error);
             toast.error("Erro ao carregar dados da OS.");
         } finally {
             setIsLoadingEdit(false);

@@ -70,6 +70,7 @@ const defaultPermissions: PermissionSet = {
   osCanChangeStock: true, osCanDeleteParts: true,
   osCanAccessFinance: true, osCanAccessReports: true, osCanAccessFiscal: true,
   osCanAccessSettings: true,
+  canViewServiceOrderProfit: true,
   canAccessCrm: true, canCreateCrmDeal: true, canEditCrmDeal: true,
   canDeleteCrmDeal: true, canMoveCrmDeal: true, canViewAllCrmDeals: true,
   canAccessCatalog: true, canCreateCatalogItem: true, canEditCatalogItem: true, canDeleteCatalogItem: true,

@@ -20,6 +20,7 @@ import { getServiceOrders, updateServiceOrder, returnOsPartsStock } from '../../
 import { ServiceOrder } from '../../types';
 import { calculateWarrantyExpiry, getRemainingDays, formatDateBR } from '../../utils/dateUtils';
 import { useToast } from '../../contexts/ToastContext';
+import { useUser } from '../../contexts/UserContext';
 import QuickOSModal from '../../components/QuickOSModal';
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
@@ -58,9 +59,10 @@ interface KanbanCardProps {
     onDragEnd: (e: React.DragEvent) => void;
     isDragging: boolean;
     onCancel: (osId: string) => void;
+    showProfit?: boolean;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDragEnd, isDragging, onCancel }) => (
+const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDragEnd, isDragging, onCancel, showProfit }) => (
     <div
         draggable
         onDragStart={(e) => onDragStart(e, os)}
@@ -132,7 +134,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
         </div>
         <div className="flex justify-between items-end mt-1">
             {os.total > 0 && <span className="text-xs font-black text-gray-900">R$ {os.total.toLocaleString()}</span>}
-            {(() => {
+            {showProfit && (() => {
                 const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
                 const profit = (os.total || 0) - totalCost;
                 return profit > 0 ? (
@@ -149,6 +151,7 @@ const ServiceOrderList: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { showToast } = useToast();
+    const { user: loggedInUser, permissions } = useUser();
     const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() => {
         return (localStorage.getItem('os_view_mode') as 'kanban' | 'list') || 'kanban';
     });
@@ -177,7 +180,6 @@ const ServiceOrderList: React.FC = () => {
             const data = await getServiceOrders();
             setOrders(data || []);
         } catch (error) {
-            console.error("Error loading service orders:", error);
             showToast("Erro ao carregar ordens de serviço", "error");
         } finally {
             setIsLoading(false);
@@ -285,7 +287,6 @@ const ServiceOrderList: React.FC = () => {
             await updateServiceOrder(id, { status: newStatus } as any);
             showToast(`OS movida para "${newStatus}"`, 'success');
         } catch (error) {
-            console.error("Error updating service order status:", error);
             showToast("Erro ao mover OS. Tente novamente.", 'error');
             // Revert
             setOrders(prev => prev.map(o => o.id === id ? { ...o, status: os.status } : o));
@@ -301,7 +302,7 @@ const ServiceOrderList: React.FC = () => {
                 try {
                     await returnOsPartsStock(osToCancel);
                 } catch (e) {
-                    console.error('Erro ao devolver peças ao estoque:', e);
+                    // Fail silently or handle accordingly
                 }
             }
             await updateServiceOrder(osToCancel, {
@@ -429,7 +430,7 @@ const ServiceOrderList: React.FC = () => {
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Prevista</th>
                                         {warrantyFilter !== 'all' && <th className="px-4 py-3 font-bold">Garantia</th>}
                                         <th className="px-4 py-3 font-bold text-right">Valor</th>
-                                        <th className="px-4 py-3 font-bold text-right">Lucro</th>
+                                        {permissions?.canViewServiceOrderProfit && <th className="px-4 py-3 font-bold text-right">Lucro</th>}
                                         <th className="px-4 py-3 font-bold text-right">Ações</th>
                                     </tr>
                                 </thead>
@@ -497,7 +498,9 @@ const ServiceOrderList: React.FC = () => {
                                                         </td>
                                                     )}
                                                     <td className="px-4 py-3 text-right font-black text-gray-900">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
-                                                    <td className="px-4 py-3 text-right font-bold text-emerald-600">{profit > 0 ? `R$ ${profit.toLocaleString()}` : '-'}</td>
+                                                    {permissions?.canViewServiceOrderProfit && (
+                                                        <td className="px-4 py-3 text-right font-bold text-emerald-600">{profit > 0 ? `R$ ${profit.toLocaleString()}` : '-'}</td>
+                                                    )}
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-1 justify-end">
                                                             <button
@@ -575,7 +578,7 @@ const ServiceOrderList: React.FC = () => {
                                                     {os.total > 0 && (
                                                         <span className="font-black text-gray-900 text-sm">R$ {os.total.toLocaleString()}</span>
                                                     )}
-                                                    {profit > 0 && (
+                                                    {permissions?.canViewServiceOrderProfit && profit > 0 && (
                                                         <span className="font-bold text-emerald-600 text-[10px]">Lucro: R$ {profit.toLocaleString()}</span>
                                                     )}
                                                 </div>
@@ -648,6 +651,7 @@ const ServiceOrderList: React.FC = () => {
                                                                 setOsToCancel(id);
                                                                 setIsCancelModalOpen(true);
                                                             }}
+                                                            showProfit={permissions?.canViewServiceOrderProfit}
                                                         />
                                                     ))}
                                                     {columnItems.length === 0 && (
