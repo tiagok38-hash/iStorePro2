@@ -209,12 +209,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             setFormData(prev => ({ ...prev, supplierId: undefined, supplierName: undefined }));
             return;
         }
+
         const supplier = suppliers.find(s => s.id === selectedId);
         if (supplier) {
             setFormData(prev => ({ ...prev, supplierId: selectedId, supplierName: supplier.name }));
             setIsCustomerPurchase(!!supplier.linkedCustomerId);
             return;
         }
+
         const customer = customers.find(c => c.id === selectedId);
         if (customer) {
             try {
@@ -225,7 +227,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 showToast('Erro ao vincular cliente como fornecedor.', 'error');
             }
         }
-    }
+    };
 
     const saveDraft = async (currentItems: Partial<PurchaseItem>[]) => {
         // OS mode doesn't use ERP drafts
@@ -824,9 +826,23 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     <div className="md:col-span-2">
                         <label className="text-xs font-bold text-muted block mb-1">Fornecedor*</label>
                         <div className="flex flex-col sm:flex-row gap-2">
-                            <div className="flex flex-1 gap-2">
+                            <div className="flex flex-1 gap-2 items-center bg-gray-50/50 p-1.5 rounded-xl border border-gray-200">
+                                <label className="flex items-center cursor-pointer gap-2.5 group px-4 border-r border-gray-200 mr-1 h-full hover:bg-gray-100 rounded-l-lg transition-colors">
+                                    <span className={`text-xs font-black uppercase transition-colors tracking-wide ${isCustomerPurchase ? 'text-blue-500' : 'text-gray-400'}`}>Cliente</span>
+                                    <div className="relative flex items-center justify-center">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={isCustomerPurchase}
+                                            onChange={(e) => setIsCustomerPurchase(e.target.checked)}
+                                        />
+                                        <div className={`block w-11 h-6 rounded-full transition-colors ${isCustomerPurchase ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                        <div className={`dot absolute left-1 top-1 w-4 h-4 rounded-full transition-transform bg-white shadow-sm ${isCustomerPurchase ? 'transform translate-x-5' : ''}`}></div>
+                                    </div>
+                                </label>
+
                                 <div className="flex-1 min-w-0">
-                                    <SearchableDropdown options={combinedSupplierOptions} value={formData.supplierId || null} onChange={handleSupplierChange} placeholder="Buscar..." dropDirection="down" />
+                                    <SearchableDropdown options={combinedSupplierOptions} value={formData.supplierId || null} onChange={handleSupplierChange} placeholder="Buscar por fornecedor ou cliente..." dropDirection="down" />
                                 </div>
                                 <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="h-11 w-11 flex-shrink-0 bg-success text-white rounded-lg flex items-center justify-center hover:bg-success/90 transition-all active:scale-95 shadow-md shadow-success/10">
                                     <PlusIcon className="h-6 w-6" />

@@ -66,3 +66,8 @@ Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicaçã
 - **NUNCA** aplique `w-full`, `flex-1` ou qualquer propriedade que faça o botão esticar até preencher toda a largura disponível da linha, a menos que seja um caso explicitamente solicitado (ex: botão de CTA único em tela mobile).
 - Botões alinhados em grupo (ex: "Cancelar" + "Salvar") devem usar `justify-end` (alinhados à direita) com `gap` entre eles, permitindo que cada um tenha sua largura natural e compacta.
 - Isso garante um visual SaaS premium e profissional, evitando botões desproporcionalmente largos que poluem a interface.
+
+## 16. Proibição de Modificação do mockApi.ts (Modularização Estrita)
+- **Regra de Arquitetura Absoluta**: NUNCA adicione código, funções ou novas chamadas de banco de dados diretamente ao arquivo `/services/mockApi.ts`.
+- Todos os novos serviços e integrações com banco de dados devem ser construídos em arquivos modulares separados dentro da pasta `/services/` (exemplo: `productService.ts`, `salesService.ts`, `customerService.ts`).
+- A camada de dados desta aplicação é estritamente e 100% modularizada. O `mockApi.ts` atua apenas como um agregador/roteador legado para reexportação e não deve crescer.

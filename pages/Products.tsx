@@ -264,6 +264,8 @@ const Products: React.FC = () => {
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
+    const [purchaseAnimation, setPurchaseAnimation] = useState<'nova_compra' | 'lancamento' | null>(null);
+
     // Server-side search effect
     const useServerSearch = debouncedSearchTerm.trim().length > 0;
 
@@ -743,6 +745,8 @@ const Products: React.FC = () => {
         if (refresh) {
             fetchData();
             setActiveTab('compras');
+            setPurchaseAnimation('nova_compra');
+            setTimeout(() => setPurchaseAnimation(null), 2500);
         }
     };
 
@@ -751,6 +755,8 @@ const Products: React.FC = () => {
         if (refresh) {
             fetchData();
             setActiveTab('compras');
+            setPurchaseAnimation('lancamento');
+            setTimeout(() => setPurchaseAnimation(null), 2500);
         }
     };
 
@@ -1654,6 +1660,34 @@ const Products: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Animation Overlays */}
+            {purchaseAnimation && (
+                <div key={purchaseAnimation} className="fixed inset-0 z-[200] pointer-events-none flex items-center justify-center">
+                    <div className="flex flex-col items-center justify-center text-indigo-500"
+                        style={{
+                            animation: 'purchase-fade-out-up 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards'
+                        }}
+                    >
+                        <div className="w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-2xl bg-indigo-100 shadow-indigo-200">
+                            {purchaseAnimation === 'nova_compra' ? <ShoppingCartIcon className="h-12 w-12" /> : <ArchiveBoxIcon className="h-12 w-12" />}
+                        </div>
+                        <span className="text-4xl md:text-5xl font-extrabold shadow-xl bg-white/90 px-6 py-3 rounded-full ring-1 ring-black/5 backdrop-blur-md whitespace-nowrap">
+                            {purchaseAnimation === 'nova_compra' ? 'Compra Salva!' : 'Estoque Lançado!'}
+                        </span>
+                    </div>
+                    <style>{`
+                        @keyframes purchase-fade-out-up {
+                            0% { opacity: 0; transform: translateY(80px) scale(0.6); }
+                            15% { opacity: 1; transform: translateY(0) scale(1.15); }
+                            30% { opacity: 1; transform: translateY(0) scale(1); }
+                            70% { opacity: 1; transform: translateY(-30px) scale(1); }
+                            100% { opacity: 0; transform: translateY(-150px) scale(0.8); }
+                        }
+                    `}</style>
+                </div>
+            )}
+
         </div>
     );
 };

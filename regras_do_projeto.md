@@ -51,3 +51,8 @@ Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicaçã
 ## 12. Modularização Obrigatória de Componentes
 - Nenhum arquivo `.tsx` novo ou componente já existente deverá crescer descontroladamente após 400-500 linhas de código.
 - Extrapolou o limite visual? Identifique sub-partes complexas e quebre-as OBRIGATORIAMENTE num componente separado dentro de uma pasta estruturada. Não aceite o desenvolvimento de "Monólitos Inquebráveis" prejudiciais.
+
+## 13. Proibição de Modificação do mockApi.ts (Modularização Estrita)
+- **Regra de Arquitetura Absoluta**: NUNCA adicione código, funções ou novas chamadas de banco de dados diretamente ao arquivo `/services/mockApi.ts`.
+- Todos os novos serviços e integrações com banco de dados devem ser construídos em arquivos modulares separados dentro da pasta `/services/` (exemplo: `productService.ts`, `salesService.ts`, `customerService.ts`).
+- A camada de dados desta aplicação é estritamente e 100% modularizada. O `mockApi.ts` atua apenas como um agregador/roteador legado para reexportação e não deve crescer.
