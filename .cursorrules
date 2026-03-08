@@ -56,3 +56,13 @@ Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicaçã
 - Sempre aplique as seguintes classes modificadoras com `!` Important na tag `<input>` interna:
   `!border-none !outline-none !shadow-none !ring-0 !bg-transparent` e utilize `p-0` ou zere espacamentos caso necessário, além de aplicar `style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}` se os estilos nativos insistirem.
 - Nunca deixe ocorrer o bug de "borda dupla" (caixa dentro de caixa). A borda estritamente deve pertencer apenas ao contêiner pai estilizado.
+
+## 14. Padronização Visual de Inputs e Formulários
+- Todos os campos de formulário do sistema (`input`, `select`, `textarea`, componentes costumizados como `CurrencyInput`, `SearchableDropdown` etc) DEVEM OBRIGATORIAMENTE utilizar o arredondamento `rounded-xl` do Tailwind CSS.
+- **NUNCA** utilize `rounded-sm`, `rounded-md`, `rounded-lg`, ou `rounded-2xl` para campos de formulário, visando manter a consistência visual em toda a aplicação. A regra de ouro para *inputs* é `rounded-xl`.
+
+## 15. Dimensionamento de Botões (Largura Compacta)
+- Botões de ação (`<button>`, `<Button>`) devem SEMPRE ter a largura determinada apenas pelo seu conteúdo interno (texto + ícone + padding).
+- **NUNCA** aplique `w-full`, `flex-1` ou qualquer propriedade que faça o botão esticar até preencher toda a largura disponível da linha, a menos que seja um caso explicitamente solicitado (ex: botão de CTA único em tela mobile).
+- Botões alinhados em grupo (ex: "Cancelar" + "Salvar") devem usar `justify-end` (alinhados à direita) com `gap` entre eles, permitindo que cada um tenha sua largura natural e compacta.
+- Isso garante um visual SaaS premium e profissional, evitando botões desproporcionalmente largos que poluem a interface.

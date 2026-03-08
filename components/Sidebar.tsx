@@ -2,24 +2,53 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-    LogoIcon, ChevronLeftIcon,
+    LogoIcon, ChevronLeftIcon, ChevronDownIcon,
     UserCircleIcon, LogoutIcon,
     Squares2x2Icon, ArchiveBoxIcon, ShoppingCartIcon, CashRegisterIcon, ChartBarIcon,
     UsersIcon, BuildingOffice2Icon, BanknotesIcon, WrenchIcon, WalletIcon, DocumentTextIcon, ReceiptIcon
 } from './icons.tsx';
-// ...
-const NAV_ITEMS = [
+
+type NavItemDefinition = {
+    name: string;
+    to?: string;
+    icon: React.ReactElement<{ className?: string }>;
+    permissionKey: string | string[];
+    target?: string;
+    subItems?: {
+        name: string;
+        to: string;
+        permissionKey: string | string[];
+        target?: React.HTMLAttributeAnchorTarget;
+        isComingSoon?: boolean;
+    }[];
+};
+
+const NAV_ITEMS: NavItemDefinition[] = [
     { name: 'Dashboard', to: '/', icon: <Squares2x2Icon />, permissionKey: 'canAccessDashboard' },
     { name: 'Estoque', to: '/products', icon: <ArchiveBoxIcon />, permissionKey: 'canAccessEstoque' },
-    { name: 'Vendas', to: '/vendas', icon: <BanknotesIcon />, permissionKey: 'canAccessVendas' },
-    { name: 'Orçamentos', to: '/orcamentos', icon: <DocumentTextIcon />, permissionKey: 'canAccessOrcamentos' },
-    { name: 'Catálogo', to: '/catalog', icon: <ShoppingCartIcon />, permissionKey: 'canAccessCatalog' },
-    { name: 'PDV (Frente de Caixa)', to: '/pos', icon: <CashRegisterIcon />, permissionKey: 'canAccessPOS', target: '_blank' },
+    {
+        name: 'Vendas',
+        icon: <ShoppingCartIcon />,
+        permissionKey: ['canAccessVendas', 'canAccessOrcamentos', 'canAccessPOS', 'canAccessCatalog'],
+        subItems: [
+            { name: 'Vendas', to: '/vendas', permissionKey: 'canAccessVendas' },
+            { name: 'Orçamentos', to: '/orcamentos', permissionKey: 'canAccessOrcamentos' },
+            { name: 'PDV (Frente de Caixa)', to: '/pos', permissionKey: 'canAccessPOS', target: '_blank' },
+            { name: 'Catálogo', to: '/catalog', permissionKey: 'canAccessCatalog' },
+        ]
+    },
     { name: 'Clientes e Fornecedores', to: '/customers', icon: <UsersIcon />, permissionKey: 'canAccessClientes' },
     { name: 'Ordem de Serviço', to: '/service-orders', icon: <WrenchIcon />, permissionKey: 'canAccessServiceOrders', target: '_blank' },
     { name: 'Relatórios', to: '/reports', icon: <ChartBarIcon />, permissionKey: 'canAccessRelatorios' },
-    { name: 'Financeiro', to: '/financeiro', icon: <WalletIcon />, permissionKey: 'canAccessFinanceiro' },
-    { name: 'Fiscal (Em Breve)', to: '#', icon: <ReceiptIcon />, permissionKey: 'canAccessEmpresa' },
+    {
+        name: 'Financeiro',
+        icon: <WalletIcon />,
+        permissionKey: ['canAccessFinanceiro', 'canAccessEmpresa'],
+        subItems: [
+            { name: 'Financeiro', to: '/financeiro', permissionKey: 'canAccessFinanceiro' },
+            { name: 'Fiscal (Em Breve)', to: '#', permissionKey: 'canAccessEmpresa', isComingSoon: true },
+        ]
+    },
     { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
 ];
 
@@ -69,6 +98,116 @@ const NavItem: React.FC<{ to: string, icon: React.ReactElement<{ className?: str
             {isCollapsed && (
                 <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-white text-accent text-xs rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-bold shadow-sm">
                     {label}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const NavGroup: React.FC<{
+    item: NavItemDefinition,
+    isCollapsed: boolean,
+    onCloseSidebar: () => void,
+    pathname: string,
+    permissions: any
+}> = ({ item, isCollapsed, onCloseSidebar, pathname, permissions }) => {
+    const { showToast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+
+    const visibleSubItems = useMemo(() => {
+        if (!permissions) return [];
+        return item.subItems!.filter(sub => {
+            const keys = Array.isArray(sub.permissionKey) ? sub.permissionKey : [sub.permissionKey];
+            return keys.some(key => permissions[key as keyof PermissionSet]);
+        });
+    }, [item.subItems, permissions]);
+
+    const isAnyActive = useMemo(() => {
+        return visibleSubItems.some(sub => {
+            if (sub.isComingSoon || sub.to === '#') return false;
+            return pathname === sub.to || pathname.startsWith(`${sub.to}/`);
+        });
+    }, [pathname, visibleSubItems]);
+
+    // Open by default if any sub-item is active
+    useEffect(() => {
+        if (isAnyActive && !isCollapsed) {
+            setIsOpen(true);
+        }
+    }, [isAnyActive, isCollapsed]);
+
+    // Close when collapsed
+    useEffect(() => {
+        if (isCollapsed) setIsOpen(false);
+    }, [isCollapsed]);
+
+    if (visibleSubItems.length === 0) return null;
+
+    return (
+        <div className="relative group">
+            <button
+                onClick={(e) => {
+                    e.preventDefault();
+                    if (!isCollapsed) {
+                        setIsOpen(!isOpen);
+                    }
+                }}
+                className={`w-full flex items-center px-3 py-2.5 rounded-xl text-sm transition-all duration-200 font-medium
+                    ${isAnyActive ? 'text-white bg-white/20 shadow-lg ring-1 ring-white/20' : 'text-white/70 hover:text-white hover:bg-white/10'}
+                    ${isCollapsed ? 'justify-center cursor-default' : 'justify-between cursor-pointer'}
+                `}
+                title={isCollapsed ? item.name : undefined}
+            >
+                <div className="flex items-center">
+                    {React.cloneElement(item.icon, { className: 'h-6 w-6 flex-shrink-0' })}
+                    {!isCollapsed && <span className="ml-3 whitespace-nowrap">{item.name}</span>}
+                </div>
+                {!isCollapsed && (
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                )}
+            </button>
+
+            {/* Tooltip for collapsed mode */}
+            {isCollapsed && (
+                <div className="absolute left-full top-0 ml-4 py-2 bg-white text-accent text-sm rounded-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md min-w-[150px]">
+                    <div className="px-4 py-1 font-bold border-b border-gray-100 mb-1">{item.name}</div>
+                    {visibleSubItems.map(sub => (
+                        <div key={sub.name} className="px-4 py-1 font-medium text-xs opacity-70">
+                            {sub.name}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Expanded items */}
+            {!isCollapsed && isOpen && (
+                <div className="ml-4 pl-3 border-l-2 border-white/20 flex flex-col space-y-1 mt-1">
+                    {visibleSubItems.map(sub => {
+                        const isSubActive = pathname === sub.to || (sub.to !== '/' && pathname.startsWith(`${sub.to}/`));
+                        return (
+                            <NavLink
+                                key={sub.name}
+                                to={sub.to}
+                                target={sub.target}
+                                className={() => `block px-3 py-2 rounded-lg text-sm transition-all duration-200 font-medium
+                                    ${sub.isComingSoon || sub.to === '#' ? 'opacity-50' : ''}
+                                    ${isSubActive && !sub.isComingSoon && sub.to !== '#' ? 'text-white bg-white/20 shadow-md' : 'text-white/70 hover:text-white hover:bg-white/10'}
+                                `}
+                                onClick={(e) => {
+                                    if (sub.isComingSoon || sub.to === '#') {
+                                        e.preventDefault();
+                                        showToast('As funcionalidades dessa página estão em desenvolvimento. Aguarde...', 'warning');
+                                    } else {
+                                        if (window.innerWidth < 1024) {
+                                            onCloseSidebar();
+                                        }
+                                    }
+                                }}
+                            >
+                                {sub.name}
+                            </NavLink>
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -166,7 +305,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, isCollapsed, toggleCollapse, 
             <nav className="flex-1 px-3 py-6 mt-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 <div className="space-y-1">
                     {visibleNavItems.map(item => (
-                        <NavItem key={item.name} to={item.to} icon={item.icon} label={item.name} isCollapsed={effectiveIsCollapsed} onCloseSidebar={onCloseSidebar} target={item.target as React.HTMLAttributeAnchorTarget} isComingSoon={item.name === 'Fiscal (Em Breve)'} pathname={location.pathname} />
+                        item.subItems ? (
+                            <NavGroup
+                                key={item.name}
+                                item={item}
+                                isCollapsed={effectiveIsCollapsed}
+                                onCloseSidebar={onCloseSidebar}
+                                pathname={location.pathname}
+                                permissions={permissions}
+                            />
+                        ) : (
+                            <NavItem key={item.name} to={item.to!} icon={item.icon} label={item.name} isCollapsed={effectiveIsCollapsed} onCloseSidebar={onCloseSidebar} target={item.target as React.HTMLAttributeAnchorTarget} isComingSoon={item.name === 'Fiscal (Em Breve)'} pathname={location.pathname} />
+                        )
                     ))}
                 </div>
             </nav>

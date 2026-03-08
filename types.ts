@@ -48,6 +48,7 @@ export interface PermissionSet {
     canViewAudit: boolean;
     canEditOwnProfile: boolean;
     canManageMarcasECategorias: boolean;
+    canManageEmployees: boolean;
 
     // Banco de Horas permissions
     canManageBancoHoras: boolean;
@@ -88,6 +89,18 @@ export interface PermissionSet {
     canEditServiceOrder: boolean;
     canDeleteServiceOrder: boolean;
     canManageServiceOrderStatus: boolean;
+    osCanAccessDashboard: boolean;
+    osCanAccessCustomers: boolean;
+    osCanAccessSuppliers: boolean;
+    osCanCreatePurchases: boolean;
+    osCanEditParts: boolean;
+    osCanAccessElectronics: boolean;
+    osCanChangeStock: boolean;
+    osCanDeleteParts: boolean;
+    osCanAccessFinance: boolean;
+    osCanAccessReports: boolean;
+    osCanAccessFiscal: boolean;
+    osCanAccessSettings: boolean;
 
     // CRM permissions
     canAccessCrm: boolean;
@@ -102,6 +115,7 @@ export interface PermissionSet {
     canCreateCatalogItem: boolean;
     canEditCatalogItem: boolean;
     canDeleteCatalogItem: boolean;
+    canViewCatalogStats: boolean;
     canAccessComissoes: boolean;
     canViewSaleProfit: boolean;
     canEditCompletedSale: boolean;

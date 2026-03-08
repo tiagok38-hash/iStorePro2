@@ -1911,7 +1911,7 @@ const FuncionariosTab: React.FC = () => {
     const activeSubTab = searchParams.get('subtab') || 'comissoes';
 
     const subTabs = useMemo(() => [
-        { id: 'gerencia', label: 'Gerenciar Funcionários', permission: 'canManageBancoHoras' },
+        { id: 'gerencia', label: 'Gerenciar Funcionários', permission: 'canManageEmployees' },
         { id: 'banco_horas', label: 'Banco de Horas', permission: 'canManageBancoHoras' },
         { id: 'comissoes', label: 'Comissões', permission: 'canAccessComissoes' },
     ], []);
@@ -1978,7 +1978,7 @@ const Company: React.FC = () => {
         { id: 'usuarios', label: 'Usuários e Permissões', permission: 'canManageUsers' },
         { id: 'marcas', label: 'Marcas e Categorias', permission: 'canManageMarcasECategorias' },
         { id: 'perfil', label: 'Perfil', permission: 'canEditOwnProfile' },
-        { id: 'funcionarios', label: 'Funcionários', permission: true },
+        { id: 'funcionarios', label: 'Funcionários', permission: 'canManageEmployees' },
         { id: 'parametros', label: 'Parâmetros', permission: 'canManageParameters' },
         { id: 'meios_pagamento', label: 'Meios de Pagamento', permission: 'canManagePaymentMethods' },
         { id: 'auditoria', label: 'Auditoria', permission: 'canViewAudit' },
@@ -1990,7 +1990,7 @@ const Company: React.FC = () => {
         return allTabs.filter(tab => {
             if (tab.permission === true) return true;
             if (tab.id === 'usuarios') return permissions.canManageUsers || permissions.canManagePermissions;
-            if (tab.id === 'funcionarios') return permissions.canAccessComissoes || permissions.canManageBancoHoras;
+            if (tab.id === 'funcionarios') return permissions.canManageEmployees || permissions.canAccessComissoes || permissions.canManageBancoHoras;
             return permissions[tab.permission as keyof PermissionSet];
         });
     }, [permissions, allTabs]);

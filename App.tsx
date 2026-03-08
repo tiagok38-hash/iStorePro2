@@ -6,6 +6,7 @@ import TopBar from './components/TopBar.tsx';
 import { ToastProvider } from './contexts/ToastContext.tsx';
 import { UserProvider } from './contexts/UserContext.tsx';
 import { ChatProvider, useChat } from './contexts/ChatContext.tsx';
+import { SidebarProvider, useSidebar } from './contexts/SidebarContext.tsx';
 
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import AuthLayout from './components/AuthLayout.tsx';
@@ -59,19 +60,15 @@ const GlobalChat = () => {
 };
 
 const MainLayout: React.FC = () => {
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const { isCollapsed, toggleCollapse } = useSidebar();
     const location = useLocation();
-
-    const toggleSidebarCollapse = () => {
-        setIsSidebarCollapsed(prev => !prev);
-    };
 
     return (
         <div className="flex bg-background text-primary min-h-screen">
             <Sidebar
                 isOpen={false}
-                isCollapsed={isSidebarCollapsed}
-                toggleCollapse={toggleSidebarCollapse}
+                isCollapsed={isCollapsed}
+                toggleCollapse={toggleCollapse}
                 onCloseSidebar={() => { }}
             />
 
@@ -99,89 +96,91 @@ const App: React.FC = () => {
     return (
         <ToastProvider>
             <UserProvider>
-                <ChatProvider>
-                    <Router>
-                        <Suspense fallback={<SuspenseFallback fullScreen />}>
-                            <Routes>
-                                {/* Public Auth Routes */}
-                                <Route element={<AuthLayout />}>
-                                    <Route path="/login" element={<Login />} />
-                                    <Route path="/register" element={<Register />} />
-                                </Route>
-
-                                {/* Protected App Routes */}
-                                <Route element={<ProtectedRoute />}>
-                                    <Route element={<MainLayout />}>
-                                        <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
-                                            <Route path="/" element={<Dashboard />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey="canAccessEstoque" />}>
-                                            <Route path="/products" element={<Products />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey="canAccessClientes" />}>
-                                            <Route path="/customers" element={<Customers />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey="canAccessVendas" />}>
-                                            <Route path="/vendas" element={<Vendas />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey="canAccessOrcamentos" />}>
-                                            <Route path="/orcamentos" element={<Orcamentos />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey="canAccessRelatorios" />}>
-                                            <Route path="/reports" element={<Reports />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey={["canAccessEmpresa", "canEditOwnProfile", "canManageMarcasECategorias"]} />}>
-                                            <Route path="/company" element={<Company />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey="canAccessFinanceiro" />}>
-                                            <Route path="/financeiro" element={<Financeiro />} />
-                                        </Route>
-                                        <Route element={<ProtectedRoute permissionKey="canViewOwnCommission" />}>
-                                            <Route path="/comissoes" element={<Navigate to="/company?tab=comissoes" replace />} />
-                                        </Route>
-                                    </Route>
-                                    <Route element={<ProtectedRoute permissionKey="canAccessPOS" />}>
-                                        <Route path="/pos" element={<POS />} />
+                <SidebarProvider>
+                    <ChatProvider>
+                        <Router>
+                            <Suspense fallback={<SuspenseFallback fullScreen />}>
+                                <Routes>
+                                    {/* Public Auth Routes */}
+                                    <Route element={<AuthLayout />}>
+                                        <Route path="/login" element={<Login />} />
+                                        <Route path="/register" element={<Register />} />
                                     </Route>
 
-                                    {/* Service Order Module (Immersive) */}
-                                    <Route element={<ProtectedRoute permissionKey="canAccessServiceOrders" />}>
-                                        <Route path="/service-orders" element={<ServiceOrderLayout />}>
-                                            <Route index element={<ServiceOrderDashboard />} />
-                                            <Route path="list" element={<ServiceOrderList />} />
-                                            <Route path="new" element={<ServiceOrderForm />} />
-                                            <Route path="edit/:id" element={<ServiceOrderForm />} />
-                                            <Route path="products" element={<ServiceOrderProducts />} />
-                                            <Route path="customers" element={<ServiceOrderCustomers />} />
-                                            <Route path="devices" element={<ServiceOrderDevices />} />
-                                            <Route path="financial" element={<ServiceOrderFinancial />} />
-                                            <Route path="reports" element={<ServiceOrderReports />} />
-                                            <Route path="settings" element={<ServiceOrderSettings />} />
+                                    {/* Protected App Routes */}
+                                    <Route element={<ProtectedRoute />}>
+                                        <Route element={<MainLayout />}>
+                                            <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
+                                                <Route path="/" element={<Dashboard />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey="canAccessEstoque" />}>
+                                                <Route path="/products" element={<Products />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey="canAccessClientes" />}>
+                                                <Route path="/customers" element={<Customers />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey="canAccessVendas" />}>
+                                                <Route path="/vendas" element={<Vendas />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey="canAccessOrcamentos" />}>
+                                                <Route path="/orcamentos" element={<Orcamentos />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey="canAccessRelatorios" />}>
+                                                <Route path="/reports" element={<Reports />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey={["canAccessEmpresa", "canEditOwnProfile", "canManageMarcasECategorias"]} />}>
+                                                <Route path="/company" element={<Company />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey="canAccessFinanceiro" />}>
+                                                <Route path="/financeiro" element={<Financeiro />} />
+                                            </Route>
+                                            <Route element={<ProtectedRoute permissionKey="canViewOwnCommission" />}>
+                                                <Route path="/comissoes" element={<Navigate to="/company?tab=comissoes" replace />} />
+                                            </Route>
+                                        </Route>
+                                        <Route element={<ProtectedRoute permissionKey="canAccessPOS" />}>
+                                            <Route path="/pos" element={<POS />} />
+                                        </Route>
+
+                                        {/* Service Order Module (Immersive) */}
+                                        <Route element={<ProtectedRoute permissionKey="canAccessServiceOrders" />}>
+                                            <Route path="/service-orders" element={<ServiceOrderLayout />}>
+                                                <Route index element={<ServiceOrderDashboard />} />
+                                                <Route path="list" element={<ServiceOrderList />} />
+                                                <Route path="new" element={<ServiceOrderForm />} />
+                                                <Route path="edit/:id" element={<ServiceOrderForm />} />
+                                                <Route path="products" element={<ServiceOrderProducts />} />
+                                                <Route path="customers" element={<ServiceOrderCustomers />} />
+                                                <Route path="devices" element={<ServiceOrderDevices />} />
+                                                <Route path="financial" element={<ServiceOrderFinancial />} />
+                                                <Route path="reports" element={<ServiceOrderReports />} />
+                                                <Route path="settings" element={<ServiceOrderSettings />} />
+                                            </Route>
+                                        </Route>
+
+                                        {/* Catalog Module (Immersive) */}
+                                        <Route element={<ProtectedRoute permissionKey="canAccessCatalog" />}>
+                                            <Route path="/catalog" element={<CatalogLayout />}>
+                                                <Route index element={<CatalogAdmin />} />
+                                                <Route path="stats" element={<CatalogStats />} />
+                                                <Route path="settings" element={<CatalogSettings />} />
+                                            </Route>
                                         </Route>
                                     </Route>
 
-                                    {/* Catalog Module (Immersive) */}
-                                    <Route element={<ProtectedRoute permissionKey="canAccessCatalog" />}>
-                                        <Route path="/catalog" element={<CatalogLayout />}>
-                                            <Route index element={<CatalogAdmin />} />
-                                            <Route path="stats" element={<CatalogStats />} />
-                                            <Route path="settings" element={<CatalogSettings />} />
-                                        </Route>
-                                    </Route>
-                                </Route>
+                                    {/* Public Catalog (No Auth Required) */}
+                                    <Route path="/catalogo/:slug" element={<CatalogPublic />} />
 
-                                {/* Public Catalog (No Auth Required) */}
-                                <Route path="/catalogo/:slug" element={<CatalogPublic />} />
-
-                                {/* Public OS Tracking (No Auth Required) */}
-                                <Route path="/os/track/:token" element={<PublicOSTracking />} />
-                            </Routes>
-                        </Suspense>
-                        {/* Global Online/Offline Status Indicator */}
-                        <OnlineStatusIndicator />
-                        <GlobalChat />
-                    </Router>
-                </ChatProvider>
+                                    {/* Public OS Tracking (No Auth Required) */}
+                                    <Route path="/os/track/:token" element={<PublicOSTracking />} />
+                                </Routes>
+                            </Suspense>
+                            {/* Global Online/Offline Status Indicator */}
+                            <OnlineStatusIndicator />
+                            <GlobalChat />
+                        </Router>
+                    </ChatProvider>
+                </SidebarProvider>
             </UserProvider>
         </ToastProvider>
     );

@@ -5,158 +5,340 @@ import { getUsers, getPermissionProfiles, deleteUser, deletePermissionProfile, f
 import { SpinnerIcon, PlayCircleIcon, LockClosedIcon, TrashIcon, EditIcon, UserGroupIcon, UserPlusIcon, CheckIcon } from '../components/icons.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
+import { useSidebar } from '../contexts/SidebarContext.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import Button from '../components/Button.tsx';
 
-// --- PermissionProfileModal ---
-const permissionGroups: { title: string; requiredSection?: keyof PermissionSet; permissions: { key: keyof PermissionSet; label: string }[] }[] = [
-    {
-        title: 'Acesso às Seções',
-        permissions: [
-            { key: 'canAccessDashboard', label: 'Acessar Dashboard' },
-            { key: 'canAccessEstoque', label: 'Acessar Estoque' },
-            { key: 'canViewPurchases', label: 'Acessar Compras' },
-            { key: 'canAccessVendas', label: 'Acessar Vendas' },
-            { key: 'canAccessPOS', label: 'Acessar PDV (Frente de Caixa)' },
-            { key: 'canAccessClientes', label: 'Acessar Clientes' },
-            { key: 'canAccessFornecedores', label: 'Acessar Fornecedores' },
-            { key: 'canAccessRelatorios', label: 'Acessar Relatórios' },
-            { key: 'canAccessEmpresa', label: 'Acessar Configurações da Empresa' },
-            { key: 'canAccessServiceOrders', label: 'Acessar Ordens de Serviço' },
-            { key: 'canAccessCrm', label: 'Acessar CRM' },
-            { key: 'canAccessFinanceiro', label: 'Acessar Financeiro' },
-            { key: 'canAccessCatalog', label: 'Acessar Catálogo' },
-        ],
-    },
-    {
-        title: 'Módulo Financeiro',
-        requiredSection: 'canAccessFinanceiro',
-        permissions: [
-            { key: 'canCreateTransaction', label: 'Criar Receitas/Despesas' },
-            { key: 'canEditTransaction', label: 'Editar Transações' },
-            { key: 'canDeleteTransaction', label: 'Excluir Transações' },
-            { key: 'canViewFinancialKPIs', label: 'Visualizar Indicadores Financeiros' },
-        ],
-    },
-    {
-        title: 'Ordem de Serviço (OS)',
-        requiredSection: 'canAccessServiceOrders',
-        permissions: [
-            { key: 'canCreateServiceOrder', label: 'Criar Nova OS' },
-            { key: 'canEditServiceOrder', label: 'Editar OS' },
-            { key: 'canDeleteServiceOrder', label: 'Excluir OS' },
-            { key: 'canManageServiceOrderStatus', label: 'Alterar Status da OS' },
-        ],
-    },
-    {
-        title: 'CRM (Gestão de Leads)',
-        requiredSection: 'canAccessCrm',
-        permissions: [
-            { key: 'canCreateCrmDeal', label: 'Criar Leads' },
-            { key: 'canEditCrmDeal', label: 'Editar Leads' },
-            { key: 'canDeleteCrmDeal', label: 'Excluir Leads' },
-            { key: 'canMoveCrmDeal', label: 'Mover Cards (Drag & Drop)' },
-            { key: 'canViewAllCrmDeals', label: 'Visualizar Todos os Leads (Inativo = Só Meus)' },
-        ],
-    },
-    {
-        title: 'Catálogo Digital',
-        requiredSection: 'canAccessCatalog',
-        permissions: [
-            { key: 'canCreateCatalogItem', label: 'Adicionar Itens ao Catálogo' },
-            { key: 'canEditCatalogItem', label: 'Editar Itens do Catálogo' },
-            { key: 'canDeleteCatalogItem', label: 'Excluir Itens do Catálogo' },
-        ],
-    },
-    {
-        title: 'Comissões',
-        permissions: [
-            { key: 'canViewOwnCommission', label: 'Ver Próprias Comissões' },
-            { key: 'canViewAllCommissions', label: 'Ver Comissões de Todos' },
-            { key: 'canCloseCommissionPeriod', label: 'Fechar Período de Comissão' },
-            { key: 'canMarkCommissionPaid', label: 'Marcar Comissão como Paga' },
-            { key: 'canEditProductCommissionSettings', label: 'Editar Config. de Comissão nos Produtos' },
-        ],
-    },
-    {
-        title: 'Produtos e Estoque',
-        requiredSection: 'canAccessEstoque',
-        permissions: [
-            { key: 'canCreateProduct', label: 'Criar/Lançar Novos Produtos' },
-            { key: 'canEditProduct', label: 'Editar Produtos' },
-            { key: 'canDeleteProduct', label: 'Excluir Produtos' },
-            { key: 'canEditStock', label: 'Fazer Ajustes Manuais de Estoque' },
-            { key: 'canCompareStock', label: 'Comparar Estoques (Conferência)' },
-            { key: 'canAccessStockMovement', label: 'Visualizar Movimentação de estoque' },
-            { key: 'canGenerateLabels', label: 'Gerar Etiquetas' },
-            { key: 'canBulkUpdatePrices', label: 'Atualizar Preços em Massa' },
-            { key: 'canBulkUpdateLocations', label: 'Atualizar Locais (Prateleiras) em Massa' },
-        ],
-    },
-    {
-        title: 'Vendas',
-        requiredSection: 'canAccessVendas',
-        permissions: [
-            { key: 'canCreateSale', label: 'Realizar Novas Vendas' },
-            { key: 'canEditSale', label: 'Editar venda' },
-            { key: 'canCancelSale', label: 'Cancelar Vendas' },
-            { key: 'canViewSalesKPIs', label: 'Visualizar Cards de Indicadores (KPIs)' },
-            { key: 'canViewSaleProfit', label: 'Visualizar Lucro no Histórico' },
-            { key: 'canViewAllSales', label: 'Visualizar Todas as Vendas (Desativado = Só as Minhas)' },
-        ],
-    },
-    {
-        title: 'Compras',
-        requiredSection: 'canViewPurchases',
-        permissions: [
-            { key: 'canCreatePurchase', label: 'Criar Novas Compras' },
-            { key: 'canEditPurchase', label: 'Editar Compras' },
-            { key: 'canDeletePurchase', label: 'Excluir Compras' },
-            { key: 'canLaunchPurchase', label: 'Lançar Compras no Estoque' },
-            { key: 'canViewPurchaseKPIs', label: 'Visualizar Cards de Indicadores (KPIs)' },
-        ],
-    },
-    {
-        title: 'Gestão de Clientes',
-        requiredSection: 'canAccessClientes',
-        permissions: [
-            { key: 'canCreateCustomer', label: 'Criar Clientes' },
-            { key: 'canEditCustomer', label: 'Editar Clientes' },
-            { key: 'canViewCustomerHistory', label: 'Visualizar Histórico de Clientes' },
-            { key: 'canInactivateCustomer', label: 'Inativar/Reativar Clientes' },
-            { key: 'canDeleteCustomer', label: 'Excluir Clientes' },
-        ],
-    },
-    {
-        title: 'Gestão de Fornecedores',
-        requiredSection: 'canAccessFornecedores',
-        permissions: [
-            { key: 'canCreateSupplier', label: 'Criar Fornecedores' },
-            { key: 'canEditSupplier', label: 'Editar Fornecedores' },
-            { key: 'canViewSupplierHistory', label: 'Visualizar Histórico de Fornecedores' },
-            { key: 'canDeleteSupplier', label: 'Excluir Fornecedores' },
-        ],
-    },
-    {
-        title: 'Administração da Empresa',
-        requiredSection: 'canAccessEmpresa',
-        permissions: [
-            { key: 'canManageCompanyData', label: 'Gerenciar Dados da Empresa' },
-            { key: 'canManageUsers', label: 'Gerenciar Usuários' },
-            { key: 'canManagePermissions', label: 'Gerenciar Perfis de Permissão' },
-            { key: 'canManageMarcasECategorias', label: 'Gerenciar Marcas e Categorias' },
-            { key: 'canManageParameters', label: 'Gerenciar Parâmetros (Garantia, Condições, etc.)' },
-            { key: 'canManagePaymentMethods', label: 'Gerenciar Meios de Pagamento' },
-            { key: 'canManageBackups', label: 'Realizar Backup e Restauração' },
-            { key: 'canViewAudit', label: 'Visualizar Log de Auditoria' },
-            { key: 'canAccessComissoes', label: 'Visualizar Aba de Comissões' },
-            { key: 'canManageBancoHoras', label: 'Acessar e Gerenciar Banco de Horas' },
-            { key: 'canCreateBancoHoras', label: 'Criar Registros de Banco de Horas' },
-            { key: 'canPayBancoHoras', label: 'Registrar Pagamento de Banco de Horas' },
-            { key: 'canEditOwnProfile', label: 'Acessar e Editar Próprio Perfil' },
-        ],
-    },
-];
+// --- PermissionProfileModal (Premium Granular Design) ---
+
+import {
+    Squares2x2Icon, ArchiveBoxIcon, ShoppingCartIcon, CashRegisterIcon, ChartBarIcon,
+    UsersIcon as UsersGroupIcon, BuildingOffice2Icon, WrenchIcon, WalletIcon,
+    DocumentTextIcon, ReceiptIcon
+} from '../components/icons.tsx';
+
+// Icon map for section cards
+const sectionIcons: Record<string, React.ReactElement> = {
+    'Dashboard': <Squares2x2Icon className="h-5 w-5" />,
+    'Estoque': <ArchiveBoxIcon className="h-5 w-5" />,
+    'Compras': <ShoppingCartIcon className="h-5 w-5" />,
+    'Vendas': <ShoppingCartIcon className="h-5 w-5" />,
+    'Orçamentos': <DocumentTextIcon className="h-5 w-5" />,
+    'Catálogo Digital': <ShoppingCartIcon className="h-5 w-5" />,
+    'PDV (Frente de Caixa)': <CashRegisterIcon className="h-5 w-5" />,
+    'Clientes': <UsersGroupIcon className="h-5 w-5" />,
+    'Fornecedores': <UsersGroupIcon className="h-5 w-5" />,
+    'Ordem de Serviço': <WrenchIcon className="h-5 w-5" />,
+    'CRM (Gestão de Leads)': <UsersGroupIcon className="h-5 w-5" />,
+    'Relatórios': <ChartBarIcon className="h-5 w-5" />,
+    'Financeiro': <WalletIcon className="h-5 w-5" />,
+    'Fiscal': <ReceiptIcon className="h-5 w-5" />,
+    'Empresa': <BuildingOffice2Icon className="h-5 w-5" />,
+    'Comissões': <WalletIcon className="h-5 w-5" />,
+};
+
+const permissionSections: {
+    title: string;
+    sectionToggleKey?: keyof PermissionSet;
+    isComingSoon?: boolean;
+    permissions: { key: keyof PermissionSet; label: string }[];
+}[] = [
+        {
+            title: 'Dashboard',
+            sectionToggleKey: 'canAccessDashboard',
+            permissions: [],
+        },
+        {
+            title: 'Estoque',
+            sectionToggleKey: 'canAccessEstoque',
+            permissions: [
+                { key: 'canCreateProduct', label: 'Criar/Lançar Novos Produtos' },
+                { key: 'canEditProduct', label: 'Editar Produtos' },
+                { key: 'canDeleteProduct', label: 'Excluir Produtos' },
+                { key: 'canEditStock', label: 'Ajustes Manuais de Estoque' },
+                { key: 'canCompareStock', label: 'Comparar Estoques (Conferência)' },
+                { key: 'canAccessStockMovement', label: 'Movimentação de Estoque' },
+                { key: 'canGenerateLabels', label: 'Gerar Etiquetas' },
+                { key: 'canBulkUpdatePrices', label: 'Atualizar Preços em Massa' },
+                { key: 'canBulkUpdateLocations', label: 'Atualizar Locais em Massa' },
+            ],
+        },
+        {
+            title: 'Compras',
+            sectionToggleKey: 'canViewPurchases',
+            permissions: [
+                { key: 'canCreatePurchase', label: 'Criar Novas Compras' },
+                { key: 'canEditPurchase', label: 'Editar Compras' },
+                { key: 'canDeletePurchase', label: 'Excluir Compras' },
+                { key: 'canLaunchPurchase', label: 'Lançar Compras no Estoque' },
+                { key: 'canViewPurchaseKPIs', label: 'Indicadores de Compras (KPIs)' },
+            ],
+        },
+        {
+            title: 'Vendas',
+            sectionToggleKey: 'canAccessVendas',
+            permissions: [
+                { key: 'canCreateSale', label: 'Realizar Novas Vendas' },
+                { key: 'canEditSale', label: 'Editar Venda' },
+                { key: 'canCancelSale', label: 'Cancelar Vendas' },
+                { key: 'canViewSalesKPIs', label: 'Indicadores de Vendas (KPIs)' },
+                { key: 'canViewSaleProfit', label: 'Visualizar Lucro' },
+                { key: 'canViewAllSales', label: 'Ver Todas as Vendas (Off = Só Minhas)' },
+            ],
+        },
+        {
+            title: 'Orçamentos',
+            sectionToggleKey: 'canAccessOrcamentos' as keyof PermissionSet,
+            permissions: [],
+        },
+        {
+            title: 'Catálogo Digital',
+            sectionToggleKey: 'canAccessCatalog',
+            permissions: [
+                { key: 'canCreateCatalogItem', label: 'Adicionar Itens' },
+                { key: 'canEditCatalogItem', label: 'Editar Itens' },
+                { key: 'canDeleteCatalogItem', label: 'Excluir Itens' },
+                { key: 'canViewCatalogStats', label: 'Ver Estatísticas' },
+            ],
+        },
+        {
+            title: 'PDV (Frente de Caixa)',
+            sectionToggleKey: 'canAccessPOS',
+            permissions: [],
+        },
+        {
+            title: 'Clientes',
+            sectionToggleKey: 'canAccessClientes',
+            permissions: [
+                { key: 'canCreateCustomer', label: 'Criar Clientes' },
+                { key: 'canEditCustomer', label: 'Editar Clientes' },
+                { key: 'canViewCustomerHistory', label: 'Histórico de Clientes' },
+                { key: 'canInactivateCustomer', label: 'Inativar/Reativar Clientes' },
+                { key: 'canDeleteCustomer', label: 'Excluir Clientes' },
+                { key: 'canCreateCrmDeal', label: 'Criar Leads' },
+                { key: 'canEditCrmDeal', label: 'Editar Leads' },
+                { key: 'canDeleteCrmDeal', label: 'Excluir Leads' },
+                { key: 'canMoveCrmDeal', label: 'Mover Cards (Drag & Drop)' },
+                { key: 'canViewAllCrmDeals', label: 'Ver Todos os Leads (Off = Só Meus)' },
+            ],
+        },
+        {
+            title: 'Fornecedores',
+            sectionToggleKey: 'canAccessFornecedores',
+            permissions: [
+                { key: 'canCreateSupplier', label: 'Criar Fornecedores' },
+                { key: 'canEditSupplier', label: 'Editar Fornecedores' },
+                { key: 'canViewSupplierHistory', label: 'Histórico de Fornecedores' },
+                { key: 'canDeleteSupplier', label: 'Excluir Fornecedores' },
+            ],
+        },
+        {
+            title: 'Ordem de Serviço',
+            sectionToggleKey: 'canAccessServiceOrders',
+            permissions: [
+                { key: 'canCreateServiceOrder', label: 'Criar Nova OS' },
+                { key: 'canEditServiceOrder', label: 'Editar OS' },
+                { key: 'canDeleteServiceOrder', label: 'Cancelar OS' },
+                { key: 'canManageServiceOrderStatus', label: 'Alterar Status da OS' },
+                { key: 'osCanAccessDashboard', label: 'Dashboard' },
+                { key: 'osCanAccessCustomers', label: 'Acessar Clientes' },
+                { key: 'osCanAccessSuppliers', label: 'Acessar Fornecedores' },
+                { key: 'osCanCreatePurchases', label: 'Cadastrar Novas Compras' },
+                { key: 'osCanEditParts', label: 'Editar Peças/Insumos' },
+                { key: 'osCanDeleteParts', label: 'Excluir Peças/Insumos' },
+                { key: 'osCanAccessElectronics', label: 'Acessar Eletrônicos Cadastrados' },
+                { key: 'osCanChangeStock', label: 'Alterar Quantidade Estoque' },
+                { key: 'osCanAccessFinance', label: 'Acessar Financeiro' },
+                { key: 'osCanAccessReports', label: 'Acessar Relatórios' },
+                { key: 'osCanAccessFiscal', label: 'Acessar Fiscal (Em breve)' },
+                { key: 'osCanAccessSettings', label: 'Acessar Configurações' },
+            ],
+        },
+        {
+            title: 'Relatórios',
+            sectionToggleKey: 'canAccessRelatorios',
+            permissions: [],
+        },
+        {
+            title: 'Financeiro',
+            sectionToggleKey: 'canAccessFinanceiro',
+            permissions: [
+                { key: 'canCreateTransaction', label: 'Criar Receitas/Despesas' },
+                { key: 'canEditTransaction', label: 'Editar Transações' },
+                { key: 'canDeleteTransaction', label: 'Excluir Transações' },
+                { key: 'canViewFinancialKPIs', label: 'Indicadores Financeiros' },
+            ],
+        },
+        {
+            title: 'Fiscal',
+            isComingSoon: true,
+            permissions: [],
+        },
+        {
+            title: 'Comissões',
+            sectionToggleKey: 'canAccessComissoes',
+            permissions: [
+                { key: 'canViewOwnCommission', label: 'Ver Próprias Comissões' },
+                { key: 'canViewAllCommissions', label: 'Ver Comissões de Todos' },
+                { key: 'canCloseCommissionPeriod', label: 'Fechar Período de Comissão' },
+                { key: 'canMarkCommissionPaid', label: 'Marcar como Paga' },
+                { key: 'canEditProductCommissionSettings', label: 'Config. Comissão em Produtos' },
+            ],
+        },
+        {
+            title: 'Empresa',
+            sectionToggleKey: 'canAccessEmpresa',
+            permissions: [
+                { key: 'canManageCompanyData', label: 'Gerenciar Dados da Empresa' },
+                { key: 'canManageEmployees', label: 'Gerenciar Funcionários' },
+                { key: 'canManageUsers', label: 'Gerenciar Usuários' },
+                { key: 'canManagePermissions', label: 'Gerenciar Perfis de Permissão' },
+                { key: 'canManageMarcasECategorias', label: 'Gerenciar Marcas e Categorias' },
+                { key: 'canManageParameters', label: 'Gerenciar Parâmetros' },
+                { key: 'canManagePaymentMethods', label: 'Gerenciar Meios de Pagamento' },
+                { key: 'canManageBackups', label: 'Backup e Restauração' },
+                { key: 'canViewAudit', label: 'Log de Auditoria' },
+                { key: 'canManageBancoHoras', label: 'Gerenciar Banco de Horas' },
+                { key: 'canCreateBancoHoras', label: 'Criar Banco de Horas' },
+                { key: 'canPayBancoHoras', label: 'Pagar Banco de Horas' },
+                { key: 'canEditOwnProfile', label: 'Editar Próprio Perfil' },
+            ],
+        },
+    ];
+
+// Also keep a flat list reference for backwards compat
+const permissionGroups = permissionSections;
+
+// --- Reusable Lilac Toggle (cor #7B61FF = sidebar) ---
+const LilacToggle: React.FC<{
+    checked: boolean;
+    onChange: (val: boolean) => void;
+    disabled?: boolean;
+    size?: 'sm' | 'md';
+    ariaLabel?: string;
+}> = ({ checked, onChange, disabled = false, size = 'sm', ariaLabel }) => {
+    const isOn = checked && !disabled;
+    const isMd = size === 'md';
+
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            aria-label={ariaLabel}
+            disabled={disabled}
+            onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+            className={`relative inline-flex items-center rounded-full transition-all duration-150 flex-shrink-0 focus:outline-none ${isMd ? 'h-[26px] w-[46px]' : 'h-[22px] w-[40px]'
+                } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                } ${isOn ? 'bg-[#7B61FF]' : 'bg-gray-300'
+                }`}
+        >
+            <span
+                className={`inline-block rounded-full bg-white shadow-sm transition-transform duration-150 ${isMd ? 'h-[20px] w-[20px]' : 'h-[16px] w-[16px]'
+                    } ${isOn
+                        ? (isMd ? 'translate-x-[23px]' : 'translate-x-[20px]')
+                        : 'translate-x-[3px]'
+                    }`}
+            />
+        </button>
+    );
+};
+
+// --- Section Card Component ---
+const PermissionSectionCard: React.FC<{
+    section: typeof permissionSections[0];
+    permissions: PermissionSet;
+    onPermissionChange: (key: keyof PermissionSet, value: boolean) => void;
+    onSectionToggle: (key: keyof PermissionSet, value: boolean) => void;
+}> = ({ section, permissions, onPermissionChange, onSectionToggle }) => {
+    const isSectionOn = section.sectionToggleKey ? !!permissions[section.sectionToggleKey] : false;
+    const isComingSoon = section.isComingSoon;
+    const hasSubPermissions = section.permissions.length > 0;
+
+    const icon = sectionIcons[section.title] || <ArchiveBoxIcon className="h-5 w-5" />;
+
+    const handleSectionToggle = (val: boolean) => {
+        if (isComingSoon || !section.sectionToggleKey) return;
+        onSectionToggle(section.sectionToggleKey, val);
+        // When turning OFF, also turn off all sub-permissions
+        if (!val) {
+            section.permissions.forEach(p => onPermissionChange(p.key, false));
+        }
+    };
+
+    return (
+        <div
+            className={`rounded-2xl border transition-all duration-200 ${isComingSoon
+                ? 'opacity-[0.45] border-gray-200 bg-gray-50/80'
+                : isSectionOn
+                    ? 'border-[#7B61FF]/15 bg-white shadow-sm'
+                    : 'border-gray-100 bg-white'
+                }`}
+        >
+            {/* Section Header */}
+            <div
+                className={`flex items-center justify-between px-4 py-2.5 cursor-pointer select-none rounded-t-2xl transition-colors duration-200 ${isSectionOn ? 'bg-[#7B61FF]/5' : 'bg-transparent'}`}
+                onClick={() => {
+                    if (!isComingSoon && section.sectionToggleKey) {
+                        handleSectionToggle(!isSectionOn);
+                    }
+                }}
+            >
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`flex-shrink-0 transition-colors duration-200 ${isComingSoon ? 'text-gray-300' : isSectionOn ? 'text-[#7B61FF]' : 'text-gray-300'}`}>
+                        {React.cloneElement(icon, { className: 'h-[18px] w-[18px]' })}
+                    </div>
+                    <span className={`font-bold text-[14px] transition-colors duration-200 truncate ${isComingSoon ? 'text-gray-400' : isSectionOn ? 'text-gray-800' : 'text-gray-400'}`}>
+                        {section.title}
+                    </span>
+                    {isComingSoon && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-300 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                            Em Breve
+                        </span>
+                    )}
+                </div>
+                <LilacToggle
+                    checked={isSectionOn}
+                    onChange={handleSectionToggle}
+                    disabled={isComingSoon || !section.sectionToggleKey}
+                    size="md"
+                    ariaLabel={`Ativar/desativar ${section.title}`}
+                />
+            </div>
+
+            {/* Sub-permissions */}
+            {hasSubPermissions && !isComingSoon && (
+                <div
+                    className="overflow-hidden transition-all duration-200 ease-out"
+                    style={{
+                        maxHeight: isSectionOn ? `${Math.ceil(section.permissions.length / 2) * 40 + 24}px` : '0px',
+                        opacity: isSectionOn ? 1 : 0,
+                    }}
+                >
+                    <div className="mx-4 border-t border-gray-100" />
+                    <div className="px-4 py-2 grid grid-cols-2 gap-x-4 gap-y-0">
+                        {section.permissions.map(perm => (
+                            <div
+                                key={perm.key}
+                                className="flex items-center justify-between py-[7px]"
+                            >
+                                <span className="text-[12.5px] text-gray-600 pr-2 leading-tight">
+                                    {perm.label}
+                                </span>
+                                <LilacToggle
+                                    checked={!!permissions[perm.key]}
+                                    onChange={(val) => onPermissionChange(perm.key, val)}
+                                    ariaLabel={perm.label}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 const PermissionProfileModal: React.FC<{
     isOpen: boolean;
@@ -164,26 +346,35 @@ const PermissionProfileModal: React.FC<{
     onSave: (profile: Omit<PermissionProfile, 'id'> | PermissionProfile) => Promise<void>;
     profile: Partial<PermissionProfile> | null;
 }> = ({ isOpen, onClose, onSave, profile }) => {
+    const { isCollapsed } = useSidebar();
     const [name, setName] = useState('');
     const [permissions, setPermissions] = useState<PermissionSet>({} as PermissionSet);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        const defaults = permissionGroups.reduce((acc, group) => {
-            group.permissions.forEach(p => { acc[p.key] = false; });
-            return acc;
-        }, {} as PermissionSet);
+        // Build defaults from ALL permission keys across all sections
+        const defaults: Record<string, boolean> = {};
+        permissionSections.forEach(section => {
+            if (section.sectionToggleKey) {
+                defaults[section.sectionToggleKey] = false;
+            }
+            section.permissions.forEach(p => { defaults[p.key] = false; });
+        });
 
         if (profile) {
             setName(profile.name || '');
-            setPermissions({ ...defaults, ...(profile.permissions || {}) });
+            setPermissions({ ...defaults, ...(profile.permissions || {}) } as PermissionSet);
         } else {
             setName('');
-            setPermissions(defaults);
+            setPermissions(defaults as unknown as PermissionSet);
         }
     }, [profile]);
 
     const handlePermissionChange = (key: keyof PermissionSet, value: boolean) => {
+        setPermissions(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleSectionToggle = (key: keyof PermissionSet, value: boolean) => {
         setPermissions(prev => ({ ...prev, [key]: value }));
     };
 
@@ -196,58 +387,75 @@ const PermissionProfileModal: React.FC<{
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-surface p-6 rounded-3xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-border">
-                <h2 className="text-xl font-bold mb-4">{profile?.id ? 'Editar' : 'Criar'} Perfil de Permissão</h2>
-                <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">Nome do Perfil</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded-xl" />
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-center items-start p-2 sm:p-4 overflow-y-auto animate-fade-in transition-all duration-300 ${!isCollapsed ? 'lg:pl-72' : 'lg:pl-24'}`}>
+            <div className="bg-[#FAFAFA] rounded-2xl shadow-2xl w-full max-w-6xl my-2 sm:my-6 flex flex-col border border-gray-200 animate-scale-in">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-gray-100 bg-white rounded-t-2xl">
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors p-1 -ml-1"
+                        title="Voltar"
+                    >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div className="text-center flex-1 px-4">
+                        <h2 className="text-base sm:text-lg font-bold text-gray-800">
+                            {profile?.id ? 'Editar' : 'Novo'} Perfil de Permissão
+                        </h2>
+                        <p className="text-[11px] text-gray-400">Ative ou desative módulos e permissões individuais</p>
+                    </div>
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving || !name.trim()}
+                        className="text-[#7B61FF] font-bold text-sm hover:text-[#6350d4] transition-colors disabled:opacity-40"
+                    >
+                        {isSaving ? 'Salvando...' : 'Salvar'}
+                    </button>
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-                    {permissionGroups.map(group => {
-                        const isSectionEnabled = !group.requiredSection || permissions[group.requiredSection];
 
-                        return (
-                            <div key={group.title} className={!isSectionEnabled ? 'opacity-50' : ''}>
-                                <div className="flex items-center justify-between border-b pb-1 mb-2">
-                                    <h3 className="font-semibold text-primary">{group.title}</h3>
-                                    {!isSectionEnabled && (
-                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold uppercase">
-                                            Seção Desativada
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                    {group.permissions.map(perm => {
-                                        const isEnabled = isSectionEnabled;
-
-                                        return (
-                                            <div key={perm.key} className={`flex items-center justify-between p-2 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors ${!isEnabled ? 'grayscale pointer-events-none' : ''}`}>
-                                                <span className={`text-sm font-medium ${!isEnabled ? 'text-gray-400' : 'text-primary'}`}>{perm.label}</span>
-                                                <button
-                                                    type="button"
-                                                    disabled={!isEnabled}
-                                                    onClick={() => handlePermissionChange(perm.key, !permissions[perm.key])}
-                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${permissions[perm.key] && isEnabled ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-200'
-                                                        }`}
-                                                >
-                                                    <span
-                                                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${permissions[perm.key] && isEnabled ? 'translate-x-5' : 'translate-x-1'
-                                                            }`}
-                                                    />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    })}
+                {/* Profile Name */}
+                <div className="px-5 sm:px-6 pt-4 pb-2">
+                    <label className="block text-[12px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">Nome do Perfil</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Ex: Vendedor, Gerente, Administrador..."
+                        className="w-full max-w-md px-3.5 py-2 border border-gray-200 rounded-xl text-[14px] text-gray-800 bg-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7B61FF]/20 focus:border-[#7B61FF]/40 transition-all"
+                    />
                 </div>
-                <div className="flex justify-end gap-4 mt-6 pt-4 border-t">
-                    <Button onClick={onClose} variant="secondary">Cancelar</Button>
-                    <Button onClick={handleSave} variant="success" loading={isSaving} icon={<CheckIcon className="h-5 w-5" />}>
-                        Salvar
+
+                {/* Section Cards - 2 columns */}
+                <div className="flex-1 px-5 sm:px-6 py-3 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                        {permissionSections.map(section => (
+                            <PermissionSectionCard
+                                key={section.title}
+                                section={section}
+                                permissions={permissions}
+                                onPermissionChange={handlePermissionChange}
+                                onSectionToggle={handleSectionToggle}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Bottom Bar */}
+                <div className="px-5 sm:px-6 py-3.5 border-t border-gray-100 bg-white rounded-b-2xl flex items-center justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-[13px] font-medium text-gray-500 hover:text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-all"
+                    >
+                        Cancelar
+                    </button>
+                    <Button
+                        onClick={handleSave}
+                        variant="success"
+                        loading={isSaving}
+                        icon={<CheckIcon className="h-4 w-4" />}
+                        className="!bg-[#7B61FF] hover:!bg-[#6a53e6] !rounded-lg !py-2 !px-5 !font-semibold !text-[13px]"
+                    >
+                        Salvar Alterações
                     </Button>
                 </div>
             </div>
@@ -263,6 +471,7 @@ const UserModal: React.FC<{
     user: Partial<User> | null;
     profiles: PermissionProfile[];
 }> = ({ isOpen, onClose, onSave, user, profiles }) => {
+    const { isCollapsed } = useSidebar();
     const [formData, setFormData] = useState<Partial<User>>({});
     const [isSaving, setIsSaving] = useState(false);
     const { showToast } = useToast();
@@ -302,7 +511,7 @@ const UserModal: React.FC<{
     const inputClasses = "w-full px-3 py-2 border rounded-xl bg-surface text-primary border-border focus:ring-1 focus:ring-success focus:border-success";
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+        <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 transition-all duration-300 ${!isCollapsed ? 'lg:pl-72' : 'lg:pl-24'}`}>
             <div className="bg-surface p-6 rounded-3xl shadow-xl w-full max-w-lg border border-border">
                 <h2 className="text-xl font-bold mb-4">{user?.id ? 'Editar' : 'Novo'} Usuário</h2>
                 <div className="space-y-4">

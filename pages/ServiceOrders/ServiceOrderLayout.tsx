@@ -15,24 +15,38 @@ import {
     ReceiptText
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext.tsx';
+import { useUser } from '../../contexts/UserContext.tsx';
+import { PermissionSet } from '../../types.ts';
 
-const NAV_ITEMS = [
-    { label: 'Dashboard', path: '/service-orders', icon: LayoutGrid },
-    { label: 'Ordens de Serviço', path: '/service-orders/list', icon: ClipboardListIcon },
-    { label: 'Nova OS', path: '/service-orders/new', icon: WrenchIcon },
-    { label: 'Clientes e Fornecedores', path: '/service-orders/customers', icon: UserCircleIcon },
-    { label: 'Eletrônicos Cadastrados', path: '/service-orders/devices', icon: Smartphone },
-    { label: 'Peças e Serviços', path: '/service-orders/products', icon: Package },
-    { label: 'Financeiro', path: '/service-orders/financial', icon: DollarSign },
-    { label: 'Relatórios', path: '/service-orders/reports', icon: BarChart2 },
-    { label: 'Fiscal (Em Breve)', path: '#', icon: ReceiptText },
-    { label: 'Configurações', path: '/service-orders/settings', icon: Settings },
+const NAV_ITEMS: { label: string; path: string; icon: any; permissionKey?: keyof PermissionSet | (keyof PermissionSet)[] }[] = [
+    { label: 'Dashboard', path: '/service-orders', icon: LayoutGrid, permissionKey: 'osCanAccessDashboard' },
+    { label: 'Ordens de Serviço', path: '/service-orders/list', icon: ClipboardListIcon, permissionKey: 'canAccessServiceOrders' },
+    { label: 'Nova OS', path: '/service-orders/new', icon: WrenchIcon, permissionKey: 'canCreateServiceOrder' },
+    { label: 'Clientes e Fornecedores', path: '/service-orders/customers', icon: UserCircleIcon, permissionKey: ['osCanAccessCustomers', 'osCanAccessSuppliers'] },
+    { label: 'Eletrônicos Cadastrados', path: '/service-orders/devices', icon: Smartphone, permissionKey: 'osCanAccessElectronics' },
+    { label: 'Peças e Serviços', path: '/service-orders/products', icon: Package, permissionKey: 'osCanEditParts' },
+    { label: 'Financeiro', path: '/service-orders/financial', icon: DollarSign, permissionKey: 'osCanAccessFinance' },
+    { label: 'Relatórios', path: '/service-orders/reports', icon: BarChart2, permissionKey: 'osCanAccessReports' },
+    { label: 'Fiscal (Em Breve)', path: '#', icon: ReceiptText, permissionKey: 'osCanAccessFiscal' },
+    { label: 'Configurações', path: '/service-orders/settings', icon: Settings, permissionKey: 'osCanAccessSettings' },
 ];
 
 const ServiceOrderLayout: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const { permissions } = useUser();
+
+    // Filter NAV_ITEMS based on user permissions
+    const visibleNavItems = NAV_ITEMS.filter(item => {
+        if (!item.permissionKey) return true;
+        if (!permissions) return false;
+        if (Array.isArray(item.permissionKey)) {
+            // If it's an array, user must have at least ONE of the permissions to see the menu item
+            return item.permissionKey.some(key => permissions[key]);
+        }
+        return permissions[item.permissionKey];
+    });
 
     const isActive = (path: string) => {
         if (path === '/service-orders' && location.pathname === '/service-orders') return true;
@@ -59,7 +73,7 @@ const ServiceOrderLayout: React.FC = () => {
 
                 {/* Navigation Desktop */}
                 <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto custom-scrollbar">
-                    {NAV_ITEMS.map((item) => {
+                    {visibleNavItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.path);
                         return (
@@ -108,7 +122,7 @@ const ServiceOrderLayout: React.FC = () => {
                 }}
             >
                 <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] px-2">
-                    {NAV_ITEMS.map((item) => {
+                    {visibleNavItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.path);
                         const itemWidthClass = "flex-none w-[20%] min-w-[20%]";

@@ -1840,13 +1840,13 @@ const Dashboard: React.FC = () => {
                         <div className="relative group">
                             <button
                                 onClick={() => setIsPrivacyMode(!isPrivacyMode)}
-                                className={`p-2 rounded-xl transition-all duration-300 shadow-sm border ${isPrivacyMode ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'}`}
+                                className={`p-2.5 rounded-xl transition-all duration-300 shadow-sm border ${isPrivacyMode ? 'bg-[#7B61FF]/10 border-[#7B61FF]/30 text-[#7B61FF]' : 'bg-white border-gray-100 text-[#7B61FF]/40 hover:text-[#7B61FF] hover:border-[#7B61FF]/20 hover:bg-[#7B61FF]/5'}`}
                             >
                                 {isPrivacyMode ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                             </button>
                             {/* Modern Tooltip/Legend */}
                             <div className="absolute left-0 bottom-full mb-3 hidden group-hover:block transition-all duration-300 z-[100]">
-                                <div className="bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl shadow-2xl whitespace-nowrap animate-slide-up relative underline-offset-4 decoration-indigo-400">
+                                <div className="bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl shadow-2xl whitespace-nowrap animate-slide-up relative underline-offset-4 decoration-[#7B61FF]">
                                     {isPrivacyMode ? 'Mostrar valores sensíveis' : 'Ocultar valores e estoque'}
                                     {/* Tooltip Arrow */}
                                     <div className="absolute top-full left-4 border-8 border-transparent border-t-gray-900"></div>

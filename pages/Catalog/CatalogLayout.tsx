@@ -4,6 +4,7 @@ import {
     LayoutGrid, Package, Settings, ChevronLeft, ShoppingBag, ExternalLink, Copy, List,
     BarChart3, ArrowLeft
 } from 'lucide-react';
+import { useUser } from '../../contexts/UserContext.tsx';
 
 const CatalogSidebarItem: React.FC<{ to: string; icon: React.ReactNode; label: string; end?: boolean }> = ({ to, icon, label, end }) => (
     <NavLink
@@ -23,6 +24,7 @@ const CatalogSidebarItem: React.FC<{ to: string; icon: React.ReactNode; label: s
 
 const CatalogLayout: React.FC = () => {
     const navigate = useNavigate();
+    const { permissions } = useUser();
 
     return (
         <div className="flex min-h-screen bg-background">
@@ -42,7 +44,9 @@ const CatalogLayout: React.FC = () => {
                 {/* Nav */}
                 <nav className="flex-1 px-3 py-4 space-y-1">
                     <CatalogSidebarItem to="/catalog" icon={<LayoutGrid size={20} />} label="Meus Produtos" end />
-                    <CatalogSidebarItem to="/catalog/stats" icon={<BarChart3 size={20} />} label="Estatísticas" />
+                    {permissions?.canViewCatalogStats && (
+                        <CatalogSidebarItem to="/catalog/stats" icon={<BarChart3 size={20} />} label="Estatísticas" />
+                    )}
                     <CatalogSidebarItem to="/catalog/settings" icon={<Settings size={20} />} label="Configurações" />
                 </nav>
 
@@ -73,9 +77,11 @@ const CatalogLayout: React.FC = () => {
                     <NavLink to="/catalog" end className={({ isActive }) => `p-2 rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/70'}`}>
                         <List size={18} />
                     </NavLink>
-                    <NavLink to="/catalog/stats" className={({ isActive }) => `p-2 rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/70'}`}>
-                        <BarChart3 size={18} />
-                    </NavLink>
+                    {permissions?.canViewCatalogStats && (
+                        <NavLink to="/catalog/stats" className={({ isActive }) => `p-2 rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/70'}`}>
+                            <BarChart3 size={18} />
+                        </NavLink>
+                    )}
                     <NavLink to="/catalog/settings" className={({ isActive }) => `p-2 rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-white/70'}`}>
                         <Settings size={18} />
                     </NavLink>
