@@ -41,6 +41,11 @@ const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: strin
     'Cancelada': { color: 'text-red-700', bg: 'bg-red-100/80', border: 'border-red-200', dot: 'bg-red-500', gradient: 'from-red-100 to-red-50', dropBg: 'bg-red-50' },
 };
 
+const calculateOSProfit = (os: any) => {
+    const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
+    return (os.total || 0) - totalCost;
+};
+
 // --- Components ---
 const StatusBadge = ({ status }: { status: string }) => {
     const displayStatus = status === 'Aberto' ? 'Orçamento' : status;
@@ -135,8 +140,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
         <div className="flex justify-between items-end mt-1">
             {os.total > 0 && <span className="text-xs font-black text-gray-900">R$ {os.total.toLocaleString()}</span>}
             {showProfit && (() => {
-                const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
-                const profit = (os.total || 0) - totalCost;
+                const profit = calculateOSProfit(os);
                 return profit > 0 ? (
                     <span className="text-[10px] font-bold text-emerald-600">Lucro: R$ {profit.toLocaleString()}</span>
                 ) : null;
@@ -445,8 +449,7 @@ const ServiceOrderList: React.FC = () => {
                                         </tr>
                                     ) : (
                                         filteredOrders.map(os => {
-                                            const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
-                                            const profit = (os.total || 0) - totalCost;
+                                            const profit = calculateOSProfit(os);
 
                                             return (
                                                 <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60' : 'hover:bg-gray-50/50'}`}>
@@ -555,8 +558,7 @@ const ServiceOrderList: React.FC = () => {
                                 <div className="p-8 text-center text-secondary">Nenhuma ordem de serviço encontrada.</div>
                             ) : (
                                 filteredOrders.map(os => {
-                                    const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
-                                    const profit = (os.total || 0) - totalCost;
+                                    const profit = calculateOSProfit(os);
 
                                     return (
                                         <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60 active:bg-amber-200/40' : 'active:bg-gray-50'}`}>
