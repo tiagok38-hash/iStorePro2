@@ -8,6 +8,7 @@ import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import PriceListModal from '../components/PriceListModal.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 import SalesReports from '../components/SalesReports.tsx';
+import AveragePriceReport from '../components/AveragePriceReport.tsx';
 
 const PremiumKpiCard: React.FC<{
     title: string;
@@ -510,7 +511,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     );
 };
 
-const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilter: string | null }> = ({ products, sales, initialFilter }) => {
+const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModels: ProductModel[], initialFilter: string | null }> = ({ products, sales, productModels, initialFilter }) => {
     const [stockFilter, setStockFilter] = useState('todos');
     const [searchTerm, setSearchTerm] = useState('');
     const [brandFilter, setBrandFilter] = useState('todos');
@@ -992,6 +993,8 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], initialFilte
                     </div>
                 </div>
             </div>
+
+            <AveragePriceReport products={products} productModels={productModels} />
         </div>
     );
 };
@@ -1086,7 +1089,7 @@ const Reports: React.FC = () => {
                 <>
                     {activeTab === 'vendas' && <VendasReport sales={sales} products={products} customers={customers} users={users} />}
                     {activeTab === 'sales_reports' && <SalesReports sales={sales} products={products} customers={customers} users={users} productModels={productModels} />}
-                    {activeTab === 'estoque' && <EstoqueReport products={products} sales={sales} initialFilter={searchParams.get('filter')} />}
+                    {activeTab === 'estoque' && <EstoqueReport products={products} sales={sales} productModels={productModels} initialFilter={searchParams.get('filter')} />}
                 </>
             )}
 
