@@ -7,124 +7,13 @@ import { sendSaleNotification, sendPurchaseNotification } from './telegramServic
 import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
 import { sortProductsCommercial } from '../utils/productSorting.ts';
 
-// --- CACHE SYSTEM ---
-const cache: Record<string, { data: any, timestamp: number }> = {};
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const METADATA_TTL = 30 * 60 * 1000; // 30 minutes
+// --- Shared infrastructure (imported from dedicated modules) ---
+import { fetchWithCache, clearCache, getAllCacheKeys, fetchWithRetry, withTimeout, CACHE_TTL, METADATA_TTL } from './cacheUtils.ts';
+export { clearCache } from './cacheUtils.ts';
 
-// Cross-tab cache synchronization
-const cacheChannel = new BroadcastChannel('app_cache_sync');
-
-const fetchWithCache = async <T>(key: string, fetcher: () => Promise<T>, ttl: number = CACHE_TTL): Promise<T> => {
-    const now = Date.now();
-    // Use the cached data directly to avoid the overhead of JSON.parse(JSON.stringify())
-    // which is extremely slow for large arrays like products and sales.
-    if (cache[key] && (now - cache[key].timestamp < ttl)) {
-        return cache[key].data;
-    }
-    const data = await fetcher();
-    cache[key] = { data, timestamp: now };
-    return data;
-};
-
-export const clearCache = (keys: string[]) => {
-    const cacheKeys = Object.keys(cache);
-    keys.forEach(key => {
-        // Clear exact match
-        delete cache[key];
-
-        // Clear related keys (e.g. 'sales' clears 'sales_all_all', 'sales_USER_ID_all')
-        cacheKeys.forEach(ck => {
-            if (ck === key || ck.startsWith(key + '_')) {
-                delete cache[ck];
-            }
-        });
-    });
-    // Sync with other tabs by sending prefixes
-    cacheChannel.postMessage({ type: 'CLEAR_CACHE', keys, prefixes: keys });
-
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('app-reloadData'));
-    }
-};
-
-cacheChannel.onmessage = (event) => {
-    if (event.data && event.data.type === 'CLEAR_CACHE' && Array.isArray(event.data.prefixes)) {
-        const cacheKeys = Object.keys(cache);
-        event.data.prefixes.forEach((prefix: string) => {
-            cacheKeys.forEach(ck => {
-                if (ck === prefix || ck.startsWith(prefix + '_')) {
-                    delete cache[ck];
-                }
-            });
-        });
-
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('app-reloadData'));
-        }
-    }
-};
-
-// --- TIMEOUT HELPER ---
-// Prevents calls from hanging indefinitely when connection is stale
-const DEFAULT_TIMEOUT = 5000; // 5 seconds
-
-const withTimeout = <T>(promise: Promise<T> | any, timeoutMs: number = DEFAULT_TIMEOUT, errorMessage?: string): Promise<T> => {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error(errorMessage || `Request timed out after ${timeoutMs}ms`)), timeoutMs)
-        )
-    ]);
-};
-
-const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
-    try {
-        return await fetcher();
-    } catch (error: any) {
-        // Don't retry if it's a legitimate user abortion or timeout that shouldn't be retried blindly
-        if (error?.name === 'AbortError') {
-            throw error;
-        }
-
-        if (retries <= 0) throw error;
-
-        const isNetworkError =
-            error?.message?.includes('aborted') || // specific supabase aborts might differ
-            error?.message?.includes('Failed to fetch') ||
-            error?.message?.includes('NetworkError');
-
-        if (isNetworkError) {
-
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(fetcher, retries - 1, delay * 2);
-        }
-        throw error;
-    }
-};
-
-// Helper para formatar moeda (mantido local pois é utilitário de UI)
-export const formatCurrency = (value: number | null | undefined, fallback: string = 'R$ 0,00'): string => {
-    if (typeof value !== 'number' || isNaN(value)) {
-        return fallback;
-    }
-    return value.toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-};
-
-export const formatPhone = (value: string): string => {
-    if (!value) return "";
-    let v = value.replace(/\D/g, "");
-    v = v.substring(0, 11);
-    if (v.length <= 2) return `(${v}`;
-    if (v.length <= 6) return `(${v.substring(0, 2)}) ${v.substring(2)}`;
-    if (v.length <= 10) return `(${v.substring(0, 2)}) ${v.substring(2, 6)}-${v.substring(6)}`;
-    return `(${v.substring(0, 2)}) ${v.substring(2, 7)}-${v.substring(7)}`;
-};
+// --- Formatters (imported from dedicated utility and re-exported) ---
+import { formatCurrency, formatPhone } from '../utils/formatters.ts';
+export { formatCurrency, formatPhone };
 
 
 
@@ -246,7 +135,7 @@ export const logout = async (userId?: string, userName?: string) => {
 
     const { error } = await supabase.auth.signOut();
     if (error) console.error('Error signing out:', error.message);
-    clearCache(Object.keys(cache));
+    clearCache(getAllCacheKeys());
 };
 
 export const getProfile = async (userId: string): Promise<User | null> => {
@@ -5623,7 +5512,7 @@ export const restoreFullBackup = async (backupData: Record<string, any[]>, userI
     );
 
     // 5. Clear all caches
-    clearCache(Object.keys(cache)); // Use current cache keys
+    clearCache(getAllCacheKeys()); // Use current cache keys
     // Since cache is local to the module, we can just clear it if we export a way
 };
 
