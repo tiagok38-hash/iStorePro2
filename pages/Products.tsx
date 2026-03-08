@@ -1044,6 +1044,7 @@ const Products: React.FC = () => {
                             <tr>
                                 <th scope="col" className="px-2 py-2 text-center font-bold">ESTOQUE</th>
                                 <th scope="col" className="px-2 py-2 font-bold">DESCRIÇÃO</th>
+                                <th scope="col" className="px-2 py-2 text-center font-bold">CONDIÇÃO</th>
                                 <th scope="col" className="px-2 py-2 font-bold">LOCAL</th>
                                 <th scope="col" className="px-2 py-2 font-bold">FORNECEDOR</th>
                                 <th scope="col" className="px-2 py-2 font-bold">VENDA</th>
@@ -1051,7 +1052,6 @@ const Products: React.FC = () => {
                                 <th scope="col" className="px-2 py-2 font-bold">CUSTO</th>
                                 <th scope="col" className="px-2 py-2 font-bold">MARKUP</th>
                                 <th scope="col" className="px-2 py-2 text-center font-bold">GARANTIA</th>
-                                <th scope="col" className="px-2 py-2 text-center font-bold">CONDIÇÃO</th>
                                 <th scope="col" className="px-2 py-2 text-center font-bold">CADASTRO</th>
                                 <th scope="col" className="px-2 py-2 text-center font-bold">AÇÕES</th>
                             </tr>
@@ -1144,6 +1144,11 @@ const Products: React.FC = () => {
                                                     )}
                                                 </div>
                                             </td>
+                                            <td className="px-2 py-2 text-center">
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-xl ${getConditionTagClasses(product.condition)}`}>
+                                                    {product.condition}
+                                                </span>
+                                            </td>
                                             <td className="px-1 py-2 text-xs text-muted">
                                                 {product.storageLocation || '-'}
                                             </td>
@@ -1169,11 +1174,6 @@ const Products: React.FC = () => {
                                             <td className="px-1 py-2 text-xs text-muted">{formatCurrency(totalCost, 'N/A')}</td>
                                             <td className={`px-1 py-2 text-sm font-bold ${markup >= 0 ? 'text-success' : 'text-danger'}`}>{markup.toFixed(0)}%</td>
                                             <td className="px-2 py-2 text-center text-xs">{(product as any).warranty || (product as any).warranty_period || (product as any).garantia || '-'}</td>
-                                            <td className="px-2 py-2 text-center">
-                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-xl ${getConditionTagClasses(product.condition)}`}>
-                                                    {product.condition}
-                                                </span>
-                                            </td>
                                             <td className="px-2 py-2">
                                                 <div className="flex flex-col text-[10px] text-gray-700 leading-tight items-center font-medium">
                                                     <span>{new Date(product.createdAt).toLocaleDateString('pt-BR')}</span>
