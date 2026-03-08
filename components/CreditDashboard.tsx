@@ -178,7 +178,7 @@ const CreditDashboard: React.FC = () => {
     if (loading) return <div className="p-10 text-center text-gray-500">Carregando carteira de crediário...</div>;
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in bg-white border border-gray-100 rounded-[32px] p-6 shadow-lg">
             {/* Header Actions */}
             <div className="flex justify-end mb-4">
                 <button
@@ -192,32 +192,32 @@ const CreditDashboard: React.FC = () => {
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="glass-card p-4 rounded-3xl border border-white/20 shadow-sm relative overflow-hidden group">
+                <div className="glass-card p-4 rounded-3xl border border-gray-100 shadow-lg relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <ClockIcon className="h-16 w-16 text-indigo-500" />
                     </div>
                     <div className="relative z-10">
-                        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">A Receber Total</div>
+                        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">A RECEBER TOTAL</div>
                         <div className="text-2xl font-black text-gray-900">{formatCurrency(stats.toReceive)}</div>
                     </div>
                 </div>
 
-                <div className="glass-card p-4 rounded-3xl border border-white/20 shadow-sm relative overflow-hidden group">
+                <div className="glass-card p-4 rounded-3xl border border-gray-100 shadow-lg relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <AlertCircleIcon className="h-16 w-16 text-red-500" />
                     </div>
                     <div className="relative z-10">
-                        <div className="text-xs font-bold text-red-500 uppercase tracking-widest mb-1">Em Atraso</div>
+                        <div className="text-xs font-bold text-red-500 uppercase tracking-widest mb-1">EM ATRASO</div>
                         <div className="text-2xl font-black text-red-600">{formatCurrency(stats.overdue)}</div>
                     </div>
                 </div>
 
-                <div className="glass-card p-4 rounded-3xl border border-white/20 shadow-sm relative overflow-hidden group">
+                <div className="glass-card p-4 rounded-3xl border border-gray-100 shadow-lg relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <CheckCircleIcon className="h-16 w-16 text-emerald-500" />
                     </div>
                     <div className="relative z-10">
-                        <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">Recebido Hoje</div>
+                        <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">RECEBIDO HOJE</div>
                         <div className="text-2xl font-black text-emerald-700">{formatCurrency(stats.receivedToday)}</div>
                     </div>
                 </div>

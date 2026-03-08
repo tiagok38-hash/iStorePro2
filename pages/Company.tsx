@@ -594,6 +594,15 @@ const MarcasECategoriasTab: React.FC = () => {
 // --- AUDITORIA TAB ---
 type PeriodFilter = 'last_hour' | 'today' | 'yesterday' | 'custom';
 
+const SUSPICIOUS_ACTIONS = [
+    AuditActionType.DELETE,
+    AuditActionType.UPDATE,
+    AuditActionType.SALE_CANCEL,
+    AuditActionType.STOCK_REVERT,
+    AuditActionType.COMMISSION_CANCEL,
+    AuditActionType.BULK_PRICE_UPDATE
+];
+
 const AuditoriaTab: React.FC = () => {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
@@ -602,6 +611,7 @@ const AuditoriaTab: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('today');
     const [customDate, setCustomDate] = useState<string>(toDateValue());
+    const [showOnlySuspicious, setShowOnlySuspicious] = useState(false);
 
     // Tradução de nomes de ação para português
     const translateAction = (action: AuditActionType): string => {
@@ -793,6 +803,9 @@ const AuditoriaTab: React.FC = () => {
         const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
         return logs.filter(log => {
+            const isSuspicious = SUSPICIOUS_ACTIONS.includes(log.action);
+            if (showOnlySuspicious && !isSuspicious) return false;
+
             const logDate = new Date(log.timestamp);
 
             switch (periodFilter) {
@@ -810,7 +823,7 @@ const AuditoriaTab: React.FC = () => {
                     return true;
             }
         });
-    }, [logs, periodFilter, customDate]);
+    }, [logs, periodFilter, customDate, showOnlySuspicious]);
 
     const logsByDay = useMemo(() => {
         return filteredLogs.reduce((acc, log) => {
@@ -841,8 +854,7 @@ const AuditoriaTab: React.FC = () => {
     return (
         <div className="bg-surface rounded-3xl border border-border p-4 md:p-6 shadow-sm">
             {/* Filtros de Período */}
-            {/* Filtros de Período */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 pb-4 border-b border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 pb-4 border-b border-border">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-gray-600 mr-1">Período:</span>
                     <button
@@ -872,21 +884,43 @@ const AuditoriaTab: React.FC = () => {
                     >
                         Ontem
                     </button>
+                    <div className="flex items-center">
+                        <CustomDatePicker
+                            value={customDate}
+                            onChange={(val) => {
+                                setCustomDate(val);
+                                setPeriodFilter('custom');
+                            }}
+                            max={toDateValue()}
+                            className="w-full"
+                        />
+                    </div>
                 </div>
-                <div className="flex items-center w-full sm:w-auto">
-                    <CustomDatePicker
-                        value={customDate}
-                        onChange={(val) => {
-                            setCustomDate(val);
-                            setPeriodFilter('custom');
-                        }}
-                        max={toDateValue()}
-                        className="w-full"
-                    />
+
+                <div className="sm:ml-auto flex items-center gap-4">
+                    <button
+                        onClick={() => setShowOnlySuspicious(!showOnlySuspicious)}
+                        className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all border ${showOnlySuspicious
+                            ? 'bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-100'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:text-red-500 shadow-sm'
+                            }`}
+                    >
+                        {showOnlySuspicious ? (
+                            <>
+                                <ErrorIcon className="w-4 h-4" />
+                                EXIBINDO SUSPEITOS
+                            </>
+                        ) : (
+                            <>
+                                <InfoIcon className="w-4 h-4" />
+                                FILTRAR SUSPEITOS
+                            </>
+                        )}
+                    </button>
+                    <span className="text-xs text-gray-400">
+                        {filteredLogs.length} {filteredLogs.length === 1 ? 'evento' : 'eventos'}
+                    </span>
                 </div>
-                <span className="text-xs text-gray-400 sm:ml-auto">
-                    {filteredLogs.length} {filteredLogs.length === 1 ? 'evento' : 'eventos'}
-                </span>
             </div>
 
             {filteredLogs.length === 0 ? (
@@ -1013,13 +1047,21 @@ const AuditoriaTab: React.FC = () => {
                                     return text;
                                 };
 
+                                const isSuspicious = SUSPICIOUS_ACTIONS.includes(log.action);
+
                                 return (
-                                    <div key={log.id} className="relative mb-3 pl-2 group hover:bg-gray-50 rounded-xl -ml-2 p-1 transition-colors">
-                                        <div className={`absolute left-0 top-2 transform -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${bg} ring-4 ring-surface shadow-sm`}><Icon className={`w-3.5 h-3.5 ${color}`} /></div>
+                                    <div
+                                        key={log.id}
+                                        className={`relative mb-3 pl-2 group rounded-xl -ml-2 p-1.5 transition-all border border-transparent ${isSuspicious
+                                            ? 'bg-red-50/80 border-red-100/50 hover:bg-red-100/80'
+                                            : 'hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <div className={`absolute left-0 top-2.5 transform -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${bg} ring-4 ring-surface shadow-sm`}><Icon className={`w-3.5 h-3.5 ${color}`} /></div>
                                         <div className="ml-6">
                                             <div className="text-sm leading-snug flex flex-wrap items-baseline gap-1">
                                                 <span className="font-mono text-gray-400 text-xs tracking-tight">{new Date(log.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                <span className="font-medium text-gray-800">{formatLogDetails()}</span>
+                                                <span className={`font-medium ${isSuspicious ? 'text-red-900' : 'text-gray-800'}`}>{formatLogDetails()}</span>
                                                 <span className="text-xs text-gray-400 opacity-60 ml-auto sm:ml-0">- {log.userName}</span>
                                             </div>
                                             {getRelatedProductInfo(log)}

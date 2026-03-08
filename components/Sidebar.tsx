@@ -45,7 +45,8 @@ const NAV_ITEMS: NavItemDefinition[] = [
         icon: <WalletIcon />,
         permissionKey: ['canAccessFinanceiro', 'canAccessEmpresa'],
         subItems: [
-            { name: 'Financeiro', to: '/financeiro', permissionKey: 'canAccessFinanceiro' },
+            { name: 'Contas a pagar', to: '/financeiro', permissionKey: 'canAccessFinanceiro' },
+            { name: 'Crediários', to: '/financeiro?tab=crediarios', permissionKey: 'canAccessFinanceiro' },
             { name: 'Fiscal (Em Breve)', to: '#', permissionKey: 'canAccessEmpresa', isComingSoon: true },
         ]
     },
