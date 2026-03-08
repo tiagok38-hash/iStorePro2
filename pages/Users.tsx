@@ -91,7 +91,12 @@ const permissionSections: {
         {
             title: 'Orçamentos',
             sectionToggleKey: 'canAccessOrcamentos' as keyof PermissionSet,
-            permissions: [],
+            permissions: [
+                { key: 'orcamentoCanCreate', label: 'Criar orçamentos' },
+                { key: 'orcamentoCanEdit', label: 'Editar orçamentos' },
+                { key: 'orcamentoCanDelete', label: 'Excluir orçamentos' },
+                { key: 'orcamentoCanConvert', label: 'Converter orçamento em venda' },
+            ],
         },
         {
             title: 'Catálogo Digital',

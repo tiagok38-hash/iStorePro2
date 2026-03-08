@@ -46,6 +46,12 @@ export interface PermissionSet {
     posCanEditSale: boolean;
     posCanCancelSale: boolean;
 
+    // Budget (Orcamento) specific permissions
+    orcamentoCanCreate: boolean;
+    orcamentoCanEdit: boolean;
+    orcamentoCanDelete: boolean;
+    orcamentoCanConvert: boolean;
+
     // Company permissions
     canManageCompanyData: boolean;
     canManageUsers: boolean;

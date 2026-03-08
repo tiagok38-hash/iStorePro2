@@ -158,6 +158,11 @@ const ServiceOrderSettingsUsers: React.FC = () => {
         canAccessFornecedores: false,
         canAccessRelatorios: false,
         canAccessEmpresa: false,
+        canAccessOrcamentos: false,
+        orcamentoCanCreate: false,
+        orcamentoCanEdit: false,
+        orcamentoCanDelete: false,
+        orcamentoCanConvert: false,
         canAccessCatalog: false,
         canCreateCatalogItem: false,
         canEditCatalogItem: false,
@@ -518,6 +523,13 @@ const ServiceOrderSettingsUsers: React.FC = () => {
                             { key: 'posCanEditSale', label: 'Editar Venda no PDV' },
                             { key: 'posCanCancelSale', label: 'Cancelar Venda no PDV' },
                         ], "canAccessPOS")}
+
+                        {renderPermissionGroup("Orçamentos", [
+                            { key: 'orcamentoCanCreate', label: 'Criar Orçamentos' },
+                            { key: 'orcamentoCanEdit', label: 'Editar Orçamentos' },
+                            { key: 'orcamentoCanDelete', label: 'Excluir Orçamentos' },
+                            { key: 'orcamentoCanConvert', label: 'Converter Orçamento em Venda' },
+                        ], "canAccessOrcamentos")}
 
                         {renderPermissionGroup("Estoque e Produtos", [
                             { key: 'canCreateProduct', label: 'Criar Produto' },

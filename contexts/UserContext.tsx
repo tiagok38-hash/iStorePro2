@@ -40,6 +40,7 @@ const defaultPermissions: PermissionSet = {
   canAccessDashboard: true, canAccessEstoque: true, canAccessVendas: true,
   canAccessPOS: true, canAccessClientes: true, canAccessFornecedores: true,
   canAccessRelatorios: true, canAccessEmpresa: true, canAccessOrcamentos: true,
+  orcamentoCanCreate: true, orcamentoCanEdit: true, orcamentoCanDelete: true, orcamentoCanConvert: true,
   canCreateProduct: true, canEditProduct: true, canDeleteProduct: true,
   canCompareStock: true, canAccessStockMovement: true, canGenerateLabels: true,
   canBulkUpdatePrices: true, canBulkUpdateLocations: true,
