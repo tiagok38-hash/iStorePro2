@@ -19,6 +19,7 @@ import {
     Search,
     Barcode,
     Plus,
+    PlusCircle,
     Minus,
     X,
     Check,
@@ -135,6 +136,7 @@ export const TrashIcon = wrapIcon(Trash2);
 export const SearchIcon = wrapIcon(Search);
 export const BarcodeIcon = wrapIcon(Barcode);
 export const PlusIcon = wrapIcon(Plus);
+export const PlusCircleIcon = wrapIcon(PlusCircle);
 export const MinusIcon = wrapIcon(Minus);
 export const CloseIcon = wrapIcon(X);
 export const CheckIcon = wrapIcon(Check);

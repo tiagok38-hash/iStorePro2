@@ -1,5 +1,22 @@
-
 import React from 'react';
+
+export interface Branch {
+    id: string;
+    name: string;
+    city: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface BranchInventory {
+    id: string;
+    branch_id: string;
+    product_id: string;
+    stock: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
 
 export interface PermissionSet {
     // Sidebar access & general viewing
@@ -941,22 +958,24 @@ export interface CrmActivity {
 
 // Inventory Movements
 export type MovementType = 'entrada' | 'saida';
-export type MovementReason = 'Avaria' | 'Perda' | 'Uso Interno' | 'Bonificação' | 'Ajuste Manual' | 'Devolução' | 'Outro';
+export type MovementReason = 'Avaria' | 'Perda' | 'Uso Interno' | 'Bonificação' | 'Ajuste Manual' | 'Devolução' | 'Transferência para Filial' | 'Recebimento de Filial' | 'Outro';
 
 export interface InventoryMovement {
     id: string;
     product_id: string;
-    product_name: string;
+    product_name?: string;
     imei?: string;
     serial_number?: string;
-    movement_type: MovementType;
+    movement_type: 'entrada' | 'saida';
     quantity: number;
-    reason: string;
+    reason: MovementReason | string;
     custom_reason?: string;
     user_id: string;
     user_name: string;
     company_id?: string;
     created_at: string;
+    transfer_from_branch_id?: string;
+    transfer_to_branch_id?: string;
 }
 
 // Orçamentos Module
