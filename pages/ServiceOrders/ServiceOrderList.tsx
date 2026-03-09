@@ -13,12 +13,21 @@ import {
     Printer,
     XCircle,
     Wrench,
-    ShieldCheck
+    ShieldCheck,
+    Calendar as CalendarIcon
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getServiceOrders, updateServiceOrder, returnOsPartsStock } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
-import { calculateWarrantyExpiry, getRemainingDays, formatDateBR } from '../../utils/dateUtils';
+import {
+    calculateWarrantyExpiry,
+    getRemainingDays,
+    formatDateBR,
+    startOfDay,
+    endOfDay,
+    toDateValue,
+    getTodayStart
+} from '../../utils/dateUtils';
 import { useToast } from '../../contexts/ToastContext';
 import { useUser } from '../../contexts/UserContext';
 import QuickOSModal from '../../components/QuickOSModal';
@@ -178,6 +187,52 @@ const ServiceOrderList: React.FC = () => {
     const [dragOverColumn, setDragOverColumn] = useState<OSStatus | null>(null);
     const [warrantyFilter, setWarrantyFilter] = useState<'all' | 'active' | 'expiring_month'>('all');
 
+    // Date filters
+    const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
+    const [startDate, setStartDate] = useState<string>(() => {
+        const d = new Date();
+        return toDateValue(new Date(d.getFullYear(), d.getMonth(), 1));
+    });
+    const [endDate, setEndDate] = useState<string>(() => toDateValue(new Date()));
+
+    const handlePeriodChange = (period: typeof periodFilter) => {
+        setPeriodFilter(period);
+        const today = new Date();
+
+        if (period === 'all') {
+            setStartDate('');
+            setEndDate('');
+            return;
+        }
+
+        let start = new Date(today);
+        let end = new Date(today);
+
+        switch (period) {
+            case 'today':
+                setStartDate(toDateValue(today));
+                setEndDate(toDateValue(today));
+                break;
+            case 'yesterday':
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                setStartDate(toDateValue(yesterday));
+                setEndDate(toDateValue(yesterday));
+                break;
+            case 'week':
+                const firstDayOfWeek = today.getDate() - today.getDay();
+                const weekStart = new Date(today.setDate(firstDayOfWeek));
+                setStartDate(toDateValue(weekStart));
+                setEndDate(toDateValue(new Date()));
+                break;
+            case 'month':
+                const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                setStartDate(toDateValue(monthStart));
+                setEndDate(toDateValue(new Date()));
+                break;
+        }
+    };
+
     const loadOrders = async () => {
         setIsLoading(true);
         try {
@@ -241,7 +296,20 @@ const ServiceOrderList: React.FC = () => {
             }
         }
 
-        return matchSearch && matchStatus && matchWarranty;
+        let matchDate = true;
+        if ((startDate || endDate) && os.entryDate) {
+            const entryDate = new Date(os.entryDate).getTime();
+            if (startDate) {
+                const sDate = startOfDay(startDate).getTime();
+                if (entryDate < sDate) matchDate = false;
+            }
+            if (endDate) {
+                const eDate = endOfDay(endDate).getTime();
+                if (entryDate > eDate) matchDate = false;
+            }
+        }
+
+        return matchSearch && matchStatus && matchWarranty && matchDate;
     });
 
     // ---- DRAG & DROP HANDLERS ----
@@ -300,14 +368,11 @@ const ServiceOrderList: React.FC = () => {
     const handleCancelOS = async (reason: string) => {
         if (!osToCancel) return;
         try {
-            // Se a OS era 'Entregue', devolver peças ao estoque
-            const osData = orders.find(o => o.id === osToCancel);
-            if (osData && osData.status === 'Entregue') {
-                try {
-                    await returnOsPartsStock(osToCancel);
-                } catch (e) {
-                    // Fail silently or handle accordingly
-                }
+            // Retornar peças ao estoque ao cancelar a OS
+            try {
+                await returnOsPartsStock(osToCancel);
+            } catch (e) {
+                // Falha silenciosa ou log de erro
             }
             await updateServiceOrder(osToCancel, {
                 status: 'Cancelada',
@@ -324,7 +389,7 @@ const ServiceOrderList: React.FC = () => {
 
     return (
         <>
-            <div className="flex flex-col h-full">
+            <div className={`flex flex-col ${viewMode === 'kanban' ? 'h-full' : 'min-h-full pb-10'}`}>
                 {/* Page Title */}
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 bg-primary rounded-2xl text-white shadow-lg shadow-primary/20">
@@ -341,64 +406,21 @@ const ServiceOrderList: React.FC = () => {
                     <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-gray-200 p-1">
                         <button
                             onClick={() => setViewMode('kanban')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'kanban' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:bg-gray-50'}`}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'kanban' ? 'bg-primary text-white shadow-sm' : 'text-secondary hover:bg-gray-50'}`}
                             title="Visualização Kanban"
                         >
                             <Columns size={18} />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-accent text-white shadow-sm' : 'text-secondary hover:bg-gray-50'}`}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-primary text-white shadow-sm' : 'text-secondary hover:bg-gray-50'}`}
                             title="Visualização em Lista"
                         >
                             <List size={18} />
                         </button>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        <div className="relative flex-1 sm:flex-initial">
-                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary/50" size={16} />
-                            <input
-                                type="text"
-                                placeholder="Buscar OS..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full sm:w-64 h-10 pl-9 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
-                            />
-                        </div>
-
-                        {/* Status filter - only in list mode */}
-                        {viewMode === 'list' && (
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer border-r-8 border-transparent"
-                            >
-                                <option value="Todos">Status</option>
-                                <option value="Orçamento">Orçamento</option>
-                                <option value="Análise">Análise</option>
-                                <option value="Aprovado">Aprovado</option>
-                                <option value="Em Reparo">Em Reparo</option>
-                                <option value="Aguardando Peça">Aguardando Peça</option>
-                                <option value="Pronto">Pronto</option>
-                                <option value="Entregue">Entregue</option>
-                                <option value="Cancelada">Cancelada</option>
-                            </select>
-                        )}
-
-                        {/* Warranty filter - only in list mode */}
-                        {viewMode === 'list' && (
-                            <select
-                                value={warrantyFilter}
-                                onChange={(e) => setWarrantyFilter(e.target.value as any)}
-                                className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer border-r-8 border-transparent"
-                            >
-                                <option value="all">Garantias (Todas)</option>
-                                <option value="active">Garantias Ativas</option>
-                                <option value="expiring_month">Expiram este Mês</option>
-                            </select>
-                        )}
-
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={() => navigate('/service-orders/new')}
                             className="bg-primary text-white h-10 px-4 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2 whitespace-nowrap"
@@ -416,10 +438,117 @@ const ServiceOrderList: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Date Filters Row */}
+                <div className="flex flex-wrap items-center gap-3 mb-6 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <div className="relative flex-1 sm:flex-initial">
+                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary/50" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Buscar OS..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full sm:w-64 h-10 pl-9 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
+                        />
+                    </div>
+
+                    {/* Status filter - only in list mode */}
+                    {viewMode === 'list' && (
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer border-r-8 border-transparent"
+                        >
+                            <option value="Todos">Status</option>
+                            <option value="Orçamento">Orçamento</option>
+                            <option value="Análise">Análise</option>
+                            <option value="Aprovado">Aprovado</option>
+                            <option value="Em Reparo">Em Reparo</option>
+                            <option value="Aguardando Peça">Aguardando Peça</option>
+                            <option value="Pronto">Pronto</option>
+                            <option value="Entregue">Entregue</option>
+                            <option value="Cancelada">Cancelada</option>
+                        </select>
+                    )}
+
+                    {/* Warranty filter - only in list mode */}
+                    {viewMode === 'list' && (
+                        <select
+                            value={warrantyFilter}
+                            onChange={(e) => setWarrantyFilter(e.target.value as any)}
+                            className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer border-r-8 border-transparent"
+                        >
+                            <option value="all">Garantias (Todas)</option>
+                            <option value="active">Garantias Ativas</option>
+                            <option value="expiring_month">Expiram este Mês</option>
+                        </select>
+                    )}
+
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
+                        <button
+                            onClick={() => handlePeriodChange('today')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${periodFilter === 'today' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-gray-50'}`}
+                        >
+                            Hoje
+                        </button>
+                        <button
+                            onClick={() => handlePeriodChange('yesterday')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${periodFilter === 'yesterday' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-gray-50'}`}
+                        >
+                            Ontem
+                        </button>
+                        <button
+                            onClick={() => handlePeriodChange('week')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${periodFilter === 'week' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-gray-50'}`}
+                        >
+                            Semana
+                        </button>
+                        <button
+                            onClick={() => handlePeriodChange('month')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${periodFilter === 'month' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-gray-50'}`}
+                        >
+                            Mês
+                        </button>
+                        <button
+                            onClick={() => handlePeriodChange('all')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${periodFilter === 'all' ? 'bg-primary text-white shadow-md' : 'text-secondary hover:bg-gray-50'}`}
+                        >
+                            Todos
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-white px-3 h-10 rounded-xl border border-gray-200 shadow-sm">
+                        <CalendarIcon size={14} className="text-secondary/50" />
+                        <div className="flex items-center gap-1">
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => { setStartDate(e.target.value); setPeriodFilter('custom'); }}
+                                className="text-xs font-black text-secondary bg-transparent outline-none cursor-pointer border-none"
+                            />
+                            <span className="text-gray-300 text-[10px] font-bold">ATÉ</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => { setEndDate(e.target.value); setPeriodFilter('custom'); }}
+                                className="text-xs font-black text-secondary bg-transparent outline-none cursor-pointer border-none"
+                            />
+                        </div>
+                    </div>
+
+                    {(startDate || endDate) && (
+                        <button
+                            onClick={() => handlePeriodChange('all')}
+                            className="text-[10px] font-black text-red-500 hover:text-red-600 uppercase tracking-tighter"
+                        >
+                            Limpar Filtros
+                        </button>
+                    )}
+                </div>
+
                 {/* Content Area */}
                 {viewMode === 'list' ? (
                     // LIST VIEW
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex-1">
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         {/* Desktop Table */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-sm text-left">

@@ -40,12 +40,6 @@ const KPI_CONFIG = [
     { key: 'Pronto', label: 'Prontas p/ Entrega', icon: CheckCircle2, color: 'text-purple-500', bg: 'bg-purple-500/10' },
 ];
 
-const AGENDA_ITEMS = [
-    { id: 1, time: '09:00', title: 'Entrega iPhone 13 Pro', customer: 'João Silva', type: 'delivery' },
-    { id: 2, time: '10:30', title: 'Análise MacBook Air M1', customer: 'Maria Oliveira', type: 'analysis' },
-    { id: 3, time: '14:00', title: 'Reparo Placa Samsung S22', customer: 'Carlos Edu', type: 'repair' },
-    { id: 4, time: '16:15', title: 'Orçamento iPad Air', customer: 'Ana Clara', type: 'budget' },
-];
 
 const ServiceOrderDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -181,12 +175,8 @@ const ServiceOrderDashboard: React.FC = () => {
             const expDate = new Date(expDateStr);
             if (expDate instanceof Date && !isNaN(expDate.getTime())) {
                 const day = expDate.getDay();
-                flow[day].despesas += (exp.amount || 0);
+                flow[day].despesas -= (exp.amount || 0); // Torna negativo para o gráfico descer
             }
-        });
-
-        flow.forEach(f => {
-            f.lucro = f.receita - f.despesas;
         });
 
         // Reorder to start from Monday for better visualization in Brazil
@@ -246,13 +236,12 @@ const ServiceOrderDashboard: React.FC = () => {
     const weeklyTotals = useMemo(() => {
         let receita = 0;
         let despesas = 0;
-        let lucro = 0;
         weeklyFlowData.forEach(d => {
             receita += d.receita;
             despesas += d.despesas;
-            lucro += d.lucro;
         });
-        return { receita, despesas, lucro };
+        // despesas já é negativo (acumulado com -=), então somar é equivalente a subtrair
+        return { receita, despesas, lucro: receita + despesas };
     }, [weeklyFlowData]);
 
     return (
@@ -428,21 +417,26 @@ const ServiceOrderDashboard: React.FC = () => {
                             <h3 className="font-black text-2xl text-primary">Fluxo Semanal</h3>
                             <p className="text-base font-medium text-secondary mt-1">Balanço Financeiro (Receita vs Despesas)</p>
                             <div className="flex gap-4 mt-3">
-                                <div className="bg-blue-100 px-4 py-1.5 rounded-xl border border-blue-200">
-                                    <span className="text-sm text-blue-600 font-black">{formatCurrency(weeklyTotals.receita)} Receita</span>
-                                </div>
-                                <div className="bg-red-100 px-4 py-1.5 rounded-xl border border-red-200">
-                                    <span className="text-sm text-red-600 font-black">{formatCurrency(weeklyTotals.despesas)} Despesas</span>
-                                </div>
-                                <div className="bg-emerald-100 px-4 py-1.5 rounded-xl border border-emerald-200">
-                                    <span className="text-sm text-emerald-600 font-black">{formatCurrency(weeklyTotals.lucro)} Lucro</span>
+                                <div className={weeklyTotals.lucro >= 0 ? "bg-emerald-100 px-4 py-1.5 rounded-xl border border-emerald-200" : "bg-red-100 px-4 py-1.5 rounded-xl border border-red-200"}>
+                                    <span className={`text-sm ${weeklyTotals.lucro >= 0 ? "text-emerald-600" : "text-red-600"} font-black`}>
+                                        {formatCurrency(weeklyTotals.lucro)} {weeklyTotals.lucro >= 0 ? "Lucro" : "Prejuízo"}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                         <div className="flex flex-col gap-3 text-sm font-black text-gray-600">
-                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-blue-500 rounded-full"></span> Receita</span>
-                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-red-400 rounded-full"></span> Despesas</span>
-                            <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span> Lucro</span>
+                            <span className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 bg-blue-500 rounded-full"></span>
+                                Receita: {formatCurrency(weeklyTotals.receita)}
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 bg-red-400 rounded-full"></span>
+                                Despesas: {formatCurrency(weeklyTotals.despesas)}
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span>
+                                Lucro (R - D): {formatCurrency(weeklyTotals.lucro)}
+                            </span>
                         </div>
                     </div>
 
@@ -457,9 +451,8 @@ const ServiceOrderDashboard: React.FC = () => {
                                     formatter={(value: number) => formatCurrency(value)}
                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '12px 16px', fontWeight: 'bold' }}
                                 />
-                                <Bar dataKey="receita" name="Receita" fill="#3B82F6" radius={[8, 8, 8, 8]} barSize={16} />
-                                <Bar dataKey="despesas" name="Despesas" fill="#F87171" radius={[8, 8, 8, 8]} barSize={16} />
-                                <Bar dataKey="lucro" name="Lucro" fill="#34D399" radius={[8, 8, 8, 8]} barSize={16} />
+                                <Bar dataKey="receita" name="Receita" fill="#3B82F6" radius={[4, 4, 4, 4]} barSize={12} />
+                                <Bar dataKey="despesas" name="Despesas" fill="#F87171" radius={[4, 4, 4, 4]} barSize={12} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -478,24 +471,17 @@ const ServiceOrderDashboard: React.FC = () => {
                         <button className="text-accent text-sm font-black hover:opacity-80 transition-opacity bg-accent/10 hover:bg-accent/20 px-4 py-2 rounded-xl">Ver tudo</button>
                     </div>
 
-                    <div className="flex-1 space-y-6 overflow-y-auto max-h-[440px] custom-scrollbar pr-2 mb-2 scale-[1.02] origin-top-left">
-                        {AGENDA_ITEMS.map((item) => (
-                            <div key={item.id} className="flex items-center gap-5 group/item hover:bg-gray-50 p-2 -m-2 rounded-2xl transition-all">
-                                <div className="w-[60px] h-[60px] bg-white rounded-full flex flex-col items-center justify-center shrink-0 border-2 border-gray-100 transition-all group-hover/item:scale-105 group-hover/item:shadow-sm">
-                                    <span className="text-[17px] font-black text-gray-700 leading-none">{item.time.split(':')[0]}</span>
-                                    <span className="text-[13px] font-black text-gray-400 mt-0.5">:{item.time.split(':')[1]}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-black text-[18px] text-gray-900 truncate group-hover/item:text-accent transition-colors">{item.title}</h4>
-                                    <p className="text-[14px] text-gray-500 font-medium truncate mt-1">{item.customer}</p>
-                                </div>
-                                <div className={`w-3 h-3 rounded-full shrink-0 shadow-sm
-                                    ${item.type === 'delivery' ? 'bg-[#21CD92]' :
-                                        item.type === 'analysis' ? 'bg-[#FCAF3B]' :
-                                            item.type === 'repair' ? 'bg-[#3B82F6]' : 'bg-[#9853F0]'}
-                                `} />
-                            </div>
-                        ))}
+                    <div className="flex-1 flex flex-col items-center justify-center py-10 gap-4 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                            <Calendar size={28} className="text-gray-400" />
+                        </div>
+                        <div>
+                            <p className="text-base font-black text-gray-500">Nenhum compromisso hoje</p>
+                            <p className="text-sm text-gray-400 font-medium mt-1">As OS prontas para entrega aparecerão aqui</p>
+                        </div>
+                        <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-xl">
+                            {orders.filter(os => os.status === 'Pronto').length} OS pronta{orders.filter(os => os.status === 'Pronto').length !== 1 ? 's' : ''} para entrega
+                        </span>
                     </div>
                 </div>
             </div>
@@ -680,33 +666,17 @@ const ServiceOrderDashboard: React.FC = () => {
                             <h3 className="font-black text-[24px]">Garantias Ativas</h3>
                             <p className="text-secondary text-sm font-bold mt-1">Aparelhos em período de cobertura</p>
                         </div>
-                        <div className="bg-primary/5 text-primary px-4 py-2 rounded-xl text-sm font-black border border-primary/10">
-                            Total: 24
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center justify-center py-8 gap-4 text-center relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                            <CheckCircle2 size={28} className="text-gray-400" />
+                        </div>
+                        <div>
+                            <p className="text-base font-black text-gray-500">Nenhuma garantia ativa</p>
+                            <p className="text-sm text-gray-400 font-medium mt-1">Garantias de OS concluídas aparecerão aqui</p>
                         </div>
                     </div>
-
-                    <div className="space-y-4 relative z-10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/80 border border-gray-100/50 hover:shadow-md transition-all cursor-pointer group">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 group-hover:scale-105 transition-transform">
-                                        <CheckCircle2 size={24} strokeWidth={2.5} />
-                                    </div>
-                                    <div>
-                                        <p className="font-black text-[15px] text-primary">iPhone 11 - Troca de Tela</p>
-                                        <p className="text-[13px] text-secondary font-medium mt-0.5">Cliente: Marcos Paulo <span className="mx-1 text-gray-300">•</span> Expira em <span className="font-bold text-orange-500">15 dias</span></p>
-                                    </div>
-                                </div>
-                                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                                    <ArrowRight size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <button className="mt-6 text-sm text-center w-full text-secondary hover:text-primary transition-colors relative z-10 font-black bg-white/50 hover:bg-white/80 py-4 rounded-2xl border border-white/60">
-                        Ver todas as garantias
-                    </button>
                 </div>
             </div>
         </div>

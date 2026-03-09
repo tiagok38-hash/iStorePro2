@@ -501,8 +501,8 @@ export const cancelOsPurchaseOrder = async (
     const { error: updateError } = await supabase
         .from('os_purchase_orders')
         .update({
-            status: 'Cancelado',
-            stock_status: 'Cancelado',
+            status: 'Cancelada',
+            stock_status: 'Cancelada',
             cancellation_reason: reason,
             updated_at: getNowISO(),
         })

@@ -52,37 +52,23 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const typingTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
     const broadcastChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-    // Init: recupera o último timestamp de abertura do chat
-    useEffect(() => {
-        lastOpenedRef.current = sessionStorage.getItem('chat_last_opened') || null;
-    }, []);
-
-    const setCurrentUserId = useCallback((id: string | null) => {
-        currentUserIdRef.current = id;
-    }, []);
-
-    const openChat = useCallback(() => {
-        setIsChatOpen(true);
+    // Salva o timestamp no localStorage de forma persistente e por usuário
+    const saveLastOpened = useCallback((userId: string | null) => {
+        if (!userId) return;
         const now = new Date().toISOString();
         lastOpenedRef.current = now;
+        localStorage.setItem(`chat_last_read_at_${userId}`, now);
+        // Mantém sessionStorage por compatibilidade temporária com outros componentes
         sessionStorage.setItem('chat_last_opened', now);
-        setUnreadCount(0);
     }, []);
 
-    const closeChat = useCallback(() => {
-        setIsChatOpen(false);
-    }, []);
-
-    const toggleChat = useCallback(() => {
-        setIsChatOpen(prev => {
-            if (!prev) {
-                const now = new Date().toISOString();
-                lastOpenedRef.current = now;
-                sessionStorage.setItem('chat_last_opened', now);
-                setUnreadCount(0);
-            }
-            return !prev;
-        });
+    // Init: recupera o último timestamp de abertura do chat (fallback para sessionStorage)
+    useEffect(() => {
+        if (currentUserIdRef.current) {
+            const saved = localStorage.getItem(`chat_last_read_at_${currentUserIdRef.current}`) ||
+                sessionStorage.getItem('chat_last_opened');
+            lastOpenedRef.current = saved;
+        }
     }, []);
 
     // Recalcula unreadCount sempre que chegam novas mensagens
@@ -100,6 +86,39 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }).length;
         setUnreadCount(count);
     }, [isChatOpen]);
+
+    const setCurrentUserId = useCallback((id: string | null) => {
+        currentUserIdRef.current = id;
+        if (id) {
+            const saved = localStorage.getItem(`chat_last_read_at_${id}`) ||
+                sessionStorage.getItem('chat_last_opened');
+            lastOpenedRef.current = saved;
+        } else {
+            lastOpenedRef.current = null;
+        }
+        // Recalcula imediatamente com o novo ID do usuário
+        recalcUnread(messages);
+    }, [recalcUnread, messages]);
+
+    const openChat = useCallback(() => {
+        setIsChatOpen(true);
+        saveLastOpened(currentUserIdRef.current);
+        setUnreadCount(0);
+    }, [saveLastOpened]);
+
+    const closeChat = useCallback(() => {
+        setIsChatOpen(false);
+    }, []);
+
+    const toggleChat = useCallback(() => {
+        setIsChatOpen(prev => {
+            if (!prev) {
+                saveLastOpened(currentUserIdRef.current);
+                setUnreadCount(0);
+            }
+            return !prev;
+        });
+    }, [saveLastOpened]);
 
     // Fetch paginado
     const fetchMessages = useCallback(async (before?: string): Promise<ChatMessage[]> => {
@@ -146,10 +165,19 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return () => { mounted = false; };
     }, [fetchMessages]);
 
-    // Recalcula quando o chat abre/fecha
+    // Recalcula quando o chat abre/fecha ou quando chegarem novas mensagens
     useEffect(() => {
         recalcUnread(messages);
-    }, [isChatOpen, recalcUnread, messages]);
+
+        // Se o chat estiver aberto e chegarem mensagens novas, atualizamos o timestamp de leitura
+        if (isChatOpen && messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            // Se a última mensagem for posterior ao que temos salvo, atualizamos
+            if (!lastOpenedRef.current || lastMsg.created_at > lastOpenedRef.current) {
+                saveLastOpened(currentUserIdRef.current);
+            }
+        }
+    }, [isChatOpen, recalcUnread, messages, saveLastOpened]);
 
     // Setup de Broadcast (Typing Indicator)
     useEffect(() => {

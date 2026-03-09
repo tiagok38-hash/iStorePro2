@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, Plus, EyeIcon, TrashIcon, Search, Filter, ChartBar } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, Plus, EyeIcon, TrashIcon, Search, Filter, ChartBar, AlertTriangle } from 'lucide-react';
 import { getServiceOrders } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
 
@@ -28,6 +28,8 @@ const ServiceOrderFinancial: React.FC = () => {
     const [filterStatus, setFilterStatus] = useState('');
     const [filterStartDate, setFilterStartDate] = useState('');
     const [filterEndDate, setFilterEndDate] = useState('');
+
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -65,8 +67,13 @@ const ServiceOrderFinancial: React.FC = () => {
     };
 
     const handleDeleteExpense = (id: string) => {
-        if (confirm('Tem certeza que deseja excluir esta despesa?')) {
-            setExpenses(expenses.filter(e => e.id !== id));
+        setDeleteConfirmId(id);
+    };
+
+    const confirmDelete = () => {
+        if (deleteConfirmId) {
+            setExpenses(expenses.filter(e => e.id !== deleteConfirmId));
+            setDeleteConfirmId(null);
         }
     };
 
@@ -296,6 +303,36 @@ const ServiceOrderFinancial: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Confirmação de Exclusão */}
+            {deleteConfirmId && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm animate-slide-up overflow-hidden">
+                        <div className="p-8 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-5">
+                                <AlertTriangle className="text-red-500" size={32} strokeWidth={2} />
+                            </div>
+                            <h2 className="text-xl font-black text-gray-900 mb-2">Excluir Despesa?</h2>
+                            <p className="text-sm text-gray-500 font-medium">Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.</p>
+                        </div>
+                        <div className="px-6 pb-6 flex gap-3">
+                            <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="flex-1 h-12 rounded-2xl border-2 border-gray-200 text-sm font-black text-gray-600 hover:bg-gray-50 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 h-12 rounded-2xl bg-red-500 text-white text-sm font-black shadow-lg shadow-red-200 transition-all hover:bg-red-600 flex items-center justify-center gap-2"
+                            >
+                                <TrashIcon size={16} />
+                                Excluir
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

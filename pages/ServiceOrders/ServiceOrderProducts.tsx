@@ -11,6 +11,7 @@ import { Service, Supplier, WarrantyParameter, Brand, Category, ProductModel, Gr
 import {
     SearchIcon, PlusIcon, EditIcon, TrashIcon, WrenchIcon, PackageIcon, ClockIcon, EyeIcon, XCircleIcon
 } from '../../components/icons';
+import { AlertTriangle } from 'lucide-react';
 import { SuccessIcon } from '../../components/icons';
 import Button from '../../components/Button';
 import GlobalLoading from '../../components/GlobalLoading';
@@ -260,6 +261,14 @@ const ServiceOrderProducts: React.FC = () => {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [purchaseToView, setPurchaseToView] = useState<OsPurchaseOrder | null>(null);
 
+    // Confirm delete modal state
+    const [confirmModal, setConfirmModal] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({ open: false, title: '', message: '', onConfirm: () => { } });
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -361,14 +370,21 @@ const ServiceOrderProducts: React.FC = () => {
     };
 
     const handleDeleteService = async (id: string) => {
-        if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
-        try {
-            await deleteService(id);
-            showToast('Serviço excluído.', 'success');
-            fetchData();
-        } catch (error) {
-            showToast('Erro ao excluir serviço.', 'error');
-        }
+        setConfirmModal({
+            open: true,
+            title: 'Excluir Serviço?',
+            message: 'Tem certeza que deseja excluir este serviço? Esta ação não pode ser desfeita.',
+            onConfirm: async () => {
+                setConfirmModal(m => ({ ...m, open: false }));
+                try {
+                    await deleteService(id);
+                    showToast('Serviço excluído.', 'success');
+                    fetchData();
+                } catch (error) {
+                    showToast('Erro ao excluir serviço.', 'error');
+                }
+            }
+        });
     };
 
     // OS Part Handlers
@@ -393,14 +409,21 @@ const ServiceOrderProducts: React.FC = () => {
     };
 
     const handleDeletePart = async (id: string) => {
-        if (!confirm('Tem certeza? A peça será desativada (não aparecerá mais no estoque OS).')) return;
-        try {
-            await deleteOsPart(id);
-            showToast('Peça removida do estoque OS.', 'success');
-            fetchData();
-        } catch (error) {
-            showToast('Erro ao remover peça.', 'error');
-        }
+        setConfirmModal({
+            open: true,
+            title: 'Excluir Peça?',
+            message: 'A peça será excluída e não aparecerá mais no estoque OS.',
+            onConfirm: async () => {
+                setConfirmModal(m => ({ ...m, open: false }));
+                try {
+                    await deleteOsPart(id);
+                    showToast('Peça removida do estoque OS.', 'success');
+                    fetchData();
+                } catch (error) {
+                    showToast('Erro ao remover peça.', 'error');
+                }
+            }
+        });
     };
 
     const handleSaveNewSupplier = async (data: any) => {
@@ -689,20 +712,21 @@ const ServiceOrderProducts: React.FC = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {purchaseHistory.map(p => {
                                         const dateLabel = formatDateBR(p.createdAt);
-                                        const hasPendingFinancial = p.financialStatus === 'Pendente';
+                                        const isCancelled = p.status === 'Cancelada';
+                                        const canMarkAsPaid = !isCancelled && (p.financialStatus === 'Pendente' || p.financialStatus === 'A Prazo');
                                         return (
-                                            <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="p-4 font-medium text-sm text-gray-900 whitespace-nowrap">
+                                            <tr key={p.id} className={`transition-colors ${isCancelled ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50/50'}`}>
+                                                <td className={`p-4 font-medium text-sm whitespace-nowrap ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>
                                                     {dateLabel}<br /><span className="text-xs text-gray-400 font-normal">por {p.createdByName}</span>
                                                 </td>
-                                                <td className="p-4 text-sm font-semibold text-gray-600">#{p.displayId}</td>
-                                                <td className="p-4 text-sm text-gray-800">{p.supplierName}</td>
-                                                <td className="p-4 text-sm text-gray-600 text-center font-medium">
+                                                <td className={`p-4 text-sm font-semibold ${isCancelled ? 'text-gray-400' : 'text-gray-600'}`}>#{p.displayId}</td>
+                                                <td className={`p-4 text-sm ${isCancelled ? 'text-gray-400' : 'text-gray-800'}`}>{p.supplierName}</td>
+                                                <td className={`p-4 text-sm text-center font-medium ${isCancelled ? 'text-gray-400' : 'text-gray-600'}`}>
                                                     {p.items.reduce((acc: number, i: any) => acc + i.quantity, 0)} un.
                                                 </td>
-                                                <td className="p-4 text-sm font-bold text-gray-900 text-right">{formatCurrency(p.total)}</td>
+                                                <td className={`p-4 text-sm font-bold text-right ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>{formatCurrency(p.total)}</td>
                                                 <td className="p-4 text-center">
-                                                    <span className={`px-2 py-1 text-xs font-bold rounded-xl ${p.financialStatus === 'Pago' ? 'bg-green-100 text-green-700' :
+                                                    <span className={`px-2 py-1 text-xs font-bold rounded-xl ${isCancelled ? 'bg-gray-100 text-gray-400' : p.financialStatus === 'Pago' ? 'bg-green-100 text-green-700' :
                                                         p.financialStatus === 'A Prazo' ? 'bg-blue-100 text-blue-700' :
                                                             'bg-orange-100 text-orange-700'
                                                         }`}>
@@ -710,8 +734,8 @@ const ServiceOrderProducts: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-center">
-                                                    <span className={`px-2 py-1 text-xs font-bold rounded-xl ${p.status === 'Cancelado' ? 'bg-red-100 text-red-700' :
-                                                        p.status === 'Finalizada' ? 'bg-gray-200 text-gray-700' :
+                                                    <span className={`px-2 py-1 text-xs font-bold rounded-xl ${isCancelled ? 'bg-red-100 text-red-500' :
+                                                        p.status === 'Finalizada' ? 'bg-green-100 text-green-700' :
                                                             'bg-blue-100 text-blue-700'
                                                         }`}>
                                                         {p.status}
@@ -719,27 +743,30 @@ const ServiceOrderProducts: React.FC = () => {
                                                 </td>
                                                 <td className="p-4 text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        {p.status !== 'Cancelado' && hasPendingFinancial && (
-                                                            <button onClick={() => handleMarkAsPaid(p)} title="Marcar como Pago"
-                                                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded">
-                                                                <SuccessIcon className="h-5 w-5" />
+                                                        {canMarkAsPaid && (
+                                                            <button
+                                                                onClick={() => handleMarkAsPaid(p)}
+                                                                title="Marcar como Pago"
+                                                                className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 rounded-lg transition-colors border border-green-200"
+                                                            >
+                                                                <SuccessIcon className="h-4 w-4" />
                                                             </button>
                                                         )}
-                                                        {p.status !== 'Cancelado' && (
+                                                        {!isCancelled && (
                                                             <button onClick={() => setPurchaseToView(p)}
                                                                 title="Visualizar"
                                                                 className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded">
                                                                 <EyeIcon className="h-5 w-5" />
                                                             </button>
                                                         )}
-                                                        {p.status !== 'Cancelado' && (
+                                                        {!isCancelled && (
                                                             <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); setPartsSubTab('estoque'); }}
                                                                 title="Editar"
                                                                 className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
                                                                 <EditIcon className="h-5 w-5" />
                                                             </button>
                                                         )}
-                                                        {p.status !== 'Cancelado' && (
+                                                        {!isCancelled && (
                                                             <button onClick={() => { setPurchaseToCancel(p); setIsCancelModalOpen(true); }}
                                                                 title="Cancelar Compra"
                                                                 className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
@@ -926,6 +953,35 @@ const ServiceOrderProducts: React.FC = () => {
                     />
                 )
             }
+            {/* Modal de Confirmação Customizado */}
+            {confirmModal.open && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
+                        <div className="p-8 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-5">
+                                <AlertTriangle className="text-red-500" size={32} strokeWidth={2} />
+                            </div>
+                            <h2 className="text-xl font-black text-gray-900 mb-2">{confirmModal.title}</h2>
+                            <p className="text-sm text-gray-500 font-medium">{confirmModal.message}</p>
+                        </div>
+                        <div className="px-6 pb-6 flex gap-3">
+                            <button
+                                onClick={() => setConfirmModal(m => ({ ...m, open: false }))}
+                                className="flex-1 h-12 rounded-2xl border-2 border-gray-200 text-sm font-black text-gray-600 hover:bg-gray-50 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmModal.onConfirm}
+                                className="flex-1 h-12 rounded-2xl bg-red-500 text-white text-sm font-black shadow-lg shadow-red-200 transition-all hover:bg-red-600 flex items-center justify-center gap-2"
+                            >
+                                <TrashIcon className="h-4 w-4" />
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

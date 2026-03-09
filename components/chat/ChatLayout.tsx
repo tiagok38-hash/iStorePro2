@@ -171,7 +171,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
 
             // Se chat fechado e mensagem não é nossa
             if (newMsg && !isOpen && newMsg.sender_id !== user?.id) {
-                const lastOpened = sessionStorage.getItem('chat_last_opened') || null;
+                const storageKey = `chat_last_read_at_${user?.id}`;
+                const lastOpened = localStorage.getItem(storageKey) || sessionStorage.getItem('chat_last_opened') || null;
                 const msgTime = new Date(newMsg.created_at).getTime();
                 const now = new Date().getTime();
                 const isVeryRecent = (now - msgTime) < 30000; // 30 seg

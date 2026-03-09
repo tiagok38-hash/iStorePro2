@@ -126,19 +126,27 @@ export const formatRelativeDate = (date: string | Date): string => {
 };
 
 /**
- * Converte uma data para o início do dia (00:00:00) no fuso de Brasília
+ * Converte uma data para o início do dia (00:00:00) no fuso local
  */
 export const startOfDay = (date: Date | string): Date => {
-    const d = typeof date === 'string' ? new Date(date) : new Date(date);
+    if (typeof date === 'string' && date.includes('-') && date.length === 10) {
+        const [y, m, d] = date.split('-').map(Number);
+        return new Date(y, m - 1, d, 0, 0, 0, 0);
+    }
+    const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     return d;
 };
 
 /**
- * Converte uma data para o final do dia (23:59:59) no fuso de Brasília
+ * Converte uma data para o final do dia (23:59:59) no fuso local
  */
 export const endOfDay = (date: Date | string): Date => {
-    const d = typeof date === 'string' ? new Date(date) : new Date(date);
+    if (typeof date === 'string' && date.includes('-') && date.length === 10) {
+        const [y, m, d] = date.split('-').map(Number);
+        return new Date(y, m - 1, d, 23, 59, 59, 999);
+    }
+    const d = new Date(date);
     d.setHours(23, 59, 59, 999);
     return d;
 };
