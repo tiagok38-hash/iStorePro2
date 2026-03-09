@@ -74,22 +74,27 @@ const PublicOSTracking: React.FC = () => {
     const brandColor = company?.brand_color || '#6B21A8';
 
     if (error && (!os || os.status === 'Entregue')) {
+        const isExpired = os?.status === 'Entregue';
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
                 {company?.logoUrl && <img src={company.logoUrl} alt={company.name} className="h-16 mb-6 object-contain" />}
                 <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-gray-100">
-                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <AlertCircle size={32} />
+                    <div className={`w-16 h-16 ${isExpired ? 'bg-amber-50 text-amber-500' : 'bg-red-50 text-red-500'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                        {isExpired ? <ShieldCheck size={32} /> : <AlertCircle size={32} />}
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Acesso Expirado</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">
+                        {isExpired ? "Acompanhamento Finalizado" : "Erro ao Localizar OS"}
+                    </h2>
                     <p className="text-gray-500 mb-6">{error}</p>
-                    <a
-                        href={getWhatsAppLink(company?.whatsapp)}
-                        className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:scale-[1.02] transition-transform"
-                    >
-                        <MessageCircle size={20} />
-                        Falar com a Loja
-                    </a>
+                    {company?.whatsapp && (
+                        <a
+                            href={getWhatsAppLink(company.whatsapp)}
+                            className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:scale-[1.02] transition-transform"
+                        >
+                            <MessageCircle size={20} />
+                            Falar com a Loja
+                        </a>
+                    )}
                 </div>
             </div>
         );

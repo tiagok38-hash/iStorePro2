@@ -191,10 +191,23 @@ export const getPublicServiceOrderTracking = async (id: string): Promise<{ os: S
     return fetchWithRetry(async () => {
         const { data, error } = await supabase.rpc('get_public_os_tracking', { p_os_id: id });
 
-        if (error || !data || data.error) return { os: null, company: null, receiptTerm: null };
+        if (error) {
+            console.error('RPC Error fetching public OS:', error);
+            return { os: null, company: null, receiptTerm: null };
+        }
+
+        if (!data || data.error) {
+            console.warn('RPC returned business error or empty data:', data?.error || 'No data');
+            return { os: null, company: null, receiptTerm: null };
+        }
 
         const osData = data.os;
         const companyData = data.company;
+
+        if (!osData) {
+            console.warn('OS data missing from RPC result');
+            return { os: null, company: null, receiptTerm: null };
+        }
 
         const mappedOs = {
             ...osData,
@@ -223,7 +236,7 @@ export const getPublicServiceOrderTracking = async (id: string): Promise<{ os: S
             displayId: osData.display_id,
         };
 
-        const mappedCompany = {
+        const mappedCompany = companyData ? {
             id: companyData.id,
             name: companyData.name,
             razaoSocial: companyData.razao_social,
@@ -243,7 +256,7 @@ export const getPublicServiceOrderTracking = async (id: string): Promise<{ os: S
             isCatalogOnline: companyData.is_catalog_online ?? true,
             catalogOfflineMessage: companyData.catalog_offline_message,
             catalogOfflineImageUrl: companyData.catalog_offline_image_url,
-        };
+        } : null;
 
         const termData = data.receiptTerm;
         const mappedTerm = termData ? {
