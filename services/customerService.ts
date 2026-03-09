@@ -294,7 +294,7 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     if (data.phone !== undefined) payload.phone = data.phone;
 
     if (data.email !== undefined) payload.email = data.email || null;
-    if (data.avatarUrl !== undefined) payload.avatarUrl = data.avatarUrl || null;
+    if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl || null;
     if (data.cpf !== undefined) payload.cpf = data.cpf || null;
     if (data.rg !== undefined) payload.rg = data.rg || null;
     if (data.birthDate !== undefined) payload.birth_date = ensureISODate(data.birthDate) || null;
