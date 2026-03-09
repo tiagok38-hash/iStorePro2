@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     CheckCircle2,
-    MessageCircle,
     Smartphone,
     Clock,
     Hash,
@@ -10,8 +9,11 @@ import {
     Wrench,
     Search,
     ShieldCheck,
-    Package
+    Package,
+    User,
+    Phone
 } from 'lucide-react';
+import { WhatsAppIcon } from '../../components/icons';
 import { getWhatsAppLink } from '../../utils/whatsappUtils.ts';
 import { getPublicServiceOrderTracking, formatCurrency } from '../../services/mockApi.ts';
 import { ServiceOrder, CompanyInfo, ReceiptTermParameter } from '../../types.ts';
@@ -91,7 +93,7 @@ const PublicOSTracking: React.FC = () => {
                             href={getWhatsAppLink(company.whatsapp)}
                             className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:scale-[1.02] transition-transform"
                         >
-                            <MessageCircle size={20} />
+                            <WhatsAppIcon size={20} className="fill-white" />
                             Falar com a Loja
                         </a>
                     )}
@@ -181,11 +183,39 @@ const PublicOSTracking: React.FC = () => {
                             <p className="text-xs text-gray-400 mt-1">S/N: {os?.serialNumber || os?.imei || '-'}</p>
                         </div>
                     </div>
+
+                    <div className="mt-6 pt-6 border-t border-gray-50 grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500">
+                                <User size={16} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cliente</p>
+                                <p className="text-sm font-bold text-gray-900 truncate">{os?.customerName}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500">
+                                <Phone size={16} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Telefone</p>
+                                <p className="text-sm font-bold text-gray-900 truncate">{os?.phone || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 leading-relaxed">
                     <h3 className="font-bold text-gray-400 text-[11px] uppercase tracking-widest mb-3">Defeito Relatado</h3>
                     <p className="text-sm text-gray-700 italic">"{os?.defectDescription}"</p>
+
+                    {os?.attendantObservations && (
+                        <div className="mt-4 pt-4 border-t border-gray-50">
+                            <h3 className="font-bold text-gray-400 text-[11px] uppercase tracking-widest mb-3">Observações do Atendimento</h3>
+                            <p className="text-sm text-gray-600">{os.attendantObservations}</p>
+                        </div>
+                    )}
                 </section>
 
                 {receiptTerm && (
@@ -240,7 +270,7 @@ const PublicOSTracking: React.FC = () => {
                 </section>
             </main>
 
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-[100]">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[60%] max-w-[400px] z-[100]">
                 <a
                     href={getWhatsAppLink(company?.whatsapp)}
                     target="_blank"
@@ -248,7 +278,7 @@ const PublicOSTracking: React.FC = () => {
                     className="flex items-center justify-center gap-3 w-full h-14 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-200 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider overflow-hidden group"
                 >
                     <div className="h-full px-4 flex items-center bg-emerald-600/30">
-                        <MessageCircle size={24} />
+                        <WhatsAppIcon size={28} className="text-white fill-white" />
                     </div>
                     <span className="flex-1 pr-4 text-center">Falar com Suporte</span>
                 </a>
