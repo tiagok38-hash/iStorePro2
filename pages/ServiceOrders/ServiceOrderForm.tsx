@@ -354,6 +354,15 @@ const ServiceOrderForm: React.FC = () => {
         if (canGoPrev) setActiveTab(TAB_ORDER[currentTabIndex - 1]);
     };
 
+    // --- WhatsApp Action ---
+    const handleWhatsAppNotification = () => {
+        const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
+        const firstName = selectedCustomer?.name?.split(' ')[0] || 'Cliente';
+        const storeName = companyInfo?.name || 'loja';
+        const msg = `Olá, ${firstName}, Somos da assistencia da ${storeName}. O status da sua Ordem de Serviço *OS-${displayId}* foi atualizado!\n\nStatus Atual: *${osStatus}*\nAparelho: ${deviceModel}\n\nAcompanhe seu reparo em tempo real aqui: ${trackingUrl}`;
+        openWhatsApp(selectedCustomer?.phone || osPhone, msg);
+    };
+
     // --- Search Logic ---
     const filteredCustomers = (customers || []).filter(c =>
         (c.name && c.name.toLowerCase().includes(customerSearch.toLowerCase())) ||
@@ -763,14 +772,7 @@ const ServiceOrderForm: React.FC = () => {
                             <div className="mt-3">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
-                                        const firstName = selectedCustomer?.name?.split(' ')[0] || 'Cliente';
-                                        const storeName = companyInfo?.name || 'loja';
-                                        const msg = `Olá, ${firstName}, Somos da assistencia da ${storeName}. O status da sua Ordem de Serviço *OS-${displayId}* foi atualizado!\n\nStatus Atual: *${osStatus}*\nAparelho: ${deviceModel}\n\nAcompanhe seu reparo em tempo real aqui: ${trackingUrl}`;
-
-                                        openWhatsApp(selectedCustomer?.phone || osPhone, msg);
-                                    }}
+                                    onClick={() => handleWhatsAppNotification()}
                                     className="flex items-center gap-1.5 px-3 py-2 w-full rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all shadow-md shadow-green-500/20"
                                 >
                                     <WhatsAppIcon size={14} className="fill-white" />
@@ -790,13 +792,7 @@ const ServiceOrderForm: React.FC = () => {
                             {isEditing && (
                                 <>
                                     <button
-                                        onClick={() => {
-                                            const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
-                                            const firstName = selectedCustomer?.name?.split(' ')[0] || 'Cliente';
-                                            const storeName = companyInfo?.name || 'loja';
-                                            const msg = `Olá, ${firstName}, Somos da assistencia da ${storeName}. O status da sua Ordem de Serviço *OS-${displayId}* foi atualizado!\n\nStatus Atual: *${osStatus}*\nAparelho: ${deviceModel}\n\nAcompanhe seu reparo em tempo real aqui: ${trackingUrl}`;
-                                            openWhatsApp(selectedCustomer?.phone || osPhone, msg);
-                                        }}
+                                        onClick={() => handleWhatsAppNotification()}
                                         title="Enviar WhatsApp"
                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all"
                                     >
