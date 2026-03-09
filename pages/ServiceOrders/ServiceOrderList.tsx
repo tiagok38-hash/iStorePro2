@@ -40,7 +40,7 @@ type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardan
 const STATUS_COLUMNS: OSStatus[] = ['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'];
 
 const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: string, dot: string, gradient: string, dropBg: string }> = {
-    'Orçamento': { color: 'text-red-700', bg: 'bg-red-100/80', border: 'border-red-200', dot: 'bg-red-500', gradient: 'from-red-100 to-red-50', dropBg: 'bg-red-50' },
+    'Orçamento': { color: 'text-indigo-700', bg: 'bg-indigo-100/80', border: 'border-indigo-200', dot: 'bg-indigo-500', gradient: 'from-indigo-100 to-indigo-50', dropBg: 'bg-indigo-50' },
     'Análise': { color: 'text-orange-700', bg: 'bg-orange-100/80', border: 'border-orange-200', dot: 'bg-orange-500', gradient: 'from-orange-100 to-orange-50', dropBg: 'bg-orange-50' },
     'Aprovado': { color: 'text-cyan-700', bg: 'bg-cyan-100/80', border: 'border-cyan-200', dot: 'bg-cyan-500', gradient: 'from-cyan-100 to-cyan-50', dropBg: 'bg-cyan-50' },
     'Em Reparo': { color: 'text-blue-700', bg: 'bg-blue-100/80', border: 'border-blue-200', dot: 'bg-blue-500', gradient: 'from-blue-100 to-blue-50', dropBg: 'bg-blue-50' },
@@ -87,7 +87,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
             ${os.status === 'Cancelada'
                 ? 'bg-red-50/80 border-red-200 hover:border-red-300'
                 : os.isOrcamentoOnly
-                    ? 'bg-amber-100/60 border-amber-200/80 hover:border-amber-400/50 hover:bg-amber-100/80 transition-all'
+                    ? 'bg-indigo-100/60 border-indigo-200/80 hover:border-indigo-400/50 hover:bg-indigo-100/80 transition-all'
                     : 'bg-white border-gray-100 hover:border-accent/40'}
             `}
     >
@@ -127,8 +127,8 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
         </p>
 
         {os.isOrcamentoOnly && os.status !== 'Cancelada' && (
-            <div className="mb-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-black text-amber-600 bg-amber-50/50 border border-amber-200/60 shadow-sm">
-                <div className="w-6 h-3.5 bg-amber-500 rounded-full relative flex-shrink-0 shadow-inner">
+            <div className="mb-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-black text-indigo-600 bg-indigo-50/50 border border-indigo-200/60 shadow-sm">
+                <div className="w-6 h-3.5 bg-indigo-500 rounded-full relative flex-shrink-0 shadow-inner">
                     <div className="absolute right-0.5 top-[2px] w-2.5 h-2.5 bg-white rounded-full shadow-sm"></div>
                 </div>
                 Orçamento
@@ -581,7 +581,7 @@ const ServiceOrderList: React.FC = () => {
                                             const profit = calculateOSProfit(os);
 
                                             return (
-                                                <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60' : 'hover:bg-gray-50/50'}`}>
+                                                <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-indigo-100/40 hover:bg-indigo-100/60' : 'hover:bg-gray-50/50'}`}>
                                                     <td className="px-4 py-3 font-medium text-primary">
                                                         <div className="flex items-center gap-1">
                                                             {os.isQuick && <Zap size={11} className="text-amber-500 fill-amber-400 flex-shrink-0" />}
@@ -690,7 +690,7 @@ const ServiceOrderList: React.FC = () => {
                                     const profit = calculateOSProfit(os);
 
                                     return (
-                                        <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.isOrcamentoOnly ? 'bg-amber-100/40 hover:bg-amber-100/60 active:bg-amber-200/40' : 'active:bg-gray-50'}`}>
+                                        <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.isOrcamentoOnly ? 'bg-indigo-100/40 hover:bg-indigo-100/60 active:bg-indigo-200/40' : 'active:bg-gray-50'}`}>
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex flex-col">
                                                     <span className="text-xs font-bold text-primary">OS-{os.displayId}</span>

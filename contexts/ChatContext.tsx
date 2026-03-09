@@ -52,6 +52,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const typingTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
     const broadcastChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+    const messagesRef = useRef<ChatMessage[]>([]);
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
+
     // Salva o timestamp no localStorage de forma persistente e por usuário
     const saveLastOpened = useCallback((userId: string | null) => {
         if (!userId) return;
@@ -77,17 +82,30 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUnreadCount(0);
             return;
         }
-        const lastOpened = lastOpenedRef.current;
+        let lastOpened = lastOpenedRef.current;
         const currentUserId = currentUserIdRef.current;
+
+        // Se o usuário não possui lastOpened (dispositivo novo ou limpou o cache),
+        // inicializamos com a data atual para evitar mostrar mensagens antigas indesejadas.
+        if (!lastOpened && msgs.length > 0) {
+            const now = new Date().toISOString();
+            lastOpened = now;
+            if (currentUserId) {
+                lastOpenedRef.current = now;
+                localStorage.setItem(`chat_last_read_at_${currentUserId}`, now);
+            }
+        }
+
         const count = msgs.filter(m => {
             if (m.sender_id === currentUserId) return false;
-            if (!lastOpened) return true;
-            return m.created_at > lastOpened;
+            if (!lastOpened) return false;
+            return new Date(m.created_at).getTime() > new Date(lastOpened).getTime();
         }).length;
         setUnreadCount(count);
     }, [isChatOpen]);
 
     const setCurrentUserId = useCallback((id: string | null) => {
+        if (currentUserIdRef.current === id) return; // Evita loop em App.tsx
         currentUserIdRef.current = id;
         if (id) {
             const saved = localStorage.getItem(`chat_last_read_at_${id}`) ||
@@ -96,9 +114,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
             lastOpenedRef.current = null;
         }
-        // Recalcula imediatamente com o novo ID do usuário
-        recalcUnread(messages);
-    }, [recalcUnread, messages]);
+        // Recalcula imediatamente com o novo ID do usuário (usando a ref atualizada)
+        recalcUnread(messagesRef.current);
+    }, [recalcUnread]);
 
     const openChat = useCallback(() => {
         setIsChatOpen(true);
@@ -115,6 +133,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (!prev) {
                 saveLastOpened(currentUserIdRef.current);
                 setUnreadCount(0);
+            } else {
+                // Quando fecha, garante salvar o timestamp para não marcar como "recebidas depois de fechar" 
+                // mensagens que carregaram com ele aberto
+                saveLastOpened(currentUserIdRef.current);
             }
             return !prev;
         });
@@ -173,7 +195,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isChatOpen && messages.length > 0) {
             const lastMsg = messages[messages.length - 1];
             // Se a última mensagem for posterior ao que temos salvo, atualizamos
-            if (!lastOpenedRef.current || lastMsg.created_at > lastOpenedRef.current) {
+            if (!lastOpenedRef.current || new Date(lastMsg.created_at).getTime() > new Date(lastOpenedRef.current).getTime()) {
                 saveLastOpened(currentUserIdRef.current);
             }
         }

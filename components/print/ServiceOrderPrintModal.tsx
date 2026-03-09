@@ -1,7 +1,8 @@
 import React, { useId, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ServiceOrder, CompanyInfo, Product, Customer, ChecklistItemParameter } from '../../types.ts';
+import { ServiceOrder, CompanyInfo, Product, Customer, ChecklistItemParameter, ReceiptTermParameter } from '../../types.ts';
 import { formatCurrency, getCompanyInfo, getCustomers, getChecklistItems } from '../../services/mockApi.ts';
+import { getOsReceiptTerms } from '../../services/parametersService.ts';
 import { CloseIcon, PrinterIcon, SpinnerIcon, WhatsAppIcon } from '../icons.tsx';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
 import { calculateWarrantyExpiry, formatDateBR } from '../../utils/dateUtils.ts';
@@ -57,7 +58,7 @@ interface Props {
     initialFormat?: 'A4' | 'thermal';
 }
 
-const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null; checklistItemsMap: Record<string, string> }> = ({ os, companyInfo, customerInfo, checklistItemsMap }) => {
+const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null; checklistItemsMap: Record<string, string>; receiptTerm: ReceiptTermParameter | null }> = ({ os, companyInfo, customerInfo, checklistItemsMap, receiptTerm }) => {
     return (
         <div className="font-sans text-black receipt-body bg-white text-xs">
             {/* Header */}
@@ -212,12 +213,27 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                 )}
             </section>
 
-            <section className="mt-6 border-t border-gray-200 pt-2 text-center text-[8px] text-gray-500">
+            {receiptTerm && (receiptTerm.warrantyTerm?.showOnReceipt || receiptTerm.warrantyExclusions?.showOnReceipt || receiptTerm.imageRights?.showOnReceipt) && (
+                <section className="mt-4 border-t border-gray-200 pt-2 text-[10px]">
+                    <h2 className="font-bold text-[11px] mb-1">TERMO DE GARANTIA E RESPONSABILIDADE</h2>
+                    {receiptTerm.warrantyTerm?.showOnReceipt && receiptTerm.warrantyTerm.content && (
+                        <div className="mb-2 whitespace-pre-wrap"><strong>Termo:</strong> {receiptTerm.warrantyTerm.content}</div>
+                    )}
+                    {receiptTerm.warrantyExclusions?.showOnReceipt && receiptTerm.warrantyExclusions.content && (
+                        <div className="mb-2 whitespace-pre-wrap"><strong>Exclusões:</strong> {receiptTerm.warrantyExclusions.content}</div>
+                    )}
+                    {receiptTerm.imageRights?.showOnReceipt && receiptTerm.imageRights.content && (
+                        <div className="mb-2 whitespace-pre-wrap"><strong>Direitos de Imagem:</strong> {receiptTerm.imageRights.content}</div>
+                    )}
+                </section>
+            )}
+
+            <section className="mt-4 border-t border-gray-200 pt-2 text-center text-[8px] text-gray-500">
                 Os equipamentos não retirados dentro de 90 dias após a conclusão do serviço poderão ser descartados ou vendidos para custear despesas, conforme legislação vigente. A garantia não cobre danos físicos, contato com líquidos ou mau uso após o reparo. Equipamentos recebidos desligados ou inoperantes impossibilitam testes completos, isentando a loja de responsabilidade sobre vícios ocultos.
             </section>
 
             {/* SIGNATURES */}
-            <section className="mt-12 flex items-end justify-between px-8 text-[10px] text-center">
+            <section className="mt-8 flex items-end justify-between px-8 text-[10px] text-center">
                 <div className="w-1/4 text-left pb-[14px]">
                     <span>Data: ____/____/________</span>
                 </div>
@@ -237,21 +253,21 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
     );
 };
 
-const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null; checklistItemsMap: Record<string, string> }> = ({ os, companyInfo, customerInfo, checklistItemsMap }) => {
+const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo | null; customerInfo: Customer | null; checklistItemsMap: Record<string, string>; receiptTerm: ReceiptTermParameter | null }> = ({ os, companyInfo, customerInfo, checklistItemsMap, receiptTerm }) => {
     return (
-        <div className="w-[80mm] mx-auto p-2 bg-white text-black font-mono text-[10px] receipt-body" id="receipt-content">
+        <div className="w-[80mm] mx-auto p-2 bg-white text-black font-mono font-bold text-[12px] receipt-body [&_*]:font-bold leading-tight" id="receipt-content">
             <div className="text-center space-y-1 pb-1">
                 {companyInfo?.logoUrl && <img src={companyInfo.logoUrl} alt="Logo" className="h-16 mx-auto object-contain max-w-full grayscale" />}
-                <p className="font-bold text-sm uppercase">{companyInfo?.name || 'ASSISTÊNCIA TÉCNICA'}</p>
-                <p className="text-[9px]">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
-                <p className="text-[9px] break-words">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''}</p>
-                <p className="text-[9px]">{companyInfo?.city} - {companyInfo?.state}</p>
-                <p className="text-[9px]">Fone: {companyInfo?.whatsapp || companyInfo?.phone || '-'}</p>
+                <p className="text-sm uppercase">{companyInfo?.name || 'ASSISTÊNCIA TÉCNICA'}</p>
+                <p className="text-[11px]">CNPJ: {formatCNPJ(companyInfo?.cnpj)}</p>
+                <p className="text-[11px] break-words">{companyInfo?.address}{companyInfo?.numero ? `, ${companyInfo.numero}` : ''}</p>
+                <p className="text-[11px]">{companyInfo?.city} - {companyInfo?.state}</p>
+                <p className="text-[11px]">Fone: {companyInfo?.whatsapp || companyInfo?.phone || '-'}</p>
             </div>
 
             <div className="border-t-2 border-dashed border-black my-2"></div>
 
-            <div className="flex justify-between font-bold text-[11px]">
+            <div className="flex justify-between text-[13px]">
                 <p>N° OS: {os.displayId}</p>
                 <p>Emissão: {new Date().toLocaleDateString('pt-BR')}</p>
             </div>
@@ -259,15 +275,16 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
             <div className="border-t-2 border-dashed border-black my-2"></div>
 
             <div className="space-y-1">
-                <p><span className="font-bold">Cliente:</span> {os.customerName}</p>
-                <p><span className="font-bold">Celular:</span> {customerInfo?.phone || '-'}</p>
+                <p><span>Cliente:</span> {os.customerName}</p>
+                <p><span>Celular:</span> {customerInfo?.phone || '-'}</p>
+                <p><span>Atendente:</span> {os.attendantName || '-'}</p>
             </div>
 
             <div className="border-t border-dashed border-black my-2"></div>
 
             <div className="space-y-1">
-                <p><span className="font-bold">Desc/Mod:</span> {os.deviceModel} {os.color ? `(${os.color})` : ''}</p>
-                <p><span className="font-bold">SN/IMEI:</span> {os.serialNumber || os.imei || '-'}</p>
+                <p><span>Desc/Mod:</span> {os.deviceModel} {os.color ? `(${os.color})` : ''}</p>
+                <p><span>SN/IMEI:</span> {os.serialNumber || os.imei || '-'}</p>
             </div>
 
             <div className="border-t border-dashed border-black my-2"></div>
@@ -277,11 +294,11 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
                 const checkedItems = getCheckedItems(os.checklist, checklistItemsMap);
                 return checkedItems.length > 0 ? (
                     <div>
-                        <p className="font-bold mb-1">Checklist:</p>
-                        <div className="grid grid-cols-2 gap-y-1 text-[9px]">
+                        <p className="mb-1">Checklist:</p>
+                        <div className="grid grid-cols-2 gap-y-1 text-[11px]">
                             {checkedItems.map(item => (
                                 <div key={item.id} className="flex items-center gap-1">
-                                    <span className="font-bold">[✓]</span>
+                                    <span>[✓]</span>
                                     <span>{item.name}</span>
                                 </div>
                             ))}
@@ -293,38 +310,38 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
             <div className="border-t border-dashed border-black my-2"></div>
 
             <div className="space-y-1">
-                <p><span className="font-bold">Status:</span> {os.status}</p>
+                <p><span>Status:</span> {os.status}</p>
                 <div className="flex justify-between">
-                    <p><span className="font-bold">Entrada:</span> {new Date(os.entryDate).toLocaleDateString('pt-BR')}</p>
+                    <p><span>Entrada:</span> {new Date(os.entryDate).toLocaleDateString('pt-BR')}</p>
                     {os.exitDate && (
-                        <p><span className="font-bold">Saída:</span> {new Date(os.exitDate).toLocaleDateString('pt-BR')}</p>
+                        <p><span>Saída:</span> {new Date(os.exitDate).toLocaleDateString('pt-BR')}</p>
                     )}
                 </div>
             </div>
 
             <div className="border-t border-dashed border-black my-2"></div>
 
-            <div className="space-y-2 text-[11px]">
-                <p><span className="font-bold block">Defeito:</span> {os.defectDescription || '-'}</p>
-                {os.attendantObservations && <p><span className="font-bold block">Obs:</span> {os.attendantObservations}</p>}
-                {os.technicalReport && <p><span className="font-bold block">Laudo:</span> {os.technicalReport}</p>}
+            <div className="space-y-2 text-[13px]">
+                <p><span className="block">Defeito:</span> {os.defectDescription || '-'}</p>
+                {os.attendantObservations && <p><span className="block">Obs:</span> {os.attendantObservations}</p>}
+                {os.technicalReport && <p><span className="block">Laudo:</span> {os.technicalReport}</p>}
             </div>
 
             <div className="border-t-2 border-dashed border-black my-2"></div>
 
-            <p className="font-bold text-center mb-1">PRODUTOS E SERVIÇOS</p>
+            <p className="text-center mb-1">PRODUTOS E SERVIÇOS</p>
 
             <div className="space-y-1">
                 {os.items.length > 0 ? os.items.map((item, i) => {
                     const expiryDate = (item.warranty && os.exitDate) ? calculateWarrantyExpiry(os.exitDate, item.warranty) : null;
                     return (
-                        <div key={item.id || i} className="mb-1 text-[9px]">
-                            <p className="font-bold truncate">{item.description}</p>
+                        <div key={item.id || i} className="mb-1 text-[11px]">
+                            <p className="truncate">{item.description}</p>
                             <div className="flex justify-between">
                                 <span>{item.quantity} x {formatCurrency(item.price)}</span>
                                 <div className="text-right">
                                     {item.warranty && (
-                                        <p className="font-bold text-[8px] uppercase">Garantia: {item.warranty} {expiryDate ? `(${formatDateBR(expiryDate)})` : ''}</p>
+                                        <p className="text-[10px] uppercase">Garantia: {item.warranty} {expiryDate ? `(${formatDateBR(expiryDate)})` : ''}</p>
                                     )}
                                     <span>{formatCurrency(item.price * item.quantity)}</span>
                                 </div>
@@ -338,17 +355,17 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
 
             <div className="border-t border-dashed border-black my-2"></div>
 
-            <div className="space-y-0.5 font-bold">
+            <div className="space-y-0.5">
                 {os.discount > 0 && <div className="flex justify-between"><span>SUBTOTAL:</span><span>{formatCurrency(os.subtotal)}</span></div>}
                 {os.discount > 0 && <div className="flex justify-between"><span>DESC:</span><span>{formatCurrency(os.discount)}</span></div>}
-                <div className={`flex justify-between text-[13px] ${os.discount > 0 ? 'mt-1 pt-1 border-t border-dashed border-black' : ''}`}>
+                <div className={`flex justify-between text-[15px] ${os.discount > 0 ? 'mt-1 pt-1 border-t border-dashed border-black' : ''}`}>
                     <span>TOTAL OS:</span><span>{formatCurrency(os.total)}</span>
                 </div>
             </div>
 
             {os.payments && os.payments.length > 0 && os.status === 'Entregue' && (
-                <div className="mt-2 text-[9px]">
-                    <p className="font-bold border-b border-dashed border-black mb-1">PAGAMENTO(S)</p>
+                <div className="mt-2 text-[11px]">
+                    <p className="border-b border-dashed border-black mb-1">PAGAMENTO(S)</p>
                     {os.payments.map((p, idx) => (
                         <div key={idx} className="flex justify-between">
                             <span className="truncate mr-2">{p.card || p.method} {p.installments ? `(${p.installments}x)` : ''}</span>
@@ -363,20 +380,34 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
                 <p>{os.customerName || 'Assinatura do Cliente'}</p>
             </div>
 
-            <div className="mt-4 pt-2 border-t-2 border-dashed border-black text-justify" style={{ fontSize: '8px' }}>
-                <p>Equipamentos não retirados em até 90 dias poderão ser vendidos ou descartados. Aparelhos inoperantes isentam a loja de responsabilidade por vícios ocultos. A garantia perde a validade em casos de mau uso, tela quebrada ou contato com líquidos.</p>
-            </div>
-
             <div className="mt-4 flex flex-col items-center gap-1">
                 <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/#/os/track/${os.id}`)}`}
                     alt="QR Code OS"
                     className="w-24 h-24 grayscale"
                 />
-                <p className="text-[8px] font-bold">ACOMPANHE SEU REPARO</p>
+                <p className="text-[10px]">ACOMPANHE SEU REPARO</p>
             </div>
 
-            <div className="mt-4 text-center" style={{ fontSize: '7px', color: '#6b7280' }}>
+            {receiptTerm && (receiptTerm.warrantyTerm?.showOnReceipt || receiptTerm.warrantyExclusions?.showOnReceipt || receiptTerm.imageRights?.showOnReceipt) && (
+                <div className="mt-4 pt-4 border-t-2 border-dashed border-black text-justify text-[11px]">
+                    {receiptTerm.warrantyTerm?.showOnReceipt && receiptTerm.warrantyTerm.content && (
+                        <div className="mb-2 whitespace-pre-wrap"><span className="uppercase">Termo:</span> {receiptTerm.warrantyTerm.content}</div>
+                    )}
+                    {receiptTerm.warrantyExclusions?.showOnReceipt && receiptTerm.warrantyExclusions.content && (
+                        <div className="mb-2 whitespace-pre-wrap"><span className="uppercase">Exclusões:</span> {receiptTerm.warrantyExclusions.content}</div>
+                    )}
+                    {receiptTerm.imageRights?.showOnReceipt && receiptTerm.imageRights.content && (
+                        <div className="mb-2 whitespace-pre-wrap"><span className="uppercase">Direitos de Imagem:</span> {receiptTerm.imageRights.content}</div>
+                    )}
+                </div>
+            )}
+
+            <div className="mt-4 pt-2 border-t-2 border-dashed border-black text-justify" style={{ fontSize: '10px' }}>
+                <p>Equipamentos não retirados em até 90 dias poderão ser vendidos ou descartados. Aparelhos inoperantes isentam a loja de responsabilidade por vícios ocultos. A garantia perde a validade em casos de mau uso, tela quebrada ou contato com líquidos.</p>
+            </div>
+
+            <div className="mt-4 text-center text-[9px] text-[#6b7280]">
                 <p>iStore Pro - O melhor sistema para sua loja de eletrônicos. Saiba mais em istorepro.com.br</p>
             </div>
         </div>
@@ -390,14 +421,16 @@ const ServiceOrderPrintModal: React.FC<Props> = ({ serviceOrder, onClose, initia
     const [customerInfo, setCustomerInfo] = useState<Customer | null>(null);
     const [checklistItemsMap, setChecklistItemsMap] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
+    const [receiptTerm, setReceiptTerm] = useState<ReceiptTermParameter | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [info, checklistItems] = await Promise.all([
+                const [info, checklistItems, receiptTermsData] = await Promise.all([
                     getCompanyInfo(),
-                    getChecklistItems()
+                    getChecklistItems(),
+                    getOsReceiptTerms()
                 ]);
                 setCompanyInfo(info);
 
@@ -409,6 +442,11 @@ const ServiceOrderPrintModal: React.FC<Props> = ({ serviceOrder, onClose, initia
                     });
                 }
                 setChecklistItemsMap(itemsMap);
+
+                if (serviceOrder.receiptTermId && receiptTermsData) {
+                    const term = receiptTermsData.find((t: any) => t.id === serviceOrder.receiptTermId);
+                    if (term) setReceiptTerm(term);
+                }
 
                 // Fetch customer details if id is available
                 if (serviceOrder.customerId) {
@@ -565,9 +603,9 @@ const ServiceOrderPrintModal: React.FC<Props> = ({ serviceOrder, onClose, initia
                     ) : (
                         <div className={`shadow-xl ring-1 ring-gray-900/5 print:shadow-none print:ring-0 bg-white ${format === 'A4' ? 'w-[210mm] min-h-[297mm] p-8' : 'w-[80mm] p-2'}`}>
                             {format === 'A4' ? (
-                                <A4Layout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} checklistItemsMap={checklistItemsMap} />
+                                <A4Layout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} checklistItemsMap={checklistItemsMap} receiptTerm={receiptTerm} />
                             ) : (
-                                <ThermalLayout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} checklistItemsMap={checklistItemsMap} />
+                                <ThermalLayout os={serviceOrder} companyInfo={companyInfo} customerInfo={customerInfo} checklistItemsMap={checklistItemsMap} receiptTerm={receiptTerm} />
                             )}
                         </div>
                     )}

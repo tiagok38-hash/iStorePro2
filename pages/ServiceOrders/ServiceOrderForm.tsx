@@ -56,8 +56,9 @@ import {
     deductOsPartsStock,
     returnOsPartsStock
 } from '../../services/mockApi';
+import { getOsReceiptTerms } from '../../services/parametersService';
 import { WhatsAppIcon } from '../../components/icons';
-import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue } from '../../types';
+import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
 import QuickOSModal from '../../components/QuickOSModal';
 import CameraModal from '../../components/CameraModal';
@@ -109,6 +110,8 @@ const ServiceOrderForm: React.FC = () => {
     const [customerDevices, setCustomerDevices] = useState<CustomerDevice[]>([]);
     const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
     const [osWarranties, setOsWarranties] = useState<any[]>([]);
+    const [receiptTerms, setReceiptTerms] = useState<ReceiptTermParameter[]>([]);
+    const [receiptTermId, setReceiptTermId] = useState('');
 
     const [brands, setBrands] = useState<Brand[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -220,7 +223,8 @@ const ServiceOrderForm: React.FC = () => {
                 categoriesData,
                 modelsData,
                 gradesData,
-                gradeValuesData
+                gradeValuesData,
+                receiptTermsData
             ] = await Promise.all([
                 getUsers(),
                 getCustomers(),
@@ -235,7 +239,8 @@ const ServiceOrderForm: React.FC = () => {
                 getCategories(),
                 getProductModels(),
                 getGrades(),
-                getGradeValues()
+                getGradeValues(),
+                getOsReceiptTerms()
             ]);
             setUsers(usersData);
             setCustomers(customersData);
@@ -251,6 +256,7 @@ const ServiceOrderForm: React.FC = () => {
             setProductModels(modelsData);
             setGrades(gradesData);
             setGradeValues(gradeValuesData);
+            setReceiptTerms(receiptTermsData);
 
             // Carrega OS DEPOIS que os dados base estiverem prontos (evita race condition)
             if (isEditing && editId) {
@@ -295,6 +301,7 @@ const ServiceOrderForm: React.FC = () => {
             if ((so as any).entryDate) setEntryDate(new Date((so as any).entryDate).toISOString());
             if ((so as any).estimatedDate) setEstimatedDate(new Date((so as any).estimatedDate).toISOString().slice(0, 10));
             if ((so as any).exitDate) setExitDate((so as any).exitDate);
+            setReceiptTermId(so.receiptTermId || '');
             setCancellationReason((so as any).cancellationReason || null);
             // Bloquear edição para OS Entregues
             if (so.status === 'Entregue') setIsLocked(true);
@@ -474,6 +481,7 @@ const ServiceOrderForm: React.FC = () => {
             entryDate: entryDate || new Date().toISOString(),
             estimatedDate: estimatedDate ? new Date(estimatedDate + 'T12:00:00').toISOString() : undefined,
             customerDeviceId: safeCustomerDeviceId,
+            receiptTermId: receiptTermId || undefined,
             cancellationReason
         };
     };
@@ -1404,38 +1412,57 @@ const ServiceOrderForm: React.FC = () => {
 
                         {/* ---- NAVIGATION FOOTER ---- */}
                         <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
-                            {/* Botão Voltar */}
-                            {canGoPrev ? (
-                                <button
-                                    onClick={goToPrevTab}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-secondary border border-gray-200 hover:bg-gray-50 transition-colors"
-                                >
-                                    <ChevronLeft size={16} />
-                                    Voltar
-                                </button>
-                            ) : (
-                                <div />
-                            )}
+                            {/* Left Area: Voltar or Empty, AND Termo de Garantia */}
+                            <div className="flex items-center gap-4 flex-1">
+                                {canGoPrev && (
+                                    <button
+                                        onClick={goToPrevTab}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-secondary border border-gray-200 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <ChevronLeft size={16} />
+                                        Voltar
+                                    </button>
+                                )}
+
+                                {activeTab === 'client_device' && (
+                                    <div className="flex-1 max-w-sm flex items-center gap-3 ml-auto mr-4">
+                                        <label className="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Termo de Garantia</label>
+                                        <select
+                                            value={receiptTermId}
+                                            onChange={(e) => setReceiptTermId(e.target.value)}
+                                            className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
+                                            disabled={isLocked}
+                                        >
+                                            <option value="">Selecione um termo...</option>
+                                            {receiptTerms.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Botão Avançar ou Salvar */}
-                            {canGoNext ? (
-                                <button
-                                    onClick={goToNextTab}
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-accent shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-                                >
-                                    {TAB_LABELS[activeTab]}
-                                    <ChevronRight size={16} />
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleSave}
-                                    disabled={isLoading}
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Save size={16} />
-                                    {isLoading ? 'Salvando...' : 'Salvar OS'}
-                                </button>
-                            )}
+                            <div className="flex-shrink-0">
+                                {canGoNext ? (
+                                    <button
+                                        onClick={goToNextTab}
+                                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-accent shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
+                                    >
+                                        {TAB_LABELS[activeTab]}
+                                        <ChevronRight size={16} />
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={isLoading}
+                                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Save size={16} />
+                                        {isLoading ? 'Salvando...' : 'Salvar OS'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </fieldset>
                 </div>
@@ -1577,6 +1604,7 @@ const ServiceOrderForm: React.FC = () => {
                             entryDate,
                             estimatedDate,
                             exitDate: exitDate || undefined,
+                            receiptTermId: receiptTermId || undefined,
                             responsibleId,
                             responsibleName: users.find(u => u.id === responsibleId)?.name || 'Técnico',
                             attendantId,

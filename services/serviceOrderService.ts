@@ -1,6 +1,6 @@
 
 import { supabase } from '../supabaseClient.ts';
-import { Service, ServiceOrder, AuditActionType, AuditEntityType } from '../types.ts';
+import { Service, ServiceOrder, AuditActionType, AuditEntityType, ReceiptTermParameter } from '../types.ts';
 import { getNowISO } from '../utils/dateUtils.ts';
 import { fetchWithCache, fetchWithRetry, clearCache } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';
@@ -142,6 +142,7 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
                 isOrcamentoOnly: so.is_orcamento_only,
                 isQuick: so.is_quick,
                 phone: so.phone,
+                receiptTermId: so.receipt_term_id,
             }));
         });
     });
@@ -180,8 +181,79 @@ export const getServiceOrder = async (id: string): Promise<ServiceOrder | null> 
             isOrcamentoOnly: data.is_orcamento_only,
             isQuick: data.is_quick,
             phone: data.phone,
+            receiptTermId: data.receipt_term_id,
             displayId: data.display_id,
         };
+    });
+};
+
+export const getPublicServiceOrderTracking = async (id: string): Promise<{ os: ServiceOrder | null, company: any | null, receiptTerm: ReceiptTermParameter | null }> => {
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase.rpc('get_public_os_tracking', { p_os_id: id });
+
+        if (error || !data || data.error) return { os: null, company: null, receiptTerm: null };
+
+        const osData = data.os;
+        const companyData = data.company;
+
+        const mappedOs = {
+            ...osData,
+            customerId: osData.customer_id,
+            customerName: osData.customer_name,
+            deviceModel: osData.device_model,
+            serialNumber: osData.serial_number,
+            patternLock: osData.pattern_lock,
+            defectDescription: osData.defect_description,
+            technicalReport: osData.technical_report,
+            createdAt: osData.created_at,
+            updatedAt: osData.updated_at,
+            responsibleId: osData.responsible_id,
+            responsibleName: osData.responsible_name,
+            attendantId: osData.attendant_id,
+            attendantName: osData.attendant_name,
+            entryDate: osData.entry_date,
+            exitDate: osData.exit_date,
+            estimatedDate: osData.estimated_date,
+            attendantObservations: osData.attendant_observations,
+            customerDeviceId: osData.customer_device_id,
+            isOrcamentoOnly: osData.is_orcamento_only,
+            isQuick: osData.is_quick,
+            phone: osData.phone,
+            receiptTermId: osData.receipt_term_id,
+            displayId: osData.display_id,
+        };
+
+        const mappedCompany = {
+            id: companyData.id,
+            name: companyData.name,
+            razaoSocial: companyData.razao_social,
+            logoUrl: companyData.logo_url || companyData.logoUrl || '',
+            cnpj: companyData.cnpj,
+            inscricaoEstadual: companyData.inscricao_estadual,
+            address: companyData.address,
+            numero: companyData.numero,
+            complemento: companyData.complemento,
+            bairro: companyData.bairro,
+            city: companyData.city,
+            state: companyData.state,
+            cep: companyData.cep,
+            email: companyData.email,
+            whatsapp: companyData.whatsapp,
+            instagram: companyData.instagram,
+            isCatalogOnline: companyData.is_catalog_online ?? true,
+            catalogOfflineMessage: companyData.catalog_offline_message,
+            catalogOfflineImageUrl: companyData.catalog_offline_image_url,
+        };
+
+        const termData = data.receiptTerm;
+        const mappedTerm = termData ? {
+            ...termData,
+            warrantyTerm: termData.warrantyTerm || termData.warranty_term,
+            warrantyExclusions: termData.warrantyExclusions || termData.warranty_exclusions,
+            imageRights: termData.imageRights || termData.image_rights,
+        } : null;
+
+        return { os: mappedOs, company: mappedCompany, receiptTerm: mappedTerm };
     });
 };
 
@@ -217,6 +289,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         is_orcamento_only: (data as any).isOrcamentoOnly ?? false,
         is_quick: (data as any).isQuick ?? false,
         phone: (data as any).phone || null,
+        receipt_term_id: data.receiptTermId || null,
         cancellation_reason: data.cancellationReason || null,
     };
 
@@ -235,7 +308,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly', 'isQuick', 'phone',
-        'cancellationReason', 'isEdited'
+        'cancellationReason', 'isEdited', 'receiptTermId'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -276,6 +349,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         isOrcamentoOnly: created.is_orcamento_only,
         isQuick: created.is_quick,
         phone: created.phone,
+        receiptTermId: created.receipt_term_id,
     };
 };
 
@@ -308,6 +382,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).isOrcamentoOnly !== undefined) updatePayload.is_orcamento_only = (data as any).isOrcamentoOnly;
     if ((data as any).isQuick !== undefined) updatePayload.is_quick = (data as any).isQuick;
     if ((data as any).phone !== undefined) updatePayload.phone = (data as any).phone;
+    if (data.receiptTermId !== undefined) updatePayload.receipt_term_id = data.receiptTermId;
     if (data.cancellationReason !== undefined) updatePayload.cancellation_reason = data.cancellationReason;
     if ((data as any).isEdited !== undefined) updatePayload.is_edited = (data as any).isEdited;
 
@@ -326,7 +401,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited'
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 
@@ -371,6 +446,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         displayId: updated.display_id,
         isOrcamentoOnly: updated.is_orcamento_only,
         cancellationReason: updated.cancellation_reason,
+        receiptTermId: updated.receipt_term_id,
     };
 };
 

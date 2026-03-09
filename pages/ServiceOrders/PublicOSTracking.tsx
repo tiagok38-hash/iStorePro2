@@ -13,8 +13,8 @@ import {
     Package
 } from 'lucide-react';
 import { getWhatsAppLink } from '../../utils/whatsappUtils.ts';
-import { getServiceOrder, getCompanyInfo, formatCurrency } from '../../services/mockApi';
-import { ServiceOrder, CompanyInfo } from '../../types';
+import { getPublicServiceOrderTracking, formatCurrency } from '../../services/mockApi.ts';
+import { ServiceOrder, CompanyInfo, ReceiptTermParameter } from '../../types.ts';
 
 const STATUS_STEPS = [
     { id: 'Orçamento', label: 'Orçamento', icon: Hash },
@@ -30,6 +30,7 @@ const PublicOSTracking: React.FC = () => {
     const { token } = useParams<{ token: string }>();
     const [os, setOs] = useState<ServiceOrder | null>(null);
     const [company, setCompany] = useState<CompanyInfo | null>(null);
+    const [receiptTerm, setReceiptTerm] = useState<ReceiptTermParameter | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +38,8 @@ const PublicOSTracking: React.FC = () => {
         const loadPublicData = async () => {
             setLoading(true);
             try {
-                // Multi-tenant: getCompanyInfo returns the current tenant's context
-                const osData = await getServiceOrder(token || '');
-                const companyData = await getCompanyInfo();
+                // Fetch using the public RPC to bypass RLS for unauthenticated users
+                const { os: osData, company: companyData, receiptTerm: termData } = await getPublicServiceOrderTracking(token || '');
 
                 if (!osData) {
                     setError("Ordem de Serviço não encontrada.");
@@ -48,6 +48,7 @@ const PublicOSTracking: React.FC = () => {
                     setOs(osData);
                 } else {
                     setOs(osData);
+                    setReceiptTerm(termData);
                 }
                 setCompany(companyData);
             } catch (err) {
@@ -181,6 +182,41 @@ const PublicOSTracking: React.FC = () => {
                     <h3 className="font-bold text-gray-400 text-[11px] uppercase tracking-widest mb-3">Defeito Relatado</h3>
                     <p className="text-sm text-gray-700 italic">"{os?.defectDescription}"</p>
                 </section>
+
+                {receiptTerm && (
+                    <section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-4">
+                            <ShieldCheck size={18} className="text-emerald-500" />
+                            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-tight">{receiptTerm.name}</h3>
+                        </div>
+                        <div className="space-y-3">
+                            {receiptTerm.warrantyTerm?.content && (
+                                <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Termos e Condições</h4>
+                                    <div className="text-xs text-gray-600 font-medium leading-relaxed whitespace-pre-wrap italic">
+                                        {receiptTerm.warrantyTerm.content}
+                                    </div>
+                                </div>
+                            )}
+                            {receiptTerm.warrantyExclusions?.content && (
+                                <div className="p-4 bg-red-50/20 rounded-2xl border border-red-100/20">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-2">Exclusões de Garantia</h4>
+                                    <div className="text-xs text-red-600/70 font-medium leading-relaxed whitespace-pre-wrap italic">
+                                        {receiptTerm.warrantyExclusions.content}
+                                    </div>
+                                </div>
+                            )}
+                            {receiptTerm.imageRights?.content && (
+                                <div className="p-4 bg-blue-50/20 rounded-2xl border border-blue-100/20">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-2">Uso de Imagem</h4>
+                                    <div className="text-xs text-blue-600/70 font-medium leading-relaxed whitespace-pre-wrap italic">
+                                        {receiptTerm.imageRights.content}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
 
                 <section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                     <h3 className="font-bold text-gray-400 text-[11px] uppercase tracking-widest mb-4">Resumo Financeiro</h3>

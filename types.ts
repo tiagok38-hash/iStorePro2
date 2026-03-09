@@ -453,6 +453,7 @@ export interface ServiceOrder {
     isOrcamentoOnly?: boolean;
     isQuick?: boolean;
     cancellationReason?: string;
+    receiptTermId?: string;
 }
 
 // CartItem interface to be used across components like NewSaleModal.
