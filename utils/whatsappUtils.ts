@@ -34,13 +34,14 @@ export const formatWhatsAppNumber = (phone: string | undefined | null): string =
 export const getWhatsAppLink = (phone: string | undefined | null, message?: string): string => {
     const formattedPhone = formatWhatsAppNumber(phone);
 
-    // Se não houver telefone, gera um link de compartilhamento genérico (abre a lista de contatos)
+    // Se não houver telefone, gera um link genérico (sem número)
     if (!formattedPhone) {
-        return `https://api.whatsapp.com/send?text=${encodeURIComponent(message || '')}`;
+        const textParam = message ? `?text=${encodeURIComponent(message)}` : '';
+        return `https://wa.me/${textParam}`;
     }
 
-    const textParam = message ? `&text=${encodeURIComponent(message)}` : '';
-    return `https://api.whatsapp.com/send?phone=${formattedPhone}${textParam}`;
+    const textParam = message ? `?text=${encodeURIComponent(message)}` : '';
+    return `https://wa.me/${formattedPhone}${textParam}`;
 };
 
 /**

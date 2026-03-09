@@ -605,7 +605,16 @@ const CustomersAndSuppliers: React.FC = () => {
     // --- Customer Logic ---
     const filteredCustomers = useMemo(() => {
         // Se showInactive está ligado, mostra APENAS os inativos. Se desligado, mostra apenas os ativos.
-        let filtered = customers.filter(c => (showInactive ? c.active === false : c.active !== false) && ((c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || c.email?.toLowerCase().includes(searchTerm.toLowerCase())));
+        const searchLower = searchTerm.toLowerCase();
+        let filtered = customers.filter(c =>
+            (showInactive ? c.active === false : c.active !== false) &&
+            (
+                (c.name || '').toLowerCase().includes(searchLower) ||
+                (c.email || '').toLowerCase().includes(searchLower) ||
+                (c.cpf || '').includes(searchTerm) ||
+                (c.phone || '').includes(searchTerm)
+            )
+        );
 
         if (birthdayFilter !== 'none') {
             filtered = filtered.filter(c => isBirthdayInPeriod(c.birthDate, birthdayFilter));

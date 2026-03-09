@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     SearchIcon,
     Columns,
@@ -14,11 +14,16 @@ import {
     XCircle,
     Wrench,
     ShieldCheck,
-    Calendar as CalendarIcon
+    Calendar as CalendarIcon,
+    Smartphone,
+    UserCircle
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getServiceOrders, updateServiceOrder, returnOsPartsStock } from '../../services/mockApi';
-import { ServiceOrder } from '../../types';
+import { getServiceOrders, getCustomers, getCustomerDevices, updateServiceOrder, returnOsPartsStock } from '../../services/mockApi';
+import { ServiceOrder, Customer, CustomerDevice } from '../../types';
+import Modal from '../../components/Modal';
+import CustomerModal from '../../components/CustomerModal';
+import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrderElectronicDevicesModal';
 import {
     calculateWarrantyExpiry,
     getRemainingDays,
@@ -166,7 +171,7 @@ const ServiceOrderList: React.FC = () => {
     const { showToast } = useToast();
     const { user: loggedInUser, permissions } = useUser();
     const [viewMode, setViewMode] = useState<'kanban' | 'list'>(() => {
-        return (localStorage.getItem('os_view_mode') as 'kanban' | 'list') || 'kanban';
+        return (localStorage.getItem('os_view_mode') as 'kanban' | 'list') || 'list';
     });
 
     useEffect(() => {
@@ -181,6 +186,14 @@ const ServiceOrderList: React.FC = () => {
     const [selectedOSForPrint, setSelectedOSForPrint] = useState<any>(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [osToCancel, setOsToCancel] = useState<string | null>(null);
+
+    // Global search state
+    const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+    const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+    const [allDevices, setAllDevices] = useState<CustomerDevice[]>([]);
+    const [selectedDeviceForModal, setSelectedDeviceForModal] = useState<CustomerDevice | null>(null);
+    const [customerForEdit, setCustomerForEdit] = useState<Customer | null>(null);
+    const globalSearchRef = useRef<HTMLDivElement>(null);
 
     // Drag & Drop state
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -245,8 +258,28 @@ const ServiceOrderList: React.FC = () => {
         }
     };
 
+    const loadGlobalSearchData = useCallback(async () => {
+        try {
+            const [custData, devData] = await Promise.all([getCustomers(), getCustomerDevices()]);
+            setAllCustomers(custData || []);
+            setAllDevices(devData || []);
+        } catch { /* silencioso */ }
+    }, []);
+
     React.useEffect(() => {
         loadOrders();
+        loadGlobalSearchData();
+    }, [loadGlobalSearchData]);
+
+    // Fechar dropdown ao clicar fora
+    React.useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (globalSearchRef.current && !globalSearchRef.current.contains(e.target as Node)) {
+                setGlobalSearchOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Auto-open quick OS modal via query param (e.g. from ServiceOrderForm)
@@ -440,15 +473,100 @@ const ServiceOrderList: React.FC = () => {
 
                 {/* Date Filters Row */}
                 <div className="flex flex-wrap items-center gap-3 mb-6 animate-in fade-in slide-in-from-top-1 duration-300">
-                    <div className="relative flex-1 sm:flex-initial">
+                    {/* Global Search with dropdown */}
+                    <div className="relative flex-1 sm:flex-initial" ref={globalSearchRef}>
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary/50" size={16} />
                         <input
                             type="text"
-                            placeholder="Buscar OS..."
+                            placeholder="Buscar cliente, CPF, aparelho..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full sm:w-64 h-10 pl-9 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
+                            onChange={(e) => { setSearchTerm(e.target.value); setGlobalSearchOpen(e.target.value.length > 1); }}
+                            onFocus={() => searchTerm.length > 1 && setGlobalSearchOpen(true)}
+                            className="w-full sm:w-72 h-10 pl-9 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
                         />
+                        {/* Global Search Dropdown */}
+                        {globalSearchOpen && searchTerm.length > 1 && (() => {
+                            const sl = searchTerm.toLowerCase();
+                            const matchedCustomers = allCustomers.filter(c =>
+                                (c.name || '').toLowerCase().includes(sl) ||
+                                (c.cpf || '').includes(searchTerm) ||
+                                (c.phone || '').includes(searchTerm)
+                            ).slice(0, 3);
+                            const matchedDevices = allDevices.filter(d =>
+                                (d.customerName || '').toLowerCase().includes(sl) ||
+                                (d.customerCpf || '').includes(searchTerm) ||
+                                (d.model || '').toLowerCase().includes(sl) ||
+                                (d.imei || '').includes(searchTerm)
+                            ).slice(0, 3);
+                            const matchedOS = orders.filter(o =>
+                                (o.customerName || '').toLowerCase().includes(sl) ||
+                                (o.displayId?.toString() || '').includes(searchTerm) ||
+                                (o.deviceModel || '').toLowerCase().includes(sl)
+                            ).slice(0, 5);
+                            const hasAnything = matchedCustomers.length > 0 || matchedDevices.length > 0 || matchedOS.length > 0;
+                            if (!hasAnything) return null;
+                            return (
+                                <div className="absolute top-full left-0 mt-2 w-[360px] bg-white rounded-2xl shadow-2xl border border-gray-100 z-[200] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    {matchedCustomers.length > 0 && (
+                                        <div>
+                                            <div className="px-4 pt-3 pb-1 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</div>
+                                            {matchedCustomers.map(c => (
+                                                <button key={c.id} onClick={() => { setCustomerForEdit(c); setGlobalSearchOpen(false); setSearchTerm(''); }}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+                                                        <UserCircle size={16} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-gray-900 truncate">{c.name}</p>
+                                                        <p className="text-[11px] text-gray-400">{c.phone || c.cpf || 'Sem contato'}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {matchedDevices.length > 0 && (
+                                        <div className="border-t border-gray-50">
+                                            <div className="px-4 pt-3 pb-1 text-[10px] font-black text-gray-400 uppercase tracking-widest">Eletrônicos</div>
+                                            {matchedDevices.map(d => (
+                                                <button key={d.id} onClick={() => { setSelectedDeviceForModal(d); setGlobalSearchOpen(false); setSearchTerm(''); }}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                                        <Smartphone size={14} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-gray-900 truncate">{d.model}</p>
+                                                        <p className="text-[11px] text-gray-400 truncate">{d.customerName} {d.imei ? `• ${d.imei}` : ''}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {matchedOS.length > 0 && (
+                                        <div className="border-t border-gray-50">
+                                            <div className="px-4 pt-3 pb-1 text-[10px] font-black text-gray-400 uppercase tracking-widest">Ordens de Serviço</div>
+                                            {matchedOS.map(os => (
+                                                <button key={os.id} onClick={() => { navigate(`/service-orders/edit/${os.id}`); setGlobalSearchOpen(false); setSearchTerm(''); }}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                                                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 shrink-0">
+                                                        <Wrench size={14} />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-sm font-bold text-gray-900">OS-{os.displayId}</p>
+                                                            <span className="text-[10px] font-bold text-gray-400 truncate">{os.deviceModel}</span>
+                                                        </div>
+                                                        <p className="text-[11px] text-gray-400 truncate">{os.customerName}</p>
+                                                    </div>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${os.status === 'Entregue' ? 'bg-emerald-100 text-emerald-700' :
+                                                        os.status === 'Cancelada' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                                        }`}>{os.status}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Status filter - only in list mode */}
@@ -837,6 +955,91 @@ const ServiceOrderList: React.FC = () => {
                 message="Informe o motivo do cancelamento. Esta ação não poderá ser desfeita."
                 reasonLabel="Motivo do Cancelamento*"
             />
+
+            {/* Device Detail Modal - from global search */}
+            {selectedDeviceForModal && (
+                <Modal
+                    isOpen={!!selectedDeviceForModal}
+                    onClose={() => setSelectedDeviceForModal(null)}
+                    title="Detalhes do Eletrônico"
+                    className="!max-w-2xl"
+                >
+                    <div className="space-y-4">
+                        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 flex items-start gap-4">
+                            <div className="w-16 h-16 bg-white border border-gray-200 rounded-2xl flex items-center justify-center shrink-0">
+                                <Smartphone size={28} className="text-gray-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h2 className="text-xl font-black text-primary truncate">{selectedDeviceForModal.model}</h2>
+                                <p className="text-sm text-secondary">{selectedDeviceForModal.type} • {selectedDeviceForModal.brand}</p>
+                                <p className="text-sm font-bold text-primary mt-1 flex items-center gap-1.5">
+                                    <UserCircle size={14} className="text-purple-400" />
+                                    {selectedDeviceForModal.customerName}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {selectedDeviceForModal.imei && (
+                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">IMEI 1</p>
+                                    <p className="font-mono text-sm font-bold text-primary">{selectedDeviceForModal.imei}</p>
+                                </div>
+                            )}
+                            {selectedDeviceForModal.imei2 && (
+                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">IMEI 2</p>
+                                    <p className="font-mono text-sm font-bold text-primary">{selectedDeviceForModal.imei2}</p>
+                                </div>
+                            )}
+                            {selectedDeviceForModal.serialNumber && (
+                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Número de Série</p>
+                                    <p className="font-mono text-sm font-bold text-primary">{selectedDeviceForModal.serialNumber}</p>
+                                </div>
+                            )}
+                            {selectedDeviceForModal.color && (
+                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Cor</p>
+                                    <p className="text-sm font-bold text-primary">{selectedDeviceForModal.color}</p>
+                                </div>
+                            )}
+                        </div>
+                        {(selectedDeviceForModal.history || []).length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Histórico de OS</h3>
+                                <div className="space-y-2">
+                                    {(selectedDeviceForModal.history || []).slice(0, 5).map((h, i) => (
+                                        <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                            <span className="text-sm font-bold text-primary">{h.osId}</span>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${h.status === 'Concluído' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{h.status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </Modal>
+            )}
+
+            {/* Customer Edit Modal - from global search */}
+            {customerForEdit && (
+                <CustomerModal
+                    entity={customerForEdit}
+                    initialType="Cliente"
+                    onClose={() => setCustomerForEdit(null)}
+                    onSave={async (data, entityType, personType) => {
+                        try {
+                            const { updateCustomer: updateCust } = await import('../../services/mockApi');
+                            await updateCust({ ...data, id: customerForEdit.id } as any);
+                            setCustomerForEdit(null);
+                            loadGlobalSearchData();
+                            showToast('Cliente atualizado com sucesso!', 'success');
+                        } catch {
+                            showToast('Erro ao salvar cliente.', 'error');
+                        }
+                    }}
+                />
+            )}
         </>
     );
 };
