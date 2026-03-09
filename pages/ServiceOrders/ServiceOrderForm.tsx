@@ -126,6 +126,7 @@ const ServiceOrderForm: React.FC = () => {
 
     // Form Data
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [osPhone, setOsPhone] = useState<string>(''); // telefone salvo diretamente na OS
     const [customerSearch, setCustomerSearch] = useState('');
     const [showCustomerResults, setShowCustomerResults] = useState(false);
 
@@ -311,6 +312,8 @@ const ServiceOrderForm: React.FC = () => {
             // Carregar e selecionar cliente — usando lista já carregada para evitar race condition
             if (so.customerId || so.customerName) {
                 setCustomerSearch(so.customerName || '');
+                // Salvar o phone diretamente da OS como fallback
+                if ((so as any).phone) setOsPhone((so as any).phone);
                 // Usar lista já disponível ou buscar novamente
                 const custList = preloadedCustomers && preloadedCustomers.length > 0
                     ? preloadedCustomers
@@ -318,6 +321,10 @@ const ServiceOrderForm: React.FC = () => {
                 const cust = so.customerId ? custList.find((c: any) => c.id === so.customerId) : null;
                 if (cust) {
                     setSelectedCustomer(cust);
+                    // Se o cliente do cadastro não tem phone, usar o da OS
+                    if (!cust.phone && (so as any).phone) {
+                        setOsPhone((so as any).phone);
+                    }
                 } else {
                     // Fallback: criar objeto parcial com os dados da OS
                     setSelectedCustomer({
@@ -762,7 +769,7 @@ const ServiceOrderForm: React.FC = () => {
                                         const storeName = companyInfo?.name || 'loja';
                                         const msg = `Olá, ${firstName}, Somos da assistencia da ${storeName}. O status da sua Ordem de Serviço *OS-${displayId}* foi atualizado!\n\nStatus Atual: *${osStatus}*\nAparelho: ${deviceModel}\n\nAcompanhe seu reparo em tempo real aqui: ${trackingUrl}`;
 
-                                        openWhatsApp(selectedCustomer?.phone, msg);
+                                        openWhatsApp(selectedCustomer?.phone || osPhone, msg);
                                     }}
                                     className="flex items-center gap-1.5 px-3 py-2 w-full rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all shadow-md shadow-green-500/20"
                                 >
@@ -788,7 +795,7 @@ const ServiceOrderForm: React.FC = () => {
                                             const firstName = selectedCustomer?.name?.split(' ')[0] || 'Cliente';
                                             const storeName = companyInfo?.name || 'loja';
                                             const msg = `Olá, ${firstName}, Somos da assistencia da ${storeName}. O status da sua Ordem de Serviço *OS-${displayId}* foi atualizado!\n\nStatus Atual: *${osStatus}*\nAparelho: ${deviceModel}\n\nAcompanhe seu reparo em tempo real aqui: ${trackingUrl}`;
-                                            openWhatsApp(selectedCustomer?.phone, msg);
+                                            openWhatsApp(selectedCustomer?.phone || osPhone, msg);
                                         }}
                                         title="Enviar WhatsApp"
                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all"
