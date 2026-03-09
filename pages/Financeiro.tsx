@@ -3,197 +3,364 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import {
     ChevronLeft, ChevronRight, Search, Plus,
     TrendingUp, TrendingDown, DollarSign, Percent, Scale,
-    Info, Edit2, Trash2, CheckCircle, X, Receipt, CreditCard
+    ShoppingBag, Wrench, BarChart2, Package
 } from 'lucide-react';
-import { format, isSameMonth, parseISO, isPast } from 'date-fns';
+import { format, isSameMonth, parseISO, isToday, startOfMonth, endOfMonth, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import CreditDashboard from '../components/CreditDashboard';
+import { supabase } from '../supabaseClient';
 
-// --- MOCK DATA ---
-const initialMockAccountPlans = [
-    { id: 1, name: 'Aluguel', type: 'Despesa', classification: 'Fixa' },
-    { id: 2, name: 'Fornecedores', type: 'Despesa', classification: 'Variável' },
-    { id: 3, name: 'Energia Elétrica', type: 'Despesa', classification: 'Fixa' },
-    { id: 4, name: 'Vendas à Vista', type: 'Receita', classification: 'Variável' },
-    { id: 5, name: 'Serviços Técnicos', type: 'Receita', classification: 'Variável' },
-    { id: 6, name: 'Salários', type: 'Despesa', classification: 'Fixa' },
-    { id: 7, name: 'Crediário', type: 'Receita', classification: 'Variável' },
-];
-
-const initialMockTransactions = [
-    { id: 1, type: 'Despesa', description: 'Aluguel do mês', accountPlanId: 1, clientSupplier: 'Imobiliária Central', paymentMethod: 'Transferência', dueDate: '2026-03-10', paidAt: null, value: 3500.00, fees: 0, createdBy: 'Admin' },
-    { id: 2, type: 'Receita', description: 'Venda iPhone 13', accountPlanId: 4, clientSupplier: 'Maria Silva', paymentMethod: 'PIX', dueDate: '2026-03-05', paidAt: '2026-03-05', value: 4200.00, fees: 0, createdBy: 'Admin' },
-    { id: 3, type: 'Despesa', description: 'Conta de Energia', accountPlanId: 3, clientSupplier: 'Enel', paymentMethod: 'Boleto', dueDate: '2026-03-15', paidAt: null, value: 850.00, fees: 5.50, createdBy: 'João' },
-    { id: 4, type: 'Receita', description: 'Conserto Placa', accountPlanId: 5, clientSupplier: 'Carlos Oliveira', paymentMethod: 'Cartão de Crédito', dueDate: '2026-03-08', paidAt: null, value: 650.00, fees: 25.00, createdBy: 'Admin' },
-    { id: 5, type: 'Despesa', description: 'Compra Telas', accountPlanId: 2, clientSupplier: 'Fornecedor XYZ', paymentMethod: 'PIX', dueDate: '2026-03-01', paidAt: '2026-03-01', value: 1200.00, fees: 0, createdBy: 'Admin' },
-    { id: 6, type: 'Receita', description: 'Venda Parcelada', accountPlanId: 7, clientSupplier: 'Ana Souza', paymentMethod: 'Boleto', dueDate: '2026-03-20', paidAt: null, value: 1500.00, fees: 0, createdBy: 'João' },
-];
-
-// --- HELPER FORMATTERS ---
 const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
 const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    return dateStr;
+    const date = new Date(dateStr);
+    return format(date, 'dd/MM/yyyy');
 };
 
-// --- COMPONENT ---
 export default function Financeiro() {
-    // --- STATE ---
-    const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
-
-    const [activeTab, setActiveTab] = useState<'transactions' | 'installments'>(() => {
-        return searchParams.get('tab') === 'crediarios' ? 'installments' : 'transactions';
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'installments'>(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'crediarios') return 'installments';
+        if (tab === 'transactions') return 'transactions';
+        return 'dashboard';
     });
 
-    const [transactions, setTransactions] = useState(initialMockTransactions);
-    const [accountPlans, setAccountPlans] = useState(initialMockAccountPlans);
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [isLoading, setIsLoading] = useState(true);
 
-    const [currentMonth, setCurrentMonth] = useState(new Date(2026, 2, 1)); // Start at Mar 2026 per mock data
-    const [typeFilter, setTypeFilter] = useState('Todos'); // Todos | Receita | Despesa
-    const [statusFilter, setStatusFilter] = useState('Todos'); // 'Todos' | 'Pendente' | 'Pago' | 'Vencido'
-    const [planFilter, setPlanFilter] = useState('');
+    // --- DATA STATE ---
+    const [sales, setSales] = useState<any[]>([]);
+    const [serviceOrders, setServiceOrders] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [inventoryValue, setInventoryValue] = useState(0);
+
+    const [typeFilter, setTypeFilter] = useState('Todos');
+    const [statusFilter, setStatusFilter] = useState('Todos');
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchInput, setSearchInput] = useState('');
 
-    const [showTransactionModal, setShowTransactionModal] = useState(false);
-    const [showAccountPlanModal, setShowAccountPlanModal] = useState(false);
-    const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 20;
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'crediarios') {
-            setActiveTab('installments');
-        } else if (tab === null || tab === 'transactions') {
-            setActiveTab('transactions');
-        }
+        if (tab === 'crediarios') setActiveTab('installments');
+        else if (tab === 'transactions') setActiveTab('transactions');
+        else setActiveTab('dashboard');
     }, [searchParams]);
 
-    const handleTabChange = (tab: 'transactions' | 'installments') => {
+    const handleTabChange = (tab: 'dashboard' | 'transactions' | 'installments') => {
         setActiveTab(tab);
-        // Update URL to keep it in sync with manual clicks
-        if (tab === 'installments') {
-            setSearchParams({ tab: 'crediarios' }, { replace: true });
-        } else {
-            setSearchParams({}, { replace: true });
+        if (tab === 'dashboard') setSearchParams({}, { replace: true });
+        else setSearchParams({ tab }, { replace: true });
+    };
+
+    const loadData = async () => {
+        setIsLoading(true);
+        try {
+            const startStr = startOfMonth(currentMonth).toISOString();
+            const endStr = endOfDay(endOfMonth(currentMonth)).toISOString();
+
+            // 1. Account Plans
+            // 1. Account Plans (Available if needed in the future)
+            const { data: plans } = await supabase.from('transaction_categories').select('*');
+
+            // 2. Transações Financeiras (Mês atual)
+            const { data: finTrans } = await supabase
+                .from('financial_transactions')
+                .select('*, transaction_categories(name, classification)')
+                .gte('due_date', startStr)
+                .lte('due_date', endStr)
+                .order('due_date', { ascending: false });
+            if (finTrans) setTransactions(finTrans);
+
+            // 3. Vendas
+            const { data: salesData } = await supabase
+                .from('sales')
+                .select('id, date, total, items, status, payments')
+                .in('status', ['Finalizada', 'Editada'])
+                .gte('date', startStr)
+                .lte('date', endStr);
+            if (salesData) setSales(salesData);
+
+            // 4. Ordens de Serviço
+            const { data: soData } = await supabase
+                .from('service_orders')
+                .select('id, entryDate, exitDate, total, items, status, payments, createdAt')
+                .in('status', ['Concluído', 'Entregue'])
+                .gte('exitDate', startStr)
+                .lte('exitDate', endStr);
+            if (soData) setServiceOrders(soData);
+
+            // 5. Inventário (Total value in stock based on cost)
+            const { data: productsData } = await supabase
+                .from('products')
+                .select('stock, costPrice, additionalCostPrice')
+                .gt('stock', 0);
+
+            if (productsData) {
+                const totalInv = productsData.reduce((acc, p) => acc + (p.stock * ((p.costPrice || 0) + (p.additionalCostPrice || 0))), 0);
+                setInventoryValue(totalInv);
+            }
+
+            // Also fetch Today's specifically if today is not in currentMonth (rare but possible for rigid KPI)
+            if (!isSameMonth(new Date(), currentMonth)) {
+                const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+                const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+
+                const { data: todaySales } = await supabase
+                    .from('sales').select('id, date, total, items, status, payments')
+                    .in('status', ['Finalizada', 'Editada']).gte('date', todayStart.toISOString()).lte('date', todayEnd.toISOString());
+                if (todaySales) setSales(prev => [...prev.filter(s => !isToday(parseISO(s.date))), ...todaySales]);
+
+                const { data: todaySo } = await supabase
+                    .from('service_orders').select('id, exitDate, total, items, status, payments, createdAt')
+                    .in('status', ['Concluído', 'Entregue']).gte('exitDate', todayStart.toISOString()).lte('exitDate', todayEnd.toISOString());
+                if (todaySo) setServiceOrders(prev => [...prev.filter(so => !isToday(parseISO(so.exitDate || so.createdAt))), ...todaySo]);
+
+                const { data: todayFin } = await supabase
+                    .from('financial_transactions').select('*')
+                    .gte('due_date', todayStart.toISOString()).lte('due_date', todayEnd.toISOString());
+                if (todayFin) setTransactions(prev => [...prev.filter(t => !isToday(parseISO(t.due_date))), ...todayFin]);
+            }
+
+        } catch (error) {
+            console.error('Error fetching financial data:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const [animation, setAnimation] = useState<{ id: number, type: string, amount: number } | null>(null);
+    useEffect(() => {
+        loadData();
+    }, [currentMonth]);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    // --- KPI & DASHBOARD CALCULATIONS (ERP LOGIC) ---
+    const dashboardMetrics = useMemo(() => {
+        let dailyRevenue = 0;
+        let dailyExpenses = 0;
+        let monthlyRevenue = 0; // Operational Only
+        let monthlyExpenses = 0;
+        let monthlyCOGS = 0;
 
-    // --- COMPUTED STATUS ---
-    const getStatus = (t: any) => {
-        if (t.paidAt) return 'Pago';
-        const isOverdue = new Date(t.dueDate) < new Date(2026, 2, 8); // using mock 'today' as around Mar 8th 2026
-        if (!t.paidAt && isOverdue) return 'Vencido';
-        return 'Pendente';
-    };
+        let totalServiceRevenue = 0;
+        let totalServiceCOGS = 0;
 
-    const getPlanClassification = (planId: number) => {
-        const p = accountPlans.find((pl) => pl.id === planId);
-        return p ? p.classification : '';
-    };
+        const productSalesCount: Record<string, { name: string; qty: number; revenue: number }> = {};
+        const serviceProfitMap: Record<string, { name: string; sumProfit: number; count: number }> = {};
 
-    const getPlanName = (planId: number) => {
-        const p = accountPlans.find((pl) => pl.id === planId);
-        return p ? p.name : '';
-    };
+        // 1. Process Sales (Revenue & COGS)
+        sales.forEach(sale => {
+            const isSaleToday = isToday(parseISO(sale.date));
+            const isSaleThisMonth = isSameMonth(parseISO(sale.date), currentMonth);
 
-    // --- FILTER TRANSACTIONS ---
-    const filteredTransactions = useMemo(() => {
-        return transactions.filter(t => {
-            const dateMatch = isSameMonth(parseISO(t.dueDate), currentMonth);
-            if (!dateMatch) return false;
+            let saleCOGS = 0;
+            const items = Array.isArray(sale.items) ? sale.items : (typeof sale.items === 'string' ? JSON.parse(sale.items || '[]') : []);
 
-            if (typeFilter !== 'Todos' && t.type !== typeFilter) return false;
+            items.forEach((item: any) => {
+                const qty = item.quantity || 1;
+                const cost = (item.costPrice || 0) * qty;
+                saleCOGS += cost;
 
-            const status = getStatus(t);
-            if (statusFilter !== 'Todos' && status !== statusFilter) return false;
-
-            if (planFilter && t.accountPlanId.toString() !== planFilter) return false;
-
-            if (searchQuery) {
-                const searchLower = searchQuery.toLowerCase();
-                const descMatch = t.description.toLowerCase().includes(searchLower);
-                const clientMatch = t.clientSupplier.toLowerCase().includes(searchLower);
-                if (!descMatch && !clientMatch) return false;
-            }
-
-            return true;
-        }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-    }, [transactions, currentMonth, typeFilter, statusFilter, planFilter, searchQuery]);
-
-    // --- SUMMARY TOTALS ---
-    const summary = useMemo(() => {
-        let receitas = 0;
-        let crediarios = 0;
-        let despesas = 0;
-        let taxas = 0;
-
-        // Filter transactions only by current month for summary
-        const monthTransactions = transactions.filter(t => isSameMonth(parseISO(t.dueDate), currentMonth));
-
-        monthTransactions.forEach(t => {
-            if (t.type === 'Receita') {
-                if (getStatus(t) === 'Pago') receitas += t.value;
-                if (getPlanName(t.accountPlanId).toLowerCase().includes('crediário')) {
-                    crediarios += t.value;
+                if (isSaleThisMonth) {
+                    const pName = item.productName || item.model || 'Produto';
+                    if (!productSalesCount[pName]) productSalesCount[pName] = { name: pName, qty: 0, revenue: 0 };
+                    productSalesCount[pName].qty += qty;
+                    productSalesCount[pName].revenue += ((item.unitPrice || 0) * qty);
                 }
-            } else if (t.type === 'Despesa') {
-                if (getStatus(t) === 'Pago') despesas += t.value;
+            });
+
+            if (isSaleToday) dailyRevenue += (sale.total || 0);
+            if (isSaleThisMonth) {
+                monthlyRevenue += (sale.total || 0);
+                monthlyCOGS += saleCOGS;
             }
-            taxas += (t.fees || 0);
         });
 
-        return {
-            receitas,
-            crediarios,
-            despesas,
-            taxas,
-            saldo: receitas - despesas
-        };
-    }, [transactions, currentMonth, accountPlans]);
+        // 2. Process Service Orders (Revenue & COGS)
+        serviceOrders.forEach(so => {
+            const dateStr = so.exitDate || so.createdAt;
+            if (!dateStr) return;
+            const isSOToday = isToday(parseISO(dateStr));
+            const isSOThisMonth = isSameMonth(parseISO(dateStr), currentMonth);
 
-    // --- PAGINATION ---
-    const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE) || 1;
-    const paginatedTransactions = filteredTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+            let soCOGS = 0;
+            let soServiceRevenue = 0;
+            const items = Array.isArray(so.items) ? so.items : (typeof so.items === 'string' ? JSON.parse(so.items || '[]') : []);
 
-    // --- ACTIONS ---
-    const handleAddOrEditTransaction = (data: any) => {
-        if (editingTransaction) {
-            setTransactions(transactions.map(t => t.id === editingTransaction.id ? { ...t, ...data } : t));
-        } else {
-            setTransactions([...transactions, { id: Date.now(), ...data, createdBy: 'Admin' }]);
-            setAnimation({ id: Date.now(), type: data.type, amount: data.value });
-            setTimeout(() => setAnimation(null), 2500);
-        }
-        setShowTransactionModal(false);
-        setEditingTransaction(null);
-    };
+            items.forEach((item: any) => {
+                const qty = item.quantity || 1;
+                // rule 4: parts are inventory items and have cost
+                if (item.type === 'part') {
+                    soCOGS += (item.cost || 0) * qty;
+                } else if (item.type === 'service') {
+                    soServiceRevenue += (item.price || 0) * qty;
+                    if (isSOThisMonth) {
+                        const sName = item.description || 'Serviço';
+                        if (!serviceProfitMap[sName]) serviceProfitMap[sName] = { name: sName, sumProfit: 0, count: 0 };
+                        // service profit = revenue - service internal cost (if any, usually 0)
+                        const svcProfit = ((item.price || 0) * qty) - ((item.cost || 0) * qty);
+                        serviceProfitMap[sName].sumProfit += svcProfit;
+                        serviceProfitMap[sName].count += qty;
+                    }
+                }
+            });
 
-    const handleDelete = (id: number) => {
-        if (window.confirm('Deseja realmente excluir este lançamento?')) {
-            setTransactions(transactions.filter(t => t.id !== id));
-        }
-    };
-
-    const handleMarkAsPaid = (id: number) => {
-        setTransactions(transactions.map(t => {
-            if (t.id === id) {
-                const today = new Date().toISOString().split('T')[0];
-                return { ...t, paidAt: today };
+            if (isSOToday) dailyRevenue += (so.total || 0);
+            if (isSOThisMonth) {
+                monthlyRevenue += (so.total || 0);
+                monthlyCOGS += soCOGS;
+                totalServiceRevenue += soServiceRevenue;
+                totalServiceCOGS += soCOGS; // total cost attached to services
             }
-            return t;
-        }));
-    };
+        });
+
+        // 3. Process Financial Transactions (Expenses & Other Income)
+        transactions.forEach(t => {
+            // Check if it's explicitly marked as Purchase to ignore as expense. 
+            // The instruction says "Inventory purchases must NOT appear as expenses". 
+            // In a robust ERP, purchases are Asset movements. If someone manually inputs an expense with "Compra" category we might filter it.
+            // But ideally they use 'expense' only for OPEX. We assume all 'expense' are OPEX.
+            const dateStr = t.payment_date || t.due_date;
+            if (!dateStr) return;
+            const isTxToday = isToday(parseISO(dateStr));
+            const isTxThisMonth = isSameMonth(parseISO(dateStr), currentMonth);
+            const isPaid = t.status === 'paid';
+
+            if (t.type === 'expense' && isPaid) {
+                if (isTxToday) dailyExpenses += t.amount;
+                if (isTxThisMonth) monthlyExpenses += t.amount;
+            } else if (t.type === 'income' && isPaid) {
+                // If it's manual income (not from sales/SO directly, unless double entered).
+                // Let's assume manual incomes are part of total cashflow but NOT operational Revenue for gross profit.
+                // We will just add to a 'otherIncome' if needed, but the prompt says Revenue = sales + services.
+            }
+        });
+
+        const grossProfit = monthlyRevenue - monthlyCOGS;
+        const netProfit = grossProfit - monthlyExpenses;
+        const netCashFlow = monthlyRevenue - monthlyExpenses; // Simplified cash flow formula from prompt
+
+        const avgServiceMargin = totalServiceRevenue > 0
+            ? ((totalServiceRevenue - totalServiceCOGS) / totalServiceRevenue) * 100
+            : 0;
+
+        const bestSellingProducts = Object.values(productSalesCount).sort((a, b) => b.qty - a.qty).slice(0, 5);
+        const mostProfitableServices = Object.values(serviceProfitMap).sort((a, b) => b.sumProfit - a.sumProfit).slice(0, 5);
+        const inventoryTurnover = (inventoryValue && inventoryValue > 0) ? monthlyCOGS / inventoryValue : 0;
+
+        return {
+            dailyRevenue,
+            dailyExpenses,
+            monthlyRevenue,
+            monthlyExpenses,
+            monthlyCOGS,
+            grossProfit,
+            netProfit,
+            netCashFlow,
+            avgServiceMargin,
+            bestSellingProducts,
+            mostProfitableServices,
+            inventoryTurnover
+        };
+    }, [sales, serviceOrders, transactions, inventoryValue, currentMonth]);
+
+    // --- UNIFIED TRANSACTIONS LIST ---
+    const unifiedTransactions = useMemo(() => {
+        let list: any[] = [];
+
+        // Add Financial DB Transactions
+        transactions.forEach(t => {
+            if (!isSameMonth(parseISO(t.due_date), currentMonth)) return;
+            list.push({
+                id: `FT-${t.id}`,
+                originalId: t.id,
+                source: 'Manual',
+                type: t.type === 'income' ? 'Receita' : 'Despesa',
+                description: t.description,
+                category: t.transaction_categories?.name || 'Geral',
+                classification: t.transaction_categories?.classification || 'Variável',
+                amount: Number(t.amount),
+                date: t.due_date,
+                paymentDate: t.payment_date,
+                status: t.status === 'paid' ? 'Pago' : (new Date(t.due_date) < new Date() ? 'Vencido' : 'Pendente'),
+                paymentMethod: t.payment_method || 'Diversos',
+                cogs: 0,
+                createdBy: t.created_by || 'Sistema'
+            });
+        });
+
+        // Add Sales Transactions
+        sales.forEach(s => {
+            if (!isSameMonth(parseISO(s.date), currentMonth)) return;
+            let cogs = 0;
+            const items = Array.isArray(s.items) ? s.items : (typeof s.items === 'string' ? JSON.parse(s.items || '[]') : []);
+            items.forEach((item: any) => { cogs += ((item.costPrice || 0) * (item.quantity || 1)); });
+
+            list.push({
+                id: `SA-${s.id}`,
+                originalId: s.id,
+                source: 'Venda',
+                type: 'Receita',
+                description: `Venda ${s.id}`,
+                category: 'Vendas de Produtos',
+                classification: 'Operacional',
+                amount: s.total,
+                date: s.date,
+                paymentDate: s.date,
+                status: 'Pago',
+                paymentMethod: Array.isArray(s.payments) && s.payments[0] ? s.payments[0].method : 'Variado',
+                cogs: cogs,
+                createdBy: 'Sistema PDV'
+            });
+        });
+
+        // Add Service Order Transactions
+        serviceOrders.forEach(so => {
+            const d = so.exitDate || so.createdAt;
+            if (!d || !isSameMonth(parseISO(d), currentMonth)) return;
+            let cogs = 0;
+            const items = Array.isArray(so.items) ? so.items : (typeof so.items === 'string' ? JSON.parse(so.items || '[]') : []);
+            items.forEach((item: any) => { if (item.type === 'part') cogs += ((item.cost || 0) * (item.quantity || 1)); });
+
+            list.push({
+                id: `SO-${so.id}`,
+                originalId: so.id,
+                source: 'OS',
+                type: 'Receita',
+                description: `OS ${so.id}`,
+                category: 'Serviços Técnicos',
+                classification: 'Operacional',
+                amount: so.total,
+                date: d,
+                paymentDate: d,
+                status: 'Pago',
+                paymentMethod: Array.isArray(so.payments) && so.payments[0] ? so.payments[0].method : 'Variado',
+                cogs: cogs,
+                createdBy: 'Laboratório'
+            });
+        });
+
+        // Filter and Sort
+        return list.filter(t => {
+            if (typeFilter !== 'Todos' && t.type !== typeFilter) return false;
+            if (statusFilter !== 'Todos') {
+                if (statusFilter === 'Pago' && t.status !== 'Pago') return false;
+                if (statusFilter === 'Pendente' && t.status !== 'Pendente') return false;
+                if (statusFilter === 'Vencido' && t.status !== 'Vencido') return false;
+            }
+            if (searchQuery) {
+                const s = searchQuery.toLowerCase();
+                if (!t.description.toLowerCase().includes(s) && !t.category.toLowerCase().includes(s)) return false;
+            }
+            return true;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [sales, serviceOrders, transactions, currentMonth, typeFilter, statusFilter, searchQuery]);
+
 
     const navMonth = (offset: number) => {
         const d = new Date(currentMonth);
@@ -202,501 +369,317 @@ export default function Financeiro() {
         setCurrentPage(1);
     };
 
-    const clearFilters = () => {
-        setTypeFilter('Todos');
-        setStatusFilter('Todos');
-        setPlanFilter('');
-        setSearchInput('');
-        setSearchQuery('');
-        setCurrentPage(1);
-    };
-
-    // --- NEW TRANSACTION/ACCOUNT PLAN MODAL COMPS ---
-    const TransactionModal = () => {
-        const formatToBRLInput = (valNum: number) => {
-            return new Intl.NumberFormat("pt-BR", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(valNum);
-        };
-
-        const [type, setType] = useState(editingTransaction?.type || 'Despesa');
-        const [description, setDescription] = useState(editingTransaction?.description || '');
-        const [planId, setPlanId] = useState(editingTransaction?.accountPlanId || '');
-        const [clientSup, setClientSup] = useState(editingTransaction?.clientSupplier || '');
-        const [payMethod, setPayMethod] = useState(editingTransaction?.paymentMethod || 'Dinheiro');
-        const [due, setDue] = useState(editingTransaction?.dueDate || new Date().toISOString().split('T')[0]);
-        const [val, setVal] = useState(editingTransaction?.value ? formatToBRLInput(editingTransaction.value) : '');
-        const [feesVal, setFeesVal] = useState(editingTransaction?.fees ? formatToBRLInput(editingTransaction.fees) : '');
-        const [isPaid, setIsPaid] = useState(editingTransaction?.paidAt ? 'Sim' : 'Não');
-
-        const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
-            let value = e.target.value.replace(/\D/g, "");
-            if (value === "") {
-                setter("");
-                return;
+    const handleDeleteTransaction = async (unifiedId: string, originalId: string, source: string) => {
+        if (source !== 'Manual') {
+            alert('Não é possível excluir Lançamentos automáticos (Vendas/OS) por aqui. Cancele a Venda ou OS na respectiva tela.');
+            return;
+        }
+        if (window.confirm('Deseja realmente excluir este lançamento financeiro?')) {
+            const { error } = await supabase.from('financial_transactions').delete().eq('id', originalId);
+            if (!error) {
+                setTransactions(transactions.filter(t => t.id !== originalId));
+            } else {
+                alert('Erro ao excluir transação.');
             }
-            const numericValue = parseInt(value, 10) / 100;
-            setter(formatToBRLInput(numericValue));
-        };
-
-        const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
-            handleAddOrEditTransaction({
-                type,
-                description,
-                accountPlanId: Number(planId),
-                clientSupplier: clientSup,
-                paymentMethod: payMethod,
-                dueDate: due,
-                value: parseFloat(val.toString().replace(/\./g, "").replace(",", ".")) || 0,
-                fees: feesVal ? parseFloat(feesVal.toString().replace(/\./g, "").replace(",", ".")) : 0,
-                paidAt: isPaid === 'Sim' ? new Date().toISOString().split('T')[0] : null
-            });
-        };
-
-        return (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up">
-                    <div className="flex justify-between items-center p-4 border-b">
-                        <h2 className="text-lg font-bold text-gray-900">
-                            ⊕ {editingTransaction ? 'Editar' : 'Cadastrar'} Receita / Despesa
-                        </h2>
-                        <button onClick={() => { setShowTransactionModal(false); setEditingTransaction(null); }} className="text-gray-500 hover:bg-gray-100 p-2 rounded-lg">
-                            <X size={20} />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="p-4 space-y-4">
-                        {/* Type Radio */}
-                        <div className="flex gap-4 mb-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" value="Despesa" checked={type === 'Despesa'} onChange={(e) => setType(e.target.value)} className="w-4 h-4 text-gray-900" />
-                                <span className="text-sm font-medium">Despesa</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" value="Receita" checked={type === 'Receita'} onChange={(e) => setType(e.target.value)} className="w-4 h-4 text-gray-900" />
-                                <span className="text-sm font-medium">Receita</span>
-                            </label>
-                        </div>
-
-                        <div>
-                            <input type="text" placeholder="Descrição" required value={description} onChange={(e) => setDescription(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 outline-none" />
-                        </div>
-
-                        <div className="flex gap-2 relative z-50">
-                            <select required value={planId} onChange={(e) => setPlanId(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 outline-none bg-white">
-                                <option value="" disabled>Plano de Contas</option>
-                                {accountPlans.filter(p => p.type === type).map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </select>
-                            <button type="button" onClick={() => setShowAccountPlanModal(true)} className="px-3 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 text-gray-700">
-                                <Plus size={18} />
-                            </button>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <input type="text" placeholder="Cliente / Fornecedor" required value={clientSup} onChange={(e) => setClientSup(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 focus:border-gray-900 outline-none" />
-                        </div>
-
-                        <div className="flex gap-2">
-                            <select required value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 outline-none bg-white">
-                                <option value="Dinheiro">Dinheiro</option>
-                                <option value="PIX">PIX</option>
-                                <option value="Cartão de Crédito">Cartão de Crédito</option>
-                                <option value="Cartão de Débito">Cartão de Débito</option>
-                                <option value="Boleto">Boleto</option>
-                                <option value="Transferência">Transferência</option>
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs text-gray-500 mb-1 block">Vencimento</label>
-                                <input type="date" required value={due} onChange={(e) => setDue(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 cursor-text" />
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-500 mb-1 block">Valor</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-2 text-sm text-gray-500">R$</span>
-                                    <input type="text" inputMode="decimal" required value={val} onChange={(e) => handleAmountChange(e, setVal)} placeholder="0,00" className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-1 focus:ring-gray-900" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs text-gray-500 mb-1 block">Taxas</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-2 text-sm text-gray-500">R$</span>
-                                    <input type="text" inputMode="decimal" value={feesVal} onChange={(e) => handleAmountChange(e, setFeesVal)} placeholder="0,00" className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-1 focus:ring-gray-900" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-500 mb-1 block">Já foi pago?</label>
-                                <select value={isPaid} onChange={(e) => setIsPaid(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 bg-white">
-                                    <option value="Não">Não</option>
-                                    <option value="Sim">Sim</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" className="w-full bg-gray-900 text-white font-medium py-2.5 rounded-lg hover:bg-gray-800 transition-colors mt-4 shadow-md">
-                            Salvar
-                        </button>
-                    </form>
-                </div>
-            </div>
-        );
+        }
     };
 
-    const AccountPlanModal = () => {
-        const [planName, setPlanName] = useState('');
-        const [planType, setPlanType] = useState('Despesa');
-        const [planClass, setPlanClass] = useState('Fixa');
+    // --- CHARTS DATA ---
+    const monthlyChartData = useMemo(() => {
+        const dataMap: Record<string, { name: string, Receitas: number, Despesas: number }> = {};
+        const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
 
-        const handleSave = (e: React.FormEvent) => {
-            e.preventDefault();
-            setAccountPlans([...accountPlans, { id: Date.now(), name: planName, type: planType, classification: planClass }]);
-            setShowAccountPlanModal(false);
-        };
+        for (let i = 1; i <= daysInMonth; i++) {
+            dataMap[i] = { name: `${i}`, Receitas: 0, Despesas: 0 };
+        }
 
-        return (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up">
-                    <div className="flex justify-between items-center p-4 border-b">
-                        <h2 className="text-lg font-bold text-gray-900">⊕ Cadastrar Plano de Contas</h2>
-                        <button onClick={() => setShowAccountPlanModal(false)} className="text-gray-500 hover:bg-gray-100 p-2 rounded-lg">
-                            <X size={20} />
-                        </button>
-                    </div>
+        sales.forEach(s => {
+            if (isSameMonth(parseISO(s.date), currentMonth)) {
+                const day = parseISO(s.date).getDate();
+                dataMap[day].Receitas += (s.total || 0);
+            }
+        });
+        serviceOrders.forEach(so => {
+            const d = so.exitDate || so.createdAt;
+            if (d && isSameMonth(parseISO(d), currentMonth)) {
+                const day = parseISO(d).getDate();
+                dataMap[day].Receitas += (so.total || 0);
+            }
+        });
+        transactions.forEach(t => {
+            const d = t.payment_date || t.due_date;
+            if (d && isSameMonth(parseISO(d), currentMonth) && t.status === 'paid') {
+                const day = parseISO(d).getDate();
+                if (t.type === 'expense') dataMap[day].Despesas += t.amount;
+                if (t.type === 'income') dataMap[day].Receitas += t.amount;
+            }
+        });
 
-                    <form onSubmit={handleSave} className="p-4 space-y-4">
-                        <div>
-                            <input type="text" required placeholder="Plano de Contas" value={planName} onChange={(e) => setPlanName(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900" />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 mb-1 block">Tipo</label>
-                            <select required value={planType} onChange={(e) => setPlanType(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 bg-white">
-                                <option value="Receita">Receita</option>
-                                <option value="Despesa">Despesa</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 mb-1 block">Classificação</label>
-                            <select required value={planClass} onChange={(e) => setPlanClass(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-gray-900 bg-white">
-                                <option value="Fixa">Fixa</option>
-                                <option value="Variável">Variável</option>
-                            </select>
-                        </div>
-                        <button type="submit" className="w-full bg-gray-900 text-white font-medium py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-md mt-2">
-                            Salvar
-                        </button>
-                    </form>
-                </div>
-            </div>
-        );
-    };
+        return Object.values(dataMap);
+    }, [sales, serviceOrders, transactions, currentMonth]);
+
+    const totalPages = Math.ceil(unifiedTransactions.length / ITEMS_PER_PAGE) || 1;
+    const paginatedTransactions = unifiedTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (
-        <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto bg-white min-h-screen text-gray-900">
+        <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto bg-[#F8FAFC] min-h-screen text-gray-900 pb-20">
             {/* Header */}
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Financeiro</h1>
-
-            <div className="flex items-center justify-between gap-4 mb-4">
-                <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
-                    <button
-                        onClick={() => handleTabChange('transactions')}
-                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === 'transactions' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
-                    >
-                        RECEITAS E DESPESAS
-                    </button>
-                    <button
-                        onClick={() => handleTabChange('installments')}
-                        className={`px-8 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${activeTab === 'installments' ? 'bg-gray-800 text-white shadow-lg shadow-gray-900/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'}`}
-                    >
-                        CREDIÁRIOS
-                    </button>
+            <div className="mb-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+                            <BarChart2 className="text-gray-900 h-8 w-8" />
+                            Arquitetura Financeira (ERP)
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-1 font-medium">Gestão inteligente de Estoque, Caixa e Rentabilidade</p>
+                    </div>
                 </div>
 
-                {activeTab === 'transactions' && (
-                    <button
-                        onClick={() => { setEditingTransaction(null); setShowTransactionModal(true); }}
-                        className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg"
-                    >
-                        <Plus size={18} />
-                        Cadastrar
-                    </button>
-                )}
+                <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 inline-flex">
+                    <button onClick={() => handleTabChange('dashboard')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'dashboard' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>DASHBOARD (KPIs)</button>
+                    <button onClick={() => handleTabChange('transactions')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'transactions' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>LANÇAMENTOS</button>
+                    <button onClick={() => handleTabChange('installments')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'installments' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>CREDIÁRIOS</button>
+                </div>
             </div>
 
-            {activeTab === 'transactions' ? (
+            {/* Date Nav (Applies to Dashboard and Lançamentos) */}
+            {activeTab !== 'installments' && (
+                <div className="flex items-center justify-center gap-5 bg-gray-900 py-4 px-8 rounded-3xl border border-gray-800 max-w-md mx-auto shadow-md">
+                    <button onClick={() => navMonth(-1)} className="p-2 hover:bg-gray-800 rounded-xl text-gray-400 hover:text-white transition-colors"><ChevronLeft size={24} /></button>
+                    <span className="font-extrabold w-64 text-center capitalize text-2xl text-white tracking-wide">
+                        {format(currentMonth, 'MMMM / yyyy', { locale: ptBR })}
+                    </span>
+                    <button onClick={() => navMonth(1)} className="p-2 hover:bg-gray-800 rounded-xl text-gray-400 hover:text-white transition-colors"><ChevronRight size={24} /></button>
+                </div>
+            )}
+
+            {isLoading ? (
+                <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>
+            ) : (
                 <>
-                    {/* Navigation & Filters Bar */}
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
-                        {/* Month nav */}
-                        <div className="flex items-center justify-center gap-4 bg-white py-2 rounded-lg border border-gray-200 max-w-sm mx-auto shadow-sm">
-                            <button onClick={() => navMonth(-1)} className="p-1 hover:bg-gray-100 rounded-md"><ChevronLeft size={20} /></button>
-                            <span className="font-bold w-40 text-center capitalize">
-                                {format(currentMonth, 'MMMM/yyyy', { locale: ptBR })}
-                            </span>
-                            <button onClick={() => navMonth(1)} className="p-1 hover:bg-gray-100 rounded-md"><ChevronRight size={20} /></button>
-                        </div>
+                    {/* TAB: DASHBOARD (KPIs) */}
+                    {activeTab === 'dashboard' && (
+                        <div className="space-y-6 animate-fade-in">
 
-                        {/* Filters Row */}
-                        <div className="flex flex-wrap items-center gap-3">
-                            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white cursor-pointer hover:border-gray-400">
-                                <option value="Todos">Todos</option>
-                                <option value="Receita">Receita</option>
-                                <option value="Despesa">Despesa</option>
-                            </select>
-
-                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white cursor-pointer hover:border-gray-400">
-                                <option value="Todos">Receita ou Despesa</option>
-                                <option value="Pendente">Pendente</option>
-                                <option value="Pago">Pago</option>
-                                <option value="Vencido">Vencido</option>
-                            </select>
-
-                            <div className="flex items-center gap-2 flex-1 min-w-[300px]">
-                                <span className="text-sm font-medium text-gray-600 ml-2">Filtrar:</span>
-                                <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white min-w-[150px]">
-                                    <option value="">Plano de Contas</option>
-                                    {accountPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
-                                <div className="relative flex-1">
-                                    <input
-                                        type="text" placeholder="Digite para Buscar"
-                                        value={searchInput}
-                                        onChange={(e) => setSearchInput(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && setSearchQuery(searchInput)}
-                                        className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:border-gray-900 outline-none"
-                                    />
-                                    <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                            {/* TOP 5 MASTER KPIs */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+                                    <div className="flex items-center justify-between opacity-80 mb-2"><span className="text-sm font-black uppercase tracking-wider">Receita (Hoje)</span><TrendingUp size={18} /></div>
+                                    <div className="text-3xl font-extrabold">{formatCurrency(dashboardMetrics.dailyRevenue)}</div>
                                 </div>
-                                <button onClick={() => setSearchQuery(searchInput)} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800">
-                                    BUSCAR
+                                <div className="bg-gradient-to-br from-rose-500 to-rose-700 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+                                    <div className="flex items-center justify-between opacity-80 mb-2"><span className="text-sm font-black uppercase tracking-wider">Despesas (Hoje)</span><TrendingDown size={18} /></div>
+                                    <div className="text-3xl font-extrabold">{formatCurrency(dashboardMetrics.dailyExpenses)}</div>
+                                </div>
+                                <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-5 shadow-sm relative group hover:shadow-md transition-all">
+                                    <div className="flex items-center justify-between text-gray-500 mb-2"><span className="text-sm font-bold uppercase">Fluxo de Caixa Líquido</span><Scale size={18} className="text-blue-500" /></div>
+                                    <div className={`text-2xl font-extrabold ${dashboardMetrics.netCashFlow >= 0 ? 'text-green-600' : 'text-red-500'}`}>{formatCurrency(dashboardMetrics.netCashFlow)}</div>
+                                    <div className="text-xs text-gray-400 mt-1">Receita Mensal - Despesas Mensais</div>
+                                </div>
+                                <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-5 shadow-sm relative group hover:shadow-md transition-all">
+                                    <div className="flex items-center justify-between text-gray-500 mb-2"><span className="text-sm font-bold uppercase">Lucro Bruto</span><DollarSign size={18} className="text-emerald-500" /></div>
+                                    <div className="text-2xl font-extrabold text-gray-900">{formatCurrency(dashboardMetrics.grossProfit)}</div>
+                                    <div className="text-xs text-gray-400 mt-1">Receita Mensal - CMV (Custo de Estoque)</div>
+                                </div>
+                                <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-lg relative group transition-all text-white">
+                                    <div className="flex items-center justify-between text-emerald-100 mb-2"><span className="text-sm font-bold uppercase">Lucro Líquido</span><BarChart2 size={18} className="text-white" /></div>
+                                    <div className="text-2xl font-extrabold text-white">{formatCurrency(dashboardMetrics.netProfit)}</div>
+                                    <div className="text-xs text-emerald-100 mt-1">Lucro Bruto - Despesas Operacionais</div>
+                                </div>
+                            </div>
+
+                            {/* MID SECTION: CHARTS AND INVENTORY */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><TrendingUp className="text-blue-500" /> Receitas vs Despesas (Mês)</h3>
+                                    <div className="h-72 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} dy={10} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} tickFormatter={(val) => `R$${val / 1000}k`} />
+                                                <Tooltip
+                                                    cursor={{ fill: '#F3F4F6' }}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                    formatter={(value: number) => formatCurrency(value)}
+                                                />
+                                                <Bar dataKey="Receitas" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                                <Bar dataKey="Despesas" fill="#F43F5E" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {/* Inventory & Margins Details */}
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                                        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Package className="text-orange-500" /> Ativos & Margens</h3>
+                                        <div className="space-y-5">
+                                            <div>
+                                                <div className="flex justify-between text-sm mb-1"><span className="text-gray-500 font-medium">Valor em Estoque (Custo)</span><span className="font-bold text-gray-900">{formatCurrency(inventoryValue)}</span></div>
+                                                <div className="w-full bg-gray-100 rounded-full h-2"><div className="bg-orange-500 h-2 rounded-full w-full"></div></div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between text-sm mb-1"><span className="text-gray-500 font-medium">Custo da Mercadoria Vendida (Mês)</span><span className="font-bold text-orange-600">{formatCurrency(dashboardMetrics.monthlyCOGS)}</span></div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between text-sm mb-1"><span className="text-gray-500 font-medium">Giro de Estoque (Mês)</span><span className="font-bold text-indigo-600">{dashboardMetrics.inventoryTurnover.toFixed(2)}x</span></div>
+                                            </div>
+                                            <div className="pt-4 border-t border-gray-100">
+                                                <div className="flex justify-between items-center"><span className="text-gray-800 font-bold">Margem Média de Serviços</span><span className="px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-sm rounded-lg">{dashboardMetrics.avgServiceMargin.toFixed(1)}%</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {/* BOTTOM SECTION: RANKINGS */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Top Products */}
+                                <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-6 shadow-sm">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><ShoppingBag className="text-blue-500" /> Produtos Mais Vendidos</h3>
+                                    {dashboardMetrics.bestSellingProducts.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {dashboardMetrics.bestSellingProducts.map((p, i) => (
+                                                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">{i + 1}</div>
+                                                        <span className="font-medium text-sm truncate max-w-[200px]">{p.name}</span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="font-bold text-gray-900 text-sm">{p.qty} un</div>
+                                                        <div className="text-xs text-gray-500">{formatCurrency(p.revenue)}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-xl">Sem vendas no período</div>
+                                    )}
+                                </div>
+
+                                {/* Top Services */}
+                                <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-6 shadow-sm">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Wrench className="text-purple-500" /> Serviços Mais Lucrativos</h3>
+                                    {dashboardMetrics.mostProfitableServices.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {dashboardMetrics.mostProfitableServices.map((s, i) => (
+                                                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">{i + 1}</div>
+                                                        <span className="font-medium text-sm truncate max-w-[200px]">{s.name}</span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="font-bold text-emerald-600 text-sm">Lucro: {formatCurrency(s.sumProfit)}</div>
+                                                        <div className="text-xs text-gray-500">{s.count} vezes realizado</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-xl">Sem serviços no período</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB: LANÇAMENTOS TRANSACTIONS TABLE */}
+                    {activeTab === 'transactions' && (
+                        <div className="animate-fade-in space-y-4">
+                            <div className="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                <div className="flex gap-3">
+                                    <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="border border-gray-300 hover:border-indigo-400 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-100 transition-all">
+                                        <option value="Todos">Tipo: Todos</option>
+                                        <option value="Receita">Receita</option>
+                                        <option value="Despesa">Despesa</option>
+                                    </select>
+                                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-gray-300 hover:border-indigo-400 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-100 transition-all">
+                                        <option value="Todos">Status: Todos</option>
+                                        <option value="Pago">Pago</option>
+                                        <option value="Pendente">Pendente</option>
+                                        <option value="Vencido">Vencido</option>
+                                    </select>
+                                    <div className="relative">
+                                        <input
+                                            type="text" placeholder="Buscar lançamento..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-[250px] border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:border-indigo-500 outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
+                                        />
+                                        <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                                    </div>
+                                </div>
+                                <button className="bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-gray-800 transition-all flex items-center gap-2">
+                                    <Plus size={18} /> Adicionar Lançamento
                                 </button>
                             </div>
 
-                            <button onClick={clearFilters} className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
-                                LIMPAR FILTROS
-                            </button>
-                            <button className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center gap-2 shadow-sm shadow-green-200">
-                                <span>Exportar</span>
-                                <Search size={16} /> {/* Generic icon for export button as requested "with export icon" */}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Dash Cards (5 Cards) */}
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                        {/* Receitas */}
-                        <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
-                                    <TrendingUp size={16} />
-                                </div>
-                                <span className="text-sm font-medium">Receitas</span>
-                                <Info size={14} className="text-gray-400 ml-auto" />
-                            </div>
-                            <div className="text-xl font-bold">{formatCurrency(summary.receitas)}</div>
-                        </div>
-
-                        {/* Crediários */}
-                        <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                                    <DollarSign size={16} />
-                                </div>
-                                <span className="text-sm font-medium">Crediários</span>
-                                <Info size={14} className="text-gray-400 ml-auto" />
-                            </div>
-                            <div className="text-xl font-bold">{formatCurrency(summary.crediarios)}</div>
-                        </div>
-
-                        {/* Despesas */}
-                        <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-                                    <TrendingDown size={16} />
-                                </div>
-                                <span className="text-sm font-medium">Despesas</span>
-                                <Info size={14} className="text-gray-400 ml-auto" />
-                            </div>
-                            <div className="text-xl font-bold">{formatCurrency(summary.despesas)}</div>
-                        </div>
-
-                        {/* Taxas */}
-                        <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
-                                    <Percent size={16} />
-                                </div>
-                                <span className="text-sm font-medium">Taxas</span>
-                                <Info size={14} className="text-gray-400 ml-auto" />
-                            </div>
-                            <div className="text-xl font-bold">{formatCurrency(summary.taxas)}</div>
-                        </div>
-
-                        {/* Saldo */}
-                        <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
-                                    <Scale size={16} />
-                                </div>
-                                <span className="text-sm font-medium">Saldo</span>
-                                <Info size={14} className="text-gray-400 ml-auto" />
-                            </div>
-                            <div className="text-xl font-bold">{formatCurrency(summary.saldo)}</div>
-                        </div>
-                    </div>
-
-                    {/* Table Area */}
-                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mt-6">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-gray-100/50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                                        <th className="py-3 px-4">Vencimento</th>
-                                        <th className="py-3 px-4">Pagamento</th>
-                                        <th className="py-3 px-4">Criado por</th>
-                                        <th className="py-3 px-4">Plano de Contas</th>
-                                        <th className="py-3 px-4">Descrição</th>
-                                        <th className="py-3 px-4">Status</th>
-                                        <th className="py-3 px-4 hidden md:table-cell">Tipo</th>
-                                        <th className="py-3 px-4 text-right">Taxas</th>
-                                        <th className="py-3 px-4 text-right">Valor</th>
-                                        <th className="py-3 px-4 text-center">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 text-sm">
-                                    {paginatedTransactions.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={10} className="py-8 text-center text-gray-500">Nenhum registro encontrado.</td>
-                                        </tr>
-                                    ) : paginatedTransactions.map((t) => {
-                                        const status = getStatus(t);
-                                        const statusColors = {
-                                            'Pendente': 'bg-yellow-100 text-yellow-700',
-                                            'Pago': 'bg-green-100 text-green-700',
-                                            'Vencido': 'bg-red-100 text-red-700'
-                                        };
-                                        const classif = getPlanClassification(t.accountPlanId);
-                                        const typeColors = classif === 'Fixa' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
-
-                                        return (
-                                            <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="py-3 px-4 whitespace-nowrap text-gray-700">{formatDate(t.dueDate)}</td>
-                                                <td className="py-3 px-4 whitespace-nowrap text-gray-500">{formatDate(t.paidAt) || '—'}</td>
-                                                <td className="py-3 px-4 text-gray-600">{t.createdBy}</td>
-                                                <td className="py-3 px-4 font-medium text-gray-800">{getPlanName(t.accountPlanId)}</td>
-                                                <td className="py-3 px-4">
-                                                    <div className="font-medium text-gray-900">{t.description}</div>
-                                                    <div className="text-xs text-gray-500">{t.clientSupplier}</div>
-                                                </td>
-                                                <td className="py-3 px-4">
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[status]}`}>
-                                                        {status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-4 hidden md:table-cell">
-                                                    {classif && (
-                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${typeColors}`}>
-                                                            {classif}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="py-3 px-4 text-right text-gray-500 whitespace-nowrap">
-                                                    {formatCurrency(t.fees || 0)}
-                                                </td>
-                                                <td className={`py-3 px-4 text-right font-bold whitespace-nowrap ${t.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {formatCurrency(t.value)}
-                                                </td>
-                                                <td className="py-3 px-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button onClick={() => { setEditingTransaction(t); setShowTransactionModal(true); }} className="text-gray-400 hover:text-blue-600 p-1 bg-gray-100 rounded-md hover:bg-blue-50 transition-colors" title="Editar">
-                                                            <Edit2 size={16} />
-                                                        </button>
-                                                        <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-600 p-1 bg-gray-100 rounded-md hover:bg-red-50 transition-colors" title="Excluir">
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                        {t.paidAt === null && (
-                                                            <button onClick={() => handleMarkAsPaid(t.id)} className="text-gray-400 hover:text-green-600 p-1 bg-gray-100 rounded-md hover:bg-green-50 transition-colors" title="Marcar como Pago">
-                                                                <CheckCircle size={16} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
+                            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                                <th className="py-4 px-6">Data</th>
+                                                <th className="py-4 px-6">Descrição / Origem</th>
+                                                <th className="py-4 px-6">Categoria</th>
+                                                <th className="py-4 px-6">Status</th>
+                                                <th className="py-4 px-6 text-right">CMV Associado</th>
+                                                <th className="py-4 px-6 text-right">Valor Final</th>
+                                                <th className="py-4 px-6 text-right">Lucro</th>
                                             </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Footer Table Area */}
-                        <div className="bg-gray-50 border-t border-gray-200 px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <div className="text-sm font-medium text-gray-600 flex items-center gap-4 order-2 sm:order-1">
-                                <div>Total de registros: <span className="text-gray-900">{filteredTransactions.length}</span></div>
-                                <div className="flex items-center gap-2">
-                                    <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="p-1 hover:bg-gray-200 rounded disabled:opacity-50"><ChevronLeft size={16} /></button>
-                                    <span>{currentPage} de {totalPages}</span>
-                                    <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} className="p-1 hover:bg-gray-200 rounded disabled:opacity-50"><ChevronRight size={16} /></button>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 text-sm">
+                                            {paginatedTransactions.length === 0 ? (
+                                                <tr><td colSpan={7} className="py-12 text-center text-gray-400">Nenhum lançamento no período.</td></tr>
+                                            ) : paginatedTransactions.map((t) => (
+                                                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="py-3 px-6 whitespace-nowrap text-gray-600 font-medium">{formatDate(t.date)}</td>
+                                                    <td className="py-3 px-6">
+                                                        <div className="font-bold text-gray-900">{t.description}</div>
+                                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mt-0.5">{t.source} • {t.createdBy}</div>
+                                                    </td>
+                                                    <td className="py-3 px-6"><span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold border border-gray-200">{t.category}</span></td>
+                                                    <td className="py-3 px-6">
+                                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider border ${t.status === 'Pago' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : t.status === 'Vencido' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                                            {t.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-6 text-right text-gray-400 whitespace-nowrap">
+                                                        {t.cogs > 0 ? <span className="text-orange-500 font-medium">-{formatCurrency(t.cogs)}</span> : '—'}
+                                                    </td>
+                                                    <td className="py-3 px-6 text-right font-black whitespace-nowrap text-base text-gray-900">
+                                                        {t.type === 'Receita' ? '+ ' : '- '}{formatCurrency(t.amount)}
+                                                    </td>
+                                                    <td className="py-3 px-6 text-right font-bold whitespace-nowrap text-emerald-600">
+                                                        {t.type === 'Receita' ? formatCurrency(t.amount - (t.cogs || 0)) : '—'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {/* Footer */}
+                                <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <div className="text-sm font-medium text-gray-500 flex items-center gap-4">
+                                        <div>Total registros: <span className="text-gray-900 font-bold">{unifiedTransactions.length}</span></div>
+                                        <div className="flex items-center gap-2">
+                                            <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="p-1.5 hover:bg-gray-200 rounded-lg disabled:opacity-50"><ChevronLeft size={16} /></button>
+                                            <span className="text-xs bg-white border border-gray-200 px-3 py-1 rounded-md">{currentPage} de {totalPages}</span>
+                                            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} className="p-1.5 hover:bg-gray-200 rounded-lg disabled:opacity-50"><ChevronRight size={16} /></button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="flex items-center gap-6 order-1 sm:order-2">
-                                <div className="text-sm text-gray-600">
-                                    Total em Taxas: <span className="font-bold text-gray-900">{formatCurrency(filteredTransactions.reduce((acc, t) => acc + (t.fees || 0), 0))}</span>
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                    Valor Total: <span className="font-bold text-gray-900">
-                                        {formatCurrency(filteredTransactions.reduce((acc, t) => acc + (t.type === 'Receita' ? t.value : -t.value), 0))}
-                                    </span>
-                                </div>
-                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* TAB: CREDIARIOS */}
+                    {activeTab === 'installments' && (
+                        <div className="animate-fade-in"><CreditDashboard /></div>
+                    )}
                 </>
-            ) : (
-                <CreditDashboard />
-            )}
-
-            {/* Modals */}
-            {showTransactionModal && <TransactionModal />}
-            {showAccountPlanModal && <AccountPlanModal />}
-
-            {/* Animation Overlay */}
-            {animation && (
-                <div key={animation.id} className="fixed inset-0 z-[200] pointer-events-none flex items-center justify-center">
-                    <div className={`flex flex-col items-center justify-center
-                        ${animation.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}
-                        style={{
-                            animation: 'finance-fade-out-up 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards'
-                        }}
-                    >
-                        <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-2xl ${animation.type === 'Receita' ? 'bg-green-100 shadow-green-200' : 'bg-red-100 shadow-red-200'}`}>
-                            {animation.type === 'Receita' ? <TrendingUp size={48} /> : <TrendingDown size={48} />}
-                        </div>
-                        <span className="text-5xl font-extrabold shadow-xl bg-white/90 px-6 py-3 rounded-full ring-1 ring-black/5 backdrop-blur-md">
-                            {animation.type === 'Receita' ? '+' : '-'} {formatCurrency(animation.amount)}
-                        </span>
-                        <span className="text-xl font-bold bg-white/90 px-6 py-2 rounded-full mt-3 ring-1 ring-black/5 backdrop-blur-md shadow-lg text-gray-700">
-                            {animation.type === 'Receita' ? 'Receita registrada com sucesso!' : 'Despesa registrada!'}
-                        </span>
-                    </div>
-                    <style>{`
-                        @keyframes finance-fade-out-up {
-                            0% { opacity: 0; transform: translateY(80px) scale(0.6); }
-                            15% { opacity: 1; transform: translateY(0) scale(1.15); }
-                            30% { opacity: 1; transform: translateY(0) scale(1); }
-                            70% { opacity: 1; transform: translateY(-30px) scale(1); }
-                            100% { opacity: 0; transform: translateY(-150px) scale(0.8); }
-                        }
-                    `}</style>
-                </div>
             )}
         </div>
     );

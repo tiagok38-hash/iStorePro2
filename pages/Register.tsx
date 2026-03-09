@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SpinnerIcon, EyeIcon, EyeSlashIcon, UserCircleIcon } from '../components/icons.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { supabase } from '../supabaseClient.ts';
 
 const Register: React.FC = () => {
     const [name, setName] = useState('');
@@ -28,13 +29,19 @@ const Register: React.FC = () => {
         setLoading(true);
 
         try {
-            await Promise.race([
-                register(name, email, password),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Tempo limite excedido. Verifique sua conexão.')), 15000))
-            ]);
+            await register(name, email, password);
 
-            setIsExiting(true);
-            showToast('Conta criada com sucesso!', 'success');
+            // Verificar se o usuário foi autenticado imediatamente ou se precisa confirmar e-mail
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+                setIsExiting(true);
+                showToast('Conta criada com sucesso!', 'success');
+            } else {
+                setLoading(false);
+                showToast('Conta criada! Verifique seu e-mail para confirmar o acesso.', 'success', 10000);
+                navigate('/login');
+            }
 
         } catch (error: any) {
             setLoading(false);

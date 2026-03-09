@@ -16,8 +16,8 @@ import { formatCurrency, formatPhone } from '../utils/formatters.ts';
 export { formatCurrency, formatPhone };
 
 // --- Auth, Users, Permissions (imported from dedicated service and re-exported) ---
-import { resolvePermissions, login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile } from './authService.ts';
-export { login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile };
+import { resolvePermissions, login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile, sendPasswordResetEmail, updatePassword, resendConfirmationEmail } from './authService.ts';
+export { login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile, sendPasswordResetEmail, updatePassword, resendConfirmationEmail };
 
 // --- Audit (imported from dedicated service and re-exported) ---
 import { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs } from './auditService.ts';

@@ -36,6 +36,8 @@ const Vendas = lazyWithRetry(() => import('./pages/Vendas.tsx'), 'Vendas');
 const Orcamentos = lazyWithRetry(() => import('./pages/Orcamentos.tsx'), 'Orcamentos');
 const Login = lazyWithRetry(() => import('./pages/Login.tsx'), 'Login');
 const Register = lazyWithRetry(() => import('./pages/Register.tsx'), 'Register');
+const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword.tsx'), 'ForgotPassword');
+const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword.tsx'), 'ResetPassword');
 const ServiceOrderLayout = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderLayout.tsx'), 'SOLayout');
 const ServiceOrderDashboard = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderDashboard.tsx'), 'SODashboard');
 const ServiceOrderList = lazyWithRetry(() => import('./pages/ServiceOrders/ServiceOrderList.tsx'), 'SOList');
@@ -105,6 +107,8 @@ const App: React.FC = () => {
                                     <Route element={<AuthLayout />}>
                                         <Route path="/login" element={<Login />} />
                                         <Route path="/register" element={<Register />} />
+                                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                                        <Route path="/reset-password" element={<ResetPassword />} />
                                     </Route>
 
                                     {/* Protected App Routes */}

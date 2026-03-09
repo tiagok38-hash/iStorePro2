@@ -29,11 +29,20 @@ export const login = async (email: string, password_param: string): Promise<User
     });
 
     if (authError) {
+        if (authError.message.includes('Email not confirmed')) {
+            throw new Error('Seu e-mail ainda não foi confirmado. Por favor, verifique sua caixa de entrada e clique no link de confirmação.');
+        }
         console.error('authService: Auth error:', authError);
         throw new Error(authError.message);
     }
 
     if (!authData.user) throw new Error('Usuário não encontrado.');
+
+    // Garantir que o email está confirmado se a configuração estiver ativa no Supabase
+    if (!authData.user.email_confirmed_at) {
+        // Enviar novamente o email de confirmação se necessário ou apenas avisar
+        throw new Error('Seu e-mail ainda não foi confirmado. Por favor, verifique sua caixa de entrada.');
+    }
 
     const { data: profile, error: profileError } = await supabase
         .from('users')
@@ -297,6 +306,33 @@ export const checkAdminExists = async (): Promise<boolean> => {
 
     if (error) return false;
     return (count || 0) > 0;
+};
+
+// --- PASSWORD RECOVERY ---
+
+export const sendPasswordResetEmail = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+};
+
+export const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+        password: newPassword
+    });
+    if (error) throw error;
+};
+
+export const resendConfirmationEmail = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+            emailRedirectTo: `${window.location.origin}/login`,
+        },
+    });
+    if (error) throw error;
 };
 
 // --- PERMISSIONS ---

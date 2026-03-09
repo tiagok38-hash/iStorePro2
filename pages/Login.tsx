@@ -63,7 +63,12 @@ const Login: React.FC = () => {
                         />
                     </div>
                     <div>
-                        <label htmlFor="password-login" className="block text-sm font-medium text-primary mb-1">Senha</label>
+                        <div className="flex justify-between items-center mb-1">
+                            <label htmlFor="password-login" className="block text-sm font-medium text-primary">Senha</label>
+                            <Link to="/forgot-password" size="sm" className="hidden text-xs text-accent hover:underline font-medium">
+                                Esqueci minha senha
+                            </Link>
+                        </div>
                         <div className="relative">
                             <input
                                 id="password-login"
@@ -90,6 +95,28 @@ const Login: React.FC = () => {
                     >
                         {(loading || isExiting) ? <SpinnerIcon className="h-5 w-5" /> : 'Entrar'}
                     </button>
+
+                    {/* Link para reenvio de confirmação se o erro for e-mail não confirmado */}
+                    {email && (
+                        <div className="text-center mt-2">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        const { resendConfirmationEmail } = await import('../services/mockApi');
+                                        await resendConfirmationEmail(email);
+                                        showToast('E-mail de confirmação reenviado!', 'success');
+                                    } catch (err: any) {
+                                        showToast(err.message || 'Erro ao reenviar e-mail.', 'error');
+                                    }
+                                }}
+                                className="text-xs text-accent hover:underline font-medium"
+                            >
+                                Não recebeu o e-mail? Reenviar confirmação
+                            </button>
+                        </div>
+                    )}
+
                     <div className="text-center mt-4 opacity-0 select-none">
                         <span className="text-sm text-muted">Ainda não tem uma conta? </span>
                         <Link to="/register" className="text-sm text-accent hover:underline font-medium focus:outline-none focus:underline hover:opacity-0 focus:opacity-0">
