@@ -61,10 +61,11 @@ const ServiceOrderCustomers: React.FC = () => {
 
     const filteredData = useMemo(() => {
         const data = activeTab === 'customers' ? customers : suppliers;
+        const sl = searchTerm.toLowerCase();
         let filtered = data.filter(item =>
-            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.phone.includes(searchTerm) ||
-            item.email.toLowerCase().includes(searchTerm.toLowerCase())
+            (item.name || '').toLowerCase().includes(sl) ||
+            (item.phone || '').includes(searchTerm) ||
+            (item.email || '').toLowerCase().includes(sl)
         );
 
         if (showQuickOSOnly && activeTab === 'customers') {
