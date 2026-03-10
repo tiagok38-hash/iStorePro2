@@ -22,7 +22,8 @@ import {
     Zap,
     DollarSign,
     PencilLine,
-    ShieldCheck
+    ShieldCheck,
+    Smartphone
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
@@ -351,10 +352,18 @@ const ServiceOrderForm: React.FC = () => {
         (c.phone && c.phone.includes(customerSearch))
     ).slice(0, 5); // Limit results
 
-    const handleSelectCustomer = (customer: Customer) => {
+    const handleSelectCustomer = (customer: Customer, clearDevice: boolean = true) => {
         setSelectedCustomer(customer);
         setCustomerSearch(customer.name);
         setShowCustomerResults(false);
+        // Limpa aparelho selecionado ao trocar de cliente
+        if (clearDevice) {
+            setCustomerDeviceId('');
+            setDeviceModel('');
+            setImei('');
+            setSerialNumber('');
+            setDeviceSearch('');
+        }
     };
 
     const filteredDevices = customerDevices.filter(d => {
@@ -370,18 +379,35 @@ const ServiceOrderForm: React.FC = () => {
         return matchCustomer && matchSearch;
     }).slice(0, 5);
 
-    const handleSelectDevice = (device: CustomerDevice) => {
+    // Função auxiliar para montar descrição completa do aparelho
+    const buildDeviceFullLabel = (device: CustomerDevice): string => {
+        const parts = [
+            device.brand && device.brand !== device.model ? device.brand : '',
+            device.model || '',
+            // Evita duplicar se storage/color já estiverem no model
+            device.storage && !device.model?.includes(device.storage) ? device.storage : '',
+            device.color && !device.model?.includes(device.color) ? device.color : ''
+        ].filter(Boolean);
+        return parts.join(' ').trim().replace(/\s+/g, ' ');
+    };
+
+    const handleSelectDevice = (device: CustomerDevice, forceSetCustomer: boolean = false, knownCustomers?: Customer[]) => {
+        const fullLabel = buildDeviceFullLabel(device);
         setCustomerDeviceId(device.id);
-        setDeviceModel(device.model);
+        setDeviceModel(fullLabel || device.model || device.brand || '');
         setImei(device.imei || '');
         setSerialNumber(device.serialNumber || '');
-        setDeviceSearch(device.model);
+        setDeviceSearch(fullLabel || device.model || '');
         setShowDeviceResults(false);
 
-        // Se ainda não tiver cliente selecionado, auto-selecionar o dono do aparelho
-        if (!selectedCustomer) {
-            const owner = customers.find(c => c.id === device.customerId);
-            if (owner) handleSelectCustomer(owner);
+        // Se ainda não tiver cliente selecionado ou forçado, auto-selecionar o dono do aparelho
+        if (!selectedCustomer || forceSetCustomer) {
+            const listToSearch = knownCustomers || customers;
+            const owner = listToSearch.find(c => c.id === device.customerId);
+            if (owner) {
+                // Passa false para NÃO limpar o aparelho recém-selecionado
+                handleSelectCustomer(owner, false);
+            }
         }
     };
 
@@ -821,8 +847,26 @@ const ServiceOrderForm: React.FC = () => {
                                                 }}
                                                 onFocus={() => setShowCustomerResults(true)}
                                                 disabled={isEditing}
-                                                className={`w-full h-10 pl-9 pr-4 bg-red-50 border border-red-200 rounded-xl text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all ${isEditing ? 'opacity-70' : ''}`}
+                                                className={`w-full h-10 pl-9 pr-10 bg-red-50 border border-red-200 rounded-xl text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all ${isEditing ? 'opacity-70' : ''}`}
                                             />
+                                            {selectedCustomer && !isEditing && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCustomer(null);
+                                                        setCustomerSearch('');
+                                                        setCustomerDeviceId('');
+                                                        setDeviceModel('');
+                                                        setImei('');
+                                                        setSerialNumber('');
+                                                        setDeviceSearch('');
+                                                    }}
+                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            )}
                                             {showCustomerResults && customerSearch && !isEditing && (
                                                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
                                                     {filteredCustomers.length > 0 ? (
@@ -910,6 +954,84 @@ const ServiceOrderForm: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* === APARELHOS DO CLIENTE SELECIONADO === */}
+                                {selectedCustomer && !isEditing && !customerDeviceId && (() => {
+                                    const clientDevices = customerDevices.filter(d => d.customerId === selectedCustomer.id);
+                                    if (clientDevices.length === 0) return null;
+                                    return (
+                                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Smartphone size={13} className="text-accent" />
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                                                    Aparelhos de {selectedCustomer.name.split(' ')[0]} — toque para usar na OS
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-2 flex-wrap">
+                                                {clientDevices.map(d => {
+                                                    const isSelected = customerDeviceId === d.id;
+                                                    const fullLabel = buildDeviceFullLabel(d);
+                                                    return (
+                                                        <button
+                                                            key={d.id}
+                                                            type="button"
+                                                            onClick={() => handleSelectDevice(d)}
+                                                            className={`flex items-start gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 min-w-[220px] max-w-[380px] ${
+                                                                isSelected
+                                                                    ? 'bg-accent border-accent text-white shadow-md shadow-accent/30'
+                                                                    : 'bg-white border-gray-200 text-gray-700 hover:border-accent/50 hover:bg-accent/5 shadow-sm'
+                                                            }`}
+                                                        >
+                                                            <div className={`p-2 rounded-lg flex-shrink-0 mt-0.5 ${
+                                                                isSelected ? 'bg-white/20' : 'bg-gray-100'
+                                                            }`}>
+                                                                <Smartphone size={16} className={isSelected ? 'text-white' : 'text-accent'} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className={`text-sm font-black leading-snug mb-1 ${
+                                                                    isSelected ? 'text-white' : 'text-primary'
+                                                                }`}>
+                                                                    {fullLabel || 'Aparelho não identificado'}
+                                                                </div>
+                                                                {d.imei && (
+                                                                    <div className={`text-[11px] font-mono leading-tight ${
+                                                                        isSelected ? 'text-white/80' : 'text-gray-500'
+                                                                    }`}>
+                                                                        IMEI: {d.imei}
+                                                                    </div>
+                                                                )}
+                                                                {d.imei2 && (
+                                                                    <div className={`text-[11px] font-mono leading-tight ${
+                                                                        isSelected ? 'text-white/80' : 'text-gray-500'
+                                                                    }`}>
+                                                                        IMEI 2: {d.imei2}
+                                                                    </div>
+                                                                )}
+                                                                {d.serialNumber && (
+                                                                    <div className={`text-[11px] font-mono leading-tight ${
+                                                                        isSelected ? 'text-white/80' : 'text-gray-500'
+                                                                    }`}>
+                                                                        S/N: {d.serialNumber}
+                                                                    </div>
+                                                                )}
+                                                                {!d.imei && !d.imei2 && !d.serialNumber && (
+                                                                    <div className={`text-[11px] italic leading-tight ${
+                                                                        isSelected ? 'text-white/60' : 'text-gray-400'
+                                                                    }`}>
+                                                                        Sem IMEI / S/N cadastrado
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {isSelected && (
+                                                                <CheckCircle2 size={16} className="text-white flex-shrink-0 mt-0.5" />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
                                         <div className="flex justify-between items-center mb-2">
@@ -928,8 +1050,24 @@ const ServiceOrderForm: React.FC = () => {
                                                             setShowDeviceResults(true);
                                                         }}
                                                         onFocus={() => setShowDeviceResults(true)}
-                                                        className="w-full h-10 pl-10 pr-4 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-sm"
+                                                        className="w-full h-10 pl-10 pr-10 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-sm"
                                                     />
+                                                    {customerDeviceId && !isEditing && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCustomerDeviceId('');
+                                                                setDeviceModel('');
+                                                                setImei('');
+                                                                setSerialNumber('');
+                                                                setDeviceSearch('');
+                                                            }}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    )}
                                                     {showDeviceResults && deviceSearch && (
                                                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
                                                             {filteredDevices.length > 0 ? (
@@ -1487,7 +1625,14 @@ const ServiceOrderForm: React.FC = () => {
                             try {
                                 const savedDevice = await addCustomerDevice(device);
                                 setCustomerDevices([...customerDevices, savedDevice]);
-                                handleSelectDevice(savedDevice);
+                                
+                                // Fetch latest customers directly since a new one could have been created in the modal
+                                const updatedCustomers = await getCustomers();
+                                setCustomers(updatedCustomers);
+                                
+                                // Força a atualização do cliente e do aparelho recém criados/selecionados
+                                handleSelectDevice(savedDevice, true, updatedCustomers);
+                                
                                 toast.success("Aparelho cadastrado e vinculado!");
                             } catch (err) {
                                 toast.error("Erro ao salvar aparelho.");

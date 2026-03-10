@@ -582,25 +582,26 @@ const CustomersAndSuppliers: React.FC = () => {
 
     const customerStats = useMemo(() => {
         const totals = new Map<string, number>();
+        // Usa credit_used do cadastro (sincronizado após cada baixa de parcela)
         const debts = new Map<string, number>();
 
         allSales.forEach(sale => {
             if (sale.status !== 'Cancelada') {
                 const current = totals.get(sale.customerId) || 0;
                 totals.set(sale.customerId, current + sale.total);
+            }
+        });
 
-                const debt = sale.payments
-                    .filter(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória')
-                    .reduce((sum, p) => sum + p.value, 0);
-                if (debt > 0) {
-                    const currentDebt = debts.get(sale.customerId) || 0;
-                    debts.set(sale.customerId, currentDebt + debt);
-                }
+        // Popula debts a partir do credit_used do cadastro do cliente
+        customers.forEach(c => {
+            const used = Number(c.credit_used || 0);
+            if (used > 0) {
+                debts.set(c.id, used);
             }
         });
 
         return { totals, debts };
-    }, [allSales]);
+    }, [allSales, customers]);
 
     // --- Customer Logic ---
     const filteredCustomers = useMemo(() => {
