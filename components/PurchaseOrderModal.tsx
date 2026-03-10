@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PurchaseOrder, PurchaseItem, Supplier, ProductCondition, Product, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation, Customer, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter } from '../types.ts';
 import { addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, formatCurrency, findOrCreateSupplierFromCustomer, getProductConditions, getStorageLocations, getWarranties, getReceiptTerms, addOsPurchaseOrder, launchOsPurchaseOrder, OsPurchaseOrderItem } from '../services/mockApi.ts';
+import { addBrand, addCategory, addProductModel } from '../services/parametersService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { XCircleIcon, TrashIcon, PlusIcon, SpinnerIcon, BarcodeIcon, PrinterIcon, ArrowRightCircleIcon, CheckIcon, ChevronLeftIcon, ArchiveBoxIcon } from './icons.tsx';
@@ -65,6 +66,23 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     const [isCustomerPurchase, setIsCustomerPurchase] = useState(false);
     const [currentGradeId, setCurrentGradeId] = useState('');
     const [currentValueId, setCurrentValueId] = useState('');
+    const [isCreatingBrand, setIsCreatingBrand] = useState(false);
+    const [newBrandName, setNewBrandName] = useState('');
+
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    const [isCreatingModel, setIsCreatingModel] = useState(false);
+    const [newModelName, setNewModelName] = useState('');
+
+    const [localBrands, setLocalBrands] = useState<Brand[]>(brands);
+    const [localCategories, setLocalCategories] = useState<Category[]>(categories);
+    const [localModels, setLocalModels] = useState<ProductModel[]>(productModels);
+
+    useEffect(() => { setLocalBrands(brands); }, [brands]);
+    useEffect(() => { setLocalCategories(categories); }, [categories]);
+    useEffect(() => { setLocalModels(productModels); }, [productModels]);
+
     const [isMinimumStockEnabled, setIsMinimumStockEnabled] = useState(false);
     const [showVariations, setShowVariations] = useState(false);
 
@@ -700,15 +718,76 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
     const filteredCategories = useMemo(() => {
         if (!currentItem.productDetails?.brand) return [];
-        return categories.filter(c => c.brandId === currentItem.productDetails?.brand);
-    }, [categories, currentItem.productDetails?.brand]);
+        return localCategories.filter(c => c.brandId === currentItem.productDetails?.brand);
+    }, [localCategories, currentItem.productDetails?.brand]);
 
     const filteredModels = useMemo(() => {
         if (!currentItem.productDetails?.category) return [];
-        return productModels
+        return localModels
             .filter(m => m.categoryId === currentItem.productDetails?.category)
             .sort((a, b) => a.name.localeCompare(b.name));
-    }, [productModels, currentItem.productDetails?.category]);
+    }, [localModels, currentItem.productDetails?.category]);
+
+    const handleSaveBrand = async () => {
+        if (!newBrandName.trim()) return;
+        try {
+            const newBrand = await addBrand({ name: newBrandName.trim() });
+            const brandToAdd = { id: String(newBrand.id), name: newBrandName.trim(), description: '' };
+            setLocalBrands(prev => [...prev, brandToAdd]);
+            setCurrentItem(prev => ({
+                ...prev,
+                productDetails: { ...prev.productDetails!, brand: brandToAdd.id, category: '', model: '' }
+            }));
+            setIsCreatingBrand(false);
+            setNewBrandName('');
+            showToast('Marca cadastrada com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar marca', 'error');
+        }
+    };
+
+    const handleSaveCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        const currentBrandId = currentItem.productDetails?.brand;
+        if (!currentBrandId) return;
+        try {
+            const newCat = await addCategory({ name: newCategoryName.trim(), brandId: currentBrandId });
+            const catToAdd = { id: String(newCat.id), name: newCategoryName.trim(), description: '', brandId: newCat.brand_id || currentBrandId };
+            setLocalCategories(prev => [...prev, catToAdd]);
+            setCurrentItem(prev => ({
+                ...prev,
+                productDetails: { ...prev.productDetails!, category: catToAdd.id, model: '' }
+            }));
+            setIsCreatingCategory(false);
+            setNewCategoryName('');
+            showToast('Categoria cadastrada com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar categoria', 'error');
+        }
+    };
+
+    const handleSaveModel = async () => {
+        if (!newModelName.trim()) return;
+        const currentCatId = currentItem.productDetails?.category;
+        if (!currentCatId) return;
+        try {
+            const newMod = await addProductModel({ name: newModelName.trim(), categoryId: currentCatId });
+            const modToAdd = { id: String(newMod.id), name: newModelName.trim(), description: '', categoryId: newMod.category_id || currentCatId };
+            setLocalModels(prev => [...prev, modToAdd]);
+            setCurrentItem(prev => ({
+                ...prev,
+                productDetails: { ...prev.productDetails!, model: modToAdd.id }
+            }));
+            setIsCreatingModel(false);
+            setNewModelName('');
+            showToast('Modelo cadastrado com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar modelo', 'error');
+        }
+    };
 
     const availableAppleModels = useMemo(() => {
         const category = currentItem.productDetails?.category;
@@ -983,19 +1062,154 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     ) : (
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div><label className={labelClasses}>Marca*</label><select value={currentItem.productDetails?.brand || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, brand: val, category: '', model: '' } })); }} className={`${inputClasses} h-11`}><option value="">Selecione</option>{brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-                                <div><label className={labelClasses}>Categoria*</label><select value={currentItem.productDetails?.category || ''} onChange={e => { const val = e.target.value; setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, category: val, model: '' } })); }} className={`${inputClasses} h-11`} disabled={!currentItem.productDetails?.brand}><option value="">Selecione</option>{filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                                <div>
+                                    <label className={labelClasses}>Marca*</label>
+                                    {isCreatingBrand ? (
+                                        <div className="flex items-center gap-2 h-11">
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={newBrandName}
+                                                onChange={e => setNewBrandName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleSaveBrand();
+                                                    } else if (e.key === 'Escape') {
+                                                        e.preventDefault();
+                                                        setIsCreatingBrand(false);
+                                                        setNewBrandName('');
+                                                    }
+                                                }}
+                                                className={`${inputClasses} flex-1 m-0 h-full`}
+                                                placeholder="Nova marca..."
+                                            />
+                                            <button type="button" onClick={handleSaveBrand} className="h-full w-11 bg-green-500 text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors">
+                                                <CheckIcon className="h-5 w-5" />
+                                            </button>
+                                            <button type="button" onClick={() => { setIsCreatingBrand(false); setNewBrandName(''); }} className="h-full w-11 bg-red-500 text-white rounded-lg flex items-center justify-center hover:bg-red-600 transition-colors">
+                                                <XCircleIcon className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            value={currentItem.productDetails?.brand || ''} 
+                                            onChange={e => { 
+                                                const val = e.target.value; 
+                                                if (val === 'NEW_BRAND') {
+                                                    setIsCreatingBrand(true);
+                                                } else {
+                                                    setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, brand: val, category: '', model: '' } })); 
+                                                }
+                                            }} 
+                                            className={`${inputClasses} h-11`}
+                                        >
+                                            <option value="">Selecione</option>
+                                            <option value="NEW_BRAND" className="font-bold text-blue-600 bg-blue-50">+ Cadastrar Nova...</option>
+                                            {localBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                        </select>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className={labelClasses}>Categoria*</label>
+                                    {isCreatingCategory ? (
+                                        <div className="flex items-center gap-2 h-11">
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={newCategoryName}
+                                                onChange={e => setNewCategoryName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleSaveCategory();
+                                                    } else if (e.key === 'Escape') {
+                                                        e.preventDefault();
+                                                        setIsCreatingCategory(false);
+                                                        setNewCategoryName('');
+                                                    }
+                                                }}
+                                                className={`${inputClasses} flex-1 m-0 h-full`}
+                                                placeholder="Nova categoria..."
+                                            />
+                                            <button type="button" onClick={handleSaveCategory} className="h-full w-11 bg-green-500 text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors">
+                                                <CheckIcon className="h-5 w-5" />
+                                            </button>
+                                            <button type="button" onClick={() => { setIsCreatingCategory(false); setNewCategoryName(''); }} className="h-full w-11 bg-red-500 text-white rounded-lg flex items-center justify-center hover:bg-red-600 transition-colors">
+                                                <XCircleIcon className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            value={currentItem.productDetails?.category || ''} 
+                                            onChange={e => { 
+                                                const val = e.target.value; 
+                                                if (val === 'NEW_CATEGORY') {
+                                                    setIsCreatingCategory(true);
+                                                } else {
+                                                    setCurrentItem(prev => ({ ...prev, productDetails: { ...prev.productDetails!, category: val, model: '' } })); 
+                                                }
+                                            }} 
+                                            className={`${inputClasses} h-11`} 
+                                            disabled={!currentItem.productDetails?.brand}
+                                        >
+                                            <option value="">Selecione</option>
+                                            {currentItem.productDetails?.brand && (
+                                                <option value="NEW_CATEGORY" className="font-bold text-blue-600 bg-blue-50">+ Cadastrar Nova...</option>
+                                            )}
+                                            {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                    )}
+                                </div>
                                 <div>
                                     <label className={labelClasses}>Modelo*</label>
-                                    <div className="h-11">
-                                        <SearchableDropdown
-                                            options={filteredModels.map(m => ({ value: m.id, label: m.name }))}
-                                            value={currentItem.productDetails?.model || null}
-                                            onChange={val => handleProductDetailChange('model', val || '')}
-                                            placeholder="Selecione ou busque..."
-                                            disabled={!currentItem.productDetails?.category}
-                                        />
-                                    </div>
+                                    {isCreatingModel ? (
+                                        <div className="flex items-center gap-2 h-11">
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={newModelName}
+                                                onChange={e => setNewModelName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleSaveModel();
+                                                    } else if (e.key === 'Escape') {
+                                                        e.preventDefault();
+                                                        setIsCreatingModel(false);
+                                                        setNewModelName('');
+                                                    }
+                                                }}
+                                                className={`${inputClasses} flex-1 m-0 h-full`}
+                                                placeholder="Novo modelo..."
+                                            />
+                                            <button type="button" onClick={handleSaveModel} className="h-full w-11 bg-green-500 text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors">
+                                                <CheckIcon className="h-5 w-5" />
+                                            </button>
+                                            <button type="button" onClick={() => { setIsCreatingModel(false); setNewModelName(''); }} className="h-full w-11 bg-red-500 text-white rounded-lg flex items-center justify-center hover:bg-red-600 transition-colors">
+                                                <XCircleIcon className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="h-11">
+                                            <SearchableDropdown
+                                                options={[
+                                                    { value: 'NEW_MODEL', label: '+ Cadastrar Novo...' },
+                                                    ...filteredModels.map(m => ({ value: m.id, label: m.name }))
+                                                ]}
+                                                value={currentItem.productDetails?.model || null}
+                                                onChange={val => {
+                                                    if (val === 'NEW_MODEL') {
+                                                        setIsCreatingModel(true);
+                                                    } else {
+                                                        handleProductDetailChange('model', val || '')
+                                                    }
+                                                }}
+                                                placeholder="Selecione ou busque..."
+                                                disabled={!currentItem.productDetails?.category}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex justify-start">

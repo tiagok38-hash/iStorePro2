@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Product, Supplier, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation, Customer, ProductConditionParameter, StorageLocationParameter, WarrantyParameter } from '../types.ts';
-import { getProductConditions, getStorageLocations, getWarranties } from '../services/mockApi.ts';
+import { getProductConditions, getStorageLocations, getWarranties, formatCurrency } from '../services/mockApi.ts';
+import { addBrand, addCategory, addProductModel } from '../services/parametersService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { XCircleIcon, SpinnerIcon, TrashIcon, PlusIcon, ArrowPathRoundedSquareIcon, ArchiveBoxIcon, PhotographIcon, CheckIcon } from './icons.tsx';
@@ -12,7 +13,6 @@ import CustomerModal from './CustomerModal.tsx';
 import CameraModal from './CameraModal.tsx';
 import ImageCropperModal from './ImageCropperModal.tsx';
 import Button from './Button.tsx';
-import { formatCurrency } from '../services/mockApi.ts';
 import { compressImage } from '../utils/imageUtils.ts';
 import { toDateValue } from '../utils/dateUtils.ts';
 import CustomDatePicker from './CustomDatePicker.tsx';
@@ -138,6 +138,24 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const { showToast } = useToast();
     const { user } = useUser();
+
+    // Local state for dynamic parameter creation
+    const [localBrands, setLocalBrands] = useState<Brand[]>(brands);
+    const [localCategories, setLocalCategories] = useState<Category[]>(categories);
+    const [localModels, setLocalModels] = useState<ProductModel[]>(productModels);
+
+    useEffect(() => { setLocalBrands(brands); }, [brands]);
+    useEffect(() => { setLocalCategories(categories); }, [categories]);
+    useEffect(() => { setLocalModels(productModels); }, [productModels]);
+
+    const [isCreatingBrand, setIsCreatingBrand] = useState(false);
+    const [newBrandName, setNewBrandName] = useState('');
+
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    const [isCreatingModel, setIsCreatingModel] = useState(false);
+    const [newModelName, setNewModelName] = useState('');
 
     // New States for Trade-In Tab
     const [activeTab, setActiveTab] = useState<'details' | 'extras' | 'checklist'>('details');
@@ -315,7 +333,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
                     // Try to find category
                     const categoryName = (product.category || '').toLowerCase();
-                    const categoryObj = (categories || []).find(c =>
+                    const categoryObj = (localCategories || []).find(c =>
                         c.brandId === brandObj.id && (
                             c.name.toLowerCase() === categoryName ||
                             c.id === product.category
@@ -325,7 +343,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
                     if (categoryObj) {
                         initialData.category = categoryObj.id;
-                        const modelsForCategory = (productModels || []).filter(m => m.categoryId === categoryObj.id);
+                        const modelsForCategory = (localModels || []).filter(m => m.categoryId === categoryObj.id);
 
                         // CLEAN PRODUCT MODEL: If name was saved as "Category Brand Model", try to extract pure model
                         let searchModel = (product.model || '').toLowerCase();
@@ -750,13 +768,65 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
     const filteredCategories = useMemo(() => {
         if (!formData.brand) return [];
-        return categories.filter(c => c.brandId === formData.brand);
-    }, [categories, formData.brand]);
+        return localCategories.filter(c => c.brandId === formData.brand);
+    }, [localCategories, formData.brand]);
 
     const filteredModels = useMemo(() => {
         if (!formData.category) return [];
-        return productModels.filter(m => m.categoryId === formData.category);
-    }, [productModels, formData.category]);
+        return localModels.filter(m => m.categoryId === formData.category);
+    }, [localModels, formData.category]);
+
+    const handleSaveBrand = async () => {
+        if (!newBrandName.trim()) return;
+        try {
+            const newBrand = await addBrand({ name: newBrandName.trim() });
+            const brandToAdd = { id: String(newBrand.id), name: newBrandName.trim(), description: '' };
+            setLocalBrands(prev => [...prev, brandToAdd]);
+            setFormData(prev => ({ ...prev, brand: brandToAdd.id, category: '', model: '' }));
+            setIsCreatingBrand(false);
+            setNewBrandName('');
+            showToast('Marca cadastrada com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar marca', 'error');
+        }
+    };
+
+    const handleSaveCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        const currentBrandId = formData.brand;
+        if (!currentBrandId) return;
+        try {
+            const newCat = await addCategory({ name: newCategoryName.trim(), brandId: currentBrandId });
+            const catToAdd = { id: String(newCat.id), name: newCategoryName.trim(), description: '', brandId: newCat.brand_id || currentBrandId };
+            setLocalCategories(prev => [...prev, catToAdd]);
+            setFormData(prev => ({ ...prev, category: catToAdd.id, model: '' }));
+            setIsCreatingCategory(false);
+            setNewCategoryName('');
+            showToast('Categoria cadastrada com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar categoria', 'error');
+        }
+    };
+
+    const handleSaveModel = async () => {
+        if (!newModelName.trim()) return;
+        const currentCatId = formData.category;
+        if (!currentCatId) return;
+        try {
+            const newMod = await addProductModel({ name: newModelName.trim(), categoryId: currentCatId });
+            const modToAdd = { id: String(newMod.id), name: newModelName.trim(), description: '', categoryId: newMod.category_id || currentCatId };
+            setLocalModels(prev => [...prev, modToAdd]);
+            setFormData(prev => ({ ...prev, model: modToAdd.id }));
+            setIsCreatingModel(false);
+            setNewModelName('');
+            showToast('Modelo cadastrado com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar modelo', 'error');
+        }
+    };
 
     const availableGradeValues = useMemo(() => {
         if (!currentGradeId) return [];
@@ -992,42 +1062,171 @@ const ProductModal: React.FC<ProductModalProps> = ({
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                    <div className={`grid grid-cols-1 gap-4 ${!isTradeInMode ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Marca*</label>
-                                            <select name="brand" value={formData.brand || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" required>
-                                                <option value="">Selecione</option>
-                                                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                            </select>
+                                            {isCreatingBrand ? (
+                                                <div className="flex items-center gap-2 h-[48px]">
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={newBrandName}
+                                                        onChange={e => setNewBrandName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                handleSaveBrand();
+                                                            } else if (e.key === 'Escape') {
+                                                                e.preventDefault();
+                                                                setIsCreatingBrand(false);
+                                                                setNewBrandName('');
+                                                            }
+                                                        }}
+                                                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm flex-1 m-0"
+                                                        placeholder="Nova marca..."
+                                                    />
+                                                    <button type="button" onClick={handleSaveBrand} className="h-[48px] w-12 bg-green-500 text-white rounded-xl flex items-center justify-center hover:bg-green-600 transition-colors">
+                                                        <CheckIcon className="h-5 w-5" />
+                                                    </button>
+                                                    <button type="button" onClick={() => { setIsCreatingBrand(false); setNewBrandName(''); }} className="h-[48px] w-12 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
+                                                        <XCircleIcon className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <select 
+                                                    name="brand" 
+                                                    value={formData.brand || ''} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === 'NEW_BRAND') {
+                                                            setIsCreatingBrand(true);
+                                                        } else {
+                                                            handleInputChange({ target: { name: 'brand', value: val } } as any);
+                                                        }
+                                                    }} 
+                                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" 
+                                                    required
+                                                >
+                                                    <option value="">Selecione</option>
+                                                    <option value="NEW_BRAND" className="font-bold text-blue-600 bg-blue-50">+ Cadastrar Nova...</option>
+                                                    {localBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                                </select>
+                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Categoria*</label>
-                                            <select name="category" value={formData.category || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" disabled={!formData.brand} required>
-                                                <option value="">Selecione</option>
-                                                {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                            </select>
+                                            {isCreatingCategory ? (
+                                                <div className="flex items-center gap-2 h-[48px]">
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={newCategoryName}
+                                                        onChange={e => setNewCategoryName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                handleSaveCategory();
+                                                            } else if (e.key === 'Escape') {
+                                                                e.preventDefault();
+                                                                setIsCreatingCategory(false);
+                                                                setNewCategoryName('');
+                                                            }
+                                                        }}
+                                                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm flex-1 m-0"
+                                                        placeholder="Nova categoria..."
+                                                    />
+                                                    <button type="button" onClick={handleSaveCategory} className="h-[48px] w-12 bg-green-500 text-white rounded-xl flex items-center justify-center hover:bg-green-600 transition-colors">
+                                                        <CheckIcon className="h-5 w-5" />
+                                                    </button>
+                                                    <button type="button" onClick={() => { setIsCreatingCategory(false); setNewCategoryName(''); }} className="h-[48px] w-12 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
+                                                        <XCircleIcon className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <select 
+                                                    name="category" 
+                                                    value={formData.category || ''} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === 'NEW_CATEGORY') {
+                                                            setIsCreatingCategory(true);
+                                                        } else {
+                                                            handleInputChange({ target: { name: 'category', value: val } } as any);
+                                                        }
+                                                    }} 
+                                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm" 
+                                                    disabled={!formData.brand} 
+                                                    required
+                                                >
+                                                    <option value="">Selecione</option>
+                                                    {formData.brand && (
+                                                        <option value="NEW_CATEGORY" className="font-bold text-blue-600 bg-blue-50">+ Cadastrar Nova...</option>
+                                                    )}
+                                                    {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <label className={labelClasses}>Modelo*</label>
-                                            <div className="h-[48px]">
-                                                <SearchableDropdown
-                                                    options={filteredModels.map(m => ({ value: m.id, label: m.name }))}
-                                                    value={formData.model || null}
-                                                    onChange={(val) => handleInputChange({ target: { name: 'model', value: val || '' } } as any)}
-                                                    placeholder="Selecione ou busque..."
-                                                    disabled={!formData.category}
-                                                />
+                                            {isCreatingModel ? (
+                                                <div className="flex items-center gap-2 h-[48px]">
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={newModelName}
+                                                        onChange={e => setNewModelName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                handleSaveModel();
+                                                            } else if (e.key === 'Escape') {
+                                                                e.preventDefault();
+                                                                setIsCreatingModel(false);
+                                                                setNewModelName('');
+                                                            }
+                                                        }}
+                                                        className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none shadow-sm flex-1 m-0"
+                                                        placeholder="Novo modelo..."
+                                                    />
+                                                    <button type="button" onClick={handleSaveModel} className="h-[48px] w-12 bg-green-500 text-white rounded-xl flex items-center justify-center hover:bg-green-600 transition-colors">
+                                                        <CheckIcon className="h-5 w-5" />
+                                                    </button>
+                                                    <button type="button" onClick={() => { setIsCreatingModel(false); setNewModelName(''); }} className="h-[48px] w-12 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
+                                                        <XCircleIcon className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="h-[48px]">
+                                                    <SearchableDropdown
+                                                        options={[
+                                                            { value: 'NEW_MODEL', label: '+ Cadastrar Novo...' },
+                                                            ...filteredModels.map(m => ({ value: m.id, label: m.name }))
+                                                        ]}
+                                                        value={formData.model || null}
+                                                        onChange={(val) => {
+                                                            if (val === 'NEW_MODEL') {
+                                                                setIsCreatingModel(true);
+                                                            } else {
+                                                                handleInputChange({ target: { name: 'model', value: val || '' } } as any);
+                                                            }
+                                                        }}
+                                                        placeholder="Selecione ou busque..."
+                                                        disabled={!formData.category}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {!isTradeInMode && (
+                                            <div className="space-y-2">
+                                                <label className={labelClasses}>Unidade / Medida</label>
+                                                <select name="unit" value={formData.unit || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm">
+                                                    <option value="">Padrão (Un)</option>
+                                                    <option value="Unidade (Un)">Unidade (Un)</option>
+                                                    <option value="Kilo (Kg)">Kilo (Kg)</option>
+                                                    <option value="Metro (Mt)">Metro (Mt)</option>
+                                                </select>
                                             </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className={labelClasses}>Unidade / Medida</label>
-                                            <select name="unit" value={formData.unit || ''} onChange={handleInputChange} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 h-[48px] focus:ring-4 focus:ring-primary/5 outline-none transition-all shadow-sm">
-                                                <option value="">Padrão (Un)</option>
-                                                <option value="Unidade (Un)">Unidade (Un)</option>
-                                                <option value="Kilo (Kg)">Kilo (Kg)</option>
-                                                <option value="Metro (Mt)">Metro (Mt)</option>
-                                            </select>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
 

@@ -158,7 +158,7 @@ const ServiceOrderForm: React.FC = () => {
     const [isOrcamentoOnly, setIsOrcamentoOnly] = useState(false);
     // Datas
     const [entryDate, setEntryDate] = useState(() => new Date().toISOString());
-    const [estimatedDate, setEstimatedDate] = useState('');
+    const [estimatedDate, setEstimatedDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [exitDate, setExitDate] = useState<string | null>(null);
     const [justBilled, setJustBilled] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -590,6 +590,7 @@ const ServiceOrderForm: React.FC = () => {
 
         setOsStatus('Entregue');
         setJustBilled(true);
+        setIsLocked(true);
         toast.success('OS faturada e marcada como Entregue!');
     };
 
@@ -843,6 +844,7 @@ const ServiceOrderForm: React.FC = () => {
                                                         return;
                                                     }
                                                     setOsStatus(newStatus);
+                                                    if (newStatus === 'Entregue') setIsLocked(true);
                                                     if (isEditing && editId) {
                                                         try {
                                                             await updateServiceOrder(editId, { status: newStatus } as any);

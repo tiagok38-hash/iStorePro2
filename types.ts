@@ -561,7 +561,9 @@ export interface Supplier {
     linkedCustomerId?: string;
     avatarUrl?: string;
     instagram?: string;
+    contact2?: string;
 }
+
 
 export interface PurchaseItem {
     id: string;

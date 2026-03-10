@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Smartphone, XCircleIcon, PlusIcon, Search, Cpu, User, Image as ImageIcon } from 'lucide-react';
+import { Smartphone, XCircleIcon, PlusIcon, Search, Cpu, User, Image as ImageIcon, Check, X } from 'lucide-react';
 import { Customer, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation } from '../types';
 import { appleProductHierarchy } from '../services/constants';
 import SearchableDropdown from './SearchableDropdown';
 import CustomerModal from './CustomerModal';
 import { addCustomer } from '../services/mockApi';
+import { addBrand, addCategory, addProductModel } from '../services/parametersService';
 import { useToast } from '../contexts/ToastContext';
 
 interface ServiceOrderElectronicDevicesModalProps {
@@ -59,15 +60,28 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
     const [currentValueId, setCurrentValueId] = useState('');
     const [localCustomers, setLocalCustomers] = useState<Customer[]>(customers);
 
+    const [localBrands, setLocalBrands] = useState<Brand[]>(brands);
+    const [localCategories, setLocalCategories] = useState<Category[]>(categories);
+    const [localModels, setLocalModels] = useState<ProductModel[]>(productModels);
+
+    const [isCreatingBrand, setIsCreatingBrand] = useState(false);
+    const [newBrandName, setNewBrandName] = useState('');
+
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    const [isCreatingModel, setIsCreatingModel] = useState(false);
+    const [newModelName, setNewModelName] = useState('');
+
     useEffect(() => {
         setLocalCustomers(customers);
     }, [customers]);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
+    useEffect(() => { setLocalBrands(brands); }, [brands]);
+    useEffect(() => { setLocalCategories(categories); }, [categories]);
+    useEffect(() => { setLocalModels(productModels); }, [productModels]);
 
+    useEffect(() => {
         if (isOpen) {
             if (initialData && (initialData.model || initialData.rawModel)) {
                 // Modo Edição
@@ -116,6 +130,16 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
             setShowVariations(false);
             setCurrentGradeId('');
             setCurrentValueId('');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        if (isOpen) {
             document.addEventListener('keydown', handleKeyDown);
             document.body.style.overflow = 'hidden';
         }
@@ -124,7 +148,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
             document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = 'unset';
         };
-    }, [isOpen, onClose, initialData]);
+    }, [isOpen, onClose]);
 
     const isMemoryless = useMemo(() => {
         const cat = formData.category;
@@ -153,13 +177,13 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
 
     const filteredCategories = useMemo(() => {
         if (!formData.brand) return [];
-        return categories.filter(c => c.brandId === formData.brand);
-    }, [formData.brand, categories]);
+        return localCategories.filter(c => c.brandId === formData.brand);
+    }, [formData.brand, localCategories]);
 
     const filteredModels = useMemo(() => {
         if (!formData.category) return [];
-        return productModels.filter(m => m.categoryId === formData.category);
-    }, [formData.category, productModels]);
+        return localModels.filter(m => m.categoryId === formData.category);
+    }, [formData.category, localModels]);
 
     const availableGradeValues = useMemo(() => {
         if (!currentGradeId) return [];
@@ -189,6 +213,49 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                 break;
         }
         setFormData(updatedData);
+    };
+
+    const handleSaveBrand = async () => {
+        if (!newBrandName.trim()) return;
+        try {
+            const newBrand = await addBrand({ name: newBrandName });
+            setLocalBrands(prev => [...prev, newBrand]);
+            setFormData(prev => ({ ...prev, brand: newBrand.id, category: '', model: '' }));
+            setIsCreatingBrand(false);
+            showToast('Marca salva com sucesso!', 'success');
+        } catch (error: any) {
+            showToast(error.message || 'Erro ao salvar marca', 'error');
+        }
+    };
+
+    const handleSaveCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        try {
+            const newCat = await addCategory({ name: newCategoryName, brandId: formData.brand });
+            const catToAdd = { ...newCat, brandId: newCat.brand_id || formData.brand };
+            setLocalCategories(prev => [...prev, catToAdd]);
+            setFormData(prev => ({ ...prev, category: newCat.id, model: '' }));
+            setIsCreatingCategory(false);
+            newCat.name = newCategoryName; // fallback if name doesn't come back perfectly
+            showToast('Categoria salva com sucesso!', 'success');
+        } catch (error: any) {
+            showToast(error.message || 'Erro ao salvar categoria', 'error');
+        }
+    };
+
+    const handleSaveModel = async () => {
+        if (!newModelName.trim()) return;
+        try {
+            const newMod = await addProductModel({ name: newModelName, categoryId: formData.category });
+            const modToAdd = { ...newMod, categoryId: newMod.category_id || formData.category };
+            setLocalModels(prev => [...prev, modToAdd]);
+            setFormData(prev => ({ ...prev, model: newMod.id }));
+            setIsCreatingModel(false);
+            newMod.name = newModelName;
+            showToast('Modelo salvo com sucesso!', 'success');
+        } catch (error: any) {
+             showToast(error.message || 'Erro ao salvar modelo', 'error');
+        }
     };
 
     const handleAddVariation = () => {
@@ -277,16 +344,16 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
 
             finalModelName = nameParts.join(' ').trim().replace(/\s+/g, ' ');
         } else {
-            const brandObj = brands.find(b => b.id === formData.brand);
+            const brandObj = localBrands.find(b => b.id === formData.brand);
             finalBrandName = brandObj?.name || formData.brand;
 
-            const categoryObj = categories.find(c => c.id === formData.category);
+            const categoryObj = localCategories.find(c => c.id === formData.category);
             const categoryName = categoryObj?.name || formData.category;
             finalCategoryName = categoryName;
 
             finalType = categoryName;
 
-            const modelObj = productModels.find(m => m.id === formData.model);
+            const modelObj = localModels.find(m => m.id === formData.model);
             const modelName = modelObj?.name || formData.model;
 
             // Evita duplicar se o modelName já tiver a marca ou categoria
@@ -419,29 +486,114 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label className={labelClasses}>Marca*</label>
-                                        <select value={formData.brand} onChange={e => { const val = e.target.value; setFormData(prev => ({ ...prev, brand: val, category: '', model: '' })); }} className={inputClasses}>
-                                            <option value="">Selecione</option>
-                                            {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                        </select>
+                                        {isCreatingBrand ? (
+                                            <div className="flex items-center gap-1 h-11">
+                                                <input 
+                                                    type="text" 
+                                                    autoFocus
+                                                    className={`${inputClasses} flex-1 min-w-0`}
+                                                    placeholder="Nome da marca..."
+                                                    value={newBrandName}
+                                                    onChange={e => setNewBrandName(e.target.value)}
+                                                    onKeyDown={e => { 
+                                                        if (e.key === 'Enter') { e.preventDefault(); handleSaveBrand(); } 
+                                                        if (e.key === 'Escape') { e.preventDefault(); setIsCreatingBrand(false); } 
+                                                    }}
+                                                />
+                                                <button type="button" onClick={handleSaveBrand} className="flex items-center justify-center p-2 h-11 w-11 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"><Check className="w-5 h-5" /></button>
+                                                <button type="button" onClick={() => setIsCreatingBrand(false)} className="flex items-center justify-center p-2 h-11 w-11 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex-shrink-0"><X className="w-5 h-5" /></button>
+                                            </div>
+                                        ) : (
+                                            <select value={formData.brand} onChange={e => { 
+                                                const val = e.target.value; 
+                                                if (val === 'NEW') {
+                                                    setIsCreatingBrand(true);
+                                                    setNewBrandName('');
+                                                } else {
+                                                    setFormData(prev => ({ ...prev, brand: val, category: '', model: '' })); 
+                                                }
+                                            }} className={inputClasses}>
+                                                <option value="">Selecione</option>
+                                                <option value="NEW" className="font-bold text-accent">+ Cadastrar Nova Marca</option>
+                                                {localBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                            </select>
+                                        )}
                                     </div>
                                     <div>
                                         <label className={labelClasses}>Categoria*</label>
-                                        <select value={formData.category} onChange={e => { const val = e.target.value; setFormData(prev => ({ ...prev, category: val, model: '' })); }} className={inputClasses} disabled={!formData.brand}>
-                                            <option value="">Selecione</option>
-                                            {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                        </select>
+                                        {isCreatingCategory ? (
+                                            <div className="flex items-center gap-1 h-11">
+                                                <input 
+                                                    type="text" 
+                                                    autoFocus
+                                                    className={`${inputClasses} flex-1 min-w-0`}
+                                                    placeholder="Nome da categoria..."
+                                                    value={newCategoryName}
+                                                    onChange={e => setNewCategoryName(e.target.value)}
+                                                    onKeyDown={e => { 
+                                                        if (e.key === 'Enter') { e.preventDefault(); handleSaveCategory(); } 
+                                                        if (e.key === 'Escape') { e.preventDefault(); setIsCreatingCategory(false); } 
+                                                    }}
+                                                />
+                                                <button type="button" onClick={handleSaveCategory} className="flex items-center justify-center p-2 h-11 w-11 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"><Check className="w-5 h-5" /></button>
+                                                <button type="button" onClick={() => setIsCreatingCategory(false)} className="flex items-center justify-center p-2 h-11 w-11 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex-shrink-0"><X className="w-5 h-5" /></button>
+                                            </div>
+                                        ) : (
+                                            <select value={formData.category} onChange={e => { 
+                                                const val = e.target.value; 
+                                                if (val === 'NEW') {
+                                                    setIsCreatingCategory(true);
+                                                    setNewCategoryName('');
+                                                } else {
+                                                    setFormData(prev => ({ ...prev, category: val, model: '' })); 
+                                                }
+                                            }} className={inputClasses} disabled={!formData.brand}>
+                                                <option value="">Selecione</option>
+                                                <option value="NEW" className="font-bold text-accent">+ Cadastrar Nova Categoria</option>
+                                                {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                        )}
                                     </div>
                                     <div>
                                         <label className={labelClasses}>Modelo*</label>
-                                        <div className="h-11">
-                                            <SearchableDropdown
-                                                options={filteredModels.map(m => ({ value: m.id, label: m.name }))}
-                                                value={formData.model || null}
-                                                onChange={val => setFormData(prev => ({ ...prev, model: val || '' }))}
-                                                placeholder="Selecione ou busque..."
-                                                disabled={!formData.category}
-                                            />
-                                        </div>
+                                        {isCreatingModel ? (
+                                            <div className="flex items-center gap-1 h-11">
+                                                <input 
+                                                    type="text" 
+                                                    autoFocus
+                                                    className={`${inputClasses} flex-1 min-w-0`}
+                                                    placeholder="Nome do modelo..."
+                                                    value={newModelName}
+                                                    onChange={e => setNewModelName(e.target.value)}
+                                                    onKeyDown={e => { 
+                                                        if (e.key === 'Enter') { e.preventDefault(); handleSaveModel(); } 
+                                                        if (e.key === 'Escape') { e.preventDefault(); setIsCreatingModel(false); } 
+                                                    }}
+                                                />
+                                                <button type="button" onClick={handleSaveModel} className="flex items-center justify-center p-2 h-11 w-11 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"><Check className="w-5 h-5" /></button>
+                                                <button type="button" onClick={() => setIsCreatingModel(false)} className="flex items-center justify-center p-2 h-11 w-11 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex-shrink-0"><X className="w-5 h-5" /></button>
+                                            </div>
+                                        ) : (
+                                            <div className="h-11">
+                                                <SearchableDropdown
+                                                    options={[
+                                                        { value: 'NEW', label: '+ Cadastrar Novo Modelo' },
+                                                        ...filteredModels.map(m => ({ value: m.id, label: m.name }))
+                                                    ]}
+                                                    value={formData.model || null}
+                                                    onChange={val => {
+                                                        if (val === 'NEW') {
+                                                            setIsCreatingModel(true);
+                                                            setNewModelName('');
+                                                        } else {
+                                                            setFormData(prev => ({ ...prev, model: val || '' }));
+                                                        }
+                                                    }}
+                                                    placeholder="Selecione ou busque..."
+                                                    disabled={!formData.category}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex justify-start">

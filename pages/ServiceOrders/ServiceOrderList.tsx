@@ -201,11 +201,8 @@ const ServiceOrderList: React.FC = () => {
     const [warrantyFilter, setWarrantyFilter] = useState<'all' | 'active' | 'expiring_month'>('all');
 
     // Date filters
-    const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'>('month');
-    const [startDate, setStartDate] = useState<string>(() => {
-        const d = new Date();
-        return toDateValue(new Date(d.getFullYear(), d.getMonth(), 1));
-    });
+    const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'>('today');
+    const [startDate, setStartDate] = useState<string>(() => toDateValue(new Date()));
     const [endDate, setEndDate] = useState<string>(() => toDateValue(new Date()));
 
     const handlePeriodChange = (period: typeof periodFilter) => {
@@ -290,60 +287,62 @@ const ServiceOrderList: React.FC = () => {
         }
     }, [location.search]);
 
-    const filteredOrders = orders.filter(os => {
-        const searchLower = searchTerm.toLowerCase();
-        const matchSearch =
-            (os.customerName || '').toLowerCase().includes(searchLower) ||
-            (os.deviceModel || '').toLowerCase().includes(searchLower) ||
-            (os.imei || '').toLowerCase().includes(searchLower) ||
-            (os.serialNumber || '').toLowerCase().includes(searchLower) ||
-            (os.displayId?.toString() || '').includes(searchTerm) ||
-            os.id.includes(searchTerm);
-        const matchStatus = statusFilter === 'Todos' || os.status === statusFilter;
+    const filteredOrders = React.useMemo(() => {
+        return orders.filter(os => {
+            const searchLower = searchTerm.toLowerCase();
+            const matchSearch =
+                (os.customerName || '').toLowerCase().includes(searchLower) ||
+                (os.deviceModel || '').toLowerCase().includes(searchLower) ||
+                (os.imei || '').toLowerCase().includes(searchLower) ||
+                (os.serialNumber || '').toLowerCase().includes(searchLower) ||
+                (os.displayId?.toString() || '').includes(searchTerm) ||
+                os.id.includes(searchTerm);
+            const matchStatus = statusFilter === 'Todos' || os.status === statusFilter;
 
-        let matchWarranty = true;
-        if (warrantyFilter !== 'all') {
-            const items = os.items || [];
-            const osExitDate = os.exitDate;
-            if (!osExitDate) {
-                matchWarranty = false;
-            } else {
-                const itemExpiries = items
-                    .filter((i: any) => i.warranty)
-                    .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
-
-                if (itemExpiries.length === 0) {
+            let matchWarranty = true;
+            if (warrantyFilter !== 'all') {
+                const items = os.items || [];
+                const osExitDate = os.exitDate;
+                if (!osExitDate) {
                     matchWarranty = false;
                 } else {
-                    const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d.getTime())));
-                    const now = new Date();
+                    const itemExpiries = items
+                        .filter((i: any) => i.warranty)
+                        .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
 
-                    if (warrantyFilter === 'active') {
-                        matchWarranty = latestExpiry > now;
-                    } else if (warrantyFilter === 'expiring_month') {
-                        const currentMonth = now.getMonth();
-                        const currentYear = now.getFullYear();
-                        matchWarranty = latestExpiry.getMonth() === currentMonth && latestExpiry.getFullYear() === currentYear;
+                    if (itemExpiries.length === 0) {
+                        matchWarranty = false;
+                    } else {
+                        const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d.getTime())));
+                        const now = new Date();
+
+                        if (warrantyFilter === 'active') {
+                            matchWarranty = latestExpiry > now;
+                        } else if (warrantyFilter === 'expiring_month') {
+                            const currentMonth = now.getMonth();
+                            const currentYear = now.getFullYear();
+                            matchWarranty = latestExpiry.getMonth() === currentMonth && latestExpiry.getFullYear() === currentYear;
+                        }
                     }
                 }
             }
-        }
 
-        let matchDate = true;
-        if ((startDate || endDate) && os.entryDate) {
-            const entryDate = new Date(os.entryDate).getTime();
-            if (startDate) {
-                const sDate = startOfDay(startDate).getTime();
-                if (entryDate < sDate) matchDate = false;
+            let matchDate = true;
+            if ((startDate || endDate) && os.entryDate) {
+                const entryDate = new Date(os.entryDate).getTime();
+                if (startDate) {
+                    const sDate = startOfDay(startDate).getTime();
+                    if (entryDate < sDate) matchDate = false;
+                }
+                if (endDate) {
+                    const eDate = endOfDay(endDate).getTime();
+                    if (entryDate > eDate) matchDate = false;
+                }
             }
-            if (endDate) {
-                const eDate = endOfDay(endDate).getTime();
-                if (entryDate > eDate) matchDate = false;
-            }
-        }
 
-        return matchSearch && matchStatus && matchWarranty && matchDate;
-    });
+            return matchSearch && matchStatus && matchWarranty && matchDate;
+        });
+    }, [orders, searchTerm, statusFilter, warrantyFilter, startDate, endDate]);
 
     // ---- DRAG & DROP HANDLERS ----
     const handleDragStart = (e: React.DragEvent, os: any) => {

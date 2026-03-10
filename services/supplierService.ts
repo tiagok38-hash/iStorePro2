@@ -22,6 +22,7 @@ export const mapSupplier = (s: any): Supplier => ({
     avatarUrl: s.avatar_url,
     linkedCustomerId: s.linked_customer_id,
     instagram: s.instagram,
+    contact2: s.contact2,
     address: s.address
 });
 
@@ -70,6 +71,7 @@ export const addSupplier = async (data: any, userId: string = 'system', userName
     if (data.avatarUrl) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram) payload.instagram = data.instagram;
+    if (data.contact2) payload.contact2 = data.contact2;
     if (data.address) payload.address = data.address;
 
     let result = await supabase.from('suppliers').insert([payload]).select().single();
@@ -116,6 +118,7 @@ export const updateSupplier = async (data: any, userId: string = 'system', userN
     if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl;
     if (data.linkedCustomerId !== undefined) payload.linked_customer_id = data.linkedCustomerId;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
+    if (data.contact2 !== undefined) payload.contact2 = data.contact2 || null;
     if (data.address !== undefined) payload.address = data.address;
 
     // Timeout de segurança (30s) para uploads de imagem ou conexões lentas
@@ -236,7 +239,8 @@ export const findOrCreateSupplierFromCustomer = async (c: Customer, retryCount =
                 email: c.email || null,
                 phone: c.phone || null,
                 linked_customer_id: c.id,
-                instagram: c.instagram || null
+                instagram: c.instagram || null,
+                contact2: c.contact2 || null
             };
 
             const { data: insertedRows, error: insertError } = await supabase.from('suppliers').insert([ns]).select();

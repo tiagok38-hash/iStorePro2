@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Customer, Product, ProductChecklist, ProductCondition, ProductConditionParameter, StorageLocationParameter, WarrantyParameter } from '../types.ts';
+import { Customer, Product, ProductChecklist, ProductCondition, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, Brand, Category, ProductModel } from '../types.ts';
 import { findOrCreateSupplierFromCustomer, formatCurrency, getProductConditions, getStorageLocations, getWarranties } from '../services/mockApi.ts';
+import { getBrands, getCategories, getProductModels, addBrand, addCategory, addProductModel } from '../services/parametersService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
-import { CloseIcon, PlusIcon, SpinnerIcon, PhotographIcon, TrashIcon } from './icons.tsx';
+import { CloseIcon, PlusIcon, SpinnerIcon, PhotographIcon, TrashIcon, CheckIcon, XCircleIcon } from './icons.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
+import SearchableDropdown from './SearchableDropdown.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import CameraModal from './CameraModal.tsx';
 import CustomDatePicker from './CustomDatePicker.tsx';
@@ -36,22 +38,39 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
     const [isSaving, setIsSaving] = useState(false);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
 
-    // Dynamic parameters from Empresa > Parâmetros
     const [conditionOptions, setConditionOptions] = useState<ProductConditionParameter[]>([]);
     const [locationOptions, setLocationOptions] = useState<StorageLocationParameter[]>([]);
     const [warrantyOptions, setWarrantyOptions] = useState<WarrantyParameter[]>([]);
 
-    // Fetch dynamic parameters on mount
+    const [localBrands, setLocalBrands] = useState<Brand[]>([]);
+    const [localCategories, setLocalCategories] = useState<Category[]>([]);
+    const [localModels, setLocalModels] = useState<ProductModel[]>([]);
+
+    const [isCreatingBrand, setIsCreatingBrand] = useState(false);
+    const [newBrandName, setNewBrandName] = useState('');
+
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    const [isCreatingModel, setIsCreatingModel] = useState(false);
+    const [newModelName, setNewModelName] = useState('');
+
     useEffect(() => {
         const fetchParameters = async () => {
-            const [conditions, locations, warranties] = await Promise.all([
+            const [conditions, locations, warranties, fetchedBrands, fetchedCats, fetchedModels] = await Promise.all([
                 getProductConditions(),
                 getStorageLocations(),
-                getWarranties()
+                getWarranties(),
+                getBrands(),
+                getCategories(),
+                getProductModels(),
             ]);
             setConditionOptions(conditions);
             setLocationOptions(locations);
             setWarrantyOptions(warranties);
+            setLocalBrands(fetchedBrands);
+            setLocalCategories(fetchedCats);
+            setLocalModels(fetchedModels);
         };
         fetchParameters();
     }, []);
@@ -62,8 +81,8 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
         origin: 'Nacional',
         condition: 'Seminovo' as ProductCondition,
         storageLocation: '',
-        brand: 'Apple',
-        category: 'Selecione uma opção...',
+        brand: '',
+        category: '',
         model: '',
         color: '',
         imei1: '',
@@ -143,6 +162,70 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
         setAccessoriesData(prev => ({ ...prev, [item]: !prev[item] }));
     };
 
+    const handleSaveBrand = async () => {
+        if (!newBrandName.trim()) return;
+        try {
+            const newBrand = await addBrand({ name: newBrandName.trim() });
+            const brandToAdd = { id: String(newBrand.id), name: newBrandName.trim(), description: '' };
+            setLocalBrands(prev => [...prev, brandToAdd]);
+            setDeviceData(prev => ({ ...prev, brand: brandToAdd.id, category: '', model: '' }));
+            setIsCreatingBrand(false);
+            setNewBrandName('');
+            showToast('Marca cadastrada com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar marca', 'error');
+        }
+    };
+
+    const handleSaveCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        const currentBrandId = deviceData.brand;
+        if (!currentBrandId) return;
+        try {
+            const newCat = await addCategory({ name: newCategoryName.trim(), brandId: currentBrandId });
+            const catToAdd = { id: String(newCat.id), name: newCategoryName.trim(), description: '', brandId: newCat.brand_id || currentBrandId };
+            setLocalCategories(prev => [...prev, catToAdd]);
+            setDeviceData(prev => ({ ...prev, category: catToAdd.id, model: '' }));
+            setIsCreatingCategory(false);
+            setNewCategoryName('');
+            showToast('Categoria cadastrada com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar categoria', 'error');
+        }
+    };
+
+    const handleSaveModel = async () => {
+        if (!newModelName.trim()) return;
+        const currentCatId = deviceData.category;
+        if (!currentCatId) return;
+        try {
+            const newMod = await addProductModel({ name: newModelName.trim(), categoryId: currentCatId });
+            const modToAdd = { id: String(newMod.id), name: newModelName.trim(), description: '', categoryId: newMod.category_id || currentCatId };
+            setLocalModels(prev => [...prev, modToAdd]);
+            setDeviceData(prev => ({ ...prev, model: modToAdd.id }));
+            setIsCreatingModel(false);
+            setNewModelName('');
+            showToast('Modelo cadastrado com sucesso!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao cadastrar modelo', 'error');
+        }
+    };
+
+    const filteredCategories = useMemo(() => {
+        if (!deviceData.brand) return [];
+        return localCategories.filter(c => c.brandId === deviceData.brand);
+    }, [localCategories, deviceData.brand]);
+
+    const filteredModels = useMemo(() => {
+        if (!deviceData.category) return [];
+        return localModels
+            .filter(m => m.categoryId === deviceData.category)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [localModels, deviceData.category]);
+
     const handleAddPhoto = (imageData: string) => {
         if (photos.length >= 6) {
             showToast('Limite de 6 fotos atingido.', 'error');
@@ -191,7 +274,17 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
 
         try {
             const supplier = await findOrCreateSupplierFromCustomer(customer);
-            const fullModel = `${deviceData.brand} ${deviceData.category} ${deviceData.model} ${deviceData.color}`.trim();
+            
+            const brandObj = localBrands.find(b => b.id === deviceData.brand);
+            const brandName = brandObj?.name || deviceData.brand;
+            
+            const catObj = localCategories.find(c => c.id === deviceData.category);
+            const catName = catObj?.name || deviceData.category;
+            
+            const modObj = localModels.find(m => m.id === deviceData.model);
+            const modName = modObj?.name || deviceData.model;
+
+            const fullModel = `${brandName} ${catName} ${modName} ${deviceData.color}`.trim();
 
             const checklist: ProductChecklist = {
                 ...checklistData.toggles,
@@ -206,8 +299,8 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                 .map(([name]) => name);
 
             const newProductData = {
-                brand: deviceData.brand,
-                category: deviceData.category,
+                brand: brandName,
+                category: catName,
                 model: fullModel,
                 price: deviceData.salePrice,
                 costPrice: deviceData.costPrice,
@@ -284,10 +377,156 @@ const TradeInModal: React.FC<TradeInModalProps> = ({ isOpen, onClose, onSave, cu
                             <div><label className={labelClasses}>Origem*</label><select name="origin" value={deviceData.origin} onChange={handleDeviceChange} className={inputClasses}><option>Nacional</option><option>Importado</option></select></div>
                             <div><label className={labelClasses}>Local de Estoque*</label><select name="storageLocation" value={deviceData.storageLocation} onChange={handleDeviceChange} className={`${inputClasses} ${(!deviceData.storageLocation || deviceData.storageLocation === 'Selecione...') ? 'border-red-500' : ''}`}><option value="">Selecione...</option>{deviceData.storageLocation && deviceData.storageLocation !== 'Selecione...' && !locationOptions.some(l => l.name.toLowerCase() === deviceData.storageLocation?.toLowerCase()) && <option value={deviceData.storageLocation}>{deviceData.storageLocation}</option>}{locationOptions.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}</select></div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                            <div><label className={labelClasses}>Marca*</label><input value={deviceData.brand} className={`${inputClasses} bg-gray-100`} disabled /></div>
-                            <div><label className={labelClasses}>Categoria*</label><select name="category" value={deviceData.category} onChange={handleDeviceChange} className={inputClasses}><option>Selecione uma opção...</option><option>iPhone</option><option>iPad</option><option>MacBook</option></select></div>
-                            <div><label className={labelClasses}>Modelo*</label><input name="model" value={deviceData.model} onChange={handleDeviceChange} className={inputClasses} /></div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div>
+                                <label className={labelClasses}>Marca*</label>
+                                {isCreatingBrand ? (
+                                    <div className="flex items-center gap-2 h-11">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={newBrandName}
+                                            onChange={e => setNewBrandName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleSaveBrand();
+                                                } else if (e.key === 'Escape') {
+                                                    e.preventDefault();
+                                                    setIsCreatingBrand(false);
+                                                    setNewBrandName('');
+                                                }
+                                            }}
+                                            className={`${inputClasses} flex-1 m-0 h-full`}
+                                            placeholder="Nova marca..."
+                                        />
+                                        <button type="button" onClick={handleSaveBrand} className="h-full w-11 bg-green-500 text-white rounded-xl flex items-center justify-center hover:bg-green-600 transition-colors">
+                                            <CheckIcon className="h-5 w-5" />
+                                        </button>
+                                        <button type="button" onClick={() => { setIsCreatingBrand(false); setNewBrandName(''); }} className="h-full w-11 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
+                                            <XCircleIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <select 
+                                        value={deviceData.brand || ''} 
+                                        onChange={e => { 
+                                            const val = e.target.value; 
+                                            if (val === 'NEW_BRAND') {
+                                                setIsCreatingBrand(true);
+                                            } else {
+                                                setDeviceData(prev => ({ ...prev, brand: val, category: '', model: '' })); 
+                                            }
+                                        }} 
+                                        className={inputClasses}
+                                    >
+                                        <option value="">Selecione</option>
+                                        <option value="NEW_BRAND" className="font-bold text-blue-600 bg-blue-50">+ Cadastrar Nova...</option>
+                                        {localBrands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </select>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Categoria*</label>
+                                {isCreatingCategory ? (
+                                    <div className="flex items-center gap-2 h-11">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={newCategoryName}
+                                            onChange={e => setNewCategoryName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleSaveCategory();
+                                                } else if (e.key === 'Escape') {
+                                                    e.preventDefault();
+                                                    setIsCreatingCategory(false);
+                                                    setNewCategoryName('');
+                                                }
+                                            }}
+                                            className={`${inputClasses} flex-1 m-0 h-full`}
+                                            placeholder="Nova categoria..."
+                                        />
+                                        <button type="button" onClick={handleSaveCategory} className="h-full w-11 bg-green-500 text-white rounded-xl flex items-center justify-center hover:bg-green-600 transition-colors">
+                                            <CheckIcon className="h-5 w-5" />
+                                        </button>
+                                        <button type="button" onClick={() => { setIsCreatingCategory(false); setNewCategoryName(''); }} className="h-full w-11 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
+                                            <XCircleIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <select 
+                                        value={deviceData.category || ''} 
+                                        onChange={e => { 
+                                            const val = e.target.value; 
+                                            if (val === 'NEW_CATEGORY') {
+                                                setIsCreatingCategory(true);
+                                            } else {
+                                                setDeviceData(prev => ({ ...prev, category: val, model: '' })); 
+                                            }
+                                        }} 
+                                        className={inputClasses} 
+                                        disabled={!deviceData.brand}
+                                    >
+                                        <option value="">Selecione</option>
+                                        {deviceData.brand && (
+                                            <option value="NEW_CATEGORY" className="font-bold text-blue-600 bg-blue-50">+ Cadastrar Nova...</option>
+                                        )}
+                                        {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                )}
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Modelo*</label>
+                                {isCreatingModel ? (
+                                    <div className="flex items-center gap-2 h-11">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={newModelName}
+                                            onChange={e => setNewModelName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleSaveModel();
+                                                } else if (e.key === 'Escape') {
+                                                    e.preventDefault();
+                                                    setIsCreatingModel(false);
+                                                    setNewModelName('');
+                                                }
+                                            }}
+                                            className={`${inputClasses} flex-1 m-0 h-full`}
+                                            placeholder="Novo modelo..."
+                                        />
+                                        <button type="button" onClick={handleSaveModel} className="h-full w-11 bg-green-500 text-white rounded-xl flex items-center justify-center hover:bg-green-600 transition-colors">
+                                            <CheckIcon className="h-5 w-5" />
+                                        </button>
+                                        <button type="button" onClick={() => { setIsCreatingModel(false); setNewModelName(''); }} className="h-full w-11 bg-red-500 text-white rounded-xl flex items-center justify-center hover:bg-red-600 transition-colors">
+                                            <XCircleIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="h-[48px] -mt-0.5">
+                                        <SearchableDropdown
+                                            options={[
+                                                { value: 'NEW_MODEL', label: '+ Cadastrar Novo...' },
+                                                ...filteredModels.map(m => ({ value: m.id, label: m.name }))
+                                            ]}
+                                            value={deviceData.model || null}
+                                            onChange={val => {
+                                                if (val === 'NEW_MODEL') {
+                                                    setIsCreatingModel(true);
+                                                } else {
+                                                    setDeviceData(prev => ({ ...prev, model: val || '' }));
+                                                }
+                                            }}
+                                            placeholder="Selecione ou busque..."
+                                            disabled={!deviceData.category}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                             <div><label className={labelClasses}>Cor*</label><input name="color" value={deviceData.color} onChange={handleDeviceChange} className={inputClasses} /></div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">

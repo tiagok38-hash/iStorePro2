@@ -123,7 +123,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
                     onChange={handleInputChange}
                     onFocus={handleFocus}
                     disabled={disabled}
-                    className={`w-full p-2.5 pl-10 pr-10 border rounded-lg bg-white border-gray-300 focus:ring-2 focus:ring-success/20 focus:border-success text-sm h-full transition-all outline-none font-bold text-gray-800 shadow-sm ${selectedOption && !searchTerm ? 'placeholder:text-gray-800' : 'placeholder:text-gray-400'} ${disabled ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''} ${className}`}
+                    className={`w-full p-3 pl-10 pr-10 border rounded-xl bg-white border-gray-200 focus:ring-4 focus:ring-primary/5 focus:border-primary text-sm h-full transition-all outline-none font-bold text-gray-700 shadow-sm ${selectedOption && !searchTerm ? 'placeholder:text-gray-700' : 'placeholder:text-gray-400'} ${disabled ? 'bg-gray-100 cursor-not-allowed opacity-70' : ''} ${className}`}
                 />
                 {(value || searchTerm) && (
                     <button
