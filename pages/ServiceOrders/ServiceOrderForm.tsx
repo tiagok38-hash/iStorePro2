@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
     User as UserIcon,
@@ -17,7 +16,6 @@ import {
     X,
     Eye,
     Package,
-    ChevronRight,
     ChevronLeft,
     Printer,
     Tag,
@@ -53,8 +51,7 @@ import {
     getGradeValues,
     getChecklistItems,
     getCompanyInfo,
-    deductOsPartsStock,
-    returnOsPartsStock
+    deductOsPartsStock
 } from '../../services/mockApi';
 import { getOsReceiptTerms } from '../../services/parametersService';
 import { WhatsAppIcon } from '../../components/icons';
@@ -67,11 +64,6 @@ import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrde
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
 import OSBillingModal from '../../components/OSBillingModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
-
-
-
-type TabId = 'client_device' | 'diagnosis' | 'financial';
-const TAB_ORDER: TabId[] = ['client_device', 'diagnosis', 'financial'];
 
 const ServiceOrderForm: React.FC = () => {
     const navigate = useNavigate();
@@ -89,7 +81,7 @@ const ServiceOrderForm: React.FC = () => {
     };
 
     // --- State ---
-    const [activeTab, setActiveTab] = useState<TabId>('client_device');
+
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingEdit, setIsLoadingEdit] = useState(isEditing);
     const [displayId, setDisplayId] = useState<number | null>(null);
@@ -341,18 +333,7 @@ const ServiceOrderForm: React.FC = () => {
         }
     };
 
-    // --- Tab navigation ---
-    const currentTabIndex = TAB_ORDER.indexOf(activeTab);
-    const canGoNext = currentTabIndex < TAB_ORDER.length - 1;
-    const canGoPrev = currentTabIndex > 0;
 
-    const goToNextTab = () => {
-        if (canGoNext) setActiveTab(TAB_ORDER[currentTabIndex + 1]);
-    };
-
-    const goToPrevTab = () => {
-        if (canGoPrev) setActiveTab(TAB_ORDER[currentTabIndex - 1]);
-    };
 
     // --- WhatsApp Action ---
     const handleWhatsAppNotification = () => {
@@ -598,42 +579,41 @@ const ServiceOrderForm: React.FC = () => {
         );
     }
 
-    const TAB_LABELS: Record<TabId, string> = {
-        client_device: 'Próximo: Diagnóstico',
-        diagnosis: 'Próximo: Orçamento',
-        financial: 'Salvar OS',
-    };
+
 
     return (
-        <div className="max-w-[1400px] w-full px-4 md:px-8 mx-auto pb-20">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start gap-4 mb-8 justify-between">
-                {/* Lado esquerdo: título + info */}
-                <div className="flex items-center gap-4">
+        <div className="max-w-[1600px] w-full px-4 md:px-8 mx-auto pb-20">
+            {/* Header - padrão do sistema */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 justify-between">
+                {/* Lado esquerdo: ícone + título + info */}
+                <div className="flex items-center gap-3">
                     <button onClick={() => navigate('/service-orders/list')} className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
-                        <ArrowLeft size={24} className="text-secondary" />
+                        <ArrowLeft size={20} className="text-secondary" />
                     </button>
+                    <div className="p-3 bg-primary rounded-2xl text-white shadow-lg shadow-primary/20 flex-shrink-0">
+                        <FileText size={22} />
+                    </div>
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-2xl font-black text-primary">
+                            <h1 className="text-2xl font-black text-primary tracking-tight">
                                 {isEditing
                                     ? <span>OS-<span className="text-accent">{displayId ?? '...'}</span></span>
                                     : 'Nova Ordem de Serviço'
                                 }
                             </h1>
                             {isEdited && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-100 border border-violet-200 text-[11px] font-black text-violet-700">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-100 border border-violet-200 text-[9px] font-black text-violet-700">
                                     <PencilLine size={10} /> Editada
                                 </span>
                             )}
                             {isLocked && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-black text-gray-500">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[9px] font-black text-gray-500">
                                     <Lock size={10} /> Somente Leitura
                                 </span>
                             )}
                         </div>
-                        <p className="text-secondary text-sm mt-0.5">
-                            {isEditing ? (isLocked ? 'OS faturada — clique em Habilitar Edição para modificar' : 'Editar dados do atendimento') : 'Preencha os dados do atendimento'}
+                        <p className="text-sm font-medium text-secondary">
+                            {isEditing ? 'Edição completa do atendimento' : 'Preencha os dados para registrar o atendimento'}
                         </p>
                     </div>
                 </div>
@@ -650,141 +630,9 @@ const ServiceOrderForm: React.FC = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Left Column - Navigation & Progress */}
-                <div className="space-y-4 lg:sticky lg:top-8 h-fit">
-                    <button
-                        onClick={() => setActiveTab('client_device')}
-                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'client_device' ? 'bg-accent border-accent text-white shadow-lg shadow-accent/20' : 'bg-transparent border-transparent hover:bg-white/50'
-                            }`}
-                    >
-                        <div className={`p-2 rounded-xl ${activeTab === 'client_device' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                            <UserIcon size={20} />
-                        </div>
-                        <div>
-                            <h3 className={`font-bold ${activeTab === 'client_device' ? 'text-white' : 'text-gray-500'}`}>Cliente e Aparelho</h3>
-                            <p className={`text-xs ${activeTab === 'client_device' ? 'text-white/80' : 'text-secondary'}`}>Dados iniciais e checklist</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab('diagnosis')}
-                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'diagnosis' ? 'bg-accent border-accent text-white shadow-lg shadow-accent/20' : 'bg-transparent border-transparent hover:bg-white/50'
-                            }`}
-                    >
-                        <div className={`p-2 rounded-xl ${activeTab === 'diagnosis' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                            <Wrench size={20} />
-                        </div>
-                        <div>
-                            <h3 className={`font-bold ${activeTab === 'diagnosis' ? 'text-white' : 'text-gray-500'}`}>Diagnóstico</h3>
-                            <p className={`text-xs ${activeTab === 'diagnosis' ? 'text-white/80' : 'text-secondary'}`}>Defeito e laudo técnico</p>
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab('financial')}
-                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${activeTab === 'financial' ? 'bg-accent border-accent text-white shadow-lg shadow-accent/20' : 'bg-transparent border-transparent hover:bg-white/50'
-                            }`}
-                    >
-                        <div className={`p-2 rounded-xl ${activeTab === 'financial' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                            <FileText size={20} />
-                        </div>
-                        <div>
-                            <h3 className={`font-bold ${activeTab === 'financial' ? 'text-white' : 'text-gray-500'}`}>Orçamento</h3>
-                            <p className={`text-xs ${activeTab === 'financial' ? 'text-white/80' : 'text-secondary'}`}>Peças, serviços e totais</p>
-                        </div>
-                    </button>
-
-                    {/* Attendant + Responsible Selectors in Sidebar */}
-                    <fieldset disabled={isLocked} className="mt-8 p-4 bg-white/50 rounded-2xl border border-gray-100 space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Atendente (Entrada)</label>
-                            <select
-                                value={attendantId}
-                                onChange={(e) => setAttendantId(e.target.value)}
-                                className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
-                            >
-                                <option value="">Selecione...</option>
-                                {users.filter(u => u.active !== false).map(u => (
-                                    <option key={u.id} value={u.id}>{u.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Responsável Técnico</label>
-                            <select
-                                value={responsibleId}
-                                onChange={(e) => setResponsibleId(e.target.value)}
-                                className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
-                            >
-                                <option value="">Selecione...</option>
-                                {users
-                                    .filter(u => {
-                                        const profile = profiles.find(p => p.id === u.permissionProfileId);
-                                        const profileName = profile?.name?.toLowerCase() || '';
-                                        return u.active !== false && (profileName.includes('técnico') || profileName.includes('tecnico'));
-                                    })
-                                    .map(u => (
-                                        <option key={u.id} value={u.id}>{u.name}</option>
-                                    ))
-                                }
-                            </select>
-                        </div>
-                    </fieldset>
-
-                    {/* Status selector em modo edição */}
-                    {isEditing && (
-                        <fieldset disabled={isLocked} className="p-4 bg-white/50 rounded-2xl border border-gray-100">
-                            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase">Status da OS</label>
-                            <select
-                                value={osStatus}
-                                onChange={async (e) => {
-                                    const newStatus = e.target.value;
-                                    if (newStatus === 'Cancelada') {
-                                        setIsCancelModalOpen(true);
-                                        return;
-                                    }
-                                    setOsStatus(newStatus);
-                                    // Instant sync if editing
-                                    if (isEditing && editId) {
-                                        try {
-                                            await updateServiceOrder(editId, { status: newStatus } as any);
-                                            toast.success(`Status atualizado para ${newStatus}`);
-                                        } catch (err) {
-                                            toast.error("Erro ao sincronizar status.");
-                                        }
-                                    }
-                                }}
-                                className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
-                            >
-                                {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'].map(s => (
-                                    <option key={s} value={s}>{s}</option>
-                                ))}
-                            </select>
-
-                            {osStatus === 'Cancelada' && cancellationReason && (
-                                <div className="mt-3 p-3 bg-red-100/50 border border-red-200 rounded-xl">
-                                    <p className="text-[10px] font-black text-red-600 uppercase mb-1">Motivo do Cancelamento</p>
-                                    <p className="text-xs text-red-700 italic">"{cancellationReason}"</p>
-                                </div>
-                            )}
-
-                            <div className="mt-3">
-                                <button
-                                    type="button"
-                                    onClick={() => handleWhatsAppNotification()}
-                                    className="flex items-center gap-1.5 px-3 py-2 w-full rounded-xl text-xs font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all shadow-md shadow-green-500/20"
-                                >
-                                    <WhatsAppIcon size={14} className="fill-white" />
-                                    Notificar Status via WhatsApp
-                                </button>
-                            </div>
-                        </fieldset>
-                    )}
-                </div>
-
-                {/* Right Column - Form Content */}
-                <div className="lg:col-span-3 flex flex-col gap-4">
+            <div className="w-full">
+                {/* Main Content Area - Full Width No Sidebar */}
+                <div className="flex flex-col gap-3">
                     {/* Botões de Ação na mesma linha (WhatsApp, Impressão, Cancelar, Salvar, Faturar) */}
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         {/* Lado Esquerdo: WhatsApp e Impressão (apenas se edição) */}
@@ -794,30 +642,30 @@ const ServiceOrderForm: React.FC = () => {
                                     <button
                                         onClick={() => handleWhatsAppNotification()}
                                         title="Enviar WhatsApp"
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold text-white bg-[#25D366] hover:bg-[#128C7E] transition-all"
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-white bg-[#25D366] hover:bg-[#128C7E] shadow-md shadow-green-500/20 transition-all hover:scale-105"
                                     >
-                                        <WhatsAppIcon size={15} className="text-white fill-white" /> WhatsApp
+                                        <WhatsAppIcon size={16} className="text-white fill-white" /> WhatsApp
                                     </button>
                                     <button
                                         onClick={() => { setPrintFormat('A4'); setIsPrintModalOpen(true); }}
                                         title="Imprimir A4"
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 transition-all"
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105"
                                     >
-                                        <Printer size={15} /> A4
+                                        <Printer size={16} /> A4
                                     </button>
                                     <button
                                         onClick={() => { setPrintFormat('thermal'); setIsPrintModalOpen(true); }}
                                         title="Imprimir 80mm"
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 transition-all"
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105"
                                     >
-                                        <Printer size={15} /> 80mm
+                                        <Printer size={16} /> 80mm
                                     </button>
                                     <button
                                         onClick={() => window.print()}
                                         title="Imprimir Etiqueta"
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 transition-all"
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105"
                                     >
-                                        <Tag size={15} /> Etiqueta
+                                        <Tag size={16} /> Etiqueta
                                     </button>
                                 </>
                             )}
@@ -828,16 +676,16 @@ const ServiceOrderForm: React.FC = () => {
                             {!isEditing && (
                                 <button
                                     onClick={() => setIsQuickOSOpen(true)}
-                                    className="bg-amber-500 hover:bg-amber-600 text-white h-9 px-4 rounded-xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
+                                    className="bg-amber-500 hover:bg-amber-600 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
                                 >
-                                    <Zap size={15} className="fill-white" />
+                                    <Zap size={18} className="fill-white" />
                                     OS Rápida
                                 </button>
                             )}
 
                             <button
                                 onClick={() => navigate('/service-orders/list')}
-                                className="bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 h-9 px-4 rounded-xl text-sm font-black active:scale-95 transition-all flex items-center justify-center"
+                                className="bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 h-11 px-6 rounded-xl text-sm font-black active:scale-95 transition-all flex items-center justify-center"
                             >
                                 Cancelar
                             </button>
@@ -849,17 +697,17 @@ const ServiceOrderForm: React.FC = () => {
                                         setIsLocked(false);
                                         toast.info('Edição habilitada. Salve ao terminar.');
                                     }}
-                                    className="bg-violet-600 hover:bg-violet-700 text-white h-9 px-5 rounded-xl text-sm font-black shadow-lg shadow-violet-500/30 active:scale-95 transition-all flex items-center gap-2"
+                                    className="bg-violet-600 hover:bg-violet-700 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-violet-500/30 active:scale-95 transition-all flex items-center gap-2"
                                 >
-                                    <Unlock size={16} /> Habilitar Edição
+                                    <Unlock size={18} /> Habilitar Edição
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleSave}
                                     disabled={isLoading}
-                                    className="bg-gray-800 hover:bg-gray-900 text-white h-9 px-5 rounded-xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                                    className="bg-gray-800 hover:bg-gray-900 text-white h-11 px-6 rounded-xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
                                 >
-                                    <Save size={16} />
+                                    <Save size={18} />
                                     {isLoading ? 'Salvando...' : 'Salvar OS'}
                                 </button>
                             )}
@@ -868,27 +716,101 @@ const ServiceOrderForm: React.FC = () => {
                             {isEditing && (
                                 <button
                                     onClick={() => setIsBillingModalOpen(true)}
-                                    className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white h-9 px-4 rounded-xl text-sm font-black shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
+                                    className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
                                 >
-                                    <DollarSign size={15} />
+                                    <DollarSign size={18} />
                                     Faturar
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    <fieldset disabled={isLocked} className="bg-white border border-gray-200 p-6 sm:p-8 rounded-3xl shadow-sm min-h-[600px] flex flex-col relative transition-opacity duration-300">
+                    <fieldset disabled={isLocked} className="bg-white border border-gray-200 p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col relative transition-opacity duration-300">
+                        {/* COL 1: CLIENT & DEVICE */}
+                        <div className="flex flex-col gap-3">
+                            <div className="flex flex-wrap items-center gap-4 border-b border-gray-100 pb-2">
+                                <h3 className="font-black text-lg text-primary flex items-center gap-2 whitespace-nowrap">
+                                    <UserIcon size={18} className="text-accent" /> Cliente e Aparelho
+                                </h3>
 
-                        {/* TAB 1: CLIENT & DEVICE */}
-                        {activeTab === 'client_device' && (
-                            <div className="space-y-6 animate-fade-in flex-1">
+                                <div className="flex-1 flex justify-end gap-2 min-w-[300px]">
+                                    <div className="w-64 flex flex-col gap-0.5">
+                                        <label className="flex items-center gap-1 text-[10px] font-black text-violet-600 uppercase px-0.5">
+                                            <UserIcon size={10} /> Atendente
+                                        </label>
+                                        <select
+                                            value={attendantId}
+                                            onChange={(e) => setAttendantId(e.target.value)}
+                                            className="w-full bg-violet-50 border border-violet-200 rounded-lg px-3 text-xs font-bold focus:ring-2 focus:ring-violet-500/20 outline-none h-8 text-violet-900 hover:bg-violet-100/50 transition-colors"
+                                        >
+                                            <option value="">Selecionar...</option>
+                                            {users.filter(u => u.active !== false).map(u => (
+                                                <option key={u.id} value={u.id}>{u.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="w-64 flex flex-col gap-0.5">
+                                        <label className="flex items-center gap-1 text-[10px] font-black text-sky-600 uppercase px-0.5">
+                                            <Wrench size={10} /> Técnico
+                                        </label>
+                                        <select
+                                            value={responsibleId}
+                                            onChange={(e) => setResponsibleId(e.target.value)}
+                                            className="w-full bg-sky-50 border border-sky-200 rounded-lg px-3 text-xs font-bold focus:ring-2 focus:ring-sky-500/20 outline-none h-8 text-sky-900 hover:bg-sky-100/50 transition-colors"
+                                        >
+                                            <option value="">Selecionar...</option>
+                                            {users
+                                                .filter(u => {
+                                                    const profile = profiles.find(p => p.id === u.permissionProfileId);
+                                                    const profileName = profile?.name?.toLowerCase() || '';
+                                                    return u.active !== false && (profileName.includes('técnico') || profileName.includes('tecnico'));
+                                                })
+                                                .map(u => (
+                                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                                ))
+                                            }
+                                        </select>
+                                    </div>
+                                    {isEditing && (
+                                        <div className="w-64">
+                                            <select
+                                                value={osStatus}
+                                                onChange={async (e) => {
+                                                    const newStatus = e.target.value;
+                                                    if (newStatus === 'Cancelada') {
+                                                        setIsCancelModalOpen(true);
+                                                        return;
+                                                    }
+                                                    setOsStatus(newStatus);
+                                                    if (isEditing && editId) {
+                                                        try {
+                                                            await updateServiceOrder(editId, { status: newStatus } as any);
+                                                            toast.success(`Status atualizado para ${newStatus}`);
+                                                        } catch (err) {
+                                                            toast.error("Erro ao sincronizar status.");
+                                                        }
+                                                    }
+                                                }}
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 text-xs font-bold focus:ring-2 focus:ring-accent/20 outline-none h-8"
+                                            >
+                                                {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'].map(s => (
+                                                    <option key={s} value={s}>{s}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="space-y-3 flex-1">
                                 {/* Client Search + Date Filters + Orcamento Toggle all in one row */}
-                                <div>
-                                    <label className="block text-sm font-bold text-primary mb-2">Cliente</label>
-                                    <div className="flex flex-wrap gap-2 items-end">
-                                        {/* Client search */}
-                                        <div ref={customerSearchRef} className="relative flex-1 min-w-[200px]">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <div className="flex flex-wrap gap-3 items-end">
+
+
+                                    {/* Client search - with label to align properly */}
+                                    <div className="flex flex-col gap-0.5 w-full lg:w-[38%] min-w-[180px]">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Cliente</label>
+                                        <div ref={customerSearchRef} className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                             <input
                                                 type="text"
                                                 placeholder="Buscar cliente..."
@@ -899,7 +821,7 @@ const ServiceOrderForm: React.FC = () => {
                                                 }}
                                                 onFocus={() => setShowCustomerResults(true)}
                                                 disabled={isEditing}
-                                                className={`w-full h-12 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all ${isEditing ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                className={`w-full h-10 pl-9 pr-4 bg-red-50 border border-red-200 rounded-xl text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all ${isEditing ? 'opacity-70' : ''}`}
                                             />
                                             {showCustomerResults && customerSearch && !isEditing && (
                                                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
@@ -920,49 +842,56 @@ const ServiceOrderForm: React.FC = () => {
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
 
-                                        {/* Add client button */}
-                                        {!isEditing && (
+                                    {/* Add client button */}
+                                    {!isEditing && (
+                                        <div className="flex flex-col gap-0.5">
+                                            <label className="text-[10px] font-bold text-transparent uppercase select-none">+</label>
                                             <button
+                                                type="button"
                                                 onClick={() => setIsCustomerModalOpen(true)}
-                                                className="h-12 w-12 flex items-center justify-center bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl transition-colors flex-shrink-0"
+                                                className="h-10 w-10 flex items-center justify-center bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-xl transition-colors flex-shrink-0 border border-violet-200"
                                                 title="Novo Cliente"
                                             >
-                                                <Plus size={20} />
+                                                <Plus size={18} />
                                             </button>
-                                        )}
-
-                                        {/* Data Entrada - fully clickable */}
-                                        <div className="flex flex-col min-w-[170px]">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Data/Hora Entrada</label>
-                                            <label className="relative cursor-pointer">
-                                                <input
-                                                    type="datetime-local"
-                                                    value={entryDate ? entryDate.slice(0, 16) : ''}
-                                                    onChange={e => {
-                                                        const val = e.target.value;
-                                                        if (val) setEntryDate(new Date(val).toISOString());
-                                                    }}
-                                                    className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
-                                                />
-                                            </label>
                                         </div>
+                                    )}
 
-                                        {/* Data Prevista - fully clickable */}
-                                        <div className="flex flex-col min-w-[130px]">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1">Data Prevista</label>
-                                            <label className="relative cursor-pointer">
-                                                <input
-                                                    type="date"
-                                                    value={estimatedDate}
-                                                    onChange={e => setEstimatedDate(e.target.value)}
-                                                    className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
-                                                />
-                                            </label>
-                                        </div>
+                                    {/* Data Entrada - fully clickable */}
+                                    <div className="flex flex-col gap-0.5 min-w-[170px]">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Data/Hora Entrada</label>
+                                        <label className="relative cursor-pointer">
+                                            <input
+                                                type="datetime-local"
+                                                value={entryDate ? entryDate.slice(0, 16) : ''}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    if (val) setEntryDate(new Date(val).toISOString());
+                                                }}
+                                                className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
+                                            />
+                                        </label>
+                                    </div>
 
-                                        {/* Toggle Orçamento */}
-                                        <div className={`h-12 flex items-center gap-2 px-3 rounded-xl border transition-all flex-shrink-0 ${isOrcamentoOnly
+                                    {/* Data Prevista - fully clickable */}
+                                    <div className="flex flex-col gap-0.5 min-w-[130px]">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Data Prevista</label>
+                                        <label className="relative cursor-pointer">
+                                            <input
+                                                type="date"
+                                                value={estimatedDate}
+                                                onChange={e => setEstimatedDate(e.target.value)}
+                                                className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Toggle Orçamento */}
+                                    <div className="flex flex-col gap-0.5">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase">Tipo</label>
+                                        <div className={`h-10 flex items-center gap-2 px-3 rounded-xl border transition-all flex-shrink-0 ${isOrcamentoOnly
                                             ? 'bg-amber-50 border-amber-300'
                                             : 'bg-gray-50 border-gray-200'
                                             }`}>
@@ -982,54 +911,55 @@ const ServiceOrderForm: React.FC = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4">
-                                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <label className="block text-sm font-bold text-primary">Aparelho do Cliente</label>
-                                            {!isEditing && (
-                                                <button
-                                                    onClick={() => setIsDeviceModalOpen(true)}
-                                                    className="h-8 px-3 flex items-center gap-1 bg-accent text-white rounded-lg text-xs font-bold transition-colors hover:bg-accent/90"
-                                                    title="Novo Aparelho"
-                                                >
-                                                    <Plus size={14} /> Novo Aparelho
-                                                </button>
-                                            )}
+                                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-xs font-black text-primary uppercase">Detalhes do Dispositivo</label>
                                         </div>
                                         {!isEditing && (
-                                            <div ref={deviceSearchRef} className="relative mb-4">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Buscar aparelhos do cliente ou bipar IMEI..."
-                                                    value={deviceSearch}
-                                                    onChange={e => {
-                                                        setDeviceSearch(e.target.value);
-                                                        setShowDeviceResults(true);
-                                                    }}
-                                                    onFocus={() => setShowDeviceResults(true)}
-                                                    className="w-full h-12 pl-10 pr-4 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all"
-                                                />
-                                                {showDeviceResults && deviceSearch && (
-                                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
-                                                        {filteredDevices.length > 0 ? (
-                                                            filteredDevices.map(d => (
-                                                                <button
-                                                                    key={d.id}
-                                                                    onClick={() => handleSelectDevice(d)}
-                                                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
-                                                                >
-                                                                    <div className="font-bold text-primary">{d.brand} {d.model}</div>
-                                                                    <div className="text-xs text-secondary font-mono">
-                                                                        {d.imei && `IMEI: ${d.imei} `}
-                                                                        {d.serialNumber && `N/S: ${d.serialNumber}`}
-                                                                    </div>
-                                                                </button>
-                                                            ))
-                                                        ) : (
-                                                            <div className="px-4 py-3 text-sm text-gray-400">Nenhum aparelho encontrado. Cadastre um novo.</div>
-                                                        )}
-                                                    </div>
-                                                )}
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div ref={deviceSearchRef} className="relative w-full lg:w-[45%] min-w-[250px]">
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Buscar aparelhos do cliente ou bipar IMEI..."
+                                                        value={deviceSearch}
+                                                        onChange={e => {
+                                                            setDeviceSearch(e.target.value);
+                                                            setShowDeviceResults(true);
+                                                        }}
+                                                        onFocus={() => setShowDeviceResults(true)}
+                                                        className="w-full h-10 pl-10 pr-4 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-sm"
+                                                    />
+                                                    {showDeviceResults && deviceSearch && (
+                                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
+                                                            {filteredDevices.length > 0 ? (
+                                                                filteredDevices.map(d => (
+                                                                    <button
+                                                                        key={d.id}
+                                                                        onClick={() => handleSelectDevice(d)}
+                                                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                                                                    >
+                                                                        <div className="font-bold text-primary">{d.brand} {d.model}</div>
+                                                                        <div className="text-xs text-secondary font-mono">
+                                                                            {d.imei && `IMEI: ${d.imei} `}
+                                                                            {d.serialNumber && `N/S: ${d.serialNumber}`}
+                                                                        </div>
+                                                                    </button>
+                                                                ))
+                                                            ) : (
+                                                                <div className="px-4 py-3 text-sm text-gray-400">Nenhum aparelho encontrado. Cadastre um novo.</div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => setIsDeviceModalOpen(true)}
+                                                    className="h-11 px-6 flex items-center gap-2 bg-accent text-white rounded-xl text-sm font-black transition-all hover:scale-105 shadow-md shadow-accent/20"
+                                                    title="Novo Aparelho"
+                                                >
+                                                    <Plus size={18} /> Novo Aparelho
+                                                </button>
                                             </div>
                                         )}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1083,7 +1013,7 @@ const ServiceOrderForm: React.FC = () => {
                                                     placeholder="Senha numérica (PIN) ou Alfanumérica"
                                                     value={passcode}
                                                     onChange={e => setPasscode(e.target.value)}
-                                                    className="w-full h-11 px-3 bg-white border border-gray-200 rounded-xl text-sm mb-4 outline-none focus:border-accent shadow-sm"
+                                                    className="w-full h-11 px-3 bg-red-50 border border-red-200 rounded-xl text-sm mb-4 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 shadow-sm"
                                                 />
                                                 <p className="text-[11px] font-bold text-gray-500 mb-2">Ou desenhe o padrão abaixo (a numeração indica a ordem exata da sequência):</p>
                                             </div>
@@ -1193,85 +1123,98 @@ const ServiceOrderForm: React.FC = () => {
                                     )}
                                 </div>
                             </div>
-                        )}
+                        </div>
 
-                        {/* TAB 2: DIAGNOSIS */}
-                        {activeTab === 'diagnosis' && (
-                            <div className="space-y-6 animate-fade-in flex-1">
-                                <div>
-                                    <label className="block text-sm font-bold text-primary mb-2">Defeito Relatado pelo Cliente</label>
-                                    <textarea
-                                        rows={4}
-                                        placeholder="Descreva o problema relatado..."
-                                        value={defectDescription}
-                                        onChange={e => setDefectDescription(e.target.value)}
-                                        className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none mb-4"
-                                    />
-
-                                    <label className="block text-sm font-bold text-primary mb-2">Observações Feitas Pelo Atendente</label>
-                                    <textarea
-                                        rows={4}
-                                        placeholder="Observações do atendente no recebimento..."
-                                        value={attendantObservations}
-                                        onChange={e => setAttendantObservations(e.target.value)}
-                                        className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none"
-                                    />
-                                </div>
-
-                                <div className="pt-4 border-t border-gray-100">
-                                    <label className="block text-sm font-bold text-primary mb-2 flex items-center gap-2">
-                                        <Wrench size={16} className="text-accent" />
-                                        Laudo Técnico
-                                    </label>
-                                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                        {/* COL 2: DIAGNOSIS */}
+                        <div className="flex flex-col gap-3">
+                            <h3 className="font-black text-lg text-primary flex items-center gap-2 border-b border-gray-100 pb-2">
+                                <Wrench size={18} className="text-accent" /> Diagnóstico
+                            </h3>
+                            <div className="space-y-4 flex-1">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-primary mb-2">Defeito Relatado pelo Cliente</label>
                                         <textarea
-                                            rows={6}
-                                            placeholder="Diagnóstico técnico, testes realizados..."
-                                            value={technicalReport}
-                                            onChange={e => setTechnicalReport(e.target.value)}
-                                            className="w-full p-0 bg-transparent border-none focus:ring-0 outline-none placeholder:text-amber-700/50 text-amber-900"
+                                            rows={5}
+                                            placeholder="Descreva o problema relatado..."
+                                            value={defectDescription}
+                                            onChange={e => setDefectDescription(e.target.value)}
+                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-primary mb-2">Observações Feitas Pelo Atendente</label>
+                                        <textarea
+                                            rows={5}
+                                            placeholder="Observações do atendente no recebimento..."
+                                            value={attendantObservations}
+                                            onChange={e => setAttendantObservations(e.target.value)}
+                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none"
                                         />
                                     </div>
                                 </div>
-                                <div className="pt-4 border-t border-gray-100">
-                                    <label className="block text-sm font-bold text-primary mb-2 flex items-center gap-2">
-                                        <Eye size={16} className="text-gray-500" />
-                                        Observações Internas (Não sai na impressão)
-                                    </label>
-                                    <textarea
-                                        rows={3}
-                                        placeholder="Observações internas sobre o atendimento..."
-                                        value={observations}
-                                        onChange={e => setObservations(e.target.value)}
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none text-sm"
-                                    />
+
+                                <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100 items-stretch">
+                                    <div className="flex-1 flex flex-col">
+                                        <label className="block text-sm font-bold text-primary mb-2 flex items-center gap-2">
+                                            <Wrench size={16} className="text-accent" />
+                                            Laudo Técnico
+                                        </label>
+                                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex-1 flex flex-col">
+                                            <textarea
+                                                placeholder="Diagnóstico técnico, testes realizados..."
+                                                value={technicalReport}
+                                                onChange={e => setTechnicalReport(e.target.value)}
+                                                className="w-full flex-1 p-0 bg-transparent border-none focus:ring-0 outline-none placeholder:text-amber-700/50 text-amber-900 resize-none min-h-[130px]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 flex flex-col">
+                                        <label className="block text-sm font-bold text-primary mb-2 flex items-center gap-2">
+                                            <Eye size={16} className="text-gray-500" />
+                                            Observações Internas (Não sai na impressão)
+                                        </label>
+                                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex-1 flex flex-col">
+                                            <textarea
+                                                placeholder="Observações internas sobre o atendimento..."
+                                                value={observations}
+                                                onChange={e => setObservations(e.target.value)}
+                                                className="w-full flex-1 p-0 bg-transparent border-none focus:ring-0 outline-none transition-all resize-none text-sm min-h-[130px]"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        )}
+                        </div>
 
-                        {/* TAB 3: FINANCIAL */}
-                        {activeTab === 'financial' && (
-                            <div className="space-y-6 animate-fade-in flex-1">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-lg text-primary">Peças e Serviços</h3>
+                        {/* COL 3: FINANCIAL */}
+                        <div className="flex flex-col gap-3">
+                            <h3 className="font-black text-lg text-primary flex items-center gap-2 border-b border-gray-100 pb-2">
+                                <FileText size={18} className="text-accent" /> Orçamento
+                            </h3>
+                            <div className="space-y-3 flex-1">
+                                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                                    <h4 className="font-bold text-sm text-secondary uppercase">Peças e Serviços</h4>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setIsServiceModalOpen(true)}
-                                            className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 border border-blue-100"
+                                            className="px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-base font-black transition-colors flex items-center gap-2 border border-blue-100 shadow-sm"
                                         >
-                                            <Wrench size={16} /> Adicionar Serviço
+                                            <Wrench size={18} /> Adicionar Serviço
                                         </button>
                                         <button
                                             onClick={() => setIsProductModalOpen(true)}
-                                            className="px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 border border-orange-100"
+                                            className="px-6 py-3 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-base font-black transition-colors flex items-center gap-2 border border-orange-100 shadow-sm"
                                         >
-                                            <Package size={16} /> Adicionar Peça
+                                            <Package size={18} /> Adicionar Peça
                                         </button>
                                         <button
                                             onClick={addItem}
-                                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-primary rounded-xl text-sm font-bold transition-colors flex items-center gap-2 border border-gray-200"
+                                            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-primary rounded-xl text-base font-black transition-colors flex items-center gap-2 border border-gray-200 shadow-sm"
                                         >
-                                            <Plus size={16} /> Item Avulso
+                                            <Plus size={18} /> Item Avulso
                                         </button>
                                     </div>
                                 </div>
@@ -1395,13 +1338,15 @@ const ServiceOrderForm: React.FC = () => {
                                     </div>
                                     <div className="flex justify-between items-center text-sm text-secondary">
                                         <span>Desconto</span>
-                                        <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-gray-200 w-32">
-                                            <span className="text-gray-400">R$</span>
+                                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200 w-36 focus-within:border-accent group transition-all">
+                                            <span className="text-gray-400 font-bold">R$</span>
                                             <input
                                                 type="number"
-                                                value={discount}
+                                                value={discount === 0 ? '' : discount}
+                                                placeholder="0"
                                                 onChange={e => setDiscount(Number(e.target.value))}
-                                                className="w-full text-right font-medium text-emerald-600 bg-transparent border-0 outline-none ring-0 focus:ring-0"
+                                                className="w-full text-right font-black text-emerald-600 bg-transparent border-0 outline-none ring-0 focus:ring-0 p-0 shadow-none appearance-none"
+                                                style={{ border: 'none', boxShadow: 'none' }}
                                             />
                                         </div>
                                     </div>
@@ -1411,65 +1356,52 @@ const ServiceOrderForm: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        </div>
+
 
                         {/* ---- NAVIGATION FOOTER ---- */}
-                        <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
+                        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100 bg-white z-10 sticky bottom-0">
                             {/* Left Area: Voltar or Empty, AND Termo de Garantia */}
                             <div className="flex items-center gap-4 flex-1">
-                                {canGoPrev && (
-                                    <button
-                                        onClick={goToPrevTab}
-                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-secondary border border-gray-200 hover:bg-gray-50 transition-colors"
-                                    >
-                                        <ChevronLeft size={16} />
-                                        Voltar
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => navigate('/service-orders/list')}
+                                    className="flex items-center gap-2 px-6 py-3 rounded-xl text-base font-black text-secondary border border-gray-200 hover:bg-gray-50 transition-colors"
+                                >
+                                    <ChevronLeft size={20} />
+                                    Voltar
+                                </button>
 
-                                {activeTab === 'client_device' && (
-                                    <div className="flex-1 max-w-sm flex items-center gap-3 ml-auto mr-4">
-                                        <label className="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Termo de Garantia</label>
-                                        <select
-                                            value={receiptTermId}
-                                            onChange={(e) => setReceiptTermId(e.target.value)}
-                                            className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none"
-                                            disabled={isLocked}
-                                        >
-                                            <option value="">Selecione um termo...</option>
-                                            {receiptTerms.map(t => (
-                                                <option key={t.id} value={t.id}>{t.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
+                                <div className="flex-1 max-w-sm flex items-center gap-3 ml-4">
+                                    <label className="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Termo de Garantia</label>
+                                    <select
+                                        value={receiptTermId}
+                                        onChange={(e) => setReceiptTermId(e.target.value)}
+                                        className="w-full bg-red-50 border border-red-200 rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-red-100 outline-none"
+                                        disabled={isLocked}
+                                    >
+                                        <option value="">Selecione um termo...</option>
+                                        {receiptTerms.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
-                            {/* Botão Avançar ou Salvar */}
+                            {/* Botão Salvar */}
                             <div className="flex-shrink-0">
-                                {canGoNext ? (
-                                    <button
-                                        onClick={goToNextTab}
-                                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-accent shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-                                    >
-                                        {TAB_LABELS[activeTab]}
-                                        <ChevronRight size={16} />
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={isLoading}
-                                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <Save size={16} />
-                                        {isLoading ? 'Salvando...' : 'Salvar OS'}
-                                    </button>
-                                )}
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isLoading}
+                                    className="flex items-center gap-3 px-10 py-4 rounded-xl text-base font-black text-white bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Save size={20} />
+                                    {isLoading ? 'Salvando...' : 'Salvar OS e Sair'}
+                                </button>
                             </div>
-                        </div>
+                        </div> {/* Footer */}
                     </fieldset>
-                </div>
-            </div>
+                </div > {/* Content Container */}
+            </div > {/* Wide Wrapper (634) */}
 
             {
                 isCustomerModalOpen && (
@@ -1485,9 +1417,7 @@ const ServiceOrderForm: React.FC = () => {
                                 }, currentUser?.id, currentUser?.name);
 
                                 if (newCustomer) {
-                                    // Update local list
                                     setCustomers(prev => [...prev, newCustomer]);
-                                    // Auto-select
                                     handleSelectCustomer(newCustomer);
                                     toast.success("Cliente cadastrado e selecionado!");
                                 }
