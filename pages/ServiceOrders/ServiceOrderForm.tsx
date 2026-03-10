@@ -798,7 +798,10 @@ const ServiceOrderForm: React.FC = () => {
                                         </select>
                                     </div>
                                     {isEditing && (
-                                        <div className="w-64">
+                                        <div className="flex-1 min-w-[120px]">
+                                            <label className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+                                                Status
+                                            </label>
                                             <select
                                                 value={osStatus}
                                                 onChange={async (e) => {
