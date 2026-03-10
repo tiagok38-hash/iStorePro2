@@ -561,7 +561,7 @@ const ServiceOrderProducts: React.FC = () => {
                             <select
                                 value={stockFilter}
                                 onChange={(e) => setStockFilter(e.target.value as any)}
-                                className={`pl-4 pr-10 py-2.5 bg-gray-50 border border-transparent rounded-xl text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all hover:bg-gray-100/70 ${
+                                className={`pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all hover:bg-gray-100/70 ${
                                     stockFilter === 'out' ? 'text-red-600' : 
                                     stockFilter === 'low' ? 'text-red-500' : 
                                     'text-gray-800'
