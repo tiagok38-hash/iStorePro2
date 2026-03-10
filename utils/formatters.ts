@@ -26,3 +26,13 @@ export const formatPhone = (value: string): string => {
     if (v.length <= 10) return `(${v.substring(0, 2)}) ${v.substring(2, 6)}-${v.substring(6)}`;
     return `(${v.substring(0, 2)}) ${v.substring(2, 7)}-${v.substring(7)}`;
 };
+
+/** Formata valor de armazenamento (GB para TB quando apropriado) */
+export const formatStorageUnit = (storage: number | string | null | undefined): string => {
+    if (storage === null || storage === undefined || storage === '') return '';
+    const num = typeof storage === 'string' ? parseFloat(storage) : storage;
+    if (isNaN(num)) return String(storage);
+    if (num === 1000 || num === 1024) return '1TB';
+    if (num === 2000 || num === 2048) return '2TB';
+    return `${num}GB`;
+};

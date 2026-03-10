@@ -56,6 +56,7 @@ import {
 } from '../../services/mockApi';
 import { getOsReceiptTerms } from '../../services/parametersService';
 import { generateCommissionsForOS } from '../../services/commissionService.ts';
+import { formatStorageUnit } from '../../utils/formatters.ts';
 import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
@@ -392,7 +393,7 @@ const ServiceOrderForm: React.FC = () => {
             device.brand && device.brand !== device.model ? device.brand : '',
             device.model || '',
             // Evita duplicar se storage/color já estiverem no model
-            device.storage && !device.model?.includes(device.storage) ? device.storage : '',
+            device.storage && !device.model?.includes(device.storage) ? formatStorageUnit(device.storage) : '',
             device.color && !device.model?.includes(device.color) ? device.color : ''
         ].filter(Boolean);
         return parts.join(' ').trim().replace(/\s+/g, ' ');

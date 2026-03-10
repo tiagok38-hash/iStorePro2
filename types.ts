@@ -245,6 +245,7 @@ export interface Customer {
     name: string;
     email: string;
     phone: string;
+    contact2?: string;
     address: Address;
     createdAt: string;
     avatarUrl?: string;

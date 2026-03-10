@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Product, Category, Brand, ProductModel, ProductConditionParameter, StorageLocationParameter } from '../types.ts';
 import { getCategories, getBrands, getProductModels, getProductConditions, getStorageLocations, formatCurrency } from '../services/mockApi.ts';
+import { formatStorageUnit } from '../utils/formatters.ts';
 import { CloseIcon, AppleIcon, SmartphoneIcon, DocumentTextIcon, CheckIcon, ChevronRightIcon, ChevronLeftIcon } from './icons.tsx';
 
 interface PriceListModalProps {
@@ -253,6 +254,10 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
 
         let processingProducts = [...filteredForStep];
 
+        const showCost = selectedPriceTypes.includes('cost') || selectedPriceTypes.includes('all');
+        const showWholesale = selectedPriceTypes.includes('wholesale') || selectedPriceTypes.includes('all');
+        const showSale = selectedPriceTypes.includes('sale') || selectedPriceTypes.includes('all');
+
         // Group identical if requested or if calculating averages (which requires grouping)
         // Ensure grouping happens even for Non-Apple if calculating averages, effectively forcing groupIdentical behavior
         if (groupIdentical || calculateAverages) {
@@ -269,15 +274,19 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 // Trim and lowercase key components for more robust grouping
                 const m = (p.model || '').trim().toLowerCase();
                 const c = (p.condition || '').trim().toLowerCase();
-                const s = (p.storage || '').toString().trim().toLowerCase();
+                const s = formatStorageUnit(p.storage).toLowerCase();
                 const col = (p.color || '').trim().toLowerCase(); // Color is part of key
                 const brand = (p.brand || '').trim().toLowerCase(); // Include brand for non-Apple safety
 
                 // For Non-Apple, model is the main identifier usually.
                 // Key needs to be specific enough to group "identical" items
-                const key = calculateAverages
-                    ? `${brand}-${m}-${c}-${s}-${col}`
-                    : `${brand}-${m}-${c}-${s}-${col}-${p.costPrice || 0}-${p.price || 0}`;
+                const keyParts = [brand, m, c, s, col];
+                if (!calculateAverages) {
+                    if (showCost) keyParts.push((p.costPrice || 0).toString());
+                    if (showWholesale) keyParts.push((p.wholesalePrice || 0).toString());
+                    if (showSale) keyParts.push((p.price || 0).toString());
+                }
+                const key = keyParts.join('-');
 
                 if (!groupedMap[key]) {
                     groupedMap[key] = {
@@ -336,10 +345,6 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
             return acc;
         }, { items: 0, cost: 0, wholesale: 0, sale: 0 });
 
-        const showCost = selectedPriceTypes.includes('cost') || selectedPriceTypes.includes('all');
-        const showWholesale = selectedPriceTypes.includes('wholesale') || selectedPriceTypes.includes('all');
-        const showSale = selectedPriceTypes.includes('sale') || selectedPriceTypes.includes('all');
-
         let grandTotal = 0;
         if (showCost) grandTotal += totals.cost;
         if (showWholesale) grandTotal += totals.wholesale;
@@ -384,11 +389,13 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                         // Remove color (case insensitive)
                         name = name.replace(new RegExp(safeColor, 'gi'), '');
                     }
-                    // Also try to clean up storage if it's baked in (e.g. 128GB)
+                    // Also try to clean up storage if it's baked in (e.g. 128GB or 1TB)
                     if (p.storage) {
                         const safeStorage = `${p.storage}`;
+                        const formattedSt = formatStorageUnit(p.storage);
                         name = name.replace(new RegExp(safeStorage + 'GB', 'gi'), '')
-                            .replace(new RegExp(safeStorage, 'gi'), '');
+                            .replace(new RegExp(safeStorage, 'gi'), '')
+                            .replace(new RegExp(formattedSt, 'gi'), '');
                     }
 
                     // Clean up delimiters and spaces
@@ -403,8 +410,13 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
 
                 sortedGroup.forEach(p => {
                     const cleanModel = getCleanModel(p);
-                    // Key includes cleanModel, storage, condition, and price
-                    const key = `${cleanModel}|${p.storage}|${p.condition}|${p.price}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
+                    // Key includes cleanModel, storage, condition, and displayed prices
+                    const priceKey = [
+                        showCost ? p.costPrice : '',
+                        showWholesale ? p.wholesalePrice : '',
+                        showSale ? p.price : ''
+                    ].join('_');
+                    const key = `${cleanModel}|${formatStorageUnit(p.storage)}|${p.condition}|${priceKey}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
 
                     if (!colorGroups[key]) {
                         colorGroups[key] = { product: p, colors: new Set(), cleanModel };
@@ -414,7 +426,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
 
                 Object.values(colorGroups).forEach(({ product: p, colors, cleanModel }) => {
                     let pName = cleanModel;
-                    if (p.storage) pName += ` ${p.storage}GB`;
+                    if (p.storage) pName += ` ${formatStorageUnit(p.storage)}`;
 
                     // Show colors grouped
                     const colorList = Array.from(colors).filter(Boolean).sort().join('-');
@@ -440,10 +452,20 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                         // Sum stock for the color group
                         const totalStock = sortedGroup.filter(sg => {
                             const cModel = getCleanModel(sg);
-                            const k = `${cModel}|${sg.storage}|${sg.condition}|${sg.price}|${sg.batteryHealth || ''}|${sg.storageLocation || ''}`;
+                            const sgPriceKey = [
+                                showCost ? sg.costPrice : '',
+                                showWholesale ? sg.wholesalePrice : '',
+                                showSale ? sg.price : ''
+                            ].join('_');
+                            const k = `${cModel}|${formatStorageUnit(sg.storage)}|${sg.condition}|${sgPriceKey}|${sg.batteryHealth || ''}|${sg.storageLocation || ''}`;
 
                             // Re-construct key for p to compare
-                            const pKey = `${cleanModel}|${p.storage}|${p.condition}|${p.price}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
+                            const pPriceKey = [
+                                showCost ? p.costPrice : '',
+                                showWholesale ? p.wholesalePrice : '',
+                                showSale ? p.price : ''
+                            ].join('_');
+                            const pKey = `${cleanModel}|${formatStorageUnit(p.storage)}|${p.condition}|${pPriceKey}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
                             return k === pKey;
                         }).reduce((sum, item) => sum + item.stock, 0);
 
@@ -488,7 +510,8 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
             } else {
                 sortedGroup.forEach(p => {
                     let pName = p.model;
-                    if (p.storage && !p.model.includes(p.storage.toString())) pName += ` ${p.storage}GB`;
+                    const fStorage = formatStorageUnit(p.storage);
+                    if (p.storage && !p.model.includes(p.storage.toString()) && !p.model.includes(fStorage)) pName += ` ${fStorage}`;
                     if (p.color && !p.model.toLowerCase().includes(p.color.toLowerCase())) pName += ` (${p.color})`;
 
 
@@ -587,6 +610,8 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                 border-bottom: 1px solid rgba(226, 232, 240, 0.8);
                                 margin-bottom: 30px;
                                 box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+                                user-select: none;
+                                -webkit-user-select: none;
                             }
                             .summary-grid {
                                 display: flex;
@@ -951,7 +976,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                                                     : 'bg-gray-100 text-gray-500'
                                                                     }`}
                                                             >
-                                                                {st}GB
+                                                                {formatStorageUnit(st)}
                                                             </button>
                                                         ))}
                                                     </div>

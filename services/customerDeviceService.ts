@@ -7,6 +7,30 @@ import { fetchWithRetry } from './cacheUtils.ts';
 
 // --- CUSTOMER DEVICES (Eletrônicos de Clientes) ---
 
+const mapCustomerDevice = (d: any): CustomerDevice => ({
+    id: d.id,
+    customerId: d.customer_id,
+    brand: d.brand,
+    category: d.category,
+    model: d.model,
+    imei: d.imei || '',
+    imei2: d.imei2 || '',
+    serialNumber: d.serial_number || '',
+    ean: d.ean || '',
+    type: (d.type as ElectronicType) || 'Produtos Apple',
+    color: d.color || '',
+    storage: d.storage || '',
+    rawModel: d.raw_model || '',
+    soldInStore: d.sold_in_store || false,
+    hasPreviousRepair: d.has_previous_repair || false,
+    customerName: d.customer_name || '',
+    customerCpf: d.customer_cpf || '',
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
+    observations: d.observations || '',
+    history: [] // Histórico será carregado sob demanda se necessário
+});
+
 export const getCustomerDevices = async (): Promise<CustomerDevice[]> => {
     return fetchWithCache('customer_devices', async () => {
         return fetchWithRetry(async () => {
@@ -15,29 +39,7 @@ export const getCustomerDevices = async (): Promise<CustomerDevice[]> => {
                 console.error('Error fetching customer_devices:', error);
                 throw error;
             }
-            return (data || []).map(d => ({
-                id: d.id,
-                customerId: d.customer_id,
-                brand: d.brand,
-                category: d.category,
-                model: d.model,
-                imei: d.imei || '',
-                imei2: d.imei2 || '',
-                serialNumber: d.serial_number || '',
-                ean: d.ean || '',
-                type: (d.type as ElectronicType) || 'Produtos Apple',
-                color: d.color || '',
-                storage: d.storage || '',
-                rawModel: d.raw_model || '',
-                soldInStore: d.sold_in_store || false,
-                hasPreviousRepair: d.has_previous_repair || false,
-                customerName: d.customer_name || '',
-                customerCpf: d.customer_cpf || '',
-                createdAt: d.created_at,
-                updatedAt: d.updated_at,
-                observations: d.observations || '',
-                history: [] // Histórico será carregado sob demanda se necessário
-            }));
+            return (data || []).map(mapCustomerDevice);
         });
     });
 };
@@ -77,7 +79,7 @@ export const addCustomerDevice = async (device: any): Promise<CustomerDevice> =>
         throw error;
     }
     clearCache(['customer_devices']);
-    return data;
+    return mapCustomerDevice(data);
 };
 
 export const updateCustomerDevice = async (id: string, device: any): Promise<CustomerDevice> => {
@@ -107,7 +109,7 @@ export const updateCustomerDevice = async (id: string, device: any): Promise<Cus
         throw error;
     }
     clearCache(['customer_devices']);
-    return data;
+    return mapCustomerDevice(data);
 };
 
 export const deleteCustomerDevice = async (id: string): Promise<void> => {

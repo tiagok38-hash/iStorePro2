@@ -14,6 +14,7 @@ const mapCustomer = (c: any) => ({
     isBlocked: c.is_blocked,
     customTag: c.custom_tag,
     instagram: c.instagram,
+    contact2: c.contact2,
     active: c.active ?? true,
     address: {
         zip: c.cep || '',
@@ -27,7 +28,7 @@ const mapCustomer = (c: any) => ({
 });
 
 // Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
-const CUSTOMER_COLUMNS = 'id, name, email, phone, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url, active, credit_limit, credit_used, allow_credit';
+const CUSTOMER_COLUMNS = 'id, name, email, phone, contact2, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url, active, credit_limit, credit_used, allow_credit';
 
 // Helper to ensure date format is YYYY-MM-DD
 const ensureISODate = (dateStr: string | undefined | null): string | null => {
@@ -57,7 +58,23 @@ export const getCustomers = async (onlyActive: boolean = true): Promise<Customer
                 query = query.eq('active', true);
             }
 
-            const { data, error } = await query;
+            let { data, error } = await query;
+            if (error && (error.code === '42703' || error.code === 'PGRST204') && error.message?.includes('contact2')) {
+                // Retry sem a nova coluna contact2 caso o banco ainda não tenha sido atualizado
+                console.warn("Retrying getCustomers sem a coluna contact2...");
+                const fallbackColumns = CUSTOMER_COLUMNS.replace(', contact2', '');
+                let fallbackQuery = supabase
+                    .from('customers')
+                    .select(fallbackColumns)
+                    .order('name', { ascending: true })
+                    .limit(3000);
+                if (onlyActive) fallbackQuery = fallbackQuery.eq('active', true);
+                
+                const retryResult = await fallbackQuery;
+                data = retryResult.data as any;
+                error = retryResult.error;
+            }
+
             if (error) {
                 console.error('mockApi: Error fetching customers:', error);
                 throw error;
@@ -72,12 +89,26 @@ export const getCustomers = async (onlyActive: boolean = true): Promise<Customer
 export const searchCustomers = async (term: string): Promise<Customer[]> => {
     if (!term || term.length < 2) return [];
     return fetchWithRetry(async () => {
-        const { data, error } = await supabase
+        let query = supabase
             .from('customers')
             .select(CUSTOMER_COLUMNS)
             .eq('active', true) // Search only active customers
             .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%`)
             .limit(50);
+            
+        let { data, error } = await query;
+        if (error && (error.code === '42703' || error.code === 'PGRST204') && error.message?.includes('contact2')) {
+            console.warn("Retrying searchCustomers sem a coluna contact2...");
+            const fallbackColumns = CUSTOMER_COLUMNS.replace(', contact2', '');
+            const retryResult = await supabase
+                .from('customers')
+                .select(fallbackColumns)
+                .eq('active', true)
+                .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%`)
+                .limit(50);
+            data = retryResult.data as any;
+            error = retryResult.error;
+        }
         if (error) throw error;
         return (data || []).map(mapCustomer);
     });
@@ -146,6 +177,7 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
     };
 
     if (data.email) payload.email = data.email;
+    if (data.contact2 !== undefined) payload.contact2 = data.contact2;
     if (data.avatarUrl) payload.avatar_url = data.avatarUrl;
     if (data.cpf) payload.cpf = data.cpf;
     if (data.rg) payload.rg = data.rg;
@@ -194,7 +226,7 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
                 throw new Error(`Já existe um cliente cadastrado com este RG: ${existingRg.name}`);
             }
         } catch (err: any) {
-            if (err.code !== '42703' && !err.message?.includes('rg')) {
+            if ((err.code !== '42703' && err.code !== 'PGRST204') && !err.message?.includes('rg')) {
                 console.warn('Error checking RG duplication:', err);
                 if (err.message && err.message.includes('Já existe um cliente')) throw err;
             }
@@ -203,11 +235,12 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
 
     let result = await supabase.from('customers').insert([payload]).select().single();
 
-    if (result.error && result.error.code === '42703') {
+    if (result.error && (result.error.code === '42703' || result.error.code === 'PGRST204')) {
         const msg = result.error.message || '';
         let retry = false;
 
         if (msg.includes('instagram')) { delete payload.instagram; retry = true; }
+        if (msg.includes('contact2')) { delete payload.contact2; retry = true; }
         if (msg.includes('rg')) { delete payload.rg; retry = true; }
         if (msg.includes('cpf')) { delete payload.cpf; retry = true; }
         if (msg.includes('birth_date')) { delete payload.birth_date; retry = true; }
@@ -292,6 +325,7 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     const payload: any = {};
     if (data.name !== undefined) payload.name = data.name;
     if (data.phone !== undefined) payload.phone = data.phone;
+    if (data.contact2 !== undefined) payload.contact2 = data.contact2;
 
     if (data.email !== undefined) payload.email = data.email || null;
     if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl || null;
@@ -357,10 +391,24 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
         throw err;
     }
 
-    if (result.error && payload.instagram && (result.error.code === '42703' || result.error.message?.includes('instagram'))) {
-        console.warn("Instagram column missing, retrying without it...");
-        delete payload.instagram;
-        result = await supabase.from('customers').update(payload).eq('id', data.id).select().single();
+    if (result.error && (result.error.code === '42703' || result.error.code === 'PGRST204')) {
+        const msg = result.error.message || '';
+        let retry = false;
+        
+        if (payload.instagram !== undefined && msg.includes('instagram')) {
+            console.warn("Instagram column missing, retrying without it...");
+            delete payload.instagram;
+            retry = true;
+        }
+        if (payload.contact2 !== undefined && msg.includes('contact2')) {
+            console.warn("Contact2 column missing, retrying without it...");
+            delete payload.contact2;
+            retry = true;
+        }
+        
+        if (retry) {
+            result = await supabase.from('customers').update(payload).eq('id', data.id).select().single();
+        }
     }
 
     const { data: updated, error } = result;

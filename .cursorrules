@@ -71,3 +71,8 @@ Toda vez que precisarmos criar uma **NOVA TABELA no Supabase** para a aplicaçã
 - **Regra de Arquitetura Absoluta**: NUNCA adicione código, funções ou novas chamadas de banco de dados diretamente ao arquivo `/services/mockApi.ts`.
 - Todos os novos serviços e integrações com banco de dados devem ser construídos em arquivos modulares separados dentro da pasta `/services/` (exemplo: `productService.ts`, `salesService.ts`, `customerService.ts`).
 - A camada de dados desta aplicação é estritamente e 100% modularizada. O `mockApi.ts` atua apenas como um agregador/roteador legado para reexportação e não deve crescer.
+
+## 17. Permissões Estritas (Deny by Default / Proibição Absoluta)
+- Perfis sem permissão expressa (caminho `true` no objeto do usuário) NUNCA podem acessar áreas restritas do sistema.
+- Essa regra é INVIOLÁVEL E IMUTÁVEL e prevalece sobre qualquer outra regra nova ou antiga. Se houver falha de componente, falha ao puxar do banco de dados, perfil nulo, erro inesperado no login, ou qualquer indefinição, o comportamento padrão OBRIGATÓRIO é negar o acesso (`Deny by Default`).
+- Todas as rotas e componentes protegidos devem assumir a postura estrita de `emptyPermissions` (todos como `false`) até que se prove o contrário positivamente, sem chaves de destrancamento soltas no fallback.

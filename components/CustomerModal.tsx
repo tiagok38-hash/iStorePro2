@@ -97,6 +97,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
             cpf: entity?.cpf || '',
             rg: entity?.rg || '',
             birthDate: entity?.birthDate || '',
+            contact2: entity?.contact2 || '',
             cnpj: entity?.cnpj || '',
             address: addressObject,
             id: entity?.id,
@@ -143,7 +144,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
             let formattedValue = value;
             if (name === 'cpf') formattedValue = formatCPF(value);
             else if (name === 'cnpj') formattedValue = formatCNPJ(value);
-            else if (name === 'phone') formattedValue = formatPhone(value);
+            else if (name === 'phone' || name === 'contact2') formattedValue = formatPhone(value);
             setFormData(prev => ({ ...prev, [name]: formattedValue }));
         }
     };
@@ -353,7 +354,10 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div><label className={labelClasses}>Nascimento</label><input name="birthDate" type="text" placeholder="dd/mm/aaaa" value={formData.birthDate || ''} onChange={(e) => setFormData(prev => ({ ...prev, birthDate: formatBirthDate(e.target.value) }))} className={inputClasses} /></div>
-                                                <div><label className={labelClasses}>WhatsApp*</label><input name="phone" value={formData.phone || ''} onChange={handleChange} className={inputClasses} required /></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div><label className={labelClasses}>WhatsApp (Usado na OS)*</label><input name="phone" value={formData.phone || ''} onChange={handleChange} className={inputClasses} required /></div>
+                                                <div><label className={labelClasses}>Contato 2 (Amigo, familiar...)</label><input name="contact2" value={formData.contact2 || ''} onChange={handleChange} className={inputClasses} /></div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div><label className={labelClasses}>Instagram</label><input name="instagram" value={formData.instagram || ''} onChange={handleChange} className={inputClasses} /></div>
@@ -367,10 +371,11 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                                 <div><label className={labelClasses}>Insc. Estadual</label><input name="ie" className={inputClasses} /></div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
-                                                <div><label className={labelClasses}>WhatsApp*</label><input name="phone" value={formData.phone || ''} onChange={handleChange} className={inputClasses} required /></div>
-                                                <div><label className={labelClasses}>Instagram</label><input name="instagram" value={formData.instagram || ''} onChange={handleChange} className={inputClasses} /></div>
+                                                <div><label className={labelClasses}>WhatsApp (Usado na OS)*</label><input name="phone" value={formData.phone || ''} onChange={handleChange} className={inputClasses} required /></div>
+                                                <div><label className={labelClasses}>Contato 2 (Amigo, familiar...)</label><input name="contact2" value={formData.contact2 || ''} onChange={handleChange} className={inputClasses} /></div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
+                                                <div><label className={labelClasses}>Instagram</label><input name="instagram" value={formData.instagram || ''} onChange={handleChange} className={inputClasses} /></div>
                                                 <div><label className={labelClasses}>Email</label><input name="email" type="email" value={formData.email || ''} onChange={handleChange} className={inputClasses} /></div>
                                             </div>
                                         </>

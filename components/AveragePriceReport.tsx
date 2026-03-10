@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Product, ProductModel } from '../types.ts';
 import { formatCurrency } from '../services/mockApi.ts';
+import { formatStorageUnit } from '../utils/formatters.ts';
 import { SearchIcon } from './icons.tsx';
 
 interface AveragePriceReportProps {
@@ -74,9 +75,7 @@ const AveragePriceReport: React.FC<AveragePriceReportProps> = ({ products, produ
                 if (match) storage = match[0].toUpperCase().replace(/\s+/, '');
                 else storage = 'N/A';
             } else {
-                if (!String(storage).toLowerCase().includes('b')) {
-                    storage = `${storage}GB`;
-                }
+                storage = formatStorageUnit(storage);
             }
 
             const condition = String(p.condition || 'N/A').trim();

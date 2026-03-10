@@ -228,6 +228,18 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
     };
 
     const handleSubmit = () => {
+        if (productType === 'Apple') {
+            if (!formData.category || !formData.model) {
+                showToast('Selecione ao menos a Categoria e o Modelo do aparelho.', 'error');
+                return;
+            }
+        } else {
+            if (!formData.brand || !formData.category || !formData.model) {
+                showToast('Selecione a Marca, Categoria e Modelo do aparelho.', 'error');
+                return;
+            }
+        }
+
         if (formData.imei && formData.imei.length !== 15) {
             showToast('O IMEI 1 deve ter exatamente 15 números.', 'error');
             return;
@@ -240,6 +252,8 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
         let finalBrandName = formData.brand;
         let finalType = formData.type;
         const variationString = formData.variations.map(v => v.valueName).join(' ');
+
+        let finalCategoryName = formData.category;
 
         if (productType === 'Apple') {
             finalBrandName = 'Apple';
@@ -268,6 +282,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
 
             const categoryObj = categories.find(c => c.id === formData.category);
             const categoryName = categoryObj?.name || formData.category;
+            finalCategoryName = categoryName;
 
             finalType = categoryName;
 
@@ -289,6 +304,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
             id: initialData?.id || crypto.randomUUID(),
             type: finalType,
             brand: finalBrandName,
+            category: finalCategoryName,
             model: finalModelName, // Nome completo para exibição
             rawModel: formData.model, // Nome/ID original para edição
             soldInStore: initialData?.soldInStore || false,
@@ -603,6 +619,7 @@ export const ServiceOrderElectronicDevicesModal: React.FC<ServiceOrderElectronic
                             // Update local form with new customer
                             setFormData(prev => ({
                                 ...prev,
+                                customerId: newCustomer.id,
                                 customerName: newCustomer.name,
                                 customerCpf: newCustomer.cpf || ''
                             }));

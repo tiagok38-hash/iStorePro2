@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, StorageLocationParameter } from '../types.ts';
+import { formatStorageUnit } from '../utils/formatters.ts';
 import { XCircleIcon, ArrowsUpDownIcon, SearchIcon, CubeIcon, MapPinIcon, DocumentDuplicateIcon } from './icons.tsx';
 
 
@@ -84,7 +85,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                 <div class="model">${item.model}</div>
                                 <div class="details">
                                     <span class="badge badge-condition">${item.condition}</span>
-                                    ${item.storage ? `<span class="badge badge-variant">${item.storage}</span>` : ''}
+                                    ${item.storage ? `<span class="badge badge-variant">${formatStorageUnit(item.storage)}</span>` : ''}
                                     ${item.color ? `<span class="badge badge-variant">${item.color}</span>` : ''}
                                 </div>
                                 ${item.identifiers && item.identifiers.length > 0 ? `
@@ -108,7 +109,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                 <div class="model">${item.model}</div>
                                 <div class="details">
                                     <span class="badge badge-condition">${item.condition}</span>
-                                    ${item.storage ? `<span class="badge badge-variant">${item.storage}</span>` : ''}
+                                    ${item.storage ? `<span class="badge badge-variant">${formatStorageUnit(item.storage)}</span>` : ''}
                                     ${item.color ? `<span class="badge badge-variant">${item.color}</span>` : ''}
                                 </div>
                                 ${item.identifiers && item.identifiers.length > 0 ? `
@@ -386,7 +387,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                                     <span className="text-[10px] font-black text-success uppercase whitespace-nowrap">{item.condition}</span>
                                                     {item.storage && !item.model.toLowerCase().includes(item.storage.toLowerCase().replace('gb', '').trim()) && (
                                                         <span className="text-[10px] font-black text-muted uppercase whitespace-nowrap">
-                                                            {item.storage.toLowerCase().includes('gb') ? item.storage : `${item.storage}GB`}
+                                                            {formatStorageUnit(item.storage)}
                                                         </span>
                                                     )}
                                                     {item.color && !item.model.toLowerCase().includes(item.color.toLowerCase()) && (
@@ -439,7 +440,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                                     <span className="text-[10px] font-black text-success uppercase whitespace-nowrap">{item.condition}</span>
                                                     {item.storage && !item.model.toLowerCase().includes(item.storage.toLowerCase().replace('gb', '').trim()) && (
                                                         <span className="text-[10px] font-black text-muted uppercase whitespace-nowrap">
-                                                            {item.storage.toLowerCase().includes('gb') ? item.storage : `${item.storage}GB`}
+                                                            {formatStorageUnit(item.storage)}
                                                         </span>
                                                     )}
                                                     {item.color && !item.model.toLowerCase().includes(item.color.toLowerCase()) && (
