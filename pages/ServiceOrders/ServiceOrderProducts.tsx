@@ -557,26 +557,26 @@ const ServiceOrderProducts: React.FC = () => {
 
                     {/* Stock filter — apenas na aba peças */}
                     {activeTab === 'parts' && (
-                        <div className="flex items-center gap-1 bg-gray-100 rounded-2xl p-1 border border-gray-200 shrink-0">
-                            {([
-                                { key: 'all', label: 'Todos' },
-                                { key: 'in_stock', label: 'Em Estoque' },
-                                { key: 'out', label: 'Zerado' },
-                                { key: 'low', label: 'Est. Baixo' },
-                            ] as const).map(f => (
-                                <button
-                                    key={f.key}
-                                    onClick={() => setStockFilter(f.key)}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all whitespace-nowrap ${stockFilter === f.key
-                                        ? f.key === 'out' ? 'bg-red-600 text-white shadow-sm'
-                                            : f.key === 'low' ? 'bg-red-500 text-white shadow-sm'
-                                                : 'bg-gray-800 text-white shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
-                                        }`}
-                                >
-                                    {f.label}
-                                </button>
-                            ))}
+                        <div className="relative shrink-0">
+                            <select
+                                value={stockFilter}
+                                onChange={(e) => setStockFilter(e.target.value as any)}
+                                className={`pl-4 pr-10 py-2.5 bg-gray-100 border border-transparent rounded-xl text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all hover:bg-gray-200/70 ${
+                                    stockFilter === 'out' ? 'text-red-600' : 
+                                    stockFilter === 'low' ? 'text-red-500' : 
+                                    'text-gray-800'
+                                }`}
+                            >
+                                <option value="all">Todos</option>
+                                <option value="in_stock">Em Estoque</option>
+                                <option value="out">Zerado</option>
+                                <option value="low">Est. Baixo</option>
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
                         </div>
                     )}
                 </div>
