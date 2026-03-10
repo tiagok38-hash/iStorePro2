@@ -55,6 +55,7 @@ import {
     deductOsPartsStock
 } from '../../services/mockApi';
 import { getOsReceiptTerms } from '../../services/parametersService';
+import { generateCommissionsForOS } from '../../services/commissionService.ts';
 import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
@@ -567,6 +568,25 @@ const ServiceOrderForm: React.FC = () => {
         } catch (e) {
             console.error('Erro ao baixar estoque:', e);
         }
+        
+        // Registrar comissão
+        try {
+            const sellerId = attendantId || responsibleId || currentUser?.id;
+            if (sellerId && currentUser) {
+                await generateCommissionsForOS(
+                    editId,
+                    sellerId,
+                    items,
+                    currentUser.id,
+                    currentUser.name,
+                    new Date().toISOString(),
+                    'Entregue'
+                );
+            }
+        } catch (e) {
+            console.error('Erro ao gerar comissões:', e);
+        }
+
         setOsStatus('Entregue');
         setJustBilled(true);
         toast.success('OS faturada e marcada como Entregue!');

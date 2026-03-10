@@ -228,6 +228,135 @@ export const generateCommissionsForSale = async (
     return inserted || [];
 };
 
+export const generateCommissionsForOS = async (
+    osId: string,
+    sellerId: string,
+    items: Array<{
+        catalogItemId?: string;
+        description: string;
+        type: 'service' | 'part' | string;
+        price: number;
+        cost?: number;
+        quantity: number;
+    }>,
+    userId: string,
+    userName: string,
+    osDate?: string,
+    osStatus?: string
+): Promise<Commission[]> => {
+    if (!items || items.length === 0) return [];
+
+    const serviceIds = items.filter(i => i.type === 'service' && i.catalogItemId).map(i => i.catalogItemId as string);
+    // Para parts, o catalogItemId em os_parts na vdd também pode ser buscado
+    const partIds = items.filter(i => i.type === 'part' && i.catalogItemId).map(i => i.catalogItemId as string);
+
+    const catalogMap = new Map();
+
+    // Fetch services
+    if (serviceIds.length > 0) {
+        const { data: services } = await supabase
+            .from('services')
+            .select('id, name, commission_enabled, commission_type, commission_value')
+            .in('id', serviceIds);
+        (services || []).forEach(s => catalogMap.set(s.id, {
+            ...s, discount_limit_type: 'percentage', discount_limit_value: 0
+        }));
+    }
+
+    // Fetch parts
+    if (partIds.length > 0) {
+        // parts from os_parts actually link to products. Or if os_parts has its own commission configs?
+        // Wait, os_parts links to products. Let's fetch directly from products via the part's product_id
+        // For simplicity we fetch from products table using partIds, since OsParts use product UUIDs inside catalogItemId.
+        const { data: products } = await supabase
+            .from('products')
+            .select('id, model, commission_enabled, commission_type, commission_value, discount_limit_type, discount_limit_value')
+            .in('id', partIds);
+        (products || []).forEach(p => catalogMap.set(p.id, p));
+    }
+
+    const periodRef = getPeriodReference(osDate);
+    const commissionsToInsert: any[] = [];
+
+    for (let idx = 0; idx < items.length; idx++) {
+        const item = items[idx];
+        if (!item.catalogItemId) continue;
+        
+        const catalogInfo = catalogMap.get(item.catalogItemId);
+        if (!catalogInfo || !catalogInfo.commission_enabled) continue;
+
+        // Simulate a sale item mapped for commission calculation
+        const simulatedSaleItem = {
+            unitPrice: item.price,
+            quantity: item.quantity,
+            discountType: '%',
+            discountValue: 0,
+            netTotal: item.price * item.quantity
+        };
+
+        const { commissionAmount, commissionRate, commissionType } = calculateItemCommission(
+            catalogInfo,
+            simulatedSaleItem
+        );
+
+        if (commissionAmount <= 0) continue;
+
+        let initialStatus: CommissionStatus = 'pending';
+        // Se a OS está entregue ou faturada, geralmente entra como pending e depois pode ser paga,
+        // mas OS status pode ditar se é on_hold ou pending.
+        if (osStatus === 'Pendente' || osStatus === 'Aberto' || osStatus === 'Em Andamento') {
+            initialStatus = 'on_hold';
+        }
+
+        commissionsToInsert.push({
+            sale_id: osId,
+            sale_item_index: idx,
+            seller_id: sellerId,
+            product_id: item.catalogItemId,
+            product_name: item.description || catalogInfo.model || catalogInfo.name || 'Item de OS',
+            unit_price: item.price,
+            quantity: item.quantity,
+            discount_value: 0,
+            discount_type: '%',
+            net_total: item.price * item.quantity,
+            commission_type: commissionType,
+            commission_rate: commissionRate,
+            commission_amount: commissionAmount,
+            status: initialStatus,
+            period_reference: periodRef,
+        });
+    }
+
+    if (commissionsToInsert.length === 0) return [];
+
+    const { data: inserted, error } = await supabase
+        .from('commissions')
+        .insert(commissionsToInsert)
+        .select();
+
+    if (error) {
+        console.error('[CommissionService] Error generating commissions for OS:', error);
+        throw error;
+    }
+
+    // Audit log
+    for (const comm of (inserted || [])) {
+        await logCommissionAudit(
+            comm.id,
+            'created',
+            null,
+            comm.commission_amount,
+            null,
+            comm.status,
+            `Comissão gerada automaticamente para OS ${osId}`,
+            userId,
+            userName
+        );
+    }
+
+    return inserted || [];
+};
+
 // ─── CANCEL COMMISSIONS FOR A SALE ────────────────────────
 
 /**
