@@ -24,36 +24,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         return <Navigate to="/login" replace />;
     }
 
-    // If authenticated but permissions are null, allow access with full permissions as fallback
-    // This handles edge cases where permissions couldn't be loaded due to network issues
-    const fallbackPermissions = {
-        canAccessDashboard: true,
-        canAccessVendas: true,
-        canAccessEstoque: true,
-        canAccessClientes: true,
-        canAccessFornecedores: true,
-        canAccessRelatorios: true,
-        canAccessEmpresa: true,
-        canAccessOrcamentos: true,
-        canAccessPOS: true,
-        canManageProducts: true,
-        canEditProductPrices: true,
-        canCancelSales: true,
-        canApplyDiscounts: true,
-        canEditOwnProfile: true,
-        canManageMarcasECategorias: true,
-        canAccessCatalog: true,
-        canAccessFinanceiro: true,
-        canAccessServiceOrders: true,
-        canAccessCrm: true
-    };
-
+    // Se as permissões ainda não carregaram ou por algum problema estão null,
+    // garantimos segurança máxima com Deny by Default. Apenas usuários admin master teriam fallback total,
+    // mas na dúvida, bloqueamos acessos confidenciais.
+    const emptyFallback = {} as Record<string, boolean>;
     const effectivePermissions = permissions
-        ? { ...fallbackPermissions, ...permissions } // Merge with fallback to ensure no missing keys
-        : fallbackPermissions;
+        ? { ...emptyFallback, ...permissions } // Se temos permissões vindas do contexto, usamos elas
+        : (user?.permissionProfileId === 'profile-admin' 
+            // Admin master recebe bypass caso permissões de objeto deem falha extrema
+            ? new Proxy({}, { get: () => true }) 
+            // Usuário comum é bloqueado com fallback vazio (Deny by default)
+            : emptyFallback);
 
     if (permissions === null) {
-        console.warn('ProtectedRoute: Permissions are null. Using fallback for:', user?.email);
+        console.warn('ProtectedRoute: Permissions are null. Access denied as Deny-by-Default fallback used for:', user?.email);
     }
 
     const hasPermission = !permissionKey || (

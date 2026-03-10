@@ -35,8 +35,8 @@ interface UserContextData {
 
 const UserContext = createContext<UserContextData | undefined>(undefined);
 
-// Permissões padrão (Segurança: Deny by Default para novos recursos)
-const defaultPermissions: PermissionSet = {
+// Permissões padrão para administradores
+const fullPermissions: PermissionSet = {
   canAccessDashboard: true, canAccessEstoque: true, canAccessVendas: true,
   canAccessPOS: true, canAccessClientes: true, canAccessFornecedores: true,
   canAccessRelatorios: true, canAccessEmpresa: true, canAccessOrcamentos: true,
@@ -90,6 +90,12 @@ const defaultPermissions: PermissionSet = {
   canPayBancoHoras: true,
 };
 
+// Permissões vazias (Segurança: Deny by Default para novos recursos e falhas de carregamento)
+const emptyPermissions: PermissionSet = Object.keys(fullPermissions).reduce((acc, key) => {
+  acc[key as keyof PermissionSet] = false;
+  return acc;
+}, {} as unknown as PermissionSet);
+
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -127,7 +133,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (userData) {
       // 1. Parallelize fetching of permissions and cash session context
-      let currentPermissions = defaultPermissions;
+      let currentPermissions = emptyPermissions;
       let activeSession = null;
 
       try {
@@ -136,7 +142,15 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           getCashSessions(userData.id)
         ]);
         const profile = profiles.find(p => p.id === userData.permissionProfileId);
-        if (profile) currentPermissions = { ...defaultPermissions, ...profile.permissions };
+        
+        if (profile) {
+          currentPermissions = { ...emptyPermissions, ...profile.permissions };
+        } else if (userData.permissionProfileId === 'profile-admin') {
+          currentPermissions = { ...fullPermissions };
+        } else {
+          currentPermissions = { ...emptyPermissions };
+        }
+        
         activeSession = sessions.find(s => s.status === 'aberto') || null;
       } catch (e) {
         console.error("UserContext: Falha no carregamento de dados críticos", e);
