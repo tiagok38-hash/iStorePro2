@@ -798,8 +798,8 @@ const ServiceOrderForm: React.FC = () => {
                                         </select>
                                     </div>
                                     {isEditing && (
-                                        <div className="flex-1 min-w-[120px]">
-                                            <label className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+                                        <div className="w-64 flex flex-col gap-0.5">
+                                            <label className="flex items-center gap-1 text-[10px] font-black text-gray-500 uppercase px-0.5">
                                                 Status
                                             </label>
                                             <select
