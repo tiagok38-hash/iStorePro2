@@ -108,6 +108,33 @@ export const deleteService = async (id: string) => {
 
 // --- SERVICE ORDERS ---
 
+export const mapServiceOrderData = (so: any): ServiceOrder => ({
+    ...so,
+    customerId: so.customer_id,
+    customerName: so.customer_name,
+    deviceModel: so.device_model,
+    serialNumber: so.serial_number,
+    patternLock: so.pattern_lock,
+    defectDescription: so.defect_description,
+    technicalReport: so.technical_report,
+    createdAt: so.created_at,
+    updatedAt: so.updated_at,
+    responsibleId: so.responsible_id,
+    responsibleName: so.responsible_name,
+    entryDate: so.entry_date,
+    exitDate: so.exit_date,
+    attendantId: so.attendant_id,
+    attendantName: so.attendant_name,
+    estimatedDate: so.estimated_date,
+    attendantObservations: so.attendant_observations,
+    customerDeviceId: so.customer_device_id,
+    displayId: so.display_id,
+    isOrcamentoOnly: so.is_orcamento_only,
+    isQuick: so.is_quick,
+    phone: so.phone,
+    receiptTermId: so.receipt_term_id,
+});
+
 export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
     return fetchWithCache('service_orders', async () => {
         return fetchWithRetry(async () => {
@@ -117,33 +144,7 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-
-            return (data || []).map((so: any) => ({
-                ...so,
-                customerId: so.customer_id,
-                customerName: so.customer_name,
-                deviceModel: so.device_model,
-                serialNumber: so.serial_number,
-                patternLock: so.pattern_lock,
-                defectDescription: so.defect_description,
-                technicalReport: so.technical_report,
-                createdAt: so.created_at,
-                updatedAt: so.updated_at,
-                responsibleId: so.responsible_id,
-                responsibleName: so.responsible_name,
-                entryDate: so.entry_date,
-                exitDate: so.exit_date,
-                attendantId: so.attendant_id,
-                attendantName: so.attendant_name,
-                estimatedDate: so.estimated_date,
-                attendantObservations: so.attendant_observations,
-                customerDeviceId: so.customer_device_id,
-                displayId: so.display_id,
-                isOrcamentoOnly: so.is_orcamento_only,
-                isQuick: so.is_quick,
-                phone: so.phone,
-                receiptTermId: so.receipt_term_id,
-            }));
+            return (data || []).map(mapServiceOrderData);
         });
     });
 };
@@ -157,33 +158,7 @@ export const getServiceOrder = async (id: string): Promise<ServiceOrder | null> 
             .single();
 
         if (error) return null;
-
-        return {
-            ...data,
-            customerId: data.customer_id,
-            customerName: data.customer_name,
-            deviceModel: data.device_model,
-            serialNumber: data.serial_number,
-            patternLock: data.pattern_lock,
-            defectDescription: data.defect_description,
-            technicalReport: data.technical_report,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
-            responsibleId: data.responsible_id,
-            responsibleName: data.responsible_name,
-            attendantId: data.attendant_id,
-            attendantName: data.attendant_name,
-            entryDate: data.entry_date,
-            exitDate: data.exit_date,
-            estimatedDate: data.estimated_date,
-            attendantObservations: data.attendant_observations,
-            customerDeviceId: data.customer_device_id,
-            isOrcamentoOnly: data.is_orcamento_only,
-            isQuick: data.is_quick,
-            phone: data.phone,
-            receiptTermId: data.receipt_term_id,
-            displayId: data.display_id,
-        };
+        return mapServiceOrderData(data);
     });
 };
 
@@ -209,32 +184,7 @@ export const getPublicServiceOrderTracking = async (id: string): Promise<{ os: S
             return { os: null, company: null, receiptTerm: null };
         }
 
-        const mappedOs = {
-            ...osData,
-            customerId: osData.customer_id,
-            customerName: osData.customer_name,
-            deviceModel: osData.device_model,
-            serialNumber: osData.serial_number,
-            patternLock: osData.pattern_lock,
-            defectDescription: osData.defect_description,
-            technicalReport: osData.technical_report,
-            createdAt: osData.created_at,
-            updatedAt: osData.updated_at,
-            responsibleId: osData.responsible_id,
-            responsibleName: osData.responsible_name,
-            attendantId: osData.attendant_id,
-            attendantName: osData.attendant_name,
-            entryDate: osData.entry_date,
-            exitDate: osData.exit_date,
-            estimatedDate: osData.estimated_date,
-            attendantObservations: osData.attendant_observations,
-            customerDeviceId: osData.customer_device_id,
-            isOrcamentoOnly: osData.is_orcamento_only,
-            isQuick: osData.is_quick,
-            phone: osData.phone,
-            receiptTermId: osData.receipt_term_id,
-            displayId: osData.display_id,
-        };
+        const mappedOs = mapServiceOrderData(osData);
 
         const mappedCompany = companyData ? {
             id: companyData.id,

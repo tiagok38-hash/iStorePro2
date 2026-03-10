@@ -36,7 +36,7 @@ interface PaymentMethod {
 
 interface OSBillingModalProps {
     isOpen: boolean;
-    onClose: () => void;
+    onClose: (action?: 'close' | 'print' | 'whatsapp') => void;
     serviceOrder: {
         id: string;
         displayId: number | null;
@@ -162,10 +162,16 @@ const OSBillingModal: React.FC<OSBillingModalProps> = ({
         setIsProcessing(true);
         try {
             const primary = payments[0] || null;
-            await onBilled(primary?.id || '', primary?.method || '', payments);
-            setStep('success');
-        } catch {
-            // handle err
+                await onBilled(primary?.id || '', primary?.method || '', payments);
+        setStep('success');
+
+        // Auto navigate after showing the 'OS Faturada!' animation
+        setTimeout(() => {
+            onClose('close');
+        }, 3500);
+
+    } catch {
+        // handle err
         } finally {
             setIsProcessing(false);
         }
@@ -210,7 +216,7 @@ const OSBillingModal: React.FC<OSBillingModalProps> = ({
                         </div>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={() => onClose('close')}
                         className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all"
                     >
                         <X size={15} />
@@ -469,24 +475,24 @@ const OSBillingModal: React.FC<OSBillingModalProps> = ({
                                 </span>
                             </div>
 
-                            <div className="w-full max-w-xs space-y-2 mt-2">
+                            <div className="w-full max-w-xs space-y-2 mt-2 relative z-10">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">O que deseja fazer?</p>
 
-                                <button onClick={() => { onPrint('A4'); onClose(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-left">
+                                <button onClick={() => { onPrint('A4'); onClose('print'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-left">
                                     <Printer size={16} className="text-gray-600 flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-bold text-gray-800">Imprimir A4</p>
                                         <p className="text-[10px] text-gray-400">Recibo em folha A4</p>
                                     </div>
                                 </button>
-                                <button onClick={() => { onPrint('thermal'); onClose(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-left">
+                                <button onClick={() => { onPrint('thermal'); onClose('print'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-left">
                                     <Printer size={16} className="text-blue-500 flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-bold text-gray-800">Térmica 80mm</p>
                                         <p className="text-[10px] text-gray-400">Cupom não fiscal</p>
                                     </div>
                                 </button>
-                                <button onClick={() => { handleWhatsApp(); onClose(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-all text-left">
+                                <button onClick={() => { handleWhatsApp(); onClose('whatsapp'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-all text-left">
                                     <WhatsAppIcon size={16} className="text-[#128C7E] fill-[#128C7E] flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-bold text-gray-800">WhatsApp</p>
@@ -502,7 +508,7 @@ const OSBillingModal: React.FC<OSBillingModalProps> = ({
                 {step === 'billing' && (
                     <div className="flex-shrink-0 flex items-center justify-end gap-2.5 px-5 py-3.5 bg-white border-t border-gray-100">
                         <button
-                            onClick={onClose}
+                            onClick={() => onClose('close')}
                             className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-[11px] font-bold hover:bg-gray-50 transition-all uppercase tracking-widest cursor-pointer"
                         >
                             Cancelar

@@ -603,16 +603,18 @@ const ServiceOrderForm: React.FC = () => {
                         key={dot}
                         type="button"
                         onClick={() => {
+                            if (isLocked) return;
                             if (isSelected) {
                                 setPatternLock(prev => prev.filter(p => p !== dot));
                             } else {
                                 setPatternLock(prev => [...prev, dot]);
                             }
                         }}
-                        className={`w-10 h-10 rounded-full border-[3px] transition-all flex items-center justify-center font-bold text-sm ${isSelected
-                            ? 'bg-accent border-accent text-white scale-110 shadow-md'
-                            : 'bg-white border-gray-300 hover:border-accent/50 text-transparent shadow-inner'
-                            }`}
+                        disabled={isLocked}
+                        className={`w-10 h-10 rounded-full border-[3px] transition-all flex items-center justify-center font-bold text-sm ${
+                            isLocked ? (isSelected ? 'bg-gray-400 border-gray-400 text-white scale-110 shadow-sm opacity-60' : 'bg-gray-100 border-gray-200 text-transparent opacity-60') :
+                            isSelected ? 'bg-accent border-accent text-white scale-110 shadow-md' : 'bg-white border-gray-300 hover:border-accent/50 text-transparent shadow-inner'
+                        }`}
                     >
                         {isSelected ? indexInPattern + 1 : ''}
                     </button>
@@ -737,48 +739,50 @@ const ServiceOrderForm: React.FC = () => {
                             )}
 
                             <button
-                                onClick={() => navigate('/service-orders/list')}
-                                className="bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 h-11 px-6 rounded-xl text-sm font-black active:scale-95 transition-all flex items-center justify-center"
+                                onClick={() => { if (!isLocked) navigate('/service-orders/list'); }}
+                                disabled={isLocked}
+                                className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center justify-center ${isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : 'bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 active:scale-95'}`}
                             >
                                 Cancelar
                             </button>
 
-                            {/* Botão principal: Habilitar Edição (se bloqueada) ou Salvar OS */}
-                            {isLocked ? (
-                                <button
-                                    onClick={() => {
-                                        setIsLocked(false);
-                                        toast.info('Edição habilitada. Salve ao terminar.');
-                                    }}
-                                    className="bg-violet-600 hover:bg-violet-700 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-violet-500/30 active:scale-95 transition-all flex items-center gap-2"
-                                >
-                                    <Unlock size={18} /> Habilitar Edição
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleSave}
-                                    disabled={isLoading}
-                                    className="bg-gray-800 hover:bg-gray-900 text-white h-11 px-6 rounded-xl text-sm font-black shadow-xl shadow-gray-200 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    <Save size={18} />
-                                    {isLoading ? 'Salvando...' : 'Salvar OS'}
-                                </button>
-                            )}
+                            <button
+                                onClick={handleSave}
+                                disabled={isLoading || isLocked}
+                                className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${isLocked ? 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed opacity-60' : 'bg-gray-800 hover:bg-gray-900 text-white shadow-xl shadow-gray-200 active:scale-95'}`}
+                            >
+                                <Save size={18} />
+                                {isLoading ? 'Salvando...' : 'Salvar OS'}
+                            </button>
 
                             {/* Botão Faturar — só visível ao editar */}
                             {isEditing && (
                                 <button
-                                    onClick={() => setIsBillingModalOpen(true)}
-                                    className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
+                                    onClick={() => { if (!isLocked) setIsBillingModalOpen(true); }}
+                                    disabled={isLocked}
+                                    className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap ${isLocked ? 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed opacity-60' : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30 active:scale-95'}`}
                                 >
                                     <DollarSign size={18} />
                                     Faturar
                                 </button>
                             )}
+
+                            {/* Botão principal: Habilitar Edição (se bloqueada) adicionado no FINAL */}
+                            {isLocked && (
+                                <button
+                                    onClick={() => {
+                                        setIsLocked(false);
+                                        toast.info('Edição habilitada. Salve ao terminar.');
+                                    }}
+                                    className="bg-violet-600 hover:bg-violet-700 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-violet-500/30 active:scale-95 transition-all flex items-center gap-2 ml-2"
+                                >
+                                    <Unlock size={18} /> Habilitar Edição
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    <fieldset disabled={isLocked} className="bg-white border border-gray-200 p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col relative transition-opacity duration-300">
+                    <fieldset disabled={isLocked} className={`bg-white border border-gray-200 p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col relative transition-opacity duration-300 ${isLocked ? 'opacity-80' : ''}`}>
                         {/* COL 1: CLIENT & DEVICE */}
                         <div className="flex flex-col gap-3">
                             <div className="flex flex-wrap items-center gap-4 border-b border-gray-100 pb-2">
@@ -1178,10 +1182,11 @@ const ServiceOrderForm: React.FC = () => {
                                             <div className="w-full">
                                                 <input
                                                     type="text"
+                                                    disabled={isLocked}
                                                     placeholder="Senha numérica (PIN) ou Alfanumérica"
                                                     value={passcode}
                                                     onChange={e => setPasscode(e.target.value)}
-                                                    className="w-full h-11 px-3 bg-red-50 border border-red-200 rounded-xl text-sm mb-4 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 shadow-sm"
+                                                    className={`w-full h-11 px-3 border rounded-xl text-sm mb-4 outline-none transition-all shadow-sm ${isLocked ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-red-50 border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 text-red-900'}`}
                                                 />
                                                 <p className="text-[11px] font-bold text-gray-500 mb-2">Ou desenhe o padrão abaixo (a numeração indica a ordem exata da sequência):</p>
                                             </div>
@@ -1272,8 +1277,9 @@ const ServiceOrderForm: React.FC = () => {
                                                 <div key={index} className="relative w-24 h-24 flex-shrink-0 group">
                                                     <img src={photo} alt={`Foto ${index + 1}`} className="w-full h-full object-cover rounded-lg border border-gray-200" />
                                                     <button
-                                                        onClick={() => removePhoto(index)}
-                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                                        onClick={() => { if (!isLocked) removePhoto(index); }}
+                                                        disabled={isLocked}
+                                                        className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 transition-opacity shadow-sm ${isLocked ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}
                                                     >
                                                         <X size={12} />
                                                     </button>
@@ -1282,8 +1288,8 @@ const ServiceOrderForm: React.FC = () => {
                                         </div>
                                     ) : (
                                         <div
-                                            onClick={() => setIsCameraOpen(true)}
-                                            className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                                            onClick={() => { if (!isLocked) setIsCameraOpen(true); }}
+                                            className={`w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center transition-colors ${isLocked ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-gray-300'}`}
                                         >
                                             <Camera size={24} className="mb-2" />
                                             <span className="text-xs">Toque para adicionar fotos</span>
@@ -1304,10 +1310,11 @@ const ServiceOrderForm: React.FC = () => {
                                         <label className="block text-sm font-bold text-primary mb-2">Defeito Relatado pelo Cliente</label>
                                         <textarea
                                             rows={5}
+                                            disabled={isLocked}
                                             placeholder="Descreva o problema relatado..."
                                             value={defectDescription}
                                             onChange={e => setDefectDescription(e.target.value)}
-                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none"
+                                            className={`w-full p-4 border rounded-xl outline-none transition-all resize-none ${isLocked ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-50 border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10'}`}
                                         />
                                     </div>
 
@@ -1315,10 +1322,11 @@ const ServiceOrderForm: React.FC = () => {
                                         <label className="block text-sm font-bold text-primary mb-2">Observações Feitas Pelo Atendente</label>
                                         <textarea
                                             rows={5}
+                                            disabled={isLocked}
                                             placeholder="Observações do atendente no recebimento..."
                                             value={attendantObservations}
                                             onChange={e => setAttendantObservations(e.target.value)}
-                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all resize-none"
+                                            className={`w-full p-4 border rounded-xl outline-none transition-all resize-none ${isLocked ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gray-50 border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10'}`}
                                         />
                                     </div>
                                 </div>
@@ -1331,10 +1339,11 @@ const ServiceOrderForm: React.FC = () => {
                                         </label>
                                         <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex-1 flex flex-col">
                                             <textarea
+                                                disabled={isLocked}
                                                 placeholder="Diagnóstico técnico, testes realizados..."
                                                 value={technicalReport}
                                                 onChange={e => setTechnicalReport(e.target.value)}
-                                                className="w-full flex-1 p-0 bg-transparent border-none focus:ring-0 outline-none placeholder:text-amber-700/50 text-amber-900 resize-none min-h-[130px]"
+                                                className={`w-full flex-1 p-0 bg-transparent border-none focus:ring-0 outline-none resize-none min-h-[130px] ${isLocked ? 'text-amber-900/60 cursor-not-allowed' : 'placeholder:text-amber-700/50 text-amber-900'}`}
                                             />
                                         </div>
                                     </div>
@@ -1346,10 +1355,11 @@ const ServiceOrderForm: React.FC = () => {
                                         </label>
                                         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex-1 flex flex-col">
                                             <textarea
+                                                disabled={isLocked}
                                                 placeholder="Observações internas sobre o atendimento..."
                                                 value={observations}
                                                 onChange={e => setObservations(e.target.value)}
-                                                className="w-full flex-1 p-0 bg-transparent border-none focus:ring-0 outline-none transition-all resize-none text-sm min-h-[130px]"
+                                                className={`w-full flex-1 p-0 bg-transparent border-none focus:ring-0 outline-none transition-all resize-none text-sm min-h-[130px] ${isLocked ? 'text-gray-500 cursor-not-allowed' : 'text-gray-800'}`}
                                             />
                                         </div>
                                     </div>
@@ -1368,19 +1378,22 @@ const ServiceOrderForm: React.FC = () => {
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setIsServiceModalOpen(true)}
-                                            className="px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-base font-black transition-colors flex items-center gap-2 border border-blue-100 shadow-sm"
+                                            disabled={isLocked}
+                                            className={`px-6 py-3 rounded-xl text-base font-black transition-colors flex items-center gap-2 border shadow-sm ${isLocked ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60 cursor-not-allowed' : 'bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-100'}`}
                                         >
                                             <Wrench size={18} /> Adicionar Serviço
                                         </button>
                                         <button
                                             onClick={() => setIsProductModalOpen(true)}
-                                            className="px-6 py-3 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-base font-black transition-colors flex items-center gap-2 border border-orange-100 shadow-sm"
+                                            disabled={isLocked}
+                                            className={`px-6 py-3 rounded-xl text-base font-black transition-colors flex items-center gap-2 border shadow-sm ${isLocked ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60 cursor-not-allowed' : 'bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-100'}`}
                                         >
                                             <Package size={18} /> Adicionar Peça
                                         </button>
                                         <button
                                             onClick={addItem}
-                                            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-primary rounded-xl text-base font-black transition-colors flex items-center gap-2 border border-gray-200 shadow-sm"
+                                            disabled={isLocked}
+                                            className={`px-6 py-3 rounded-xl text-base font-black transition-colors flex items-center gap-2 border shadow-sm ${isLocked ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-primary border-gray-200'}`}
                                         >
                                             <Plus size={18} /> Item Avulso
                                         </button>
@@ -1485,8 +1498,9 @@ const ServiceOrderForm: React.FC = () => {
                                                         </td>
                                                         <td className="px-1.5 py-3 text-center">
                                                             <button
-                                                                onClick={() => removeItem(item.id)}
-                                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                                onClick={() => { if (!isLocked) removeItem(item.id); }}
+                                                                disabled={isLocked}
+                                                                className={`transition-colors ${isLocked ? 'text-gray-200 cursor-not-allowed opacity-50' : 'text-gray-400 hover:text-red-500'}`}
                                                             >
                                                                 <Trash2 size={16} />
                                                             </button>
@@ -1735,7 +1749,12 @@ const ServiceOrderForm: React.FC = () => {
                 isBillingModalOpen && (
                     <OSBillingModal
                         isOpen={isBillingModalOpen}
-                        onClose={() => setIsBillingModalOpen(false)}
+                        onClose={(action) => {
+                            setIsBillingModalOpen(false);
+                            if (justBilled && action !== 'print') {
+                                navigate('/service-orders/list');
+                            }
+                        }}
                         serviceOrder={{
                             id: editId || '',
                             displayId,

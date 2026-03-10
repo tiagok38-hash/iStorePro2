@@ -11,10 +11,12 @@ import {
     ShieldCheck,
     Package,
     User,
-    Phone
+    Phone,
+    Calendar
 } from 'lucide-react';
 import { WhatsAppIcon } from '../../components/icons';
 import { getWhatsAppLink } from '../../utils/whatsappUtils.ts';
+import { formatDateBR } from '../../utils/dateUtils.ts';
 import { getPublicServiceOrderTracking, formatCurrency } from '../../services/mockApi.ts';
 import { ServiceOrder, CompanyInfo, ReceiptTermParameter } from '../../types.ts';
 
@@ -89,13 +91,19 @@ const PublicOSTracking: React.FC = () => {
                     </h2>
                     <p className="text-gray-500 mb-6">{error}</p>
                     {company?.whatsapp && (
-                        <a
-                            href={getWhatsAppLink(company.whatsapp)}
-                            className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:scale-[1.02] transition-transform"
-                        >
-                            <WhatsAppIcon size={20} className="fill-white" />
-                            Falar com a Loja
-                        </a>
+                        <div className="flex justify-center">
+                            <a
+                                href={getWhatsAppLink(company.whatsapp)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-4 h-14 bg-emerald-500 text-white rounded-2xl font-black text-xs shadow-xl shadow-emerald-200 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider overflow-hidden group pr-6"
+                            >
+                                <div className="h-full px-4 flex items-center bg-emerald-600/30">
+                                    <WhatsAppIcon size={24} className="text-white fill-white" />
+                                </div>
+                                <span className="whitespace-nowrap">Falar com assistência</span>
+                            </a>
+                        </div>
                     )}
                 </div>
             </div>
@@ -130,12 +138,13 @@ const PublicOSTracking: React.FC = () => {
                     </div>
 
                     <div className="relative pl-2">
-                        <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gray-100"></div>
+                        <div className="absolute left-[27px] top-5 bottom-5 w-0.5 bg-gray-100"></div>
                         <div
-                            className="absolute left-[19px] top-0 w-0.5 transition-all duration-1000 ease-out"
+                            className="absolute left-[27px] top-5 w-0.5 transition-all duration-1000 ease-out"
                             style={{
                                 backgroundColor: brandColor,
-                                height: `${(currentStatusIndex / (STATUS_STEPS.length - 1)) * 100}%`
+                                height: `calc(${(currentStatusIndex / (STATUS_STEPS.length - 1)) * 100}% - 2.5rem)`,
+                                maxHeight: `calc(100% - 2.5rem)`
                             }}
                         ></div>
 
@@ -203,17 +212,47 @@ const PublicOSTracking: React.FC = () => {
                                 <p className="text-sm font-bold text-gray-900 truncate">{os?.phone || '-'}</p>
                             </div>
                         </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500">
+                                <Calendar size={16} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Entrada</p>
+                                <p className="text-sm font-bold text-gray-900 truncate">{os?.entryDate ? formatDateBR(os.entryDate) : '-'}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
+                                <Clock size={16} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Previsão</p>
+                                <p className="text-sm font-bold text-gray-900 truncate">{os?.estimatedDate ? formatDateBR(os.estimatedDate) : '-'}</p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
                 <section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 leading-relaxed">
-                    <h3 className="font-bold text-gray-400 text-[11px] uppercase tracking-widest mb-3">Defeito Relatado</h3>
-                    <p className="text-sm text-gray-700 italic">"{os?.defectDescription}"</p>
+                    <h3 className="font-black text-gray-700 text-[11px] uppercase tracking-widest mb-3">Defeito Relatado</h3>
+                    <p className="text-sm font-bold text-gray-800 italic">"{os?.defectDescription}"</p>
 
                     {os?.attendantObservations && (
                         <div className="mt-4 pt-4 border-t border-gray-50">
-                            <h3 className="font-bold text-gray-400 text-[11px] uppercase tracking-widest mb-3">Observações do Atendimento</h3>
-                            <p className="text-sm text-gray-600">{os.attendantObservations}</p>
+                            <h3 className="font-black text-gray-700 text-[11px] uppercase tracking-widest mb-3">Observações do Atendimento</h3>
+                            <p className="text-sm font-bold text-gray-800">{os.attendantObservations}</p>
+                        </div>
+                    )}
+
+                    {os?.technicalReport && (
+                        <div className="mt-4 pt-4 border-t border-gray-50">
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                                <h3 className="font-black text-amber-900 text-[11px] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                                    Laudo Técnico
+                                </h3>
+                                <p className="text-sm font-bold text-amber-900 leading-relaxed">{os.technicalReport}</p>
+                            </div>
                         </div>
                     )}
                 </section>
@@ -270,17 +309,17 @@ const PublicOSTracking: React.FC = () => {
                 </section>
             </main>
 
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[60%] max-w-[400px] z-[100]">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]">
                 <a
                     href={getWhatsAppLink(company?.whatsapp)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-3 w-full h-14 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-200 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider overflow-hidden group"
+                    className="flex items-center gap-4 h-14 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-200 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider overflow-hidden group pr-6"
                 >
                     <div className="h-full px-4 flex items-center bg-emerald-600/30">
                         <WhatsAppIcon size={28} className="text-white fill-white" />
                     </div>
-                    <span className="flex-1 pr-4 text-center">Falar com Suporte</span>
+                    <span className="whitespace-nowrap">Falar com assistência</span>
                 </a>
             </div>
 

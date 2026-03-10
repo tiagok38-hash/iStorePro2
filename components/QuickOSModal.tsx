@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Zap, X } from 'lucide-react';
 import { addServiceOrder, addCustomer } from '../services/mockApi';
 import { useToast } from '../contexts/ToastContext';
+import { useUser } from '../contexts/UserContext';
 
 interface QuickOSModalProps {
     onClose: () => void;
@@ -11,6 +12,7 @@ interface QuickOSModalProps {
 
 const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
     const { showToast } = useToast();
+    const { user } = useUser();
     const [isSaving, setIsSaving] = useState(false);
     const [form, setForm] = useState({
         customerName: '',
@@ -51,10 +53,10 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
                 subtotal: 0,
                 discount: 0,
                 total: 0,
-                responsibleId: '',
-                responsibleName: 'Sistema',
-                attendantId: '',
-                attendantName: 'Sistema',
+                responsibleId: user?.id || '',
+                responsibleName: user?.name || 'Sistema',
+                attendantId: user?.id || '',
+                attendantName: user?.name || 'Sistema',
                 photos: [],
                 checklist: {} as any,
                 entryDate: new Date().toISOString(),
