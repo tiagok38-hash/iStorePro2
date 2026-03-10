@@ -338,11 +338,17 @@ const ServiceOrderForm: React.FC = () => {
 
     // --- WhatsApp Action ---
     const handleWhatsAppNotification = () => {
+        const phone = selectedCustomer?.phone || osPhone;
+        if (!phone) {
+            toast.error("O cliente desta OS não possui um telefone cadastrado.");
+            return;
+        }
+        
         const trackingUrl = `${window.location.origin}/#/os/track/${editId}`;
         const firstName = selectedCustomer?.name?.split(' ')[0] || 'Cliente';
         const storeName = companyInfo?.name || 'loja';
         const msg = `Olá, ${firstName}, Somos da assistência da ${storeName}. O status da sua Ordem de Serviço *OS-${displayId}* foi atualizado!\n\nStatus Atual: *${osStatus}*\nAparelho: ${deviceModel}\n\nAcompanhe seu reparo em tempo real aqui: ${trackingUrl}`;
-        openWhatsApp(selectedCustomer?.phone || osPhone, msg);
+        openWhatsApp(phone, msg);
     };
 
     // --- Search Logic ---
