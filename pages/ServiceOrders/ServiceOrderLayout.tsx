@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import {
     WrenchIcon,
     ClipboardListIcon,
@@ -54,6 +54,12 @@ const ServiceOrderLayout: React.FC = () => {
         return false;
     };
 
+    if (location.pathname === '/service-orders' && permissions) {
+        const dashboardItem = visibleNavItems.find(i => i.path === '/service-orders');
+        if (!dashboardItem && visibleNavItems.length > 0) {
+            return <Navigate to={visibleNavItems[0].path} replace />;
+        }
+    }
     return (
         <div className="flex h-screen bg-[#F6F5FB] overflow-hidden font-sans text-primary">
             {/* Desktop Sidebar */}

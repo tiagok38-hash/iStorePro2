@@ -214,7 +214,7 @@ const ServiceOrderProducts: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'services' | 'parts'>('parts');
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
-    const { user } = useUser();
+    const { user, permissions } = useUser();
 
     // URL Filter sync
     const urlFilter = searchParams.get('filter');
@@ -549,7 +549,7 @@ const ServiceOrderProducts: React.FC = () => {
             </div>
 
             {/* OS Stock Summary Cards — visível apenas na aba Peças */}
-            {activeTab === 'parts' && (
+            {activeTab === 'parts' && permissions?.osCanViewStockStats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Qtd. Itens</p>

@@ -164,6 +164,7 @@ const permissionSections: {
                 { key: 'osCanAccessFiscal', label: 'Acessar Fiscal (Em breve)' },
                 { key: 'osCanAccessSettings', label: 'Acessar Configurações' },
                 { key: 'canViewServiceOrderProfit', label: 'Visualizar Lucro' },
+                { key: 'osCanViewStockStats', label: 'Estatísticas de Estoque OS' },
             ],
         },
 

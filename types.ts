@@ -130,6 +130,7 @@ export interface PermissionSet {
     osCanAccessFiscal: boolean;
     osCanAccessSettings: boolean;
     canViewServiceOrderProfit: boolean;
+    osCanViewStockStats: boolean;
 
     // CRM permissions
     canAccessCrm: boolean;
