@@ -187,36 +187,87 @@ export const toDateValue = (date?: Date | string): string => {
 export const calculateWarrantyExpiry = (startDate: string | Date, warranty: string): Date | null => {
     if (!startDate || !warranty) return null;
     let date: Date;
+
+    // Tratamento uniforme para string de data curta (YYYY-MM-DD)
     if (typeof startDate === 'string') {
-        date = new Date(startDate);
+        if (startDate.length === 10 && startDate.includes('-')) {
+            // Força UTC para não pular dia caso o timezone local seja GMT-3 e bata 21h
+            const [y, m, d] = startDate.split('-').map(Number);
+            date = new Date(y, m - 1, d, 12, 0, 0); // safe mid-day
+        } else {
+            date = new Date(startDate);
+        }
     } else {
         date = new Date(startDate.getTime());
     }
 
-    const value = parseInt(warranty.replace(/\D/g, ''));
-    if (isNaN(value)) return null;
+    if (isNaN(date.getTime())) return null;
 
-    const lowerWarranty = warranty.toLowerCase();
-    if (lowerWarranty.includes('dia')) {
-        date.setDate(date.getDate() + value);
-    } else if (lowerWarranty.includes('mês') || lowerWarranty.includes('mes')) {
-        date.setMonth(date.getMonth() + value);
-    } else if (lowerWarranty.includes('ano')) {
-        date.setFullYear(date.getFullYear() + value);
+    // Tenta encontrar o primeiro par [número] [unidade]
+    const exactMatch = warranty.match(/(\d+)\s*(ano|mês|mes|dia)/i);
+    
+    let value: number;
+    let unit: string;
+
+    if (exactMatch) {
+       value = parseInt(exactMatch[1], 10);
+       unit = exactMatch[2].toLowerCase();
     } else {
-        // Default to days if not specified
+        // Fallback: busca apenas o primeiro número e tenta adivinhar a unidade pela string toda
+        const numMatch = warranty.match(/\d+/);
+        if (!numMatch) return null;
+        value = parseInt(numMatch[0], 10);
+        unit = warranty.toLowerCase();
+    }
+
+    const originalDay = date.getDate();
+
+    if (unit.includes('ano')) {
+        date.setFullYear(date.getFullYear() + value);
+        // Corrige overflow (ex: 29 de Fev + 1 ano -> 1 de Mar => volta pra 28 de Fev)
+        if (date.getDate() !== originalDay) {
+            date.setDate(0); 
+        }
+    } else if (unit.includes('mês') || unit.includes('mes')) {
+        date.setMonth(date.getMonth() + value);
+        // Corrige overflow de mês (ex: 31 de Jan + 1 mês -> Março 3 => volta pra Fev 28/29)
+        if (date.getDate() !== originalDay) {
+            date.setDate(0);
+        }
+    } else {
+        // Padrão: dias
         date.setDate(date.getDate() + value);
     }
+    
     return date;
 };
 
 export const getRemainingDays = (expiryDate: Date | string): number => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
     const expiry = typeof expiryDate === 'string' ? new Date(expiryDate) : new Date(expiryDate.getTime());
-    expiry.setHours(0, 0, 0, 0);
-    const diffTime = expiry.getTime() - today.getTime();
+    
+    // Set expiry to end of day (23:59:59.999) in local time
+    expiry.setHours(23, 59, 59, 999);
+    
+    const diffTime = expiry.getTime() - now.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
+export type WarrantyStatus = 'active' | 'expiring_soon' | 'expired';
+
+export const getWarrantyStatus = (expiryDate: Date | string): WarrantyStatus => {
+  const now = new Date();
+
+  const expiryEndOfDay = typeof expiryDate === 'string' ? new Date(expiryDate) : new Date(expiryDate.getTime());
+  expiryEndOfDay.setHours(23, 59, 59, 999);
+
+  if (now > expiryEndOfDay) return 'expired';
+
+  const daysUntilExpiry = Math.ceil(
+    (expiryEndOfDay.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (daysUntilExpiry <= 30) return 'expiring_soon';
+  return 'active';
+};
 export const TIMEZONE = BRAZIL_TIMEZONE;

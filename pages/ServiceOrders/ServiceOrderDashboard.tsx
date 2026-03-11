@@ -18,6 +18,12 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getServiceOrders, getOsPartsStockStats } from '../../services/mockApi';
+import {
+    calculateWarrantyExpiry,
+    getRemainingDays,
+    formatDateBR,
+    getWarrantyStatus
+} from '../../utils/dateUtils';
 import { ServiceOrder } from '../../types';
 import {
     BarChart,
@@ -243,6 +249,39 @@ const ServiceOrderDashboard: React.FC = () => {
         // despesas já é negativo (acumulado com -=), então somar é equivalente a subtrair
         return { receita, despesas, lucro: receita + despesas };
     }, [weeklyFlowData]);
+
+    const activeWarranties = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return orders
+            .filter(os => (os.status === 'Entregue' || os.status === 'Concluído') && os.exitDate)
+            .map(os => {
+                const itemWarranties = os.items
+                    .filter(item => item.warranty && item.warranty !== 'Sem garantia')
+                    .map(item => ({
+                        description: item.description,
+                        expiry: calculateWarrantyExpiry(os.exitDate!, item.warranty || '')
+                    }))
+                    .filter(w => w.expiry && getWarrantyStatus(w.expiry) !== 'expired');
+
+                if (itemWarranties.length === 0) return null;
+
+                // Encontra a maior data de expiração entre os itens
+                const maxExpiry = new Date(Math.max(...itemWarranties.map(w => w.expiry!.getTime())));
+
+                return {
+                    id: os.id,
+                    displayId: os.displayId,
+                    customerName: os.customerName,
+                    deviceModel: os.deviceModel,
+                    expiry: maxExpiry,
+                    remainingDays: getRemainingDays(maxExpiry)
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => (a?.expiry?.getTime() || 0) - (b?.expiry?.getTime() || 0)) as any[];
+    }, [orders]);
 
     return (
         <div className="space-y-6 pb-20 fade-in">
@@ -668,14 +707,52 @@ const ServiceOrderDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center py-8 gap-4 text-center relative z-10">
-                        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
-                            <CheckCircle2 size={28} className="text-gray-400" />
-                        </div>
-                        <div>
-                            <p className="text-base font-black text-gray-500">Nenhuma garantia ativa</p>
-                            <p className="text-sm text-gray-400 font-medium mt-1">Garantias de OS concluídas aparecerão aqui</p>
-                        </div>
+                    <div className="flex-1 overflow-y-auto pr-1">
+                        {activeWarranties.length > 0 ? (
+                            <div className="space-y-3">
+                                {activeWarranties.slice(0, 6).map((w, idx) => (
+                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/90 p-4 rounded-2xl border border-gray-100 shadow-sm hover:border-emerald-200 transition-all group/item">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                                <SmartphoneIcon size={20} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-black text-gray-900 truncate">OS-{w.displayId} • {w.deviceModel}</p>
+                                                </div>
+                                                <p className="text-xs font-bold text-gray-400 truncate">{w.customerName}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between sm:justify-end gap-4 mt-3 sm:mt-0">
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Expira em</p>
+                                                <p className="text-xs font-black text-primary">{formatDateBR(w.expiry)}</p>
+                                            </div>
+                                            <div className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${w.remainingDays <= 7 ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                {w.remainingDays} dias
+                                            </div>
+                                            <button 
+                                                onClick={() => navigate(`/service-orders/edit/${w.id}`)}
+                                                className="p-2 hover:bg-emerald-50 rounded-lg text-gray-400 hover:text-emerald-600 transition-all opacity-0 group-hover/item:opacity-100"
+                                            >
+                                                <ArrowRight size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center py-8 gap-4 text-center">
+                                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                                    <CheckCircle2 size={28} className="text-gray-400" />
+                                </div>
+                                <div>
+                                    <p className="text-base font-black text-gray-500">Nenhuma garantia ativa</p>
+                                    <p className="text-sm text-gray-400 font-medium mt-1">Garantias de OS concluídas aparecerão aqui</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

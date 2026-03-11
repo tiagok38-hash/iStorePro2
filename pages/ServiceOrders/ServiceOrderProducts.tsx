@@ -49,7 +49,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
             if (service) {
                 setFormData({
                     ...service,
-                    warranty: service.warranty || '90 dias'
+                    warranty: service.warranty || ''
                 });
             } else {
                 setFormData({
@@ -57,7 +57,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
                     description: '',
                     price: 0,
                     cost: 0,
-                    warranty: '90 dias',
+                    warranty: '',
                     commission_enabled: false,
                     commission_type: 'percentage',
                     commission_value: 0
@@ -118,16 +118,16 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
                     <label className="block text-sm font-medium text-gray-700 mb-1">Garantia</label>
                     <select
                         name="warranty"
-                        value={formData.warranty || '90 dias'}
+                        value={formData.warranty || ''}
                         onChange={handleChange}
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     >
-                        {warrantyOptions.length === 0 ? (
-                            <option value="90 dias">90 dias (Padrão)</option>
-                        ) : (
-                            warrantyOptions.map(opt => (
-                                <option key={opt.id} value={opt.name}>{opt.name}</option>
-                            ))
+                        <option value="">Sem garantia</option>
+                        {warrantyOptions.map(opt => (
+                            <option key={opt.id} value={opt.name}>{opt.name}</option>
+                        ))}
+                        {formData.warranty && !warrantyOptions.some(opt => opt.name === formData.warranty) && (
+                            <option value={formData.warranty}>{formData.warranty}</option>
                         )}
                     </select>
                 </div>

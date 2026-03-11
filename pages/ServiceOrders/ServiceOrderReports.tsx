@@ -176,20 +176,23 @@ const ServiceOrderReports: React.FC = () => {
                             </button>
                         ))}
                     </div>
-                    <div className="flex items-center gap-2 ml-auto">
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => { setStartDate(e.target.value); setSelectedPeriod('custom'); }}
-                            className="h-9 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all"
-                        />
-                        <span className="text-xs text-gray-400 font-bold">até</span>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => { setEndDate(e.target.value); setSelectedPeriod('custom'); }}
-                            className="h-9 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all"
-                        />
+                    <div className="flex items-center gap-3 ml-auto px-4 h-10 bg-white border border-gray-200 rounded-full shadow-sm">
+                        <Calendar size={14} className="text-gray-400" />
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => { setStartDate(e.target.value); setSelectedPeriod('custom'); }}
+                                className="!bg-transparent !border-0 text-xs font-bold text-gray-700 outline-none !p-0"
+                            />
+                            <span className="text-[10px] text-gray-400 font-extrabold uppercase">até</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => { setEndDate(e.target.value); setSelectedPeriod('custom'); }}
+                                className="!bg-transparent !border-0 text-xs font-bold text-gray-700 outline-none !p-0"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1522,7 +1522,7 @@ const ParametrosTab: React.FC = () => {
             </div>
             {activeSubTab === 'condicao' && <ParameterManager permissions={permissions} title="Condições de Produto" items={conditions} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addProductCondition, update: updateProductCondition, del: deleteProductCondition }} fetchData={fetchData} />}
             {activeSubTab === 'local' && <ParameterManager permissions={permissions} title="Locais de Estoque" items={locations} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addStorageLocation, update: updateStorageLocation, del: deleteStorageLocation }} fetchData={fetchData} />}
-            {activeSubTab === 'garantia' && <ParameterManager permissions={permissions} title="Garantias" items={warranties} fields={[{ name: 'name', label: 'Nome', type: 'text' }, { name: 'days', label: 'Dias', type: 'number' }]} api={{ add: addWarranty, update: updateWarranty, del: deleteWarranty }} fetchData={fetchData} />}
+            {activeSubTab === 'garantia' && <ParameterManager permissions={permissions} title="Garantias" items={warranties} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addWarranty as any, update: updateWarranty as any, del: deleteWarranty as any }} fetchData={fetchData} />}
             {activeSubTab === 'termos' && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center bg-gray-100 p-4 rounded-t-2xl">

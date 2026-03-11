@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Smartphone, Plus, Search, Clock, Calendar, Cpu, FileText, User, Wrench, Image as ImageIcon, ShoppingCart, Edit, Trash2, CheckCircle, MessageCircle } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { WhatsAppIcon } from '../../components/icons';
 import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrderElectronicDevicesModal';
+import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
+import { useToast } from '../../contexts/ToastContext';
 import { Customer, Brand, Category, ProductModel, Grade, GradeValue, CustomerDevice } from '../../types';
-import { getCustomers, getBrands, getCategories, getProductModels, getGrades, getGradeValues, getCustomerDevices, addCustomerDevice, updateCustomerDevice, deleteCustomerDevice } from '../../services/mockApi';
+import { getCustomers, getBrands, getCategories, getProductModels, getGrades, getGradeValues, getCustomerDevices, addCustomerDevice, updateCustomerDevice, deleteCustomerDevice, getServiceOrders } from '../../services/mockApi';
 
 // Types and Mock Data Interfaces
 export type ElectronicType = 'Produtos Apple' | 'Smartphone' | 'Tablets' | 'Computadores' | 'Notebooks' | 'Caixas de Som' | 'Outros';
@@ -23,6 +26,7 @@ const FILTER_OPTIONS: (ElectronicType | 'Todos')[] = [
 ];
 
 const ServiceOrderDevices: React.FC = () => {
+    const navigate = useNavigate();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [brands, setBrands] = useState<Brand[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -32,12 +36,15 @@ const ServiceOrderDevices: React.FC = () => {
 
     const [devices, setDevices] = useState<CustomerDevice[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { showToast } = useToast();
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
 
     const loadData = async () => {
         setIsLoading(true);
         try {
-            const [fetchedCustomers, fetchedBrands, fetchedCats, fetchedModels, fetchedGrades, fetchedGradeValues, fetchedDevices] = await Promise.all([
-                getCustomers(), getBrands(), getCategories(), getProductModels(), getGrades(), getGradeValues(), getCustomerDevices()
+            const [fetchedCustomers, fetchedBrands, fetchedCats, fetchedModels, fetchedGrades, fetchedGradeValues, fetchedDevices, fetchedOrders] = await Promise.all([
+                getCustomers(), getBrands(), getCategories(), getProductModels(), getGrades(), getGradeValues(), getCustomerDevices(), getServiceOrders()
             ]);
             setCustomers(fetchedCustomers);
             setBrands(fetchedBrands);
@@ -45,7 +52,28 @@ const ServiceOrderDevices: React.FC = () => {
             setProductModels(fetchedModels);
             setGrades(fetchedGrades);
             setGradeValues(fetchedGradeValues);
-            setDevices(fetchedDevices);
+            
+            const devicesWithHistory = fetchedDevices.map(device => {
+                const deviceOrders = fetchedOrders.filter(so => so.customerDeviceId === device.id);
+                const history = deviceOrders.map(so => ({
+                    id: so.id,
+                    osId: so.displayId ? `OS-${String(so.displayId).padStart(4, '0')}` : so.id,
+                    status: so.status,
+                    date: so.entryDate || so.createdAt,
+                    exitDate: so.exitDate || so.estimatedDate,
+                    problemsReported: [so.defectDescription].filter(Boolean) as string[],
+                    attendantObservations: so.attendantObservations,
+                    technicalReport: so.technicalReport,
+                    attendant: so.attendantName || 'Não informado',
+                    technician: so.responsibleName || 'Não informado',
+                    photos: [] as string[]
+                }));
+                // Sort history by date descending
+                history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                return { ...device, history };
+            });
+
+            setDevices(devicesWithHistory);
         } catch (error) {
             console.error("Erro ao carregar dados:", error);
         } finally {
@@ -87,25 +115,23 @@ const ServiceOrderDevices: React.FC = () => {
         return matchesSearch && matchesType;
     });
 
-    const handleDelete = async (id: string) => {
-        const reason = window.prompt('Motivo da exclusão (Obrigatório):');
-        if (reason === null) {
-            return;
-        }
-        if (reason.trim() === '') {
-            window.alert('O motivo da exclusão é obrigatório.');
-            return;
-        }
-        if (window.confirm(`Tem certeza que deseja excluir este eletrônico?\n\nMotivo informado: ${reason}`)) {
-            try {
-                await deleteCustomerDevice(id);
-                setDevices(prev => prev.filter(d => d.id !== id));
-                setSelectedDevice(null);
-                window.alert("Eletrônico excluído com sucesso!");
-            } catch (error) {
-                console.error("Erro ao excluir:", error);
-                window.alert("Erro ao excluir o eletrônico.");
-            }
+    const handleDelete = (id: string) => {
+        setDeviceToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async (reason: string) => {
+        if (!deviceToDelete) return;
+        try {
+            await deleteCustomerDevice(deviceToDelete);
+            setDevices(prev => prev.filter(d => d.id !== deviceToDelete));
+            setSelectedDevice(null);
+            setIsDeleteModalOpen(false);
+            setDeviceToDelete(null);
+            showToast("Eletrônico excluído com sucesso!", 'success');
+        } catch (error) {
+            console.error("Erro ao excluir:", error);
+            showToast("Erro ao excluir o eletrônico.", 'error');
         }
     };
 
@@ -119,7 +145,7 @@ const ServiceOrderDevices: React.FC = () => {
         // Implement save logic for add/edit
         setIsAddModalOpen(false);
         setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei: '', customerName: '' });
-        window.alert("Eletrônico salvo com sucesso!");
+        showToast("Eletrônico salvo com sucesso!", 'success');
     };
 
     const handleSaveNewDevice = async (deviceData: any) => {
@@ -127,16 +153,16 @@ const ServiceOrderDevices: React.FC = () => {
             if (deviceData.id && devices.some(d => d.id === deviceData.id)) {
                 // Edit
                 await updateCustomerDevice(deviceData.id, deviceData);
-                window.alert("Eletrônico atualizado com sucesso!");
+                showToast("Eletrônico atualizado com sucesso!", 'success');
             } else {
                 // New
                 await addCustomerDevice(deviceData);
-                window.alert("Eletrônico cadastrado com sucesso!");
+                showToast("Eletrônico cadastrado com sucesso!", 'success');
             }
             loadData(); // Reload all to be sure
         } catch (error) {
             console.error("Erro ao salvar:", error);
-            window.alert("Erro ao salvar o eletrônico.");
+            showToast("Erro ao salvar o eletrônico.", 'error');
         }
     };
 
@@ -369,7 +395,7 @@ const ServiceOrderDevices: React.FC = () => {
                                                 }`}
                                             />
 
-                                            <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                            <div className="bg-red-50/70 border border-red-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
                                                 <div className="flex flex-wrap justify-between items-start gap-4 mb-3">
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-1">
@@ -380,12 +406,18 @@ const ServiceOrderDevices: React.FC = () => {
                                                                 {record.status}
                                                             </span>
                                                         </div>
-                                                        <div className="flex items-center gap-4 text-xs font-medium text-secondary">
-                                                            <span className="flex items-center gap-1.5"><Calendar size={12} /> {new Date(record.date).toLocaleDateString('pt-BR')} às {new Date(record.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <div className="flex items-center gap-4 text-xs font-medium text-secondary mt-1 flex-wrap">
+                                                            <span className="flex items-center gap-1.5"><Calendar size={12} /> Entrada: {new Date(record.date).toLocaleDateString('pt-BR')}</span>
+                                                            {record.exitDate && (
+                                                                <span className="flex items-center gap-1.5 text-orange-600"><Clock size={12} /> Entrega: {new Date(record.exitDate).toLocaleDateString('pt-BR')}</span>
+                                                            )}
                                                         </div>
                                                     </div>
 
-                                                    <button className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-primary hover:bg-gray-100 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors">
+                                                    <button
+                                                        onClick={() => navigate(`/service-orders/edit/${record.id}`)}
+                                                        className="px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                                                    >
                                                         <FileText size={14} /> Abrir OS
                                                     </button>
                                                 </div>
@@ -394,13 +426,31 @@ const ServiceOrderDevices: React.FC = () => {
                                                     <div>
                                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Problemas Relatados</p>
                                                         <div className="flex flex-wrap gap-1.5">
-                                                            {record.problemsReported.map((problem, i) => (
+                                                            {record.problemsReported.length > 0 ? record.problemsReported.map((problem, i) => (
                                                                 <span key={i} className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-xs font-medium">
                                                                     {problem}
                                                                 </span>
-                                                            ))}
+                                                            )) : <span className="text-gray-400 text-xs italic">Nenhum relatado</span>}
                                                         </div>
                                                     </div>
+
+                                                    {record.attendantObservations && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Observações do Atendente</p>
+                                                            <div className="text-xs text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                                                {record.attendantObservations}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {record.technicalReport && (
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Laudo Técnico</p>
+                                                            <div className="text-xs text-gray-800 bg-yellow-50 p-2.5 rounded-lg border border-yellow-200 shadow-sm">
+                                                                {record.technicalReport}
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100 text-xs">
                                                         <div>
@@ -450,6 +500,17 @@ const ServiceOrderDevices: React.FC = () => {
                 gradeValues={gradeValues}
                 onSave={handleSaveNewDevice}
                 initialData={formData}
+            />
+
+            <DeleteWithReasonModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setDeviceToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Excluir Eletrônico"
+                message="Informe o motivo da exclusão deste aparelho. Esta ação removerá o registro do sistema."
             />
         </div >
     );
