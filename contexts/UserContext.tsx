@@ -192,10 +192,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const loadingTimeout = setTimeout(() => {
       if (loading && isMountedRef.current) {
-        console.warn('UserContext: CheckSession loading timeout hit.');
+        console.warn('UserContext: CheckSession loading timeout hit. Forcing loading false.');
         setLoading(false);
       }
-    }, 8000);
+    }, 15000);
 
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();

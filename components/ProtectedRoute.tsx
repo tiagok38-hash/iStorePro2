@@ -24,28 +24,32 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         return <Navigate to="/login" replace />;
     }
 
-    // Se as permissões ainda não carregaram ou por algum problema estão null,
-    // garantimos segurança máxima com Deny by Default. Apenas usuários admin master teriam fallback total,
-    // mas na dúvida, bloqueamos acessos confidenciais.
-    const emptyFallback = {} as Record<string, boolean>;
-    const effectivePermissions = permissions
-        ? { ...emptyFallback, ...permissions } // Se temos permissões vindas do contexto, usamos elas
-        : (user?.permissionProfileId === 'profile-admin' 
-            // Admin master recebe bypass caso permissões de objeto deem falha extrema
-            ? new Proxy({}, { get: () => true }) 
-            // Usuário comum é bloqueado com fallback vazio (Deny by default)
-            : emptyFallback);
-
+    // If permissions are still loading, show a loading/waiting state.
+    // If we let a null permission pass below, effectivePermissions will be empty
+    // which causes a redirect to /login, creating an infinite redirect loop.
     if (permissions === null) {
         console.warn('ProtectedRoute: Permissions are null. Access denied as Deny-by-Default fallback used for:', user?.email);
+        return (
+            <div className="w-screen h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
+                <SpinnerIcon />
+                <p className="text-muted mt-4 text-sm font-medium">Carregando permissões, por favor aguarde...</p>
+                <button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-6 px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs"
+                >
+                    Recarregar se demorar muito
+                </button>
+            </div>
+        );
     }
+
+    const effectivePermissions = permissions || (user?.permissionProfileId === 'profile-admin' ? new Proxy({}, { get: () => true }) : {}) as Record<string, boolean>;
 
     const hasPermission = !permissionKey || (
         Array.isArray(permissionKey)
             ? permissionKey.some(key => effectivePermissions[key as keyof typeof effectivePermissions])
             : effectivePermissions[permissionKey as keyof typeof effectivePermissions]
     );
-
 
     if (!hasPermission) {
         console.warn(`ProtectedRoute: Access denied for ${permissionKey}. Redirecting to first available page.`);
@@ -61,7 +65,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         // If really NO permissions or at login, final fallback
         return <Navigate to="/login" replace />;
     }
-
 
     return <Outlet />;
 };
