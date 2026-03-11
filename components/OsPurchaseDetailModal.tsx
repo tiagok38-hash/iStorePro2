@@ -12,11 +12,25 @@ const formatDateTime = (dateString: string) =>
 
 interface Props {
     purchase: OsPurchaseOrder;
+    brands?: { id: string, name: string }[];
+    categories?: { id: string, name: string }[];
     onClose: () => void;
 }
 
-const OsPurchaseDetailModal: React.FC<Props> = ({ purchase, onClose }) => {
+const OsPurchaseDetailModal: React.FC<Props> = ({ purchase, brands = [], categories = [], onClose }) => {
     const totalItems = purchase.items.reduce((sum, item: any) => sum + (item.quantity || 1), 0);
+    
+    const getBrandName = (idOrName: string) => {
+        if (!idOrName) return '';
+        const brand = brands.find(b => b.id === idOrName);
+        return brand ? brand.name : idOrName;
+    };
+
+    const getCategoryName = (idOrName: string) => {
+        if (!idOrName) return '';
+        const category = categories.find(c => c.id === idOrName);
+        return category ? category.name : idOrName;
+    };
 
     React.useEffect(() => {
         const originalOverflow = document.body.style.overflow;
@@ -66,10 +80,11 @@ const OsPurchaseDetailModal: React.FC<Props> = ({ purchase, onClose }) => {
                                                     {item.partName || item.description || 'Sem nome'}
                                                 </span>
                                                 <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-gray-500 font-bold uppercase tracking-tighter">
-                                                    {item.brand && <span className="bg-gray-100 px-1.5 rounded-xl">{item.brand}</span>}
-                                                    {item.category && <span>{item.category}</span>}
+                                                    {item.brand && <span className="bg-gray-100 px-1.5 rounded-xl">{getBrandName(item.brand)}</span>}
+                                                    {item.category && <span>{getCategoryName(item.category)}</span>}
                                                     {item.condition && <span className="bg-gray-100 px-1.5 rounded-xl">{item.condition}</span>}
                                                     {item.warranty && <span>{item.warranty}</span>}
+                                                    {item.storageLocation && <span className="text-emerald-600 bg-emerald-50 px-1.5 rounded-xl">📍 {item.storageLocation}</span>}
                                                     {item.model && <span className="text-accent">| {item.model}</span>}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[9px] text-gray-400 mt-0.5 font-medium">

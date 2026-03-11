@@ -231,6 +231,17 @@ const ServiceOrderProducts: React.FC = () => {
     const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out' | 'low'>((urlFilter as any) || 'in_stock');
+    const [partsSubTab, setPartsSubTab] = useState<'estoque' | 'compras'>('estoque');
+
+    // Pagination states
+    const [partsPage, setPartsPage] = useState(1);
+    const [purchasesPage, setPurchasesPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState<15 | 30 | 45>(15);
+
+    useEffect(() => {
+        setPartsPage(1);
+        setPurchasesPage(1);
+    }, [searchTerm, stockFilter, partsSubTab, activeTab, itemsPerPage]);
 
     useEffect(() => {
         if (urlFilter && ['all', 'in_stock', 'out', 'low'].includes(urlFilter)) {
@@ -251,7 +262,6 @@ const ServiceOrderProducts: React.FC = () => {
 
     // OS Purchase Modal State
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-    const [partsSubTab, setPartsSubTab] = useState<'estoque' | 'compras'>('estoque');
     const [purchaseToEdit, setPurchaseToEdit] = useState<any>(null);
 
     // Purchase History (inline) State
@@ -347,6 +357,29 @@ const ServiceOrderProducts: React.FC = () => {
         const lowStock = activeParts.filter(p => p.stock > 0 && p.minimumStock !== undefined && p.stock <= (p.minimumStock || 0)).length;
         return { totalItems, totalCost, totalValue, lowStock };
     }, [osParts]);
+
+    // Pagination for Parts
+    const paginatedParts = useMemo(() => {
+        const start = (partsPage - 1) * itemsPerPage;
+        return filteredParts.slice(start, start + itemsPerPage);
+    }, [filteredParts, partsPage, itemsPerPage]);
+    const partsTotalPages = Math.ceil(filteredParts.length / itemsPerPage);
+
+    // Filtering and Pagination for Purchases
+    const filteredPurchases = useMemo(() => {
+        if (!searchTerm) return purchaseHistory;
+        const s = searchTerm.toLowerCase();
+        return purchaseHistory.filter(p => 
+            (p.supplierName && p.supplierName.toLowerCase().includes(s)) ||
+            (p.displayId && p.displayId.toString().includes(s))
+        );
+    }, [purchaseHistory, searchTerm]);
+
+    const paginatedPurchases = useMemo(() => {
+        const start = (purchasesPage - 1) * itemsPerPage;
+        return filteredPurchases.slice(start, start + itemsPerPage);
+    }, [filteredPurchases, purchasesPage, itemsPerPage]);
+    const purchasesTotalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
 
     // Service Handlers
     const handleSaveService = async (data: Partial<Service>) => {
@@ -600,19 +633,40 @@ const ServiceOrderProducts: React.FC = () => {
             {/* Sub-tabs for parts */}
             {
                 activeTab === 'parts' && (
-                    <div className="flex p-1.5 bg-gray-100/80 rounded-2xl border border-gray-200/60 gap-1 w-max shadow-sm">
-                        <button
-                            onClick={() => setPartsSubTab('estoque')}
-                            className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${partsSubTab === 'estoque' ? 'bg-[#1a1b23] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
-                        >
-                            Estoque
-                        </button>
-                        <button
-                            onClick={() => setPartsSubTab('compras')}
-                            className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${partsSubTab === 'compras' ? 'bg-[#1a1b23] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
-                        >
-                            Compras (Histórico)
-                        </button>
+                    <div className="flex justify-between items-center mt-2">
+                        <div className="flex p-1.5 bg-gray-100/80 rounded-2xl border border-gray-200/60 gap-1 w-max shadow-sm">
+                            <button
+                                onClick={() => setPartsSubTab('estoque')}
+                                className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${partsSubTab === 'estoque' ? 'bg-[#1a1b23] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
+                            >
+                                Estoque
+                            </button>
+                            <button
+                                onClick={() => setPartsSubTab('compras')}
+                                className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${partsSubTab === 'compras' ? 'bg-[#1a1b23] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
+                            >
+                                Compras (Histórico)
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2 pr-1">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest hidden md:inline">Itens por pág:</span>
+                            <div className="relative">
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => setItemsPerPage(Number(e.target.value) as any)}
+                                    className="pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-gray-800 transition-all hover:bg-gray-100"
+                                >
+                                    <option value={15}>15</option>
+                                    <option value={30}>30</option>
+                                    <option value={45}>45</option>
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )
             }
@@ -693,7 +747,7 @@ const ServiceOrderProducts: React.FC = () => {
                         </div>
                         {purchaseHistoryLoading ? (
                             <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>
-                        ) : purchaseHistory.length === 0 ? (
+                        ) : filteredPurchases.length === 0 ? (
                             <div className="text-center p-12 text-gray-500">Nenhuma compra encontrada.</div>
                         ) : (
                             <table className="w-full text-left border-collapse">
@@ -710,14 +764,17 @@ const ServiceOrderProducts: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {purchaseHistory.map(p => {
-                                        const dateLabel = formatDateBR(p.createdAt);
+                                    {paginatedPurchases.map(p => {
+                                        const dateLabel = new Date(p.createdAt).toLocaleDateString('pt-BR');
+                                        const timeLabel = new Date(p.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                                         const isCancelled = p.status === 'Cancelada';
                                         const canMarkAsPaid = !isCancelled && (p.financialStatus === 'Pendente' || p.financialStatus === 'A Prazo');
                                         return (
                                             <tr key={p.id} className={`transition-colors ${isCancelled ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50/50'}`}>
                                                 <td className={`p-4 font-medium text-sm whitespace-nowrap ${isCancelled ? 'text-gray-400' : 'text-gray-900'}`}>
-                                                    {dateLabel}<br /><span className="text-xs text-gray-400 font-normal">por {p.createdByName}</span>
+                                                    <div>{dateLabel}</div>
+                                                    <div className="text-[10px] text-gray-800 font-bold">{timeLabel}</div>
+                                                    <span className="text-[10px] text-gray-400 font-normal">por {p.createdByName}</span>
                                                 </td>
                                                 <td className={`p-4 text-sm font-semibold ${isCancelled ? 'text-gray-400' : 'text-gray-600'}`}>#{p.displayId}</td>
                                                 <td className={`p-4 text-sm ${isCancelled ? 'text-gray-400' : 'text-gray-800'}`}>{p.supplierName}</td>
@@ -760,7 +817,7 @@ const ServiceOrderProducts: React.FC = () => {
                                                             </button>
                                                         )}
                                                         {!isCancelled && (
-                                                            <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); setPartsSubTab('estoque'); }}
+                                                            <button onClick={() => { setPurchaseToEdit(p); setIsPurchaseModalOpen(true); }}
                                                                 title="Editar"
                                                                 className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded">
                                                                 <EditIcon className="h-5 w-5" />
@@ -780,6 +837,33 @@ const ServiceOrderProducts: React.FC = () => {
                                     })}
                                 </tbody>
                             </table>
+                        )}
+                        
+                        {!purchaseHistoryLoading && filteredPurchases.length > 0 && (
+                            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                                <span className="text-xs font-semibold text-gray-500">
+                                    Mostrando <span className="text-gray-900">{((purchasesPage - 1) * itemsPerPage) + 1}</span> a <span className="text-gray-900">{Math.min(purchasesPage * itemsPerPage, filteredPurchases.length)}</span> de <span className="text-gray-900">{filteredPurchases.length}</span>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setPurchasesPage(p => Math.max(1, p - 1))}
+                                        disabled={purchasesPage === 1}
+                                        className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 shadow-sm transition-all"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
+                                    <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                                        Pág {purchasesPage} de {purchasesTotalPages}
+                                    </span>
+                                    <button 
+                                        onClick={() => setPurchasesPage(p => Math.min(purchasesTotalPages, p + 1))}
+                                        disabled={purchasesPage === purchasesTotalPages}
+                                        className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 shadow-sm transition-all"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 ) : (
@@ -811,7 +895,7 @@ const ServiceOrderProducts: React.FC = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredParts.map((part) => {
+                                    paginatedParts.map((part) => {
                                         const supplierName = part.supplierId
                                             ? suppliers.find(s => s.id === part.supplierId)?.name || '-'
                                             : '-';
@@ -885,6 +969,33 @@ const ServiceOrderProducts: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
+                        
+                        {filteredParts.length > 0 && (
+                            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                                <span className="text-xs font-semibold text-gray-500">
+                                    Mostrando <span className="text-gray-900">{((partsPage - 1) * itemsPerPage) + 1}</span> a <span className="text-gray-900">{Math.min(partsPage * itemsPerPage, filteredParts.length)}</span> de <span className="text-gray-900">{filteredParts.length}</span>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setPartsPage(p => Math.max(1, p - 1))}
+                                        disabled={partsPage === 1}
+                                        className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 shadow-sm transition-all"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
+                                    <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                                        Pág {partsPage} de {partsTotalPages}
+                                    </span>
+                                    <button 
+                                        onClick={() => setPartsPage(p => Math.min(partsTotalPages, p + 1))}
+                                        disabled={partsPage === partsTotalPages}
+                                        className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 shadow-sm transition-all"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -949,6 +1060,8 @@ const ServiceOrderProducts: React.FC = () => {
                 purchaseToView && (
                     <OsPurchaseDetailModal
                         purchase={purchaseToView}
+                        brands={brands}
+                        categories={categories}
                         onClose={() => setPurchaseToView(null)}
                     />
                 )

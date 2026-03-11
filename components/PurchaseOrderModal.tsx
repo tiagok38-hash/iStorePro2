@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PurchaseOrder, PurchaseItem, Supplier, ProductCondition, Product, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation, Customer, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter } from '../types.ts';
-import { addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, formatCurrency, findOrCreateSupplierFromCustomer, getProductConditions, getStorageLocations, getWarranties, getReceiptTerms, addOsPurchaseOrder, launchOsPurchaseOrder, OsPurchaseOrderItem } from '../services/mockApi.ts';
+import { addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, formatCurrency, findOrCreateSupplierFromCustomer, getProductConditions, getStorageLocations, getWarranties, getReceiptTerms, addOsPurchaseOrder, launchOsPurchaseOrder, updateOsPurchaseOrder, OsPurchaseOrderItem } from '../services/mockApi.ts';
 import { addBrand, addCategory, addProductModel } from '../services/parametersService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -143,6 +143,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             if (isOsMode && purchaseOrderToEdit.items) {
                 const convertedItems = purchaseOrderToEdit.items.map((item: any) => ({
                     id: item.id || crypto.randomUUID(),
+                    osPartId: item.osPartId || null,
                     productDetails: {
                         brand: item.brand || '',
                         category: item.category || '',
@@ -151,6 +152,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                         condition: item.condition || 'Novo',
                         warranty: item.warranty || '',
                         storageLocation: item.storageLocation || '',
+                        wholesalePrice: item.wholesalePrice || item.finalUnitCost || item.unitCost || 0,
                     },
                     barcodes: item.barcode ? [item.barcode] : [],
                     barcode: item.barcode || '',
@@ -624,11 +626,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 }
 
                 // Converter PurchaseItems para OsPurchaseOrderItems
-                const osItems: OsPurchaseOrderItem[] = sanitizedItems.map(item => ({
-                    id: item.id || crypto.randomUUID(),
-                    partName: item.productDetails?.model || '',
-                    brand: item.productDetails?.brand || '',
-                    category: item.productDetails?.category || '',
+                const osItems: OsPurchaseOrderItem[] = sanitizedItems.map(item => {
+                    const originalItem = purchaseOrderToEdit?.items?.find((i: any) => i.id === item.id);
+                    return {
+                        id: item.id || crypto.randomUUID(),
+                        osPartId: originalItem?.osPartId || (item as any).osPartId || null,
+                        partName: item.productDetails?.model || '',
+                        brand: item.productDetails?.brand || '',
+                        category: item.productDetails?.category || '',
                     model: item.productDetails?.model || '',
                     condition: item.productDetails?.condition || 'Novo',
                     warranty: item.productDetails?.warranty || null,
@@ -639,25 +644,38 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                     quantity: item.quantity,
                     unitCost: item.unitCost,
                     finalUnitCost: item.finalUnitCost,
-                }));
+                    };
+                });
 
-                const purchase = await addOsPurchaseOrder(
-                    {
-                        supplierId: formData.supplierId || undefined,
-                        supplierName: currentSupplierName || undefined,
-                        purchaseDate: formData.purchaseDate,
-                        additionalCost: formData.additionalCost || 0,
-                        observations: formData.observations || undefined,
-                        origin: formData.origin,
-                        items: osItems,
-                    },
-                    userId || user?.id || 'system',
-                    userName || user?.name || 'Sistema'
-                );
+                const purchasePayload = {
+                    supplierId: formData.supplierId || undefined,
+                    supplierName: currentSupplierName || undefined,
+                    purchaseDate: formData.purchaseDate,
+                    additionalCost: formData.additionalCost || 0,
+                    observations: formData.observations || undefined,
+                    origin: formData.origin,
+                    items: osItems,
+                };
 
-                // Lançar automaticamente no estoque OS
-                await launchOsPurchaseOrder(purchase.id, userId || user?.id || 'system', userName || user?.name || 'Sistema');
-                showToast('Peças/Insumos registrados e estoque OS atualizado!', 'success');
+                if (purchaseOrderToEdit) {
+                    await updateOsPurchaseOrder(
+                        purchaseOrderToEdit.id,
+                        purchasePayload,
+                        userId || user?.id || 'system',
+                        userName || user?.name || 'Sistema'
+                    );
+                    showToast('Compra atualizada com sucesso!', 'success');
+                } else {
+                    const purchase = await addOsPurchaseOrder(
+                        purchasePayload,
+                        userId || user?.id || 'system',
+                        userName || user?.name || 'Sistema'
+                    );
+                    // Lançar automaticamente no estoque OS
+                    await launchOsPurchaseOrder(purchase.id, userId || user?.id || 'system', userName || user?.name || 'Sistema');
+                    showToast('Peças/Insumos registrados e estoque OS atualizado!', 'success');
+                }
+
                 onClose(true);
                 return;
             }
