@@ -42,6 +42,7 @@ import {
     getServices,
     getOsParts,
     getOsWarranties,
+    getWarranties,
     OsPart,
     getCustomerDevices,
     addCustomerDevice,
@@ -214,7 +215,8 @@ const ServiceOrderForm: React.FC = () => {
                 checklistData,
                 profilesData,
                 cInfo,
-                warrantyData,
+                osWarrantyData,
+                genericWarrantyData,
                 brandsData,
                 categoriesData,
                 modelsData,
@@ -231,6 +233,7 @@ const ServiceOrderForm: React.FC = () => {
                 getPermissionProfiles(),
                 getCompanyInfo(),
                 getOsWarranties(),
+                getWarranties(),
                 getBrands(),
                 getCategories(),
                 getProductModels(),
@@ -246,7 +249,35 @@ const ServiceOrderForm: React.FC = () => {
             setAvailableChecklistItems(checklistData);
             setProfiles(profilesData);
             setCompanyInfo(cInfo);
-            setOsWarranties(warrantyData || []);
+
+            // Merge generic and OS warranties with robust deduplication
+            const allWarranties = [...(osWarrantyData || []), ...(genericWarrantyData || [])];
+            const uniqueWarranties = allWarranties.reduce((acc: any[], current) => {
+                const normalizedCurrent = current.name.trim().toLowerCase();
+                const currentDays = Number(current.days) || 0;
+                
+                // Deduplicate by normalized name OR by number of days (if days > 0)
+                const duplicateIndex = acc.findIndex(item => {
+                    const normalizedItem = item.name.trim().toLowerCase();
+                    const itemDays = Number(item.days) || 0;
+                    return normalizedItem === normalizedCurrent || (currentDays > 0 && itemDays === currentDays);
+                });
+
+                if (duplicateIndex === -1) {
+                    acc.push(current);
+                } else {
+                    // Prefer the name that is more descriptive (usually longer or containing parentheses)
+                    if (current.name.length > acc[duplicateIndex].name.length) {
+                        acc[duplicateIndex] = current;
+                    }
+                }
+                return acc;
+            }, []);
+
+            // Sort by duration (days)
+            uniqueWarranties.sort((a, b) => (Number(a.days) || 0) - (Number(b.days) || 0));
+            setOsWarranties(uniqueWarranties);
+
             setBrands(brandsData);
             setCategories(categoriesData);
             setProductModels(modelsData);
@@ -730,6 +761,14 @@ const ServiceOrderForm: React.FC = () => {
 
                         {/* Lado Direito: OS Rápida, Cancelar, Salvar, Faturar */}
                         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+                            <button
+                                onClick={() => { if (!isLocked) navigate('/service-orders/list'); }}
+                                disabled={isLocked}
+                                className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center justify-center ${isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : 'bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 active:scale-95'}`}
+                            >
+                                Cancelar
+                            </button>
+
                             {!isEditing && (
                                 <button
                                     onClick={() => setIsQuickOSOpen(true)}
@@ -739,14 +778,6 @@ const ServiceOrderForm: React.FC = () => {
                                     OS Rápida
                                 </button>
                             )}
-
-                            <button
-                                onClick={() => { if (!isLocked) navigate('/service-orders/list'); }}
-                                disabled={isLocked}
-                                className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center justify-center ${isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : 'bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 active:scale-95'}`}
-                            >
-                                Cancelar
-                            </button>
 
                             <button
                                 onClick={handleSave}
@@ -1249,12 +1280,12 @@ const ServiceOrderForm: React.FC = () => {
                                             </button>
                                         </div>
                                         {checklist.others && (
-                                            <input
-                                                type="text"
+                                            <textarea
+                                                rows={2}
                                                 placeholder="Descreva outros problemas ou itens..."
                                                 value={othersDescription}
                                                 onChange={e => setOthersDescription(e.target.value)}
-                                                className="mt-3 w-full h-11 px-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 shadow-sm"
+                                                className="mt-3 w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-purple-500 shadow-sm resize-none"
                                             />
                                         )}
                                     </div>
@@ -1407,10 +1438,10 @@ const ServiceOrderForm: React.FC = () => {
                                     <table className="w-full text-sm">
                                         <thead className="bg-gray-50 border-b border-gray-200 text-left text-xs font-bold text-secondary uppercase">
                                             <tr>
-                                                <th className="px-1.5 py-4">Descrição</th>
-                                                <th className="px-1.5 py-4 w-28">Tipo</th>
-                                                <th className="px-1.5 py-4 w-36">Garantia</th>
-                                                <th className="px-1.5 py-4 w-20 text-center">Qtd</th>
+                                                <th className="px-1.5 py-4 w-[28%] font-black">Descrição</th>
+                                                <th className="px-1.5 py-4 w-40 font-black">Tipo</th>
+                                                <th className="px-1.5 py-4 w-60 font-black">Garantia</th>
+                                                <th className="px-1.5 py-4 w-20 text-center font-black">Qtd</th>
                                                 <th className="px-1.5 py-4 w-32 text-right">Valor Unit.</th>
                                                 <th className="px-1.5 py-4 w-28 text-right">Total</th>
                                                 <th className="px-1.5 py-4 w-10"></th>
@@ -1444,20 +1475,19 @@ const ServiceOrderForm: React.FC = () => {
                                                             </select>
                                                         </td>
                                                         <td className="px-1.5 py-3">
-                                                            <input
-                                                                type="text"
-                                                                list={`warranty-options-${item.id}`}
+                                                            <select
                                                                 value={item.warranty || ''}
                                                                 onChange={e => updateItem(item.id, 'warranty', e.target.value)}
                                                                 className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-accent font-medium text-sm transition-all"
-                                                                placeholder="Garantia"
                                                                 disabled={isLocked}
-                                                            />
-                                                            <datalist id={`warranty-options-${item.id}`}>
-                                                                {osWarranties.map(w => (
-                                                                    <option key={w.id} value={w.name}>{w.name}</option>
-                                                                ))}
-                                                            </datalist>
+                                                            >
+                                                                <option value="">Sem garantia</option>
+                                                                {osWarranties
+                                                                    .filter(w => w.name.toLowerCase() !== 'sem garantia')
+                                                                    .map(w => (
+                                                                        <option key={w.id} value={w.name}>{w.name}</option>
+                                                                    ))}
+                                                            </select>
                                                             {item.warranty && exitDate && (
                                                                 (() => {
                                                                     const expiry = calculateWarrantyExpiry(exitDate, item.warranty);

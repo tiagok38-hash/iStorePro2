@@ -71,8 +71,7 @@ const ServiceOrderLayout: React.FC = () => {
                             <WrenchIcon className="text-white" size={18} strokeWidth={2} />
                         </div>
                         <div>
-                            <h1 className="font-bold text-base tracking-tight leading-tight">iStore OS</h1>
-                            <p className="text-[10px] text-white/50 uppercase tracking-widest font-medium">Workstation</p>
+                            <h1 className="font-bold text-lg tracking-tight leading-none text-white">iStore OS</h1>
                         </div>
                     </div>
                 </div>

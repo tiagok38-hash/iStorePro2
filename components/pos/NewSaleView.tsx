@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import {
     Product, Customer, User, Sale, PermissionProfile,
     Brand, Category, ProductModel, Grade, GradeValue,
-    Supplier, ReceiptTermParameter, PaymentMethodParameter
+    Supplier, ReceiptTermParameter, PaymentMethodParameter, StorageLocationParameter
 } from '../../types.ts';
 import { formatCurrency, getNextSaleId } from '../../services/mockApi.ts';
 import {
@@ -46,13 +46,16 @@ interface NewSaleViewProps {
     openCashSessionDisplayId?: number;
     saleToEdit?: Sale | null;
     paymentMethods: PaymentMethodParameter[];
+    storageLocations?: StorageLocationParameter[];
     onUpdateCustomer?: (data: any) => Promise<Customer | null>;
 }
 
 export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
+
     const {
         customers, users, products, brands, categories, productModels,
-        grades, gradeValues, receiptTerms, paymentMethods, onAddNewCustomer
+        grades, gradeValues, receiptTerms, paymentMethods, onAddNewCustomer,
+        storageLocations = []
     } = props;
 
     const [matchingUnits, setMatchingUnits] = React.useState<Product[]>([]);
@@ -375,6 +378,14 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                             </span>
                                                                         </>
                                                                     )}
+                                                                    {p.storageLocation && (
+                                                                        <>
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length || p.supplierId || (p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple'))) && <span className="opacity-30">|</span>}
+                                                                            <span className="text-emerald-600 font-bold uppercase tracking-tighter" title="Local de Estoque">
+                                                                                {storageLocations.find(l => l.id === p.storageLocation || l.name === p.storageLocation)?.name || p.storageLocation}
+                                                                            </span>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -437,6 +448,14 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                         <span className="opacity-30">|</span>
                                                                         <span className="text-purple-600 font-bold uppercase tracking-tighter" title="Fornecedor">
                                                                             {props.suppliers?.find(s => s.id === item.supplierId)?.name || 'Fornec. Desconhecido'}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                {item.storageLocation && (
+                                                                    <>
+                                                                        <span className="opacity-30">|</span>
+                                                                        <span className="text-emerald-600 font-bold uppercase tracking-tighter" title="Local de Estoque">
+                                                                            {storageLocations.find(l => l.id === item.storageLocation || l.name === item.storageLocation)?.name || item.storageLocation}
                                                                         </span>
                                                                     </>
                                                                 )}
@@ -553,6 +572,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                         {item.supplierId && (
                                                             <span className="text-purple-600 font-bold uppercase tracking-tighter" title="Fornecedor">
                                                                 {" | "}{props.suppliers?.find(s => s.id === item.supplierId)?.name || 'Fornec. Desconhecido'}
+                                                            </span>
+                                                        )}
+                                                        {item.storageLocation && (
+                                                            <span className="text-emerald-600 font-bold uppercase tracking-tighter" title="Local de Estoque">
+                                                                {" | "}{storageLocations.find(l => l.id === item.storageLocation || l.name === item.storageLocation)?.name || item.storageLocation}
                                                             </span>
                                                         )}
                                                     </p>

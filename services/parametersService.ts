@@ -121,44 +121,11 @@ export const getCategories = async () => {
         }));
     });
 };
-export const addCategory = async (data: any, userId?: string, userName?: string) => {
-    const payloads = [
-        { name: data.name, brand_id: data.brandId },
-        { name: data.name }
-    ];
-
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            return await addItem('categories', payload, 'categories', userId, userName);
-        } catch (error: any) {
-            console.error('addCategory: Error:', error.message);
-            lastError = error;
-            if (!error.message?.includes('column') && !error.message?.includes('schema')) {
-                throw error;
-            }
-        }
-    }
-    throw lastError;
+export const addCategory = (data: any, userId?: string, userName?: string) => {
+    return addItem('categories', { name: data.name, brand_id: data.brandId, brandId: data.brandId }, 'categories', userId, userName);
 };
-export const updateCategory = async (data: any, userId?: string, userName?: string) => {
-    const payloads = [
-        { id: data.id, name: data.name, brand_id: data.brandId },
-        { id: data.id, name: data.name }
-    ];
-
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            return await updateItem('categories', payload, 'categories', userId, userName);
-        } catch (error: any) {
-            lastError = error;
-            if (!error.message?.includes('column') && !error.message?.includes('schema')) {
-                throw error;
-            }
-        }
-    }
-    throw lastError;
+export const updateCategory = (data: any, userId?: string, userName?: string) => {
+    return updateItem('categories', { id: data.id, name: data.name, brand_id: data.brandId, brandId: data.brandId }, 'categories', userId, userName);
 };
 export const deleteCategory = (id: string, userId?: string, userName?: string) => deleteItem('categories', id, 'categories', userId, userName);
 
@@ -168,58 +135,33 @@ export const getProductModels = async () => {
         if (error) throw error;
         return (data || []).map((m: any) => ({
             ...m,
-            categoryId: m.category_id,
+            categoryId: m.category_id || m.categoryId,
             imageUrl: m.image_url || m.imageUrl || m.photo_url || m.photoUrl
         }));
     });
 };
-export const addProductModel = async (data: any, userId?: string, userName?: string) => {
-    // Try progressively simpler payloads until one works
-    const payloads = [
-        { name: data.name, category_id: data.categoryId, image_url: data.imageUrl },
-        { name: data.name, category_id: data.categoryId, imageUrl: data.imageUrl },
-        { name: data.name, category_id: data.categoryId, photo_url: data.imageUrl },
-        { name: data.name, category_id: data.categoryId },
-        { name: data.name }
-    ];
 
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            return await addItem('product_models', payload, 'product_models', userId, userName);
-        } catch (error: any) {
-            console.error('addProductModel: Error:', error.message);
-            lastError = error;
-            // Continue to next simpler payload if column doesn't exist
-            if (!error.message?.includes('column') && !error.message?.includes('schema')) {
-                throw error; // If error is not about missing column, rethrow
-            }
-        }
-    }
-    throw lastError;
+export const addProductModel = (data: any, userId?: string, userName?: string) => {
+    const payload = { 
+        name: data.name, 
+        category_id: data.categoryId, 
+        categoryId: data.categoryId,
+        image_url: data.imageUrl 
+    };
+    return addItem('product_models', payload, 'product_models', userId, userName);
 };
-export const updateProductModel = async (data: any, userId?: string, userName?: string) => {
-    const payloads = [
-        { id: data.id, name: data.name, category_id: data.categoryId, image_url: data.imageUrl },
-        { id: data.id, name: data.name, category_id: data.categoryId, imageUrl: data.imageUrl },
-        { id: data.id, name: data.name, category_id: data.categoryId, photo_url: data.imageUrl },
-        { id: data.id, name: data.name, category_id: data.categoryId },
-        { id: data.id, name: data.name }
-    ];
 
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            return await updateItem('product_models', payload, 'product_models', userId, userName);
-        } catch (error: any) {
-            lastError = error;
-            if (!error.message?.includes('column') && !error.message?.includes('schema')) {
-                throw error;
-            }
-        }
-    }
-    throw lastError;
+export const updateProductModel = (data: any, userId?: string, userName?: string) => {
+    const payload = { 
+        id: data.id, 
+        name: data.name, 
+        category_id: data.categoryId, 
+        categoryId: data.categoryId,
+        image_url: data.imageUrl 
+    };
+    return updateItem('product_models', payload, 'product_models', userId, userName);
 };
+
 export const deleteProductModel = (id: string, userId?: string, userName?: string) => deleteItem('product_models', id, 'product_models', userId, userName);
 
 export const getGrades = () => getTable('grades', 'grades');
@@ -237,44 +179,11 @@ export const getGradeValues = async () => {
         }));
     });
 };
-export const addGradeValue = async (data: any, userId?: string, userName?: string) => {
-    const payloads = [
-        { name: data.name, grade_id: data.gradeId },
-        { name: data.name }
-    ];
-
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            return await addItem('grade_values', payload, 'grade_values', userId, userName);
-        } catch (error: any) {
-            console.error('addGradeValue: Error:', error.message);
-            lastError = error;
-            if (!error.message?.includes('column') && !error.message?.includes('schema')) {
-                throw error;
-            }
-        }
-    }
-    throw lastError;
+export const addGradeValue = (data: any, userId?: string, userName?: string) => {
+    return addItem('grade_values', { name: data.name, grade_id: data.gradeId, gradeId: data.gradeId }, 'grade_values', userId, userName);
 };
-export const updateGradeValue = async (data: any, userId?: string, userName?: string) => {
-    const payloads = [
-        { id: data.id, name: data.name, grade_id: data.gradeId },
-        { id: data.id, name: data.name }
-    ];
-
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            return await updateItem('grade_values', payload, 'grade_values', userId, userName);
-        } catch (error: any) {
-            lastError = error;
-            if (!error.message?.includes('column') && !error.message?.includes('schema')) {
-                throw error;
-            }
-        }
-    }
-    throw lastError;
+export const updateGradeValue = (data: any, userId?: string, userName?: string) => {
+    return updateItem('grade_values', { id: data.id, name: data.name, grade_id: data.gradeId, gradeId: data.gradeId }, 'grade_values', userId, userName);
 };
 export const deleteGradeValue = (id: string, userId?: string, userName?: string) => deleteItem('grade_values', id, 'grade_values', userId, userName);
 
@@ -292,105 +201,32 @@ export const getReceiptTerms = async () => {
     });
 };
 
-export const addReceiptTerm = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
-    // DB has camelCase columns for this table. We try camelCase first.
-    const payloads = [
-        {
-            name: data.name || '',
-            warrantyTerm: data.warrantyTerm || null,
-            warrantyExclusions: data.warrantyExclusions || null,
-            imageRights: data.imageRights || null,
-        },
-        {
-            name: data.name || '',
-            warranty_term: data.warrantyTerm || null,
-            warranty_exclusions: data.warrantyExclusions || null,
-            image_rights: data.imageRights || null,
-        }
-    ];
-
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            const { data: newItem, error } = await supabase.from('receipt_terms').insert([payload]).select().single();
-
-            if (error) {
-                lastError = error;
-                if (error.code === '42703' || error.message?.includes('column')) continue;
-                throw error;
-            }
-
-            if (newItem) {
-                addAuditLog(
-                    AuditActionType.CREATE,
-                    AuditEntityType.PRODUCT,
-                    newItem.id,
-                    `Termo de recebimento adicionado: ${newItem.name}`,
-                    userId,
-                    userName
-                ).catch(e => console.warn('Audit log failed:', e));
-            }
-
-            clearCache(['receipt_terms']);
-            return newItem;
-        } catch (error: any) {
-            console.error('addReceiptTerm Error:', error.message);
-            lastError = error;
-            if (error.message?.includes('column') || error.message?.includes('schema')) continue;
-            throw error;
-        }
-    }
-    throw lastError || new Error('Falha ao adicionar termo.');
+export const addReceiptTerm = (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+    const payload = {
+        name: data.name || '',
+        warrantyTerm: data.warrantyTerm || null,
+        warranty_term: data.warrantyTerm || null,
+        warrantyExclusions: data.warrantyExclusions || null,
+        warranty_exclusions: data.warrantyExclusions || null,
+        imageRights: data.imageRights || null,
+        image_rights: data.imageRights || null,
+    };
+    return addItem('receipt_terms', payload, 'receipt_terms', userId, userName);
 };
 
-export const updateReceiptTerm = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+export const updateReceiptTerm = (data: any, userId: string = 'system', userName: string = 'Sistema') => {
     const { id, ...rest } = data;
-
-    const payloads = [
-        {
-            name: rest.name || '',
-            warrantyTerm: rest.warrantyTerm || null,
-            warrantyExclusions: rest.warrantyExclusions || null,
-            imageRights: rest.imageRights || null,
-        },
-        {
-            name: rest.name || '',
-            warranty_term: rest.warrantyTerm || null,
-            warranty_exclusions: rest.warrantyExclusions || null,
-            image_rights: rest.imageRights || null,
-        }
-    ];
-
-    let lastError: any = null;
-    for (const payload of payloads) {
-        try {
-            const { data: updated, error } = await supabase.from('receipt_terms').update(payload).eq('id', id).select().single();
-
-            if (error) {
-                lastError = error;
-                if (error.code === '42703' || error.message?.includes('column')) continue;
-                throw error;
-            }
-
-            addAuditLog(
-                AuditActionType.UPDATE,
-                AuditEntityType.PRODUCT,
-                id,
-                `Termo de recebimento atualizado: ${rest.name || 'Sem nome'}`,
-                userId,
-                userName
-            ).catch(e => console.warn('Audit log failed:', e));
-
-            clearCache(['receipt_terms']);
-            return updated;
-        } catch (error: any) {
-            console.error('updateReceiptTerm Error:', error.message);
-            lastError = error;
-            if (error.message?.includes('column') || error.message?.includes('schema')) continue;
-            throw error;
-        }
-    }
-    throw lastError || new Error('Falha ao atualizar termo.');
+    const payload = {
+        id,
+        name: rest.name || '',
+        warrantyTerm: rest.warrantyTerm || null,
+        warranty_term: rest.warrantyTerm || null,
+        warrantyExclusions: rest.warrantyExclusions || null,
+        warranty_exclusions: rest.warrantyExclusions || null,
+        imageRights: rest.imageRights || null,
+        image_rights: rest.imageRights || null,
+    };
+    return updateItem('receipt_terms', payload, 'receipt_terms', userId, userName);
 };
 
 export const deleteReceiptTerm = (id: string, userId: string = 'system', userName: string = 'Sistema') => deleteItem('receipt_terms', id, 'receipt_terms', userId, userName);
@@ -567,35 +403,26 @@ export const getOsReceiptTerms = async () => {
     });
 };
 
-export const addOsReceiptTerm = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+export const addOsReceiptTerm = (data: any, userId: string = 'system', userName: string = 'Sistema') => {
     const payload = {
         name: data.name || '',
         warrantyTerm: data.warrantyTerm || null,
         warrantyExclusions: data.warrantyExclusions || null,
         imageRights: data.imageRights || null,
     };
-    const { data: newItem, error } = await supabase.from('os_receipt_terms').insert([payload]).select().single();
-    if (error) throw error;
-    addAuditLog(AuditActionType.CREATE, AuditEntityType.PRODUCT, newItem.id,
-        `Termo OS adicionado: ${newItem.name}`, userId, userName).catch(() => { });
-    clearCache(['os_receipt_terms']);
-    return newItem;
+    return addItem('os_receipt_terms', payload, 'os_receipt_terms', userId, userName);
 };
 
-export const updateOsReceiptTerm = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
+export const updateOsReceiptTerm = (data: any, userId: string = 'system', userName: string = 'Sistema') => {
     const { id, ...rest } = data;
     const payload = {
+        id,
         name: rest.name || '',
         warrantyTerm: rest.warrantyTerm || null,
         warrantyExclusions: rest.warrantyExclusions || null,
         imageRights: rest.imageRights || null,
     };
-    const { data: updated, error } = await supabase.from('os_receipt_terms').update(payload).eq('id', id).select().single();
-    if (error) throw error;
-    addAuditLog(AuditActionType.UPDATE, AuditEntityType.PRODUCT, id,
-        `Termo OS atualizado: ${rest.name}`, userId, userName).catch(() => { });
-    clearCache(['os_receipt_terms']);
-    return updated;
+    return updateItem('os_receipt_terms', payload, 'os_receipt_terms', userId, userName);
 };
 
 export const deleteOsReceiptTerm = (id: string, userId: string = 'system', userName: string = 'Sistema') =>

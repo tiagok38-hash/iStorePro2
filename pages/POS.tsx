@@ -9,12 +9,13 @@ import {
     getCashSessions, getUsers, addCashSession, updateCashSession,
     getProducts, getSales, getCustomers, getReceiptTerms, addCashMovement,
     getSuppliers, getPermissionProfiles, getBrands, getCategories, getProductModels,
-    getGrades, getGradeValues, addCustomer, addProduct, cancelSale, getPaymentMethods, updateCustomer
+    getGrades, getGradeValues, addCustomer, addProduct, cancelSale, getPaymentMethods, updateCustomer,
+    getStorageLocations
 } from '../services/mockApi.ts';
 import {
     CashSession, User, Product, Sale, Customer, ReceiptTermParameter,
     Supplier, PermissionProfile, Brand, Category, ProductModel, Grade,
-    GradeValue, PaymentMethodParameter
+    GradeValue, PaymentMethodParameter, StorageLocationParameter
 } from '../types.ts';
 import PosAlertModal from '../components/PosAlertModal.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
@@ -57,6 +58,7 @@ const POS: React.FC = () => {
     const [gradeValues, setGradeValues] = useState<GradeValue[]>([]);
     const [receiptTerms, setReceiptTerms] = useState<ReceiptTermParameter[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodParameter[]>([]);
+    const [storageLocations, setStorageLocations] = useState<StorageLocationParameter[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -138,6 +140,7 @@ const POS: React.FC = () => {
             fetchItem('PaymentMethods', getPaymentMethods, []).then(pms => {
                 setPaymentMethods((pms || []).filter(m => m && m.name && !m.name.toLowerCase().includes('pagseguro')));
             });
+            fetchItem('StorageLocations', getStorageLocations, []).then(setStorageLocations);
 
         } catch (error: any) {
             if (error?.name === 'AbortError' || error?.message?.includes('abort')) {
@@ -490,6 +493,7 @@ const POS: React.FC = () => {
                                 onSaleSaved={handleSaleSaved}
                                 customers={customers} paymentMethods={paymentMethods}
                                 users={users} products={products} suppliers={suppliers}
+                                storageLocations={storageLocations}
                                 permissionProfiles={permissionProfiles} brands={brands}
                                 categories={categories} productModels={productModels}
                                 grades={grades} gradeValues={gradeValues} receiptTerms={receiptTerms}

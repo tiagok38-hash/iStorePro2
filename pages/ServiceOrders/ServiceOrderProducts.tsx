@@ -123,10 +123,14 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isOpen, onClose, onSave, se
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     >
                         <option value="">Sem garantia</option>
-                        {warrantyOptions.map(opt => (
-                            <option key={opt.id} value={opt.name}>{opt.name}</option>
-                        ))}
-                        {formData.warranty && !warrantyOptions.some(opt => opt.name === formData.warranty) && (
+                        {warrantyOptions
+                            .filter(opt => opt.name.toLowerCase() !== 'sem garantia')
+                            .map(opt => (
+                                <option key={opt.id} value={opt.name}>{opt.name}</option>
+                            ))}
+                        {formData.warranty && 
+                         formData.warranty.toLowerCase() !== 'sem garantia' && 
+                         !warrantyOptions.some(opt => opt.name === formData.warranty) && (
                             <option value={formData.warranty}>{formData.warranty}</option>
                         )}
                     </select>
@@ -296,7 +300,24 @@ const ServiceOrderProducts: React.FC = () => {
             setServices(servicesData);
             setOsParts(partsData);
             setSuppliers(suppliersData);
-            setWarranties(warrantiesData);
+            // Dedup and sort warranties
+            const uniqueWarranties = (warrantiesData || []).reduce((acc: any[], current) => {
+                const normalizedCurrent = current.name.trim().toLowerCase();
+                const currentDays = Number(current.days) || 0;
+                const duplicateIndex = acc.findIndex(item => {
+                    const normalizedItem = item.name.trim().toLowerCase();
+                    const itemDays = Number(item.days) || 0;
+                    return normalizedItem === normalizedCurrent || (currentDays > 0 && itemDays === currentDays);
+                });
+                if (duplicateIndex === -1) {
+                    acc.push(current);
+                } else if (current.name.length > acc[duplicateIndex].name.length) {
+                    acc[duplicateIndex] = current;
+                }
+                return acc;
+            }, []);
+            uniqueWarranties.sort((a,b) => (Number(a.days) || 0) - (Number(b.days) || 0));
+            setWarranties(uniqueWarranties);
             setBrands(brandsData);
             setCategories(categoriesData);
             setProductModels(modelsData);
@@ -645,7 +666,7 @@ const ServiceOrderProducts: React.FC = () => {
                                 onClick={() => setPartsSubTab('compras')}
                                 className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${partsSubTab === 'compras' ? 'bg-[#1a1b23] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-white/80'}`}
                             >
-                                Compras (Histórico)
+                                Compras
                             </button>
                         </div>
                         <div className="flex items-center gap-2 pr-1">
