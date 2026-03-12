@@ -24,6 +24,7 @@ import OsPurchaseDetailModal from '../../components/OsPurchaseDetailModal';
 import { formatDateBR } from '../../utils/dateUtils';
 import { getOsWarranties } from '../../services/mockApi';
 import { useUser } from '../../contexts/UserContext';
+import { deduplicateWarranties } from '../../utils/formatters.ts';
 
 // --- Service Modal Component ---
 interface ServiceModalProps {
@@ -301,22 +302,7 @@ const ServiceOrderProducts: React.FC = () => {
             setOsParts(partsData);
             setSuppliers(suppliersData);
             // Dedup and sort warranties
-            const uniqueWarranties = (warrantiesData || []).reduce((acc: any[], current) => {
-                const normalizedCurrent = current.name.trim().toLowerCase();
-                const currentDays = Number(current.days) || 0;
-                const duplicateIndex = acc.findIndex(item => {
-                    const normalizedItem = item.name.trim().toLowerCase();
-                    const itemDays = Number(item.days) || 0;
-                    return normalizedItem === normalizedCurrent || (currentDays > 0 && itemDays === currentDays);
-                });
-                if (duplicateIndex === -1) {
-                    acc.push(current);
-                } else if (current.name.length > acc[duplicateIndex].name.length) {
-                    acc[duplicateIndex] = current;
-                }
-                return acc;
-            }, []);
-            uniqueWarranties.sort((a,b) => (Number(a.days) || 0) - (Number(b.days) || 0));
+            const uniqueWarranties = deduplicateWarranties(warrantiesData);
             setWarranties(uniqueWarranties);
             setBrands(brandsData);
             setCategories(categoriesData);

@@ -36,3 +36,28 @@ export const formatStorageUnit = (storage: number | string | null | undefined): 
     if (num === 2000 || num === 2048) return '2TB';
     return `${num}GB`;
 };
+
+/** Desduplica e ordena garantias por nome e duração */
+export const deduplicateWarranties = (warranties: any[]): any[] => {
+    if (!warranties || !Array.isArray(warranties)) return [];
+    
+    const unique = warranties.reduce((acc: any[], current) => {
+        const normalizedCurrent = current.name?.trim().toLowerCase() || "";
+        const currentDays = Number(current.days) || 0;
+        
+        const duplicateIndex = acc.findIndex(item => {
+            const normalizedItem = item.name?.trim().toLowerCase() || "";
+            const itemDays = Number(item.days) || 0;
+            return normalizedItem === normalizedCurrent || (currentDays > 0 && itemDays === currentDays);
+        });
+
+        if (duplicateIndex === -1) {
+            acc.push(current);
+        } else if (current.name?.length > acc[duplicateIndex].name?.length) {
+            acc[duplicateIndex] = current;
+        }
+        return acc;
+    }, []);
+
+    return unique.sort((a, b) => (Number(a.days) || 0) - (Number(b.days) || 0));
+};

@@ -57,7 +57,7 @@ import {
 } from '../../services/mockApi';
 import { getOsReceiptTerms } from '../../services/parametersService';
 import { generateCommissionsForOS } from '../../services/commissionService.ts';
-import { formatStorageUnit } from '../../utils/formatters.ts';
+import { formatStorageUnit, deduplicateWarranties } from '../../utils/formatters.ts';
 import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
@@ -251,31 +251,7 @@ const ServiceOrderForm: React.FC = () => {
             setCompanyInfo(cInfo);
 
             // Merge generic and OS warranties with robust deduplication
-            const allWarranties = [...(osWarrantyData || []), ...(genericWarrantyData || [])];
-            const uniqueWarranties = allWarranties.reduce((acc: any[], current) => {
-                const normalizedCurrent = current.name.trim().toLowerCase();
-                const currentDays = Number(current.days) || 0;
-                
-                // Deduplicate by normalized name OR by number of days (if days > 0)
-                const duplicateIndex = acc.findIndex(item => {
-                    const normalizedItem = item.name.trim().toLowerCase();
-                    const itemDays = Number(item.days) || 0;
-                    return normalizedItem === normalizedCurrent || (currentDays > 0 && itemDays === currentDays);
-                });
-
-                if (duplicateIndex === -1) {
-                    acc.push(current);
-                } else {
-                    // Prefer the name that is more descriptive (usually longer or containing parentheses)
-                    if (current.name.length > acc[duplicateIndex].name.length) {
-                        acc[duplicateIndex] = current;
-                    }
-                }
-                return acc;
-            }, []);
-
-            // Sort by duration (days)
-            uniqueWarranties.sort((a, b) => (Number(a.days) || 0) - (Number(b.days) || 0));
+            const uniqueWarranties = deduplicateWarranties([...(osWarrantyData || []), ...(genericWarrantyData || [])]);
             setOsWarranties(uniqueWarranties);
 
             setBrands(brandsData);
