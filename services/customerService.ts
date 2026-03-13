@@ -176,28 +176,28 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
         phone: data.phone
     };
 
-    if (data.email) payload.email = data.email;
+    if (data.email !== undefined) payload.email = data.email;
     if (data.contact2 !== undefined) payload.contact2 = data.contact2;
-    if (data.avatarUrl) payload.avatar_url = data.avatarUrl;
-    if (data.cpf) payload.cpf = data.cpf;
-    if (data.rg) payload.rg = data.rg;
-    if (data.birthDate) payload.birth_date = data.birthDate;
-    if (data.isBlocked) payload.is_blocked = data.isBlocked;
-    if (data.customTag) payload.custom_tag = data.customTag;
-    if (data.instagram) payload.instagram = data.instagram;
+    if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl;
+    if (data.cpf !== undefined) payload.cpf = data.cpf;
+    if (data.rg !== undefined) payload.rg = data.rg;
+    if (data.birthDate !== undefined) payload.birth_date = data.birthDate;
+    if (data.isBlocked !== undefined) payload.is_blocked = data.isBlocked;
+    if (data.customTag !== undefined) payload.custom_tag = data.customTag;
+    if (data.instagram !== undefined) payload.instagram = data.instagram;
     if (data.active !== undefined) payload.active = data.active;
     if (data.credit_limit !== undefined) payload.credit_limit = data.credit_limit;
     if (data.allow_credit !== undefined) payload.allow_credit = data.allow_credit;
     if (data.credit_used !== undefined) payload.credit_used = data.credit_used;
 
     if (data.address) {
-        if (data.address.zip) payload.cep = data.address.zip;
-        if (data.address.street) payload.street = data.address.street;
-        if (data.address.number) payload.numero = data.address.number;
-        if (data.address.complement) payload.complemento = data.address.complement;
-        if (data.address.neighborhood) payload.bairro = data.address.neighborhood;
-        if (data.address.city) payload.city = data.address.city;
-        if (data.address.state) payload.state = data.address.state;
+        if (data.address.zip !== undefined) payload.cep = data.address.zip;
+        if (data.address.street !== undefined) payload.street = data.address.street;
+        if (data.address.number !== undefined) payload.numero = data.address.number;
+        if (data.address.complement !== undefined) payload.complemento = data.address.complement;
+        if (data.address.neighborhood !== undefined) payload.bairro = data.address.neighborhood;
+        if (data.address.city !== undefined) payload.city = data.address.city;
+        if (data.address.state !== undefined) payload.state = data.address.state;
     }
 
     if (payload.cpf) {
