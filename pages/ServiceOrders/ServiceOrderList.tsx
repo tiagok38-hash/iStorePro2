@@ -684,7 +684,7 @@ const ServiceOrderList: React.FC = () => {
                                         <th className="px-4 py-3 font-bold">Técnico</th>
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Entrada</th>
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Prevista</th>
-                                        {warrantyFilter !== 'all' && <th className="px-4 py-3 font-bold">Garantia</th>}
+                                        <th className="px-4 py-3 font-bold">Garantia</th>
                                         <th className="px-4 py-3 font-bold text-right">Valor</th>
                                         {permissions?.canViewServiceOrderProfit && <th className="px-4 py-3 font-bold text-right">Lucro</th>}
                                         <th className="px-4 py-3 font-bold text-right">Ações</th>
@@ -721,38 +721,36 @@ const ServiceOrderList: React.FC = () => {
                                                     <td className="px-4 py-3 text-secondary text-sm">
                                                         {os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}
                                                     </td>
-                                                    {warrantyFilter !== 'all' && (
-                                                        <td className="px-4 py-3">
-                                                            {(() => {
-                                                                const items = os.items || [];
-                                                                const osExitDate = os.exitDate;
-                                                                if (!osExitDate) return <span className="text-gray-400 text-[10px]">—</span>;
+                                                    <td className="px-4 py-3">
+                                                        {(() => {
+                                                            const items = os.items || [];
+                                                            const osExitDate = os.exitDate;
+                                                            if (!osExitDate) return <span className="text-gray-400 text-[10px]">—</span>;
 
-                                                                const itemExpiries = items
-                                                                    .filter((i: any) => i.warranty)
-                                                                    .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
+                                                            const itemExpiries = items
+                                                                .filter((i: any) => i.warranty)
+                                                                .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
 
-                                                                if (itemExpiries.length === 0) return <span className="text-gray-400 text-[10px]">—</span>;
+                                                            if (itemExpiries.length === 0) return <span className="text-gray-400 text-[10px]">—</span>;
 
-                                                                const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d!.getTime())));
-                                                                const status = getWarrantyStatus(latestExpiry);
-                                                                const isExpired = status === 'expired';
-                                                                const days = getRemainingDays(latestExpiry);
+                                                            const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d!.getTime())));
+                                                            const status = getWarrantyStatus(latestExpiry);
+                                                            const isExpired = status === 'expired';
+                                                            const days = getRemainingDays(latestExpiry);
 
-                                                                return (
-                                                                    <div className="flex flex-col">
-                                                                        <div className={`flex items-center gap-1 text-[10px] font-black ${isExpired ? 'text-red-500' : 'text-emerald-600'}`}>
-                                                                            <ShieldCheck size={10} />
-                                                                            {formatDateBR(latestExpiry)}
-                                                                        </div>
-                                                                        <span className={`text-[9px] font-bold ${isExpired ? 'text-red-400' : 'text-gray-400'}`}>
-                                                                            {isExpired ? 'Expirada' : (days === 0 ? 'Expira hoje' : `Faltam ${days} ${days === 1 ? 'dia' : 'dias'}`)}
-                                                                        </span>
+                                                            return (
+                                                                <div className="flex flex-col">
+                                                                    <div className={`flex items-center gap-1 text-[10px] font-black ${isExpired ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                                        <ShieldCheck size={10} />
+                                                                        {formatDateBR(latestExpiry)}
                                                                     </div>
-                                                                );
-                                                            })()}
-                                                        </td>
-                                                    )}
+                                                                    <span className={`text-[9px] font-bold ${isExpired ? 'text-red-400' : 'text-gray-400'}`}>
+                                                                        {isExpired ? 'Expirada' : (days === 0 ? 'Expira hoje' : `Faltam ${days} ${days === 1 ? 'dia' : 'dias'}`)}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </td>
                                                     <td className="px-4 py-3 text-right font-black text-gray-900">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
                                                     {permissions?.canViewServiceOrderProfit && (
                                                         <td className="px-4 py-3 text-right font-bold text-emerald-600">{profit > 0 ? `R$ ${profit.toLocaleString()}` : '-'}</td>

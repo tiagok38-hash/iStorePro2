@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Product, Supplier, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation, Customer, ProductConditionParameter, StorageLocationParameter, WarrantyParameter } from '../types.ts';
 import { getProductConditions, getStorageLocations, getWarranties, formatCurrency } from '../services/mockApi.ts';
+import { deduplicateWarranties } from '../utils/formatters.ts';
 import { addBrand, addCategory, addProductModel } from '../services/parametersService.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -266,7 +267,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 ]);
                 setConditionOptions(conditions);
                 setLocationOptions(locations);
-                setWarrantyOptions(warranties);
+                setWarrantyOptions(deduplicateWarranties(warranties));
             } catch (error: any) {
                 const isAbort = error?.name === 'AbortError' || error?.message?.includes('aborted');
                 if (isAbort) return;

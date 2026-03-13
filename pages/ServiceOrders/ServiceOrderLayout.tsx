@@ -67,11 +67,11 @@ const ServiceOrderLayout: React.FC = () => {
                 {/* Brand */}
                 <div className="h-16 flex items-center justify-start px-6 border-b border-white/10">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center shadow-lg shadow-purple-900/50">
-                            <WrenchIcon className="text-white" size={18} strokeWidth={2} />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center shadow-lg shadow-purple-900/50 flex-shrink-0">
+                            <WrenchIcon className="text-white" size={20} strokeWidth={2.5} />
                         </div>
-                        <div>
-                            <h1 className="font-bold text-lg tracking-tight leading-none text-white">iStore OS</h1>
+                        <div className="flex flex-col">
+                            <h1 className="font-black text-base tracking-tight leading-none text-white whitespace-nowrap">iStore OS</h1>
                         </div>
                     </div>
                 </div>

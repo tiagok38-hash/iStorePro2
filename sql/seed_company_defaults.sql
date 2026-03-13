@@ -116,7 +116,42 @@ BEGIN
         WHERE name = v.name AND company_id = p_company_id
     );
 
-    -- 5. Inserir Dados Bloom (Demonstração: Xiaomi)
+    -- 5. Inserir Termos de Recebimento
+    INSERT INTO public.receipt_terms (name, warranty_term, warranty_exclusions, image_rights, company_id)
+    SELECT name, warranty_term, warranty_exclusions, image_rights, p_company_id
+    FROM (VALUES 
+        ('Termo Padrão', 'Garantia legal de 90 dias.', 'Danos físicos, contato com líquidos, violação de lacre.', 'Autorizo o uso de imagem para fins de registro.', p_company_id)
+    ) AS v(name, warranty_term, warranty_exclusions, image_rights, company_id)
+    WHERE NOT EXISTS (SELECT 1 FROM public.receipt_terms WHERE name = v.name AND company_id = p_company_id);
+
+    -- 6. Inserir Itens de Checklist
+    INSERT INTO public.checklist_items (name, company_id)
+    SELECT name, p_company_id
+    FROM (VALUES 
+        ('Arranhado'), ('Tela Trincada'), ('Amassado'), ('Não Liga'), 
+        ('Sem Wi-Fi'), ('Bateria Ruim'), ('Câm. Frontal'), ('Câm. Traseira'), 
+        ('Sem Som'), ('Mic Ruim')
+    ) AS v(name)
+    WHERE NOT EXISTS (SELECT 1 FROM public.checklist_items WHERE name = v.name AND company_id = p_company_id);
+
+    -- 7. Inserir Garantias de OS (os_warranties)
+    INSERT INTO public.os_warranties (name, days, company_id)
+    SELECT name, days, p_company_id
+    FROM (VALUES 
+        ('Garantia de Serviço - 90 Dias', 90, p_company_id),
+        ('Sem Garantia', 0, p_company_id)
+    ) AS v(name, days, company_id)
+    WHERE NOT EXISTS (SELECT 1 FROM public.os_warranties WHERE name = v.name AND company_id = p_company_id);
+
+    -- 8. Inserir Termos de OS (os_receipt_terms)
+    INSERT INTO public.os_receipt_terms (name, warranty_term, warranty_exclusions, image_rights, company_id)
+    SELECT name, warranty_term, warranty_exclusions, image_rights, p_company_id
+    FROM (VALUES 
+        ('Termo de OS Padrão', 'Garantia de 90 dias sobre a mão de obra.', 'Danos por mau uso.', 'Uso para fins técnicos.', p_company_id)
+    ) AS v(name, warranty_term, warranty_exclusions, image_rights, company_id)
+    WHERE NOT EXISTS (SELECT 1 FROM public.os_receipt_terms WHERE name = v.name AND company_id = p_company_id);
+
+    -- 9. Inserir Dados Bloom (Demonstração: Xiaomi)
     DECLARE
         v_brand_id UUID;
         v_category_id UUID;

@@ -248,12 +248,14 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
         >
             <div className="flex flex-row justify-between items-start mb-4 gap-4">
                 <div className="flex items-center gap-4 min-w-0">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
+                    <div className={`p-3 rounded-xl shadow-sm shrink-0 transition-colors duration-300 ${metrics.profit < 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
                         <TrendingUpIcon className="h-6 w-6" />
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro em OS</h3>
-                        <p className="text-base sm:text-lg lg:text-xl font-black text-emerald-600 tracking-tight mt-0.5 whitespace-nowrap">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}</p>
+                        <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight mt-0.5 whitespace-nowrap ${metrics.profit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                            {isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}
+                        </p>
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
@@ -282,8 +284,8 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                     <AreaChart data={metrics.chartData}>
                         <defs>
                             <linearGradient id="colorProfitOS" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                <stop offset="5%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.2} />
+                                <stop offset="95%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <Tooltip
@@ -293,7 +295,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                         <Area
                             type="monotone"
                             dataKey="value"
-                            stroke="#10b981"
+                            stroke={metrics.profit < 0 ? "#ef4444" : "#10b981"}
                             fillOpacity={1}
                             fill="url(#colorProfitOS)"
                             strokeWidth={2}
@@ -411,14 +413,16 @@ const ProfitTooltip: React.FC<any> = ({ active, payload, label, period }) => {
             return labelStr;
         })();
 
+        const isNegative = payload[0].value < 0;
+
         return (
             <div className="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] animate-fade-in">
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 border-b border-emerald-50 pb-2 flex items-center gap-2">
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 border-b pb-2 flex items-center gap-2 ${isNegative ? 'text-red-600 border-red-50' : 'text-emerald-600 border-emerald-50'}`}>
                     <ClockIcon className="w-3 h-3" /> {formattedLabel}
                 </p>
                 <div className="flex items-center gap-3 mt-1">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200"></div>
-                    <span className="text-sm font-black text-gray-800 tracking-tight">
+                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${isNegative ? 'bg-red-500 shadow-red-200' : 'bg-emerald-500 shadow-emerald-200'}`}></div>
+                    <span className={`text-sm font-black tracking-tight ${isNegative ? 'text-red-700' : 'text-gray-800'}`}>
                         {formatCurrency(payload[0].value)}
                     </span>
                 </div>
@@ -520,12 +524,14 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
         <div className={`p-5 card-premium flex flex-col h-full justify-between transition-all duration-300 ${className || ''}`}>
             <div className="flex flex-row justify-between items-start mb-4 gap-4">
                 <div className="flex items-center gap-4 w-full xl:w-auto">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm shrink-0">
+                    <div className={`p-3 rounded-xl shadow-sm shrink-0 transition-colors duration-300 ${totalProfit < 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
                         <CurrencyDollarIcon className="h-6 w-6" />
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro Estimado</h3>
-                        <p className="text-base sm:text-lg lg:text-xl font-black text-emerald-600 tracking-tight mt-0.5 whitespace-nowrap">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}</p>
+                        <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight mt-0.5 whitespace-nowrap ${totalProfit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                            {isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}
+                        </p>
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
@@ -553,31 +559,31 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                     <AreaChart data={chartData}>
                         <defs>
                             <linearGradient id="colorProfitEstimated" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                <stop offset="5%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <Tooltip
                             cursor={false}
                             content={<ProfitTooltip period={period} />}
                         />
-                        <Area type="monotone" dataKey="value" stroke="#10b981" fillOpacity={1} fill="url(#colorProfitEstimated)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="value" stroke={totalProfit < 0 ? "#ef4444" : "#10b981"} fillOpacity={1} fill="url(#colorProfitEstimated)" strokeWidth={2} />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
 
             <div className="mt-4 pt-3 border-t border-border">
-                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 to-green-50/50 p-3 border border-emerald-100/50 shadow-sm">
+                <div className={`relative overflow-hidden rounded-xl p-3 border shadow-sm transition-all duration-300 ${totalProfit < 0 ? 'bg-gradient-to-br from-red-50 to-orange-50/50 border-red-100/50' : 'bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100/50'}`}>
                     <div className="relative flex justify-between items-center z-10">
-                        <span className="text-[11px] font-bold uppercase tracking-wide text-emerald-600/80">
+                        <span className={`text-[11px] font-bold uppercase tracking-wide ${totalProfit < 0 ? 'text-red-600/80' : 'text-emerald-600/80'}`}>
                             Margem de Lucro (% do Faturamento)
                         </span>
-                        <span className="text-base font-bold text-emerald-700 tracking-tight">
+                        <span className={`text-base font-bold tracking-tight ${totalProfit < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                             {profitMargin.toFixed(1)}%
                         </span>
                     </div>
                     {/* Decorative element */}
-                    <div className="absolute -right-2 -top-2 w-12 h-12 bg-emerald-100/50 rounded-full blur-lg" />
+                    <div className={`absolute -right-2 -top-2 w-12 h-12 rounded-full blur-lg ${totalProfit < 0 ? 'bg-red-100/50' : 'bg-emerald-100/50'}`} />
                 </div>
             </div>
         </div>

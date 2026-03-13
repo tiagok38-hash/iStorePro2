@@ -1426,12 +1426,12 @@ const ServiceOrderForm: React.FC = () => {
                                         <tbody className="divide-y divide-gray-100">
                                             {items.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum item adicionado</td>
+                                                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum item adicionado</td>
                                                 </tr>
                                             ) : (
                                                 items.map((item) => (
-                                                    <tr key={item.id}>
-                                                        <td className="px-1.5 py-3">
+                                                    <tr key={item.id} className="align-top border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                                        <td className="px-1.5 pt-3 pb-2">
                                                             <input
                                                                 type="text"
                                                                 value={item.description}
@@ -1439,10 +1439,10 @@ const ServiceOrderForm: React.FC = () => {
                                                                 className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-accent font-medium text-sm transition-all"
                                                             />
                                                         </td>
-                                                        <td className="px-1.5 py-3">
+                                                        <td className="px-1.5 pt-3 pb-2">
                                                             <select
                                                                 value={item.type}
-                                                                onChange={e => updateItem(item.id, 'type', e.target.value)}
+                                                                onChange={e => updateItem(item.id, 'type', e.target.value as 'service' | 'part')}
                                                                 className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm focus:border-accent transition-all"
                                                                 disabled={isLocked}
                                                             >
@@ -1450,7 +1450,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                 <option value="part">Peça</option>
                                                             </select>
                                                         </td>
-                                                        <td className="px-1.5 py-3">
+                                                        <td className="px-1.5 pt-3 pb-2">
                                                             <select
                                                                 value={item.warranty || ''}
                                                                 onChange={e => updateItem(item.id, 'warranty', e.target.value)}
@@ -1464,19 +1464,21 @@ const ServiceOrderForm: React.FC = () => {
                                                                         <option key={w.id} value={w.name}>{w.name}</option>
                                                                     ))}
                                                             </select>
-                                                            {item.warranty && exitDate && (
-                                                                (() => {
-                                                                    const expiry = calculateWarrantyExpiry(exitDate, item.warranty);
-                                                                    return expiry ? (
-                                                                        <div className="flex items-center gap-1 mt-1 text-[10px] font-black text-emerald-600">
-                                                                            <ShieldCheck size={10} />
-                                                                            Expira: {formatDateBR(expiry)}
-                                                                        </div>
-                                                                    ) : null;
-                                                                })()
-                                                            )}
+                                                            <div className="min-h-[18px]">
+                                                                {item.warranty && exitDate && (
+                                                                    (() => {
+                                                                        const expiry = calculateWarrantyExpiry(exitDate, item.warranty);
+                                                                        return expiry ? (
+                                                                            <div className="flex items-center gap-1 mt-1 text-[10px] font-black text-emerald-600">
+                                                                                <ShieldCheck size={10} />
+                                                                                Expira: {formatDateBR(expiry)}
+                                                                            </div>
+                                                                        ) : null;
+                                                                    })()
+                                                                )}
+                                                            </div>
                                                         </td>
-                                                        <td className="px-1.5 py-3 text-center">
+                                                        <td className="px-1.5 pt-3 pb-2 text-center">
                                                             <input
                                                                 type="number"
                                                                 value={item.quantity}
@@ -1484,7 +1486,7 @@ const ServiceOrderForm: React.FC = () => {
                                                                 className="w-full h-11 px-2 text-center bg-white border border-gray-200 rounded-lg outline-none focus:border-accent transition-all" min="1"
                                                             />
                                                         </td>
-                                                        <td className="px-1.5 py-3 text-right">
+                                                        <td className="px-1.5 pt-3 pb-2 text-right">
                                                             <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg h-11 px-3 focus-within:border-accent transition-all">
                                                                 <span className="text-gray-300 text-sm font-medium flex-shrink-0">R$</span>
                                                                 <input
@@ -1497,19 +1499,19 @@ const ServiceOrderForm: React.FC = () => {
                                                                         const numeric = Number(raw) / 100;
                                                                         updateItem(item.id, 'price', isNaN(numeric) ? 0 : numeric);
                                                                     }}
-                                                                    className="flex-1 w-full h-full bg-transparent border-0 border-transparent outline-none ring-0 focus:ring-0 focus:border-transparent focus:outline-none text-right font-medium text-primary text-sm p-0 shadow-none"
+                                                                    className="flex-1 w-full h-full bg-transparent border-0 border-transparent outline-none ring-0 focus:ring-0 focus:border-transparent focus:outline-none text-right font-medium text-primary text-sm p-0 shadow-none font-bold"
                                                                     style={{ border: 'none', boxShadow: 'none' }}
                                                                 />
                                                             </div>
                                                         </td>
-                                                        <td className="px-1.5 py-3 text-right font-medium text-primary">
+                                                        <td className="px-1.5 pt-3 pb-2 text-right font-bold text-primary h-14 align-middle">
                                                             {formatCurrency(item.price * item.quantity)}
                                                         </td>
-                                                        <td className="px-1.5 py-3 text-center">
+                                                        <td className="px-1.5 pt-3 pb-2 text-center">
                                                             <button
                                                                 onClick={() => { if (!isLocked) removeItem(item.id); }}
                                                                 disabled={isLocked}
-                                                                className={`transition-colors ${isLocked ? 'text-gray-200 cursor-not-allowed opacity-50' : 'text-gray-400 hover:text-red-500'}`}
+                                                                className={`transition-colors flex items-center justify-center w-full h-11 ${isLocked ? 'text-gray-200 cursor-not-allowed opacity-50' : 'text-gray-400 hover:text-red-500'}`}
                                                             >
                                                                 <Trash2 size={16} />
                                                             </button>

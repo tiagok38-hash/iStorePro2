@@ -315,9 +315,9 @@ export const getWarranties = async () => {
     });
 };
 export const addWarranty = (data: any, userId?: string, userName?: string) =>
-    addItem('warranties', { name: data.name, warranty_term: data.warrantyTerm }, 'warranties', userId, userName);
+    addItem('warranties', { name: data.name, days: data.days ?? 0, warranty_term: data.warrantyTerm }, 'warranties', userId, userName);
 export const updateWarranty = (data: any, userId?: string, userName?: string) =>
-    updateItem('warranties', { id: data.id, name: data.name, warranty_term: data.warrantyTerm }, 'warranties', userId, userName);
+    updateItem('warranties', { id: data.id, name: data.name, days: data.days ?? 0, warranty_term: data.warrantyTerm }, 'warranties', userId, userName);
 export const deleteWarranty = (id: string, userId?: string, userName?: string) => deleteItem('warranties', id, 'warranties', userId, userName);
 
 // ==============================================================
