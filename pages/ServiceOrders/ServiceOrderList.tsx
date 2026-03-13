@@ -313,12 +313,13 @@ const ServiceOrderList: React.FC = () => {
                     } else {
                         const itemExpiries = items
                             .filter((i: any) => i.warranty)
-                            .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
+                            .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty))
+                            .filter((d): d is Date => d !== null);
 
                         if (itemExpiries.length === 0) {
                             matchWarranty = false;
                         } else {
-                            const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d.getTime())));
+                            const latestExpiry = new Date(Math.max(...itemExpiries.map(d => d.getTime())));
                             const now = new Date();
 
                             if (warrantyFilter === 'active') {
@@ -729,11 +730,12 @@ const ServiceOrderList: React.FC = () => {
 
                                                             const itemExpiries = items
                                                                 .filter((i: any) => i.warranty)
-                                                                .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty));
+                                                                .map((i: any) => calculateWarrantyExpiry(osExitDate, i.warranty))
+                                                                .filter((d): d is Date => d !== null);
 
                                                             if (itemExpiries.length === 0) return <span className="text-gray-400 text-[10px]">—</span>;
 
-                                                            const latestExpiry = new Date(Math.max(...itemExpiries.map((d: any) => d!.getTime())));
+                                                            const latestExpiry = new Date(Math.max(...itemExpiries.map(d => d.getTime())));
                                                             const status = getWarrantyStatus(latestExpiry);
                                                             const isExpired = status === 'expired';
                                                             const days = getRemainingDays(latestExpiry);
