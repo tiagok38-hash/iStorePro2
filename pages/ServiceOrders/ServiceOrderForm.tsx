@@ -316,11 +316,16 @@ const ServiceOrderForm: React.FC = () => {
                 setCustomerSearch(so.customerName || '');
                 // Salvar o phone diretamente da OS como fallback
                 if ((so as any).phone) setOsPhone((so as any).phone);
-                // Usar lista já disponível ou buscar novamente
+                // Carregar e selecionar cliente — usando lista já carregada para evitar race condition
                 const custList = preloadedCustomers && preloadedCustomers.length > 0
                     ? preloadedCustomers
                     : await getCustomers();
-                const cust = so.customerId ? custList.find((c: any) => c.id === so.customerId) : null;
+                
+                // Fallback inteligente: se não tem ID, tenta encontrar pelo nome exato
+                const cust = so.customerId 
+                    ? custList.find((c: any) => c.id === so.customerId) 
+                    : custList.find((c: any) => c.name?.toLowerCase() === so.customerName?.toLowerCase());
+
                 if (cust) {
                     setSelectedCustomer(cust);
                     // Se o cliente do cadastro não tem phone, usar o da OS
@@ -347,7 +352,17 @@ const ServiceOrderForm: React.FC = () => {
 
     // --- WhatsApp Action ---
     const handleWhatsAppNotification = () => {
-        const phone = selectedCustomer?.phone || osPhone;
+        let phone = selectedCustomer?.phone || osPhone;
+        
+        // Fallback proativo: se não temos telefone no objeto selecionado mas temos o nome, 
+        // tenta buscar na lista global de clientes recém carregada
+        if (!phone && selectedCustomer?.name && customers.length > 0) {
+            const foundCust = customers.find(c => c.name?.toLowerCase() === selectedCustomer.name.toLowerCase());
+            if (foundCust?.phone) {
+                phone = foundCust.phone;
+            }
+        }
+
         if (!phone) {
             toast.error("O cliente desta OS não possui um telefone cadastrado.");
             return;
