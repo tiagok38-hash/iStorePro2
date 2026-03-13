@@ -88,6 +88,7 @@ const fullPermissions: PermissionSet = {
   canManageBancoHoras: true,
   canCreateBancoHoras: true,
   canPayBancoHoras: true,
+  osCanViewStockStats: true,
 };
 
 // Permissões vazias (Segurança: Deny by Default para novos recursos e falhas de carregamento)
@@ -104,7 +105,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch { return null; }
   });
 
-  const [permissions, setPermissions] = useState<PermissionSet | null>(null);
+  const [permissions, setPermissions] = useState<PermissionSet | null>(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u.permissionProfileId === 'profile-admin') return { ...fullPermissions };
+      }
+    } catch { }
+    return null;
+  });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem('user'));
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
@@ -132,15 +142,27 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!isMountedRef.current) return;
 
     if (userData) {
-      // 1. Parallelize fetching of permissions and cash session context
       let currentPermissions = emptyPermissions;
       let activeSession = null;
 
       try {
-        const [profiles, sessions] = await Promise.all([
-          getPermissionProfiles(),
-          getCashSessions(userData.id)
-        ]);
+        // 1. Definição imediata de permissões básicas/admin para evitar bloqueio da UI
+        if (userData.permissionProfileId === 'profile-admin') {
+          currentPermissions = { ...fullPermissions };
+          setPermissions(currentPermissions); 
+        }
+
+        // 2. Busca paralela de dados com timeout de segurança (8 segundos)
+        // Usamos withTimeout para garantir que a promessa não fique pendente indefinidamente
+        const results = await Promise.race([
+          Promise.all([
+            getPermissionProfiles(),
+            getCashSessions(userData.id)
+          ]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout loading metadata")), 8000))
+        ]) as [any[], any[]];
+
+        const [profiles, sessions] = results;
         const profile = profiles.find(p => p.id === userData.permissionProfileId);
         
         if (profile) {
@@ -153,10 +175,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         activeSession = sessions.find(s => s.status === 'aberto') || null;
       } catch (e) {
-        console.error("UserContext: Falha no carregamento de dados críticos", e);
+        console.error("UserContext: Falha/Timeout no carregamento de dados complementares", e);
+        // Fallback: Manter permissões já definidas (vazias ou admin)
       }
 
-      // 2. Batch State Update (Atomic-ish)
+      // 3. Batch State Update (Consistência Atômica)
       setUser(userData);
       setPermissions(currentPermissions);
       setOpenCashSession(activeSession);
@@ -297,8 +320,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     keepAliveRef.current = setInterval(async () => {
       if (user && isOnline) {
         const { error } = await supabase.auth.getUser();
-        if (error) checkSession(false);
-        else checkSession(false);
+        if (error) {
+          console.warn('Keep-alive: Auth error, checking session...', error.message);
+          checkSession(false);
+        }
       }
     }, KEEP_ALIVE_INTERVAL);
 
