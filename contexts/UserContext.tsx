@@ -363,7 +363,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (currentId) await apiLogout(currentId, currentName || '');
     } catch (e) { console.warn("Erro logout API", e); }
     setOpenCashSession(null);
-    clearCache(Object.keys({}));
+    // Limpeza completa de cache sensível ao usuário
+    clearCache(['products', 'sales', 'users', 'cash_sessions', 'company_info', 'permissions_profiles']);
   };
 
   const refreshPermissions = async () => { if (user) await checkSession(true); };

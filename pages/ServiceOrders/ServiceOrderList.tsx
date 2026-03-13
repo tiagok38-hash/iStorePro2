@@ -83,7 +83,7 @@ interface KanbanCardProps {
     showProfit?: boolean;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDragEnd, isDragging, onCancel, showProfit }) => (
+const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDragEnd, isDragging, onCancel, showProfit }) => (
     <div
         draggable
         onDragStart={(e) => onDragStart(e, os)}
@@ -154,16 +154,16 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ os, onClick, onDragStart, onDra
             )}
         </div>
         <div className="flex justify-between items-end mt-1">
-            {os.total > 0 && <span className="text-xs font-black text-gray-900">R$ {os.total.toLocaleString()}</span>}
+            {os.total > 0 && <span className="text-xs font-black text-gray-900">R$ {os.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>}
             {showProfit && (() => {
                 const profit = calculateOSProfit(os);
                 return profit > 0 ? (
-                    <span className="text-[10px] font-bold text-emerald-600">Lucro: R$ {profit.toLocaleString()}</span>
+                    <span className="text-[10px] font-bold text-emerald-600">Lucro: R$ {profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 ) : null;
             })()}
         </div>
     </div>
-);
+));
 
 
 
