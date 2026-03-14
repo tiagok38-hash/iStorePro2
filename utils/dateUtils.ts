@@ -164,13 +164,24 @@ export const isDateInRange = (date: Date | string, start: Date, end: Date): bool
  */
 export const toDateTimeLocalValue = (date?: Date | string): string => {
     const d = date ? (typeof date === 'string' ? new Date(date) : date) : new Date();
-    // Format: YYYY-MM-DDTHH:mm
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    if (isNaN(d.getTime())) return '';
+    
+    // Force Brasilia timezone parts to bypass incorrect machine local time
+    const formatter = new Intl.DateTimeFormat('en-CA', { // en-CA gives YYYY-MM-DD
+        timeZone: BRAZIL_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+    
+    // Format is like "2026-03-14, 15:30" depending on locale, safer to use formatToParts
+    const parts = formatter.formatToParts(d);
+    const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00';
+    
+    return `${getPart('year')}-${getPart('month')}-${getPart('day')}T${getPart('hour') === '24' ? '00' : getPart('hour')}:${getPart('minute')}`;
 };
 
 /**

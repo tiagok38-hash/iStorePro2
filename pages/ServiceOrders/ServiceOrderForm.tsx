@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
-import { calculateWarrantyExpiry, formatDateBR } from '../../utils/dateUtils.ts';
+import { calculateWarrantyExpiry, formatDateBR, toDateTimeLocalValue, getTodayDateString } from '../../utils/dateUtils.ts';
 import { useToast } from '../../contexts/ToastContext';
 import { useUser } from '../../contexts/UserContext';
 import {
@@ -159,7 +159,7 @@ const ServiceOrderForm: React.FC = () => {
     const [isOrcamentoOnly, setIsOrcamentoOnly] = useState(false);
     // Datas
     const [entryDate, setEntryDate] = useState(() => new Date().toISOString());
-    const [estimatedDate, setEstimatedDate] = useState(() => new Date().toISOString().split('T')[0]);
+    const [estimatedDate, setEstimatedDate] = useState(() => getTodayDateString());
     const [exitDate, setExitDate] = useState<string | null>(null);
     const [justBilled, setJustBilled] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -192,13 +192,11 @@ const ServiceOrderForm: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (currentUser && !responsibleId) {
-            setResponsibleId(currentUser.id);
+        if (!isEditing && currentUser) {
+            if (!responsibleId) setResponsibleId(currentUser.id);
+            if (!attendantId) setAttendantId(currentUser.id);
         }
-        if (currentUser && !attendantId) {
-            setAttendantId(currentUser.id);
-        }
-    }, [currentUser]);
+    }, [currentUser, isEditing]);
 
 
     const [availableChecklistItems, setAvailableChecklistItems] = useState<ChecklistItemParameter[]>([]);
@@ -825,7 +823,7 @@ const ServiceOrderForm: React.FC = () => {
                                             className="w-full bg-violet-50 border border-violet-200 rounded-lg px-3 text-xs font-bold focus:ring-2 focus:ring-violet-500/20 outline-none h-8 text-violet-900 hover:bg-violet-100/50 transition-colors"
                                         >
                                             <option value="">Selecionar...</option>
-                                            {users.filter(u => u.active !== false).map(u => (
+                                            {users.filter(u => u.active !== false || u.id === attendantId).map(u => (
                                                 <option key={u.id} value={u.id}>{u.name}</option>
                                             ))}
                                         </select>
@@ -844,7 +842,7 @@ const ServiceOrderForm: React.FC = () => {
                                                 .filter(u => {
                                                     const profile = profiles.find(p => p.id === u.permissionProfileId);
                                                     const profileName = profile?.name?.toLowerCase() || '';
-                                                    return u.active !== false && (profileName.includes('técnico') || profileName.includes('tecnico'));
+                                                    return (u.active !== false && (profileName.includes('técnico') || profileName.includes('tecnico'))) || u.id === responsibleId;
                                                 })
                                                 .map(u => (
                                                     <option key={u.id} value={u.id}>{u.name}</option>
@@ -968,10 +966,10 @@ const ServiceOrderForm: React.FC = () => {
                                         <label className="relative cursor-pointer">
                                             <input
                                                 type="datetime-local"
-                                                value={entryDate ? entryDate.slice(0, 16) : ''}
+                                                value={entryDate ? toDateTimeLocalValue(entryDate) : ''}
                                                 onChange={e => {
                                                     const val = e.target.value;
-                                                    if (val) setEntryDate(new Date(val).toISOString());
+                                                    if (val) setEntryDate(new Date(val + '-03:00').toISOString());
                                                 }}
                                                 className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all cursor-pointer"
                                             />
