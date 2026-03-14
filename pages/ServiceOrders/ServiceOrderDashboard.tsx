@@ -157,13 +157,13 @@ const ServiceOrderDashboard: React.FC = () => {
     // Compute chart data dynamically
     const weeklyFlowData = useMemo(() => {
         const flow = [
-            { name: 'Dom', receita: 0, despesas: 0, lucro: 0 },
-            { name: 'Seg', receita: 0, despesas: 0, lucro: 0 },
-            { name: 'Ter', receita: 0, despesas: 0, lucro: 0 },
-            { name: 'Qua', receita: 0, despesas: 0, lucro: 0 },
-            { name: 'Qui', receita: 0, despesas: 0, lucro: 0 },
-            { name: 'Sex', receita: 0, despesas: 0, lucro: 0 },
-            { name: 'Sáb', receita: 0, despesas: 0, lucro: 0 }
+            { name: 'Dom', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
+            { name: 'Seg', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
+            { name: 'Ter', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
+            { name: 'Qua', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
+            { name: 'Qui', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
+            { name: 'Sex', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
+            { name: 'Sáb', receita: 0, despesas: 0, lucro: 0, custoOS: 0 }
         ];
 
         filteredOrders.forEach(os => {
@@ -172,6 +172,12 @@ const ServiceOrderDashboard: React.FC = () => {
                 const exitDate = new Date(exitDateStr);
                 if (exitDate instanceof Date && !isNaN(exitDate.getTime())) {
                     flow[exitDate.getDay()].receita += (os.total || 0);
+
+                    let osCost = 0;
+                    os.items.forEach(item => {
+                        osCost += (item.cost || 0) * item.quantity;
+                    });
+                    flow[exitDate.getDay()].custoOS += osCost;
                 }
             }
         });
@@ -186,7 +192,7 @@ const ServiceOrderDashboard: React.FC = () => {
         });
 
         flow.forEach(day => {
-            day.lucro = day.receita + day.despesas;
+            day.lucro = day.receita + day.despesas - day.custoOS;
         });
 
         // Reorder to start from Monday for better visualization in Brazil
@@ -246,12 +252,13 @@ const ServiceOrderDashboard: React.FC = () => {
     const weeklyTotals = useMemo(() => {
         let receita = 0;
         let despesas = 0;
+        let lucro = 0;
         weeklyFlowData.forEach(d => {
             receita += d.receita;
             despesas += d.despesas;
+            lucro += d.lucro;
         });
-        // despesas já é negativo (acumulado com -=), então somar é equivalente a subtrair
-        return { receita, despesas, lucro: receita + despesas };
+        return { receita, despesas, lucro };
     }, [weeklyFlowData]);
 
     const activeWarranties = useMemo(() => {
