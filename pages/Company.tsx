@@ -1,49 +1,9 @@
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Brand, Category, ProductModel, Grade, GradeValue, User, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, Address, PermissionProfile, ReceiptTermParameter, PermissionSet, CompanyInfo, Sale, PurchaseOrder, Product } from '../types.ts';
-import {
-    getBrands, addBrand, updateBrand, deleteBrand,
-    getCategories, addCategory, updateCategory, deleteCategory,
-    getSales, getProducts, getPurchaseOrders,
-    getProductModels, addProductModel, updateProductModel, deleteProductModel,
-    getGrades, addGrade, updateGrade, deleteGrade,
-    getGradeValues, addGradeValue, updateGradeValue, deleteGradeValue,
-    getUsers,
-    getAuditLogs,
-    formatPhone,
-    getProductConditions, addProductCondition, updateProductCondition, deleteProductCondition,
-    getStorageLocations, addStorageLocation, updateStorageLocation, deleteStorageLocation,
-    getWarranties, addWarranty, updateWarranty, deleteWarranty,
-    getPaymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-    updateUser, getPermissionProfiles,
-    getReceiptTerms, addReceiptTerm, updateReceiptTerm, deleteReceiptTerm,
-    getCompanyInfo, updateCompanyInfo,
-    getFullBackup, restoreFullBackup
-} from '../services/mockApi.ts';
-import { useToast } from '../contexts/ToastContext.tsx';
-import {
-    SpinnerIcon, EditIcon, TrashIcon, PlusIcon, ShoppingCartIcon, XCircleIcon,
-    CalculatorIcon, ArchiveBoxIcon, CheckIcon, UserCircleIcon, InfoIcon,
-    PhotographIcon, CameraIcon, DocumentArrowUpIcon, ErrorIcon
-} from '../components/icons.tsx';
-import ConfirmationModal from '../components/ConfirmationModal.tsx';
-import CardConfigModal from '../components/CardConfigModal.tsx';
+import { PermissionSet } from '../types.ts';
 import Users from './Users.tsx';
-import SubcategoryModal from '../components/SubcategoryModal.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
-import ReceiptTermModal from '../components/ReceiptTermModal.tsx';
-import CameraModal from '../components/CameraModal.tsx';
-import PaymentMethodModal from '../components/PaymentMethodModal.tsx';
-import Button from '../components/Button.tsx';
-import { toDateValue, formatTimeBR, formatRelativeDate } from '../utils/dateUtils.ts';
-import { compressImage } from '../utils/imageUtils.ts';
-import ImageCropperModal from '../components/ImageCropperModal.tsx';
-import CustomDatePicker from '../components/CustomDatePicker.tsx';
-import LoadingOverlay from '../components/LoadingOverlay.tsx';
-import Comissoes from './Comissoes.tsx';
-import BancoHorasTab from './BancoHorasTab.tsx';
-import GerenciarFuncionariosTab from './GerenciarFuncionariosTab.tsx';
 
 // Import Tabs
 import DadosEmpresaTab from './Company/DadosEmpresaTab';
