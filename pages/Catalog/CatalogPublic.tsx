@@ -286,8 +286,11 @@ const ProductDetailsModal: React.FC<{
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-0">
                                             {(cardRates.length > 0 ? cardRates : [{ installments: 1, rate: 0 }]).map((rateEntry) => {
                                                 const n = rateEntry.installments;
-                                                // Calculate total with this specific rate: Price * (1 + rate/100)
-                                                const totalWithThisInterest = item.salePrice * (1 + (rateEntry.rate / 100));
+                                                // Calculate total with this specific rate (Repasse Formula): Price / (1 - rate/100)
+                                                const totalWithThisInterest = rateEntry.rate > 0 
+                                                    ? item.salePrice / (1 - (rateEntry.rate / 100)) 
+                                                    : item.salePrice;
+                                                
                                                 return (
                                                     <div key={n} className="text-[10px] flex justify-between items-center py-1 border-b border-gray-50 last:border-0 odd:pr-2 even:pl-2">
                                                         <span className="text-secondary font-medium">{n}x de</span>
@@ -542,10 +545,27 @@ const CatalogPublic: React.FC = () => {
                 setSectionsConfig(data.sections.sort((a: any, b: any) => a.displayOrder - b.displayOrder));
 
                 // Find card rates
+                let currentCardRates: { rate: number; installments: number }[] = [];
                 const card = (data.methods as PaymentMethodParameter[]).find(m => m.type === 'card' && m.active && m.config?.creditWithInterestRates);
                 if (card?.config?.creditWithInterestRates) {
-                    setCardRates(card.config.creditWithInterestRates.sort((a, b) => a.installments - b.installments));
+                    currentCardRates = card.config.creditWithInterestRates.sort((a, b) => a.installments - b.installments);
+                    setCardRates(currentCardRates);
                 }
+
+                // Apply dynamic interest rate to all items directly in memory 
+                // Using exactly the same repasse formula: V / (1 - R/100)
+                const processedItems = data.items.map((item: any) => {
+                    if (currentCardRates.length > 0 && item.installments > 1 && item.salePrice > 0) {
+                        const rateObj = currentCardRates.find(r => r.installments === item.installments) 
+                            || currentCardRates[currentCardRates.length - 1]; // fallback to max rate if not found
+                        
+                        if (rateObj && rateObj.rate > 0) {
+                            item.cardPrice = item.salePrice / (1 - (rateObj.rate / 100));
+                        }
+                    }
+                    return item;
+                });
+                setItems(processedItems);
 
                 // Map categories
                 const catMap: Record<string, string> = {};

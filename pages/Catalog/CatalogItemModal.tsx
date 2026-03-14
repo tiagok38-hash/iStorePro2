@@ -100,9 +100,9 @@ const CatalogItemModal: React.FC<Props> = ({ item, products, onClose, onSaved })
         const card = cardMethods.find(c => c.id === selectedCardId);
         if (!card?.config?.creditWithInterestRates) return;
         const rateEntry = card.config.creditWithInterestRates.find(r => r.installments === form.installments);
-        if (rateEntry) {
-            // Nova Fórmula: Preço * (1 + Taxa/100) -> 1000 + 14.1% = 1141
-            const totalWithInterest = form.salePrice * (1 + (rateEntry.rate / 100));
+        if (rateEntry && rateEntry.rate > 0) {
+            // Nova Fórmula Matemática de Repasse Exato: Preço / (1 - Taxa/100)
+            const totalWithInterest = form.salePrice / (1 - (rateEntry.rate / 100));
             setForm(prev => ({ ...prev, cardPrice: Math.round(totalWithInterest * 100) / 100 }));
         } else {
             setForm(prev => ({ ...prev, cardPrice: form.salePrice }));

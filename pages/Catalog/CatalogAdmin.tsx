@@ -3,8 +3,8 @@ import {
     Plus, Search, Copy, ExternalLink, MoreVertical, Pencil, Trash2, Eye, EyeOff,
     Package, Filter, ChevronDown, Loader2, Check, X, ShoppingBag, Link as LinkIcon, Image as ImageIcon
 } from 'lucide-react';
-import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, getCatalogSections, deleteCatalogItems, getCompanyInfo } from '../../services/mockApi.ts';
-import { CatalogItem, Product, Brand, CompanyInfo } from '../../types.ts';
+import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, getCatalogSections, deleteCatalogItems, getCompanyInfo, getPaymentMethods } from '../../services/mockApi.ts';
+import { CatalogItem, Product, Brand, CompanyInfo, PaymentMethodParameter } from '../../types.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import CatalogItemModal from './CatalogItemModal.tsx';
 
@@ -33,13 +33,36 @@ const CatalogAdmin: React.FC = () => {
     const loadData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [catalogData, productsData, brandsData, companyData] = await Promise.all([
+            const [catalogData, productsData, brandsData, companyData, paymentMethodsData] = await Promise.all([
                 getCatalogItems(),
                 getProducts(),
                 getBrands(),
-                getCompanyInfo()
+                getCompanyInfo(),
+                getPaymentMethods()
             ]);
-            setItems(catalogData);
+            
+            // Find card rates to calculate dynamic cardPrice
+            let currentCardRates: { rate: number; installments: number }[] = [];
+            const cardMethod = (paymentMethodsData as PaymentMethodParameter[]).find(m => m.type === 'card' && m.active && m.config?.creditWithInterestRates);
+            if (cardMethod?.config?.creditWithInterestRates) {
+                currentCardRates = cardMethod.config.creditWithInterestRates.sort((a, b) => a.installments - b.installments);
+            }
+
+            // Apply dynamic interest rate to all items directly in memory 
+            // Using exactly the same repasse formula: V / (1 - R/100)
+            const processedItems = catalogData.map(item => {
+                if (currentCardRates.length > 0 && item.installments > 1 && item.salePrice > 0) {
+                    const rateObj = currentCardRates.find(r => r.installments === item.installments) || currentCardRates[currentCardRates.length - 1]; 
+                    if (rateObj && rateObj.rate > 0) {
+                        item.cardPrice = item.salePrice / (1 - (rateObj.rate / 100));
+                        // Flag that the price is dynamically calculated
+                        (item as any).isDynamicCardPrice = true;
+                    }
+                }
+                return item;
+            });
+
+            setItems(processedItems);
             setProducts(productsData);
             setBrands(brandsData);
             setCompanyInfo(companyData);
@@ -149,9 +172,12 @@ const CatalogAdmin: React.FC = () => {
             );
         }
 
-        if (!permissions?.canEditCatalogItem) {
+        // Disable inline edit of Card Price if dynamically calculated
+        const isDynamic = field === 'cardPrice' && (item as any).isDynamicCardPrice;
+
+        if (!permissions?.canEditCatalogItem || isDynamic) {
             return (
-                <div className="text-xs text-secondary font-medium text-right w-full">
+                <div className="text-xs text-secondary font-medium text-right w-full" title={isDynamic ? "Calculado automaticamente via taxa padrão" : ""}>
                     {prefix}{value.toLocaleString('pt-BR', { minimumFractionDigits: field === 'displayOrder' || field === 'installments' ? 0 : 2, maximumFractionDigits: 2 })}
                 </div>
             );
@@ -160,7 +186,7 @@ const CatalogAdmin: React.FC = () => {
         return (
             <button
                 onClick={() => { setEditingField({ id: item.id, field }); setEditValue(String(value)); }}
-                className="text-xs text-primary hover:text-accent font-medium transition-colors text-right w-full group"
+                className="text-xs text-primary hover:text-accent font-medium transition-colors text-right w-full group flex items-center justify-end"
                 title="Clique para editar"
             >
                 {prefix}{value.toLocaleString('pt-BR', { minimumFractionDigits: field === 'displayOrder' || field === 'installments' ? 0 : 2, maximumFractionDigits: 2 })}
