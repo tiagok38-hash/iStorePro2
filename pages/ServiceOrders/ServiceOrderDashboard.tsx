@@ -185,6 +185,10 @@ const ServiceOrderDashboard: React.FC = () => {
             }
         });
 
+        flow.forEach(day => {
+            day.lucro = day.receita + day.despesas;
+        });
+
         // Reorder to start from Monday for better visualization in Brazil
         return [...flow.slice(1), flow[0]];
     }, [filteredOrders, filteredExpenses]);
@@ -492,6 +496,7 @@ const ServiceOrderDashboard: React.FC = () => {
                                 />
                                 <Bar dataKey="receita" name="Receita" fill="#3B82F6" radius={[4, 4, 4, 4]} barSize={12} />
                                 <Bar dataKey="despesas" name="Despesas" fill="#F87171" radius={[4, 4, 4, 4]} barSize={12} />
+                                <Bar dataKey="lucro" name="Lucro (R - D)" fill="#10B981" radius={[4, 4, 4, 4]} barSize={12} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
