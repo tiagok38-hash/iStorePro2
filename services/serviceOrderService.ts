@@ -322,7 +322,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         updated_at: getNowISO()
     };
 
-    if (data.status === 'Entregue' && (!data.exitDate && !updatePayload.exit_date)) {
+    if (data.status === 'Entregue e Faturado' && (!data.exitDate && !updatePayload.exit_date)) {
         updatePayload.exit_date = getNowISO();
     }
 

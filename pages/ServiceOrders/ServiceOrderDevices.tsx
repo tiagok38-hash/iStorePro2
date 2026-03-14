@@ -282,8 +282,8 @@ const ServiceOrderDevices: React.FC = () => {
                                     </span>
                                 )}
                                 {isEntregue && (
-                                    <span className="px-2 py-1 bg-green-50 text-green-600 border border-green-200 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                                        <CheckCircle size={10} /> Entregue
+                                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
+                                        <CheckCircle size={10} strokeWidth={3} /> Entregue e Faturado
                                     </span>
                                 )}
                             </div>
@@ -400,9 +400,10 @@ const ServiceOrderDevices: React.FC = () => {
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <span className="font-bold text-primary">{record.osId}</span>
-                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${record.status === 'Concluído' ? 'bg-emerald-100 text-emerald-700' :
-                                                                record.status === 'Em Reparo' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 border shadow-sm ${record.status === 'Entregue e Faturado' || record.status === 'Concluído' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                                record.status === 'Em Reparo' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-red-50 text-red-700 border-red-200'
                                                                 }`}>
+                                                                {(record.status === 'Entregue e Faturado' || record.status === 'Concluído') && <CheckCircle size={10} strokeWidth={3} />}
                                                                 {record.status}
                                                             </span>
                                                         </div>

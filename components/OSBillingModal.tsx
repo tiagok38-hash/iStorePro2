@@ -455,7 +455,7 @@ const OSBillingModal: React.FC<OSBillingModalProps> = ({
                                 {/* Aviso */}
                                 <div className="flex items-center gap-2 mt-2.5 text-[10px] text-gray-400">
                                     <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" />
-                                    <span>Ao confirmar, a OS será marcada como <strong className="text-gray-600">Entregue</strong> e lançada no caixa.</span>
+                                    <span>Ao confirmar, a OS será marcada como <strong className="text-gray-600">Entregue e Faturado</strong> e lançada no caixa.</span>
                                 </div>
                             </div>
 
@@ -471,7 +471,7 @@ const OSBillingModal: React.FC<OSBillingModalProps> = ({
                                 <h3 className="text-xl font-black text-gray-900">OS Faturada!</h3>
                                 <p className="text-sm text-gray-500 mt-1">Total recebido: <strong className="text-gray-800">{formatCurrency(serviceOrder.total)}</strong></p>
                                 <span className="inline-flex items-center gap-1.5 mt-3 text-[11px] font-bold text-emerald-700 bg-emerald-50 rounded-lg px-3 py-1.5 border border-emerald-100">
-                                    <Check size={12} /> Status atualizado para Entregue
+                                    <Check size={12} /> Status atualizado para Entregue e Faturado
                                 </span>
                             </div>
 

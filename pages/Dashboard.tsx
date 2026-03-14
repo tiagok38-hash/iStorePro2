@@ -14,12 +14,41 @@ const getPermissionForRoute = (to: string, permissions: PermissionSet | null): b
     if (!permissions) return false;
     const path = to.split('?')[0];
     switch (path) {
-        case '/vendas': return permissions.canAccessVendas;
-        case '/products': return permissions.canAccessEstoque;
-        case '/customers': return permissions.canAccessClientes;
-        case '/reports': return permissions.canAccessRelatorios;
+        case '/vendas': return !!permissions.canAccessVendas;
+        case '/products': return !!permissions.canAccessEstoque;
+        case '/customers': return !!permissions.canAccessClientes;
+        case '/reports': return !!permissions.canAccessRelatorios;
         default: return true;
     }
+};
+
+const getChartLabels = (period: string, startDate: Date, endDate: Date) => {
+    if (['today', 'yesterday', 'day_before', 'day'].includes(period)) {
+        return Array.from({ length: 24 }, (_, i) => `${i}h`);
+    } else if (period === 'year') {
+        return ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    } else if (period === 'week') {
+        return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((_, i) => {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + i);
+            return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][d.getDay()];
+        });
+    } else {
+        const days = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const startD = new Date(startDate);
+        return Array.from({ length: days + 1 }, (_, i) => {
+            const d = new Date(startD);
+            d.setDate(d.getDate() + i);
+            return `${d.getDate()}`;
+        });
+    }
+};
+
+const getChartKey = (date: Date, period: string) => {
+    if (['today', 'yesterday', 'day_before', 'day'].includes(period)) return `${date.getHours()}h`;
+    if (period === 'year') return ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"][date.getMonth()];
+    if (period === 'week') return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][date.getDay()];
+    return `${date.getDate()}`;
 };
 
 const ProtectedLink: React.FC<{
@@ -171,7 +200,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
         const validOS = serviceOrders.filter(os => {
             const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
-            const isFinished = ['Entregue', 'Concluído'].includes(os.status as string);
+            const isFinished = ['Entregue e Faturado', 'Concluído'].includes(os.status as string);
             return date >= startDate && date <= endDate && isFinished && os.status !== 'Cancelado';
         });
 
@@ -179,28 +208,11 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
         const productMap = products.reduce((acc, p) => { acc[p.id] = p; return acc; }, {} as Record<string, Product>);
 
         // Generate Labels for chart
-        let labels: string[] = [];
-        const isHourly = ['today', 'yesterday', 'day_before'].includes(period);
-
-        if (isHourly) {
-            labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
-        } else {
-            const days = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-            const startD = new Date(startDate);
-            labels = Array.from({ length: days + 1 }, (_, i) => {
-                const d = new Date(startD);
-                d.setDate(d.getDate() + i);
-                return `${d.getDate()}`;
-            });
-        }
-
+        const labels = getChartLabels(period, startDate, endDate);
         const profitByPoint: Record<string, number> = {};
         labels.forEach(l => profitByPoint[l] = 0);
 
-        const getKey = (date: Date) => {
-            if (isHourly) return `${date.getHours()}h`;
-            return `${date.getDate()}`;
-        };
+        const getKey = (date: Date) => getChartKey(date, period);
 
         let totalRevenue = 0;
         let totalCost = 0;
@@ -281,15 +293,23 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
             <div className="flex-1 min-h-[80px] -mx-2">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={metrics.chartData}>
+                    <AreaChart data={metrics.chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                         <defs>
                             <linearGradient id="colorProfitOS" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.2} />
                                 <stop offset="95%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
                             </linearGradient>
                         </defs>
+                        <XAxis 
+                            dataKey="name" 
+                            hide={false} 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 'bold' }}
+                            interval={period === 'month' ? 4 : (['today', 'yesterday', 'day_before'].includes(period) ? 3 : 0)}
+                        />
                         <Tooltip
-                            cursor={false}
+                            cursor={{ stroke: metrics.profit < 0 ? "#ef4444" : "#10b981", strokeWidth: 1, strokeDasharray: '4 4' }}
                             content={<ProfitTooltip period={period === 'today' ? 'day' : period === 'yesterday' ? 'yesterday' : period} />}
                         />
                         <Area
@@ -298,21 +318,23 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                             stroke={metrics.profit < 0 ? "#ef4444" : "#10b981"}
                             fillOpacity={1}
                             fill="url(#colorProfitOS)"
-                            strokeWidth={2}
+                            strokeWidth={3}
+                            dot={false}
+                            activeDot={{ r: 5, strokeWidth: 0, fill: metrics.profit < 0 ? "#ef4444" : "#10b981" }}
                             animationDuration={1500}
                         />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
-                <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Faturamento</p>
-                    <p className="text-xs font-black text-gray-700">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.revenue)}</p>
+            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                <div className="bg-gray-50/70 p-3 rounded-2xl border border-gray-100 flex flex-col justify-center min-h-[58px]">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Faturamento</p>
+                    <p className="text-xs font-black text-gray-700 leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.revenue)}</p>
                 </div>
-                <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total de OS</p>
-                    <p className="text-xs font-black text-gray-700">{isPrivacyMode ? '***' : metrics.count}</p>
+                <div className="bg-gray-50/70 p-3 rounded-2xl border border-gray-100 flex flex-col justify-center min-h-[58px]">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Total de OS</p>
+                    <p className="text-xs font-black text-gray-700 leading-none">{isPrivacyMode ? '***' : metrics.count}</p>
                 </div>
             </div>
         </div>
@@ -478,28 +500,13 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
         let totalProfit = 0;
         let totalRevenue = 0;
-        const profitByPoint: Record<string, number> = {};
 
         // Generate Labels
-        let labels: string[] = [];
-        if (period === 'day' || period === 'yesterday') labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
-        else if (period === 'year') labels = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-        else {
-            const days = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-            const startD = new Date(startDate);
-            labels = Array.from({ length: days + 1 }, (_, i) => {
-                const d = new Date(startD);
-                d.setDate(d.getDate() + i);
-                return `${d.getDate()}`;
-            });
-        }
+        const labels = getChartLabels(period, startDate, endDate);
+        const profitByPoint: Record<string, number> = {};
         labels.forEach(l => profitByPoint[l] = 0);
 
-        const getKey = (date: Date) => {
-            if (period === 'day' || period === 'yesterday') return `${date.getHours()}h`;
-            if (period === 'year') return ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"][date.getMonth()];
-            return `${date.getDate()}`;
-        };
+        const getKey = (date: Date) => getChartKey(date, period);
 
         validSales.forEach(sale => {
             const itemsCost = sale.items.reduce((sum, item) => {
@@ -521,7 +528,10 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return (
-        <div className={`p-5 card-premium flex flex-col h-full justify-between transition-all duration-300 ${className || ''}`}>
+        <div 
+            className={`p-5 card-premium flex flex-col h-full justify-between transition-all duration-300 group ${to ? 'hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''} ${className || ''}`}
+            onClick={() => to && handleNavigate()}
+        >
             <div className="flex flex-row justify-between items-start mb-4 gap-4">
                 <div className="flex items-center gap-4 w-full xl:w-auto">
                     <div className={`p-3 rounded-xl shadow-sm shrink-0 transition-colors duration-300 ${totalProfit < 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -538,6 +548,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value as any)}
+                        onClick={(e) => e.stopPropagation()}
                         className="text-[10px] font-black tracking-widest text-gray-500 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-100 outline-none transition-all uppercase cursor-pointer"
                     >
                         <option value="day">Hoje</option>
@@ -547,43 +558,56 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                         <option value="year">Ano</option>
                     </select>
                     {to && (
-                        <button onClick={handleNavigate} className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all active:scale-95 shadow-sm" title="Ver vendas">
+                        <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 transition-all shadow-sm" title="Ver vendas">
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                        </button>
+                        </div>
                     )}
                 </div>
             </div>
 
             <div className="flex-1 mt-4" style={{ minHeight: '80px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
+                    <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                         <defs>
                             <linearGradient id="colorProfitEstimated" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.3} />
                                 <stop offset="95%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
                             </linearGradient>
                         </defs>
+                        <XAxis 
+                            dataKey="name" 
+                            hide={false} 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 'bold' }}
+                            interval={period === 'month' ? 4 : (period === 'day' || period === 'yesterday' ? 3 : 0)}
+                        />
                         <Tooltip
-                            cursor={false}
+                            cursor={{ stroke: totalProfit < 0 ? "#ef4444" : "#10b981", strokeWidth: 1, strokeDasharray: '4 4' }}
                             content={<ProfitTooltip period={period} />}
                         />
-                        <Area type="monotone" dataKey="value" stroke={totalProfit < 0 ? "#ef4444" : "#10b981"} fillOpacity={1} fill="url(#colorProfitEstimated)" strokeWidth={2} />
+                        <Area 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke={totalProfit < 0 ? "#ef4444" : "#10b981"} 
+                            fillOpacity={1} 
+                            fill="url(#colorProfitEstimated)" 
+                            strokeWidth={3} 
+                            dot={false}
+                            activeDot={{ r: 5, strokeWidth: 0, fill: totalProfit < 0 ? "#ef4444" : "#10b981" }}
+                        />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-border">
-                <div className={`relative overflow-hidden rounded-xl p-3 border shadow-sm transition-all duration-300 ${totalProfit < 0 ? 'bg-gradient-to-br from-red-50 to-orange-50/50 border-red-100/50' : 'bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100/50'}`}>
-                    <div className="relative flex justify-between items-center z-10">
-                        <span className={`text-[11px] font-bold uppercase tracking-wide ${totalProfit < 0 ? 'text-red-600/80' : 'text-emerald-600/80'}`}>
-                            Margem de Lucro (% do Faturamento)
-                        </span>
-                        <span className={`text-base font-bold tracking-tight ${totalProfit < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
-                            {profitMargin.toFixed(1)}%
-                        </span>
-                    </div>
-                    {/* Decorative element */}
-                    <div className={`absolute -right-2 -top-2 w-12 h-12 rounded-full blur-lg ${totalProfit < 0 ? 'bg-red-100/50' : 'bg-emerald-100/50'}`} />
+            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                <div className={`p-3 rounded-2xl border border-gray-100 flex flex-col justify-center min-h-[58px] ${totalProfit < 0 ? 'bg-red-50/70 border-red-100' : 'bg-emerald-50/70 border-emerald-100'}`}>
+                    <p className={`text-[9px] font-black uppercase tracking-widest mb-1 leading-none ${totalProfit < 0 ? 'text-red-400' : 'text-emerald-400'}`}>Margem</p>
+                    <p className={`text-xs font-black leading-none ${totalProfit < 0 ? 'text-red-700' : 'text-emerald-700'}`}>{profitMargin.toFixed(1)}%</p>
+                </div>
+                <div className="bg-gray-50/70 p-3 rounded-2xl border border-gray-100 flex flex-col justify-center min-h-[58px]">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Faturamento</p>
+                    <p className="text-xs font-black text-gray-700 leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(totalRevenue)}</p>
                 </div>
             </div>
         </div>
@@ -1866,7 +1890,7 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,minmax(260px,1fr))] auto-rows-fr">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
                 <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
                 <ServiceOrderProfitCard
                     serviceOrders={serviceOrders}
@@ -1880,7 +1904,7 @@ const Dashboard: React.FC = () => {
                 </ProtectedLink>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
                 <div className="md:col-span-1 h-full">
                     <CustomersStatsCard
                         customers={customers}
@@ -1916,7 +1940,7 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 auto-rows-fr">
                 <ProtectedLink to="/products" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentAddedProductsCard products={recentAddedProducts} suppliers={suppliers} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <ProtectedLink to="/products?type=troca" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentTradeInProductsCard products={recentTradeInProducts} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
                 <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} creditInstallments={installments} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateVendas} />

@@ -82,7 +82,7 @@ const ServiceOrderFinancial: React.FC = () => {
 
         // Revenues from Service Orders that are closed/delivered
         orders.forEach(os => {
-            if (os.status === 'Entregue' || os.status === 'Concluído') {
+            if (os.status === 'Entregue e Faturado' || os.status === 'Concluído') {
                 items.push({
                     id: os.id,
                     date: os.exitDate || os.updatedAt || os.createdAt,
@@ -133,7 +133,7 @@ const ServiceOrderFinancial: React.FC = () => {
     }, [orders, expenses, searchTerm, filterType, filterStatus, filterStartDate, filterEndDate]);
 
     const { totalPartsServiceCost, totalExpenses, totalRevenue, balance, netProfit } = useMemo(() => {
-        const technicalRevenueOrders = orders.filter(os => os.status === 'Entregue' || os.status === 'Concluído');
+        const technicalRevenueOrders = orders.filter(os => os.status === 'Entregue e Faturado' || os.status === 'Concluído');
 
         const partsCost = technicalRevenueOrders.reduce((acc, os) => {
             const itemsCost = os.items?.reduce((iAcc, item: any) => iAcc + (((item.cost || item.costPrice || 0) * item.quantity)), 0) || 0;
@@ -209,7 +209,7 @@ const ServiceOrderFinancial: React.FC = () => {
                     <div>
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Receita de OS</p>
                         <h3 className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{formatCurrency(totalRevenue)}</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Entregues / Concluídas</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Entregues e Faturadas / Concluídas</p>
                     </div>
                 </div>
 

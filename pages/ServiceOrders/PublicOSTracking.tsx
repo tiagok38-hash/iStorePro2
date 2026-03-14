@@ -27,7 +27,7 @@ const STATUS_STEPS = [
     { id: 'Em Reparo', label: 'Em Reparo', icon: Wrench },
     { id: 'Aguardando Peça', label: 'Aguardando Peça', icon: Package },
     { id: 'Pronto', label: 'Pronto', icon: Smartphone },
-    { id: 'Entregue', label: 'Entregue', icon: ShieldCheck }
+    { id: 'Entregue e Faturado', label: 'Entregue e Faturado', icon: ShieldCheck }
 ];
 
 const PublicOSTracking: React.FC = () => {
@@ -47,7 +47,7 @@ const PublicOSTracking: React.FC = () => {
 
                 if (!osData) {
                     setError("Ordem de Serviço não encontrada.");
-                } else if (osData.status === 'Entregue') {
+                } else if (osData.status === 'Entregue e Faturado') {
                     setError("Este link de acompanhamento expirou pois o equipamento já foi entregue.");
                     setOs(osData);
                 } else {
@@ -77,8 +77,8 @@ const PublicOSTracking: React.FC = () => {
 
     const brandColor = company?.brand_color || '#6B21A8';
 
-    if (error && (!os || os.status === 'Entregue')) {
-        const isExpired = os?.status === 'Entregue';
+    if (error && (!os || os.status === 'Entregue e Faturado')) {
+        const isExpired = os?.status === 'Entregue e Faturado';
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
                 {company?.logoUrl && <img src={company.logoUrl} alt={company.name} className="h-16 mb-6 object-contain" />}

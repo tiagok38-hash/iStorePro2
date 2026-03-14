@@ -104,7 +104,7 @@ const ServiceOrderReports: React.FC = () => {
     // Technicians performance (date filtered)
     const techStats = useMemo(() => {
         const map = new Map<string, { name: string; completed: number; revenue: number }>();
-        filteredOrders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').forEach(o => {
+        filteredOrders.filter(o => o.status === 'Entregue e Faturado' || o.status === 'Concluído').forEach(o => {
             const tech = o.responsibleName || 'Sem técnico';
             const current = map.get(tech) || { name: tech, completed: 0, revenue: 0 };
             current.completed++;
@@ -117,7 +117,7 @@ const ServiceOrderReports: React.FC = () => {
     // Service type stats (date filtered)
     const serviceTypeStats = useMemo(() => {
         const map = new Map<string, { name: string; count: number; revenue: number }>();
-        filteredOrders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').forEach(o => {
+        filteredOrders.filter(o => o.status === 'Entregue e Faturado' || o.status === 'Concluído').forEach(o => {
             (o.items || []).filter(item => item.type === 'service').forEach(item => {
                 const key = item.description;
                 const curr = map.get(key) || { name: key, count: 0, revenue: 0 };
@@ -392,8 +392,8 @@ const ServiceOrderReports: React.FC = () => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {[
                                     { label: 'Total OS', value: filteredOrders.length, color: 'text-gray-800' },
-                                    { label: 'Entregues', value: filteredOrders.filter(o => o.status === 'Entregue' || o.status === 'Concluído').length, color: 'text-emerald-600' },
-                                    { label: 'Em aberto', value: filteredOrders.filter(o => !['Entregue', 'Concluído', 'Cancelada'].includes(o.status)).length, color: 'text-orange-500' },
+                                    { label: 'Entregues', value: filteredOrders.filter(o => o.status === 'Entregue e Faturado' || o.status === 'Concluído').length, color: 'text-emerald-600' },
+                                    { label: 'Em aberto', value: filteredOrders.filter(o => !['Entregue e Faturado', 'Concluído', 'Cancelada'].includes(o.status)).length, color: 'text-orange-500' },
                                     { label: 'Canceladas', value: filteredOrders.filter(o => o.status === 'Cancelada').length, color: 'text-red-600' },
                                 ].map(stat => (
                                     <div key={stat.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
@@ -408,7 +408,7 @@ const ServiceOrderReports: React.FC = () => {
                                     <h3 className="font-black text-gray-800">Status das Ordens de Serviço</h3>
                                 </div>
                                 <div className="p-6 space-y-3">
-                                    {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'].map(status => {
+                                    {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue e Faturado', 'Cancelada'].map(status => {
                                         const count = filteredOrders.filter(o => o.status === status).length;
                                         const pct = filteredOrders.length > 0 ? (count / filteredOrders.length) * 100 : 0;
                                         return (

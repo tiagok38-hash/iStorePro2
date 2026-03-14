@@ -74,7 +74,7 @@ const ServiceOrderForm: React.FC = () => {
     const { id: editId } = useParams<{ id: string }>();
     const isEditing = !!editId;
     const { showToast } = useToast();
-    const { user: currentUser } = useUser();
+    const { user: currentUser, permissions } = useUser();
 
     // Toast helper to maintain existing syntax
     const toast = {
@@ -90,7 +90,7 @@ const ServiceOrderForm: React.FC = () => {
     const [isLoadingEdit, setIsLoadingEdit] = useState(isEditing);
     const [displayId, setDisplayId] = useState<number | null>(null);
     const [isQuickOSOpen, setIsQuickOSOpen] = useState(false);
-    // Bloqueio de edição para OS Entregues
+    // Bloqueio de edição para OS Entregues e Faturadas
     const [isLocked, setIsLocked] = useState(false);
     // Marcação de edição
     const [isEdited, setIsEdited] = useState(false);
@@ -193,8 +193,12 @@ const ServiceOrderForm: React.FC = () => {
 
     useEffect(() => {
         if (!isEditing && currentUser) {
-            if (!responsibleId) setResponsibleId(currentUser.id);
-            if (!attendantId) setAttendantId(currentUser.id);
+            const defTech = localStorage.getItem('os_default_technician_id');
+            const defWar = localStorage.getItem('os_default_warranty_term');
+
+            setResponsibleId(prev => prev || defTech || currentUser.id);
+            setAttendantId(prev => prev || currentUser.id);
+            if (defWar) setReceiptTermId(prev => prev || defWar);
         }
     }, [currentUser, isEditing]);
 
@@ -304,8 +308,8 @@ const ServiceOrderForm: React.FC = () => {
             if ((so as any).exitDate) setExitDate((so as any).exitDate);
             setReceiptTermId(so.receiptTermId || '');
             setCancellationReason((so as any).cancellationReason || null);
-            // Bloquear edição para OS Entregues
-            if (so.status === 'Entregue') setIsLocked(true);
+            // Bloquear edição para OS Entregues e Faturadas
+            if (so.status === 'Entregue e Faturado') setIsLocked(true);
             // Carregar estado de edição anterior
             if ((so as any).isEdited) setIsEdited(true);
 
@@ -579,8 +583,8 @@ const ServiceOrderForm: React.FC = () => {
     // --- Faturar ---
     const handleBilled = async (_paymentMethodId: string, _paymentMethodName: string, payments: any[] = []) => {
         if (!editId) return;
-        // Salva OS com status Entregue
-        const data = buildServiceOrderData('Entregue');
+        // Salva OS com status Entregue e Faturado
+        const data = buildServiceOrderData('Entregue e Faturado');
         // Add payments array
         await updateServiceOrder(editId, { ...data, payments } as any);
         // Baixar peças do estoque
@@ -601,17 +605,17 @@ const ServiceOrderForm: React.FC = () => {
                     currentUser.id,
                     currentUser.name,
                     new Date().toISOString(),
-                    'Entregue'
+                    'Entregue e Faturado'
                 );
             }
         } catch (e) {
             console.error('Erro ao gerar comissões:', e);
         }
 
-        setOsStatus('Entregue');
+        setOsStatus('Entregue e Faturado');
         setJustBilled(true);
         setIsLocked(true);
-        toast.success('OS faturada e marcada como Entregue!');
+        toast.success('OS faturada e marcada como Entregue e Faturado!');
     };
 
     // --- Pattern Lock Grid ---
@@ -701,7 +705,7 @@ const ServiceOrderForm: React.FC = () => {
                 <div className="mb-6 flex items-center gap-3 bg-violet-50 border border-violet-200 rounded-2xl px-5 py-3.5">
                     <Lock size={16} className="text-violet-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-violet-800">OS Entregue — Edição bloqueada</p>
+                        <p className="text-sm font-bold text-violet-800">OS Entregue e Faturado — Edição bloqueada</p>
                         <p className="text-xs text-violet-600">Esta OS já foi faturada. Clique no botão <strong>Habilitar Edição</strong> abaixo para fazer alterações.</p>
                     </div>
                 </div>
@@ -841,8 +845,7 @@ const ServiceOrderForm: React.FC = () => {
                                             {users
                                                 .filter(u => {
                                                     const profile = profiles.find(p => p.id === u.permissionProfileId);
-                                                    const profileName = profile?.name?.toLowerCase() || '';
-                                                    return (u.active !== false && (profileName.includes('técnico') || profileName.includes('tecnico'))) || u.id === responsibleId;
+                                                    return (u.active !== false && profile?.permissions?.isTechnicianProfile) || u.id === responsibleId;
                                                 })
                                                 .map(u => (
                                                     <option key={u.id} value={u.id}>{u.name}</option>
@@ -860,11 +863,15 @@ const ServiceOrderForm: React.FC = () => {
                                                 onChange={async (e) => {
                                                     const newStatus = e.target.value;
                                                     if (newStatus === 'Cancelada') {
+                                                        if (!permissions?.canDeleteServiceOrder) {
+                                                            toast.error('Você não tem permissão para cancelar uma ordem de serviço.');
+                                                            return;
+                                                        }
                                                         setIsCancelModalOpen(true);
                                                         return;
                                                     }
                                                     setOsStatus(newStatus);
-                                                    if (newStatus === 'Entregue') setIsLocked(true);
+                                                    if (newStatus === 'Entregue e Faturado') setIsLocked(true);
                                                     if (isEditing && editId) {
                                                         try {
                                                             await updateServiceOrder(editId, { status: newStatus } as any);
@@ -876,7 +883,7 @@ const ServiceOrderForm: React.FC = () => {
                                                 }}
                                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 text-xs font-bold focus:ring-2 focus:ring-accent/20 outline-none h-8"
                                             >
-                                                {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'].map(s => (
+                                                {['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue e Faturado', 'Cancelada'].map(s => (
                                                     <option key={s} value={s}>{s}</option>
                                                 ))}
                                             </select>

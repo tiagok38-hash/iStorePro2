@@ -31,9 +31,7 @@ import {
     startOfDay,
     endOfDay,
     toDateValue,
-    getTodayStart,
-    getWarrantyStatus,
-    getTodayDateString
+    getWarrantyStatus
 } from '../../utils/dateUtils';
 import { useToast } from '../../contexts/ToastContext';
 import { useUser } from '../../contexts/UserContext';
@@ -42,9 +40,9 @@ import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModa
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
 
 // --- Constants ---
-type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardando Peça' | 'Pronto' | 'Entregue' | 'Cancelada';
+type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardando Peça' | 'Pronto' | 'Entregue e Faturado' | 'Cancelada';
 
-const STATUS_COLUMNS: OSStatus[] = ['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue', 'Cancelada'];
+const STATUS_COLUMNS: OSStatus[] = ['Orçamento', 'Análise', 'Aprovado', 'Em Reparo', 'Aguardando Peça', 'Pronto', 'Entregue e Faturado', 'Cancelada'];
 
 const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: string, dot: string, gradient: string, dropBg: string }> = {
     'Orçamento': { color: 'text-indigo-700', bg: 'bg-indigo-100/80', border: 'border-indigo-200', dot: 'bg-indigo-500', gradient: 'from-indigo-100 to-indigo-50', dropBg: 'bg-indigo-50' },
@@ -53,7 +51,7 @@ const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: strin
     'Em Reparo': { color: 'text-blue-700', bg: 'bg-blue-100/80', border: 'border-blue-200', dot: 'bg-blue-500', gradient: 'from-blue-100 to-blue-50', dropBg: 'bg-blue-50' },
     'Aguardando Peça': { color: 'text-amber-700', bg: 'bg-amber-100/80', border: 'border-amber-200', dot: 'bg-amber-500', gradient: 'from-amber-100 to-amber-50', dropBg: 'bg-amber-50' },
     'Pronto': { color: 'text-purple-700', bg: 'bg-purple-100/80', border: 'border-purple-300', dot: 'bg-purple-600', gradient: 'from-purple-100 to-purple-50', dropBg: 'bg-purple-50' },
-    'Entregue': { color: 'text-emerald-700', bg: 'bg-emerald-100/80', border: 'border-emerald-200', dot: 'bg-emerald-500', gradient: 'from-emerald-100 to-emerald-50', dropBg: 'bg-emerald-50' },
+    'Entregue e Faturado': { color: 'text-emerald-700', bg: 'bg-emerald-100/80', border: 'border-emerald-200', dot: 'bg-emerald-500', gradient: 'from-emerald-100 to-emerald-50', dropBg: 'bg-emerald-50' },
     'Cancelada': { color: 'text-red-700', bg: 'bg-red-100/80', border: 'border-red-200', dot: 'bg-red-500', gradient: 'from-red-100 to-red-50', dropBg: 'bg-red-50' },
 };
 
@@ -66,8 +64,27 @@ const calculateOSProfit = (os: any) => {
 const StatusBadge = ({ status }: { status: string }) => {
     const displayStatus = status === 'Aberto' ? 'Orçamento' : status;
     const cfg = STATUS_CONFIG[displayStatus as OSStatus] || { color: 'text-gray-700', bg: 'bg-gray-100', border: 'border-gray-200' };
+    
+    if (displayStatus === 'Entregue e Faturado') {
+        return (
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm whitespace-nowrap`}>
+                <ShieldCheck size={12} strokeWidth={3} />
+                {displayStatus}
+            </span>
+        );
+    }
+    
+    if (displayStatus === 'Cancelada') {
+        return (
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-red-50 text-red-700 border-red-200 shadow-sm whitespace-nowrap`}>
+                <XCircle size={12} strokeWidth={3} />
+                {displayStatus}
+            </span>
+        );
+    }
+    
     return (
-        <span className={`px-2 py-1 rounded-md text-xs font-bold border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${cfg.bg} ${cfg.color} ${cfg.border} whitespace-nowrap`}>
             {displayStatus}
         </span>
     );
@@ -81,9 +98,10 @@ interface KanbanCardProps {
     isDragging: boolean;
     onCancel: (osId: string) => void;
     showProfit?: boolean;
+    canDelete?: boolean;
 }
 
-const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDragEnd, isDragging, onCancel, showProfit }) => (
+const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDragEnd, isDragging, onCancel, showProfit, canDelete }) => (
     <div
         draggable
         onDragStart={(e) => onDragStart(e, os)}
@@ -116,7 +134,7 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
                     </span>
                 )}
                 {os.priority === 'Urgent' && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Urgente" />}
-                {os.status !== 'Cancelada' && (
+                {os.status !== 'Cancelada' && canDelete && (
                     <button
                         onClick={(e) => { e.stopPropagation(); onCancel(os.id); }}
                         className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 transition-all"
@@ -128,7 +146,7 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
             </div>
         </div>
 
-        <h4 className="font-bold text-sm text-primary mb-1 truncate">{os.deviceModel}</h4>
+        <h4 className="font-bold text-sm text-primary mb-1 whitespace-normal break-words">{os.deviceModel}</h4>
         <p className="text-xs text-secondary mb-3 flex items-center gap-1">
             <User size={10} /> {os.customerName}
         </p>
@@ -335,16 +353,17 @@ const ServiceOrderList: React.FC = () => {
             }
 
             let matchDate = true;
-            if ((startDate || endDate) && os.entryDate) {
-                const entryDate = new Date(os.entryDate).getTime();
-                if (startDate) {
-                    const sDate = startOfDay(startDate).getTime();
-                    if (entryDate < sDate) matchDate = false;
-                }
-                if (endDate) {
-                    const eDate = endOfDay(endDate).getTime();
-                    if (entryDate > eDate) matchDate = false;
-                }
+            if (startDate || endDate) {
+                const sDate = startDate ? startOfDay(startDate).getTime() : 0;
+                const eDate = endDate ? endOfDay(endDate).getTime() : Infinity;
+
+                const entryDate = os.entryDate ? new Date(os.entryDate).getTime() : 0;
+                const exitDate = os.exitDate ? new Date(os.exitDate).getTime() : 0;
+
+                const entryInRange = entryDate > 0 && (entryDate >= sDate && entryDate <= eDate);
+                const exitInRange = exitDate > 0 && (exitDate >= sDate && exitDate <= eDate);
+
+                if (!entryInRange && !exitInRange) matchDate = false;
             }
 
             return matchSearch && matchStatus && matchWarranty && matchDate;
@@ -389,6 +408,21 @@ const ServiceOrderList: React.FC = () => {
             return;
         }
 
+        if (newStatus === 'Cancelada') {
+            if (!permissions?.canDeleteServiceOrder) {
+                showToast('Você não tem permissão para cancelar uma ordem de serviço.', 'error');
+                setDraggingId(null);
+                setDragOverColumn(null);
+                return;
+            }
+            // Trigger cancellation modal
+            setOsToCancel(id);
+            setIsCancelModalOpen(true);
+            setDraggingId(null);
+            setDragOverColumn(null);
+            return;
+        }
+
         // Optimistic update
         setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
         setDraggingId(null);
@@ -406,6 +440,10 @@ const ServiceOrderList: React.FC = () => {
 
     const handleCancelOS = async (reason: string) => {
         if (!osToCancel) return;
+        if (!permissions?.canDeleteServiceOrder) {
+            showToast('Você não tem permissão para cancelar uma ordem de serviço.', 'error');
+            return;
+        }
         try {
             // Retornar peças ao estoque ao cancelar a OS
             try {
@@ -563,9 +601,12 @@ const ServiceOrderList: React.FC = () => {
                                                         </div>
                                                         <p className="text-[11px] text-gray-400 truncate">{os.customerName}</p>
                                                     </div>
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${os.status === 'Entregue' ? 'bg-emerald-100 text-emerald-700' :
-                                                        os.status === 'Cancelada' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                                        }`}>{os.status}</span>
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0 border ${os.status === 'Entregue e Faturado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                        os.status === 'Cancelada' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'
+                                                        }`}>
+                                                        {os.status === 'Entregue e Faturado' && <ShieldCheck size={10} className="inline mr-1 mb-0.5" />}
+                                                        {os.status}
+                                                    </span>
                                                 </button>
                                             ))}
                                         </div>
@@ -589,7 +630,7 @@ const ServiceOrderList: React.FC = () => {
                             <option value="Em Reparo">Em Reparo</option>
                             <option value="Aguardando Peça">Aguardando Peça</option>
                             <option value="Pronto">Pronto</option>
-                            <option value="Entregue">Entregue</option>
+                            <option value="Entregue e Faturado">Entregue e Faturado</option>
                             <option value="Cancelada">Cancelada</option>
                         </select>
                     )}
@@ -686,6 +727,7 @@ const ServiceOrderList: React.FC = () => {
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Entrada</th>
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Prevista</th>
                                         <th className="px-4 py-3 font-bold">Garantia</th>
+                                        <th className="px-4 py-3 font-bold">Data Fat.</th>
                                         <th className="px-4 py-3 font-bold text-right">Valor</th>
                                         {permissions?.canViewServiceOrderProfit && <th className="px-4 py-3 font-bold text-right">Lucro</th>}
                                         <th className="px-4 py-3 font-bold text-right">Ações</th>
@@ -713,7 +755,7 @@ const ServiceOrderList: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-secondary">{os.customerName}</td>
-                                                    <td className="px-4 py-3 font-medium text-primary">{os.deviceModel}</td>
+                                                    <td className="px-4 py-3 font-medium text-primary max-w-[180px] break-words leading-tight whitespace-normal">{os.deviceModel}</td>
                                                     <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
                                                     <td className="px-4 py-3 text-secondary text-sm">{os.responsibleName || '-'}</td>
                                                     <td className="px-4 py-3 text-secondary text-sm">
@@ -753,6 +795,9 @@ const ServiceOrderList: React.FC = () => {
                                                             );
                                                         })()}
                                                     </td>
+                                                    <td className="px-4 py-3 text-emerald-600 text-sm font-black whitespace-nowrap">
+                                                        {os.exitDate ? new Date(os.exitDate).toLocaleDateString('pt-BR') : '-'}
+                                                    </td>
                                                     <td className="px-4 py-3 text-right font-black text-gray-900">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
                                                     {permissions?.canViewServiceOrderProfit && (
                                                         <td className="px-4 py-3 text-right font-bold text-emerald-600">{profit > 0 ? `R$ ${profit.toLocaleString()}` : '-'}</td>
@@ -783,16 +828,18 @@ const ServiceOrderList: React.FC = () => {
                                                             >
                                                                 <Printer size={14} />
                                                             </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setOsToCancel(os.id);
-                                                                    setIsCancelModalOpen(true);
-                                                                }}
-                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                                                                title="Cancelar OS"
-                                                            >
-                                                                <XCircle size={14} />
-                                                            </button>
+                                                            {permissions?.canDeleteServiceOrder && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setOsToCancel(os.id);
+                                                                        setIsCancelModalOpen(true);
+                                                                    }}
+                                                                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                                                    title="Cancelar OS"
+                                                                >
+                                                                    <XCircle size={14} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -906,6 +953,7 @@ const ServiceOrderList: React.FC = () => {
                                                                 setOsToCancel(id);
                                                                 setIsCancelModalOpen(true);
                                                             }}
+                                                            canDelete={permissions?.canDeleteServiceOrder}
                                                             showProfit={permissions?.canViewServiceOrderProfit}
                                                         />
                                                     ))}
@@ -1036,7 +1084,7 @@ const ServiceOrderList: React.FC = () => {
                                             >
                                                 OS-{h.osId}
                                             </button>
-                                            <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${h.status === 'Entregue' ? 'bg-emerald-100 text-emerald-700' : h.status === 'Cancelada' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>{h.status}</span>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${h.status === 'Entregue e Faturado' ? 'bg-emerald-100 text-emerald-700' : h.status === 'Cancelada' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>{h.status}</span>
                                         </div>
                                     ))}
                                 </div>

@@ -115,7 +115,7 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                     <div><span className="font-semibold text-gray-700">Status OS:</span> <span className="font-bold uppercase">{os.status}</span></div>
                     <div><span className="font-semibold text-gray-700">Data Inicial:</span> {new Date(os.entryDate).toLocaleDateString('pt-BR')}</div>
                     <div><span className="font-semibold text-gray-700">Data Final:</span> {os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}</div>
-                    <div><span className="font-semibold text-gray-700">Garantia:</span> {os.status === 'Entregue' ? 'Ativa' : 'Sobre Peças/Serviços'}</div>
+                    <div><span className="font-semibold text-gray-700">Garantia:</span> {os.status === 'Entregue e Faturado' ? 'Ativa' : 'Sobre Peças/Serviços'}</div>
                 </div>
             </section>
 
@@ -200,7 +200,7 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                     </div>
                 </div>
 
-                {os.payments && os.payments.length > 0 && os.status === 'Entregue' && (
+                {os.payments && os.payments.length > 0 && os.status === 'Entregue e Faturado' && (
                     <div className="flex flex-col items-end mt-2 pr-2 text-[10px]">
                         <span className="font-bold text-gray-700 uppercase mb-1">Formas de Pagamento</span>
                         {os.payments.map((p, idx) => (
@@ -363,7 +363,7 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
                 </div>
             </div>
 
-            {os.payments && os.payments.length > 0 && os.status === 'Entregue' && (
+            {os.payments && os.payments.length > 0 && os.status === 'Entregue e Faturado' && (
                 <div className="mt-2 text-[11px]">
                     <p className="border-b border-dashed border-black mb-1">PAGAMENTO(S)</p>
                     {os.payments.map((p, idx) => (
@@ -416,7 +416,8 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
 
 const ServiceOrderPrintModal: React.FC<Props> = ({ serviceOrder, onClose, initialFormat = 'thermal' }) => {
     const uniqueId = useId().replace(/:/g, '');
-    const [format, setFormat] = useState<'A4' | 'thermal'>(initialFormat);
+    const defaultFmt = localStorage.getItem('os_default_receipt_format') as 'A4' | 'thermal';
+    const [format, setFormat] = useState<'A4' | 'thermal'>(defaultFmt || initialFormat);
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     const [customerInfo, setCustomerInfo] = useState<Customer | null>(null);
     const [checklistItemsMap, setChecklistItemsMap] = useState<Record<string, string>>({});

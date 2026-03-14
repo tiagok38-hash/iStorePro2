@@ -91,7 +91,7 @@ export default function Financeiro() {
             const { data: soData } = await supabase
                 .from('service_orders')
                 .select('id, entryDate, exitDate, total, items, status, payments, createdAt')
-                .in('status', ['Concluído', 'Entregue'])
+                .in('status', ['Concluído', 'Entregue e Faturado'])
                 .gte('exitDate', startStr)
                 .lte('exitDate', endStr);
             if (soData) setServiceOrders(soData);
@@ -119,7 +119,7 @@ export default function Financeiro() {
 
                 const { data: todaySo } = await supabase
                     .from('service_orders').select('id, exitDate, total, items, status, payments, createdAt')
-                    .in('status', ['Concluído', 'Entregue']).gte('exitDate', todayStart.toISOString()).lte('exitDate', todayEnd.toISOString());
+                    .in('status', ['Concluído', 'Entregue e Faturado']).gte('exitDate', todayStart.toISOString()).lte('exitDate', todayEnd.toISOString());
                 if (todaySo) setServiceOrders(prev => [...prev.filter(so => !isToday(parseISO(so.exitDate || so.createdAt))), ...todaySo]);
 
                 const { data: todayFin } = await supabase
@@ -435,7 +435,7 @@ export default function Financeiro() {
                     </div>
                 </div>
 
-                <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 inline-flex">
+                <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 overflow-x-auto whitespace-nowrap hide-scrollbar w-full sm:w-auto max-w-full">
                     <button onClick={() => handleTabChange('dashboard')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'dashboard' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>DASHBOARD (KPIs)</button>
                     <button onClick={() => handleTabChange('transactions')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'transactions' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>LANÇAMENTOS</button>
                     <button onClick={() => handleTabChange('installments')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'installments' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>CREDIÁRIOS</button>
@@ -444,7 +444,7 @@ export default function Financeiro() {
 
             {/* Date Nav (Applies to Dashboard and Lançamentos) */}
             {activeTab !== 'installments' && (
-                <div className="flex items-center justify-center gap-5 bg-gray-900 py-4 px-8 rounded-3xl border border-gray-800 max-w-md mx-auto shadow-md">
+                <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-5 bg-gray-900 py-3 sm:py-4 px-4 sm:px-8 rounded-3xl border border-gray-800 w-full max-w-md mx-auto shadow-md mb-6">
                     <button onClick={() => navMonth(-1)} className="p-2 hover:bg-gray-800 rounded-xl text-gray-400 hover:text-white transition-colors"><ChevronLeft size={24} /></button>
                     <span className="font-extrabold w-64 text-center capitalize text-2xl text-white tracking-wide">
                         {format(currentMonth, 'MMMM / yyyy', { locale: ptBR })}
@@ -462,7 +462,7 @@ export default function Financeiro() {
                         <div className="space-y-6 animate-fade-in">
 
                             {/* TOP 5 MASTER KPIs */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                                 <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
                                     <div className="flex items-center justify-between opacity-80 mb-2"><span className="text-sm font-black uppercase tracking-wider">Receita (Hoje)</span><TrendingUp size={18} /></div>
                                     <div className="text-3xl font-extrabold">{formatCurrency(dashboardMetrics.dailyRevenue)}</div>
@@ -535,7 +535,7 @@ export default function Financeiro() {
                             </div>
 
                             {/* BOTTOM SECTION: RANKINGS */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Top Products */}
                                 <div className="bg-white border text-gray-900 border-gray-200 rounded-2xl p-6 shadow-sm">
                                     <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><ShoppingBag className="text-blue-500" /> Produtos Mais Vendidos</h3>
@@ -588,8 +588,8 @@ export default function Financeiro() {
                     {/* TAB: LANÇAMENTOS TRANSACTIONS TABLE */}
                     {activeTab === 'transactions' && (
                         <div className="animate-fade-in space-y-4">
-                            <div className="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                <div className="flex gap-3">
+                            <div className="flex flex-col md:flex-row flex-wrap md:items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-200 gap-4">
+                                <div className="flex flex-wrap sm:flex-nowrap gap-3 w-full md:w-auto">
                                     <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="border border-gray-300 hover:border-indigo-400 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-100 transition-all">
                                         <option value="Todos">Tipo: Todos</option>
                                         <option value="Receita">Receita</option>
@@ -606,7 +606,7 @@ export default function Financeiro() {
                                             type="text" placeholder="Buscar lançamento..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-[250px] border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:border-indigo-500 outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
+                                            className="w-full sm:w-[250px] border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:border-indigo-500 outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
                                         />
                                         <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
                                     </div>

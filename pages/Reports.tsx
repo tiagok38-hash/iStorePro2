@@ -244,7 +244,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
                 <PremiumKpiCard
                     title="Faturamento Total"
                     value={formatCurrency(totalSales)}
@@ -701,7 +701,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
                 <PremiumKpiCard title="Total de Itens" value={kpis.totalItems.toLocaleString('pt-BR')} icon={<PackageIcon />} color="blue" />
                 <PremiumKpiCard title="Custo Estoque" value={formatCurrency(kpis.totalCost)} icon={<WalletIcon />} color="orange" />
                 <PremiumKpiCard title="Venda Estoque" value={formatCurrency(kpis.totalSaleValue)} icon={<BanknotesIcon />} color="emerald" />

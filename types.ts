@@ -151,6 +151,7 @@ export interface PermissionSet {
     canEditCompletedSale: boolean;
     canCancelCompletedSale: boolean;
     canReopenCashRegister: boolean;
+    isTechnicianProfile: boolean;
 }
 
 export interface PermissionProfile {
@@ -431,7 +432,7 @@ export interface ServiceOrder {
     defectDescription: string;
     technicalReport?: string;
     observations?: string;
-    status: 'Aberto' | 'Em Análise' | 'Aguardando Aprovação' | 'Aprovado' | 'Em Andamento' | 'Concluído' | 'Entregue' | 'Cancelado';
+    status: 'Aberto' | 'Em Análise' | 'Aguardando Aprovação' | 'Aprovado' | 'Em Andamento' | 'Concluído' | 'Entregue e Faturado' | 'Cancelado';
     items: ServiceOrderItem[];
     payments?: Payment[];
     subtotal: number;

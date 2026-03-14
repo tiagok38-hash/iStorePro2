@@ -165,6 +165,7 @@ const permissionSections: {
                 { key: 'osCanAccessSettings', label: 'Acessar Configurações' },
                 { key: 'canViewServiceOrderProfit', label: 'Visualizar Lucro' },
                 { key: 'osCanViewStockStats', label: 'Estatísticas de Estoque OS' },
+                { key: 'isTechnicianProfile', label: 'É Perfil de Técnico (Exibir no Técnico Responsável)' },
             ],
         },
 

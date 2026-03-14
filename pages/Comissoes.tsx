@@ -322,7 +322,7 @@ const Comissoes: React.FC = () => {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 <KpiCard label="Aguard. Finaliz." value={formatCurrency(summary.on_hold)} icon="📝" color="bg-gray-50 border-gray-100 text-gray-800" />
                 <KpiCard label="Pendente" value={formatCurrency(summary.pending)} icon="⏳" color="bg-amber-50 border-amber-100 text-amber-800" />
                 <KpiCard label="Fechada" value={formatCurrency(summary.closed)} icon="🔒" color="bg-blue-50 border-blue-100 text-blue-800" />

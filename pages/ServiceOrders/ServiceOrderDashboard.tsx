@@ -149,7 +149,7 @@ const ServiceOrderDashboard: React.FC = () => {
     }), [expenses, customStartDate, customEndDate]);
 
     const totalRevenue = useMemo(() => filteredOrders
-        .filter(os => os.status === 'Entregue' || os.status === 'Concluído')
+        .filter(os => os.status === 'Entregue e Faturado' || os.status === 'Concluído')
         .reduce((acc, os) => acc + (os.total || 0), 0), [filteredOrders]);
 
     const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [filteredExpenses]);
@@ -167,7 +167,7 @@ const ServiceOrderDashboard: React.FC = () => {
         ];
 
         filteredOrders.forEach(os => {
-            if (os.status === 'Entregue' || os.status === 'Concluído') {
+            if (os.status === 'Entregue e Faturado' || os.status === 'Concluído') {
                 const exitDateStr = os.exitDate || os.updatedAt || os.createdAt;
                 const exitDate = new Date(exitDateStr);
                 if (exitDate instanceof Date && !isNaN(exitDate.getTime())) {
@@ -204,7 +204,7 @@ const ServiceOrderDashboard: React.FC = () => {
         let parts = 0;
 
         filteredOrders.forEach(os => {
-            if (os.status === 'Entregue' || os.status === 'Concluído') {
+            if (os.status === 'Entregue e Faturado' || os.status === 'Concluído') {
                 os.items.forEach(item => {
                     if (item.type === 'service') services += (item.price * item.quantity);
                     else parts += (item.price * item.quantity);
@@ -221,7 +221,7 @@ const ServiceOrderDashboard: React.FC = () => {
     const servicesRanking = useMemo(() => {
         const counts: Record<string, { count: number, name: string }> = {};
         filteredOrders.forEach(os => {
-            if (os.status === 'Entregue' || os.status === 'Concluído') {
+            if (os.status === 'Entregue e Faturado' || os.status === 'Concluído') {
                 os.items.forEach(item => {
                     if (item.type === 'service') {
                         if (!counts[item.description]) {
@@ -238,7 +238,7 @@ const ServiceOrderDashboard: React.FC = () => {
     const techniciansRanking = useMemo(() => {
         const counts: Record<string, { count: number, name: string }> = {};
         filteredOrders.forEach(os => {
-            if (os.status === 'Entregue' || os.status === 'Concluído') {
+            if (os.status === 'Entregue e Faturado' || os.status === 'Concluído') {
                 const techName = os.responsibleName || 'Não Informado';
                 if (!counts[techName]) {
                     counts[techName] = { count: 0, name: techName };
@@ -266,7 +266,7 @@ const ServiceOrderDashboard: React.FC = () => {
         today.setHours(0, 0, 0, 0);
 
         return orders
-            .filter(os => (os.status === 'Entregue' || os.status === 'Concluído') && os.exitDate)
+            .filter(os => (os.status === 'Entregue e Faturado' || os.status === 'Concluído') && os.exitDate)
             .map(os => {
                 const itemWarranties = os.items
                     .filter(item => item.warranty && item.warranty !== 'Sem garantia')
@@ -638,7 +638,7 @@ const ServiceOrderDashboard: React.FC = () => {
             </div>
 
             {/* 4. Secondary Grid: Financials, Technicians & Active Warranties */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                 {/* 4.1 Revenue Donut */}
                 <div className="card-premium p-6  flex flex-col">
                     <h3 className="font-black text-xl text-primary mb-1">Receita Técnica</h3>
