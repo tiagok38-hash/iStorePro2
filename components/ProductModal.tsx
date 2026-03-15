@@ -13,8 +13,7 @@ import SearchableDropdown from './SearchableDropdown.tsx';
 import CustomerModal from './CustomerModal.tsx';
 import CameraModal from './CameraModal.tsx';
 import ImageCropperModal from './ImageCropperModal.tsx';
-import Button from './Button.tsx';
-import { compressImage } from '../utils/imageUtils.ts';
+
 import { toDateValue } from '../utils/dateUtils.ts';
 import CustomDatePicker from './CustomDatePicker.tsx';
 import { CameraIcon } from './icons.tsx';

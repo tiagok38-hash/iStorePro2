@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { Payment, PaymentMethodParameter, CardConfigData, PaymentMethodType } from '../types.ts';
 import { CloseIcon, CreditCardIcon, CheckIcon, ChevronDownIcon, InfoIcon } from './icons.tsx';
@@ -25,6 +25,72 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
     const [feeType, setFeeType] = useState<'noInterest' | 'withInterest'>('withInterest');
     const [selectedInstallment, setSelectedInstallment] = useState<number>(1);
     const [internalNote, setInternalNote] = useState<string>('');
+    const [isClosing, setIsClosing] = useState(false);
+    const modalRef = useRef<HTMLDivElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+
+    // Animated close handler
+    const handleAnimatedClose = useCallback(() => {
+        if (isClosing) return;
+        setIsClosing(true);
+        setTimeout(() => {
+            setIsClosing(false);
+            onClose();
+        }, 200);
+    }, [onClose, isClosing]);
+
+    // Body scroll lock + Escape key + Focus trap
+    useEffect(() => {
+        if (!isOpen) return;
+
+        previousFocusRef.current = document.activeElement as HTMLElement;
+        document.body.classList.add('modal-open');
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                handleAnimatedClose();
+                return;
+            }
+            // Focus trap
+            if (e.key === 'Tab' && modalRef.current) {
+                const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        // Auto-focus first focusable element
+        requestAnimationFrame(() => {
+            if (modalRef.current) {
+                const firstFocusable = modalRef.current.querySelector<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                firstFocusable?.focus();
+            }
+        });
+
+        return () => {
+            document.body.classList.remove('modal-open');
+            document.removeEventListener('keydown', handleKeyDown);
+            previousFocusRef.current?.focus();
+        };
+    }, [isOpen, handleAnimatedClose]);
 
     useEffect(() => {
         if (isOpen) {
@@ -158,8 +224,15 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
     if (!isOpen) return null;
 
     const modalContent = (
-        <div className="fixed inset-0 bg-white z-[99999] flex flex-col font-sans animate-fade-in">
-            <div className="flex-1 flex flex-col w-full h-full max-w-3xl mx-auto overflow-hidden">
+        <div
+            className={`fixed inset-0 z-[1000] flex items-center justify-center p-4 ${isClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'}`}
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <div
+            ref={modalRef}
+            className={`bg-white rounded-3xl shadow-2xl flex flex-col font-sans w-full max-w-3xl max-h-[90vh] overflow-hidden ${isClosing ? 'modal-content-exit' : 'modal-content-enter'}`}
+          >
+            <div className="flex-1 flex flex-col w-full h-full overflow-hidden">
                 {/* Header - Compacto */}
                 <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/80 sticky top-0 z-10">
                     <div className="flex items-center gap-3">
@@ -172,7 +245,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                         </div>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={handleAnimatedClose}
                         className="p-2 bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all shadow-sm group"
                     >
                         <CloseIcon className="h-5 w-5 group-hover:scale-110 transition-transform" />
@@ -188,13 +261,13 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                             <div className="flex p-1 bg-gray-100 rounded-xl border border-gray-200 shadow-inner h-[40px] box-border">
                                 <button
                                     onClick={() => setTransactionType('credit')}
-                                    className={`flex-1 rounded-xl text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'credit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`flex-1 rounded-xl text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'credit' ? 'bg-gray-800 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     Crédito
                                 </button>
                                 <button
                                     onClick={() => setTransactionType('debit')}
-                                    className={`flex-1 rounded-xl text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'debit' ? 'bg-white shadow-md text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`flex-1 rounded-xl text-xs font-black transition-all uppercase tracking-tighter flex items-center justify-center ${transactionType === 'debit' ? 'bg-gray-800 shadow-md text-white' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     Débito
                                 </button>
@@ -216,30 +289,52 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                                         <option key={m.id} value={m.id}>{m.name}</option>
                                     ))}
                                 </select>
-                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                                    <ChevronDownIcon size={16} className="text-primary animate-bounce" />
-                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Linha 2: Valor e Info Financeira */}
-                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200/50 space-y-3 shadow-inner">
+                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200/50 space-y-1 shadow-inner">
                         <div className="flex flex-col md:flex-row gap-4 items-stretch">
-                            <div className="md:w-1/2 space-y-1.5">
-                                <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1">Valor da Venda</label>
-                                <div className="relative group">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm group-focus-within:text-primary transition-colors">R$</span>
-                                    <CurrencyInput
-                                        value={chargeAmount}
-                                        onChange={setChargeAmount}
-                                        className={`w-full pl-10 pr-3 py-3 bg-white border border-gray-200 rounded-xl font-black text-xl text-gray-800 focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all shadow-sm ${isSimulator ? 'border-primary/50 ring-4 ring-primary/5' : ''}`}
-                                    />
+                            {/* Coluna Esquerda: Valor da Venda + Opções de Juros */}
+                            <div className="md:w-1/2 flex flex-col gap-2">
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1">Valor da Venda</label>
+                                    <div className="relative group">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm group-focus-within:text-primary transition-colors">R$</span>
+                                        <CurrencyInput
+                                            value={chargeAmount}
+                                            onChange={setChargeAmount}
+                                            className={`w-full pl-10 pr-3 py-3 bg-white border border-gray-200 rounded-xl font-black text-xl text-gray-800 focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all shadow-sm ${isSimulator ? 'border-primary/50 ring-4 ring-primary/5' : ''}`}
+                                        />
+                                    </div>
                                 </div>
+
+                                {/* Opções de Juros — alinhado com o card Liquidez */}
+                                {transactionType === 'credit' && (
+                                    <div className="flex items-center gap-3 mt-auto">
+                                        <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1 whitespace-nowrap">Opções de Juros</label>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setFeeType('noInterest')}
+                                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'noInterest' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                            >
+                                                Sem Juros
+                                            </button>
+                                            <button
+                                                onClick={() => setFeeType('withInterest')}
+                                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'withInterest' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                            >
+                                                Com Juros (Repasse)
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
+                            {/* Coluna Direita: Total a Cobrar + Liquidez */}
                             {calculations && (
-                                <div className="md:w-1/2 flex flex-col justify-between gap-2">
+                                <div className="md:w-1/2 flex flex-col justify-between gap-2 pt-[30px]">
                                     <div className="flex justify-between items-center px-3 py-2 bg-white rounded-xl border border-blue-100 shadow-sm group hover:border-blue-300 transition-all">
                                         <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Total a Cobrar</span>
                                         <span className="text-lg font-black text-blue-600">{formatCurrency(calculations.totalToPay)}</span>
@@ -255,35 +350,15 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                         </div>
                     </div>
 
-                    {/* Linha 3: Modalidade e Juros (Apenas Crédito) */}
+                    {/* Linha 3: Banner informativo (Apenas Crédito) */}
                     {transactionType === 'credit' && (
-                        <div className="space-y-2 pt-2">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                                <label className="text-[9px] font-black text-gray-800 uppercase tracking-widest px-1">Opções de Juros</label>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setFeeType('noInterest')}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'noInterest' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
-                                    >
-                                        Sem Juros
-                                    </button>
-                                    <button
-                                        onClick={() => setFeeType('withInterest')}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all border shadow-sm ${feeType === 'withInterest' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
-                                    >
-                                        Com Juros (Repasse)
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className={`p-3 rounded-xl text-[11px] leading-relaxed flex items-start gap-3 transition-all border ${feeType === 'withInterest' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                                <InfoIcon size={10} />
-                                <p className="font-medium">
-                                    {feeType === 'noInterest'
-                                        ? 'O cliente paga o valor original. As taxas são descontadas do seu recebimento.'
-                                        : 'O valor final é recalculado para que você receba o valor integral, repassando as taxas ao cliente.'}
-                                </p>
-                            </div>
+                        <div className={`p-3 rounded-xl text-[11px] leading-relaxed flex items-start gap-3 transition-all border ${feeType === 'withInterest' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                            <InfoIcon size={10} />
+                            <p className="font-medium">
+                                {feeType === 'noInterest'
+                                    ? 'O cliente paga o valor original. As taxas são descontadas do seu recebimento.'
+                                    : 'O valor final é recalculado para que você receba o valor integral, repassando as taxas ao cliente.'}
+                            </p>
                         </div>
                     )}
 
@@ -364,13 +439,13 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                     </div>
                     <div className="flex gap-3 w-full md:w-auto">
                         <button
-                            onClick={onClose}
+                            onClick={handleAnimatedClose}
                             className="flex-1 md:flex-none px-5 py-3 bg-white border-2 border-gray-200 text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-gray-100 hover:border-gray-300 transition-all"
                         >
                             Cancelar
                         </button>
                         <button
-                            onClick={isSimulator ? onClose : handleConfirm}
+                            onClick={isSimulator ? handleAnimatedClose : handleConfirm}
                             disabled={!calculations || !selectedMethod}
                             className={`flex-1 md:flex-none px-8 py-3 bg-gray-800 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 hover:shadow-2xl transition-all shadow-lg active:scale-95 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100`}
                         >
@@ -379,6 +454,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
                     </div>
                 </div>
             </div>
+          </div>
         </div>
     );
 
