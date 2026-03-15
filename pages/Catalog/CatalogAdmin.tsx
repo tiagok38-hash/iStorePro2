@@ -200,13 +200,13 @@ const CatalogAdmin: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-primary">Meus Catálogos</h1>
+                    <h1 className="text-2xl font-bold text-primary">Meu catálogo</h1>
                     <p className="text-secondary text-sm mt-1">Gerencie os produtos que aparecem na sua vitrine virtual</p>
                 </div>
                 {permissions?.canCreateCatalogItem && (
                     <button
                         onClick={() => { setEditingItem(null); setShowModal(true); }}
-                        className="flex items-center justify-center gap-2 px-5 py-2.5 w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all active:scale-95"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 w-full sm:w-auto bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-all active:scale-95 shadow-sm"
                     >
                         <Plus size={18} />
                         Adicionar Item
@@ -308,13 +308,13 @@ const CatalogAdmin: React.FC = () => {
                                     />
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">Imagem</th>
-                                <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">Ordem</th>
+                                <th className="hidden xl:table-cell px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">Ordem</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">Descrição</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">Seção</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-secondary uppercase tracking-wider">Custo</th>
+                                <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">Seção</th>
+                                <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-semibold text-secondary uppercase tracking-wider">Custo</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-secondary uppercase tracking-wider">Venda (à vista)</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-secondary uppercase tracking-wider">Venda (Cartão)</th>
-                                <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">Parcelas</th>
+                                <th className="hidden lg:table-cell px-4 py-3 text-right text-xs font-semibold text-secondary uppercase tracking-wider">Venda (Cartão)</th>
+                                <th className="hidden xl:table-cell px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">Parcelas</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">Ativo</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">Ações</th>
                             </tr>
@@ -361,7 +361,7 @@ const CatalogAdmin: React.FC = () => {
                                             </div>
                                         </td>
                                         {/* Order */}
-                                        <td className="px-4 py-3 text-center align-middle">
+                                        <td className="hidden xl:table-cell px-4 py-3 text-center align-middle">
                                             {renderInlineInput(item, 'displayOrder', item.displayOrder)}
                                         </td>
                                         {/* Description */}
@@ -377,20 +377,20 @@ const CatalogAdmin: React.FC = () => {
                                             </div>
                                         </td>
                                         {/* Section */}
-                                        <td className="px-4 py-3 align-middle">
+                                        <td className="hidden lg:table-cell px-4 py-3 align-middle">
                                             <span className="text-xs text-secondary bg-gray-50 px-2 py-1 rounded-lg">{item.section}</span>
                                         </td>
                                         {/* Prices */}
-                                        <td className="px-4 py-3 text-right align-middle">
+                                        <td className="hidden md:table-cell px-4 py-3 text-right align-middle">
                                             {renderInlineInput(item, 'costPrice', item.costPrice, 'R$ ')}
                                         </td>
                                         <td className="px-4 py-3 text-right align-middle">
                                             {renderInlineInput(item, 'salePrice', item.salePrice, 'R$ ')}
                                         </td>
-                                        <td className="px-4 py-3 text-right align-middle">
+                                        <td className="hidden lg:table-cell px-4 py-3 text-right align-middle">
                                             {renderInlineInput(item, 'cardPrice', item.cardPrice, 'R$ ')}
                                         </td>
-                                        <td className="px-4 py-3 text-center align-middle">
+                                        <td className="hidden xl:table-cell px-4 py-3 text-center align-middle">
                                             {renderInlineInput(item, 'installments', item.installments)}
                                         </td>
                                         {/* Toggle */}

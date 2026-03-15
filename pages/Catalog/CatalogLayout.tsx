@@ -29,7 +29,7 @@ const CatalogLayout: React.FC = () => {
     return (
         <div className="flex min-h-screen bg-background">
             {/* Sidebar */}
-            <aside className="hidden lg:flex fixed inset-y-0 left-4 top-4 bottom-4 z-40 w-64 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl flex-col h-[calc(100vh-32px)] shadow-2xl">
+            <aside className="hidden md:flex fixed inset-y-0 left-4 top-4 bottom-4 z-40 w-64 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl flex-col h-[calc(100vh-32px)] shadow-2xl">
                 {/* Logo */}
                 <div className="flex items-center gap-3 px-6 py-6">
                     <div className="p-2.5 bg-white/20 rounded-2xl">
@@ -63,7 +63,7 @@ const CatalogLayout: React.FC = () => {
             </aside>
 
             {/* Mobile Header */}
-            <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3 flex items-center justify-between shadow-lg">
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3 flex items-center justify-between shadow-lg">
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate('/')} className="p-2 rounded-xl bg-white/20 text-white">
                         <ArrowLeft size={18} />
@@ -89,7 +89,7 @@ const CatalogLayout: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 lg:ml-72 pt-16 lg:pt-0">
+            <div className="flex-1 md:ml-72 pt-16 md:pt-0">
                 <main className="p-4 sm:p-6 lg:p-8">
                     <Outlet />
                 </main>
