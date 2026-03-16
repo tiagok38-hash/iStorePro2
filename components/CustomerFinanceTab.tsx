@@ -38,7 +38,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
         getSales().then(sales => {
             const customerSales = sales.filter(s =>
                 s.customerId === customer.id &&
-                s.payments.some(p => (p.method === 'Crediário' || p.method === 'Promissória')) &&
+                s.payments.some(p => (p.method === 'Crediário' || p.method === 'Crediario')) &&
                 s.status !== 'Cancelada'
             );
             setPendingSales(customerSales);
@@ -104,7 +104,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                         />
                         <div>
                             <p className={`text-sm font-bold ${!allowCredit ? 'text-red-700' : 'text-gray-700'}`}>Não permitir crediário</p>
-                            <p className="text-xs text-gray-500">Bloqueia novas vendas no crediário/promissória.</p>
+                            <p className="text-xs text-gray-500">Bloqueia novas vendas no crediário.</p>
                         </div>
                     </label>
 
@@ -217,7 +217,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {pendingSales.map(sale => {
-                                        const creditPayment = sale.payments?.find((p: any) => p.method === 'Crediário' || p.method === 'Promissória');
+                                        const creditPayment = sale.payments?.find((p: any) => p.method === 'Crediário' || p.method === 'Crediario');
                                         const creditValue = creditPayment ? creditPayment.value : 0;
                                         const installmentCount = creditPayment?.creditDetails?.installments || creditPayment?.creditDetails?.totalInstallments;
 

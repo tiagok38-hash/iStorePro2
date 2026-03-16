@@ -7,7 +7,7 @@ import { getSales, getProducts, getCustomers, getUsers, addCustomer, addProduct,
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
-import { SpinnerIcon, EllipsisVerticalIcon, CalendarDaysIcon, ChevronDownIcon, CloseIcon, PlusIcon, TrashIcon, SearchIcon, MinusIcon, EyeIcon, EditIcon, PrinterIcon, XCircleIcon, DocumentTextIcon, TicketIcon, ChevronLeftIcon, ChevronRightIcon, WhatsAppIcon, CreditCardIcon } from '../components/icons.tsx';
+import { SpinnerIcon, EllipsisVerticalIcon, CalendarDaysIcon, ChevronDownIcon, CloseIcon, PlusIcon, TrashIcon, SearchIcon, MinusIcon, EyeIcon, EditIcon, PrinterIcon, XCircleIcon, DocumentTextIcon, TicketIcon, ChevronLeftIcon, ChevronRightIcon, WhatsAppIcon, CreditCardIcon, SmartphoneIcon } from '../components/icons.tsx';
 import CardPaymentModal from '../components/CardPaymentModal.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
@@ -428,7 +428,7 @@ const Vendas: React.FC = () => {
             const sellerMatch = sellerFilter === 'todos' || sale.salespersonId === sellerFilter;
 
             let statusMatch = true;
-            if (statusFilter === 'Promissoria') {
+            if (statusFilter === 'Crediário') {
                 statusMatch = sale.payments.some(p => p.type === 'pending');
             } else if (statusFilter === 'PDV') {
                 // Filter PDV only if it has a linked cash session (matches visual representation)
@@ -452,11 +452,11 @@ const Vendas: React.FC = () => {
 
             const customerMatch = debouncedCustomerSearch === '' || customerName.toLowerCase().includes(normalizedSearch) || saleIdMatch;
 
-            // Se o filtro for Promissoria, queremos ver todas, inclusive as canceladas que geraram promissoria? 
-            // Geralmente cancelada anula a dívida, então talvez devêssemos ignorar canceladas se o filtro for Promissoria?
+            // Se o filtro for Crediário, queremos ver todas, inclusive as canceladas que geraram crediário? 
+            // Geralmente cancelada anula a dívida, então talvez devêssemos ignorar canceladas se o filtro for Crediário?
             // O padrão atual mostra canceladas se statusFilter == 'Cancelada'.
-            // Vou assumir que se filtrar por Promissoria, queremos ver as ativas.
-            if (statusFilter === 'Promissoria') {
+            // Vou assumir que se filtrar por Crediário, queremos ver as ativas.
+            if (statusFilter === 'Crediário') {
                 statusMatch = statusMatch && sale.status !== 'Cancelada';
             }
 
@@ -679,7 +679,7 @@ const Vendas: React.FC = () => {
                             <option value="Pendente">Pendente</option>
                             <option value="Cancelada">Cancelada</option>
                             <option value="Editada">Editada</option>
-                            <option value="Promissoria">Promissória</option>
+                            <option value="Crediário">Crediário</option>
                             <option value="PDV">PDV</option>
                         </select>
                     </div>
@@ -749,17 +749,16 @@ const Vendas: React.FC = () => {
 
                                     const displayItems = (sale.items || []).slice(0, 2);
                                     const remainingItemsCount = (sale.items || []).length - 2;
-                                    const paymentsStr = (sale.payments || []).map(p => {
-                                        return p.installments > 1 ? `${p.method} (${p.installments}x)` : p.method;
-                                    }).join(', ');
 
                                     return (
                                         <tbody key={sale.id} className="border-t border-b border-gray-200 hover:bg-gray-50/50 transition-colors duration-150 group">
                                             <tr className="text-xs sm:text-sm">
                                                 <td className="px-6 py-5 font-bold text-primary border-0">{sale.id}</td>
                                                 <td className="px-6 py-5 text-muted border-0">
-                                                    <div className="font-medium">{new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
-                                                    <div className="text-[10px] opacity-70">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                        <span className="font-bold text-gray-700">{new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                                                        <span className="font-semibold text-gray-500 text-[11px] sm:text-xs bg-gray-100 px-1.5 py-0.5 rounded-md">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-5 text-primary hidden sm:table-cell border-0">
                                                     <div className="flex items-center gap-1.5 font-bold">
@@ -789,9 +788,9 @@ const Vendas: React.FC = () => {
                                                 <td className="px-6 py-5 border-0">
                                                     <div className="flex gap-1 flex-wrap">
                                                         {getStatusBadge(sale.status)}
-                                                        {/* Only show Promissória tag if sale is NOT cancelled */}
+                                                        {/* Only show Crediário tag if sale is NOT cancelled */}
                                                         {sale.status !== 'Cancelada' && sale.payments.some(p => p.type === 'pending') && (
-                                                            <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-xl bg-red-50 text-red-700 border border-red-200 shadow-sm">Promissória</span>
+                                                            <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-xl bg-red-50 text-red-700 border border-red-200 shadow-sm">Crediário</span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -842,12 +841,15 @@ const Vendas: React.FC = () => {
                                                             const itemName = item.name || product?.model || 'Produto Desconhecido';
 
                                                             return (
-                                                                <div key={idx} className="flex flex-wrap items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-500 group-hover:text-gray-600 transition-colors w-full font-bold">
-                                                                    <span className="text-gray-500 group-hover:text-gray-700" title={itemName}>{itemName}</span>
+                                                                <div key={idx} className="flex flex-wrap items-center gap-1.5 text-xs sm:text-[13px] text-gray-500 group-hover:text-gray-600 transition-colors w-full font-bold">
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <SmartphoneIcon className="w-4 h-4 opacity-40 group-hover:opacity-60" />
+                                                                        <span className="text-gray-500 group-hover:text-gray-700" title={itemName}>{itemName}</span>
+                                                                    </div>
                                                                     {identifiers.length > 0 && (
                                                                         <>
                                                                             <span className="text-gray-300 hidden sm:inline">•</span>
-                                                                            <span className="font-mono tracking-tight text-[9px] sm:text-[10px] opacity-100 break-all">{identifiers.join(' | ')}</span>
+                                                                            <span className="font-mono tracking-tight text-[10px] sm:text-[11px] opacity-100 break-all">{identifiers.join(' | ')}</span>
                                                                         </>
                                                                     )}
                                                                     <span className="text-gray-300 hidden sm:inline">•</span>
@@ -855,16 +857,43 @@ const Vendas: React.FC = () => {
                                                                 </div>
                                                             );
                                                         })}
-                                                        <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5 ml-0">
+                                                        <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs mt-0.5 ml-0">
                                                             {remainingItemsCount > 0 && (
                                                                 <span className="text-gray-400 font-bold" title="Abra a venda para ver todos os produtos">
                                                                     + {remainingItemsCount} outro{remainingItemsCount > 1 ? 's' : ''} produto{remainingItemsCount > 1 ? 's' : ''}
                                                                 </span>
                                                             )}
-                                                            {paymentsStr && (
-                                                                <div className="flex items-center gap-1.5 text-gray-400 font-bold">
-                                                                    <CreditCardIcon className="w-3 h-3 opacity-40 group-hover:opacity-60" />
-                                                                    <span>Pagamento: {paymentsStr}</span>
+                                                            {(sale.payments && sale.payments.length > 0) && (
+                                                                <div className="flex flex-wrap items-center gap-1.5 text-gray-400 font-bold w-full mt-1">
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <CreditCardIcon className="w-4 h-4 opacity-40 group-hover:opacity-60" />
+                                                                        <span className="text-[11px] sm:text-xs">Pagamento:</span>
+                                                                    </div>
+                                                                    {sale.payments.map((p, idx) => {
+                                                                        const isInstallment = p.installments && p.installments > 1;
+                                                                        const total = p.value + (p.fees || 0);
+
+                                                                        // Compiling additional details
+                                                                        const extras = [];
+                                                                        if (p.pixVariation) extras.push(p.pixVariation);
+                                                                        if (p.card && p.card !== p.method) extras.push(p.card);
+                                                                        if (p.tradeInDetails?.model) extras.push(p.tradeInDetails.model);
+                                                                        if (p.internalNote) extras.push(p.internalNote);
+                                                                        const extraStr = extras.length > 0 ? ` [${extras.join(' | ')}]` : '';
+
+                                                                        const methodBaseStr = isInstallment ? `${p.method} (${p.installments}x)` : p.method;
+                                                                        const methodStr = `${methodBaseStr}${extraStr}`;
+
+                                                                        const feeStr = (p.fees && p.fees > 0) ? `+ ${formatCurrency(p.fees)} juros (Total: ${formatCurrency(total)})` : '';
+                                                                        return (
+                                                                            <div key={idx} className="flex items-center gap-1 shrink-0">
+                                                                                <span className="text-gray-500">{methodStr}:</span>
+                                                                                <span className="text-gray-600 font-black">{formatCurrency(p.value)}</span>
+                                                                                {feeStr && <span className="text-gray-400 ml-0.5">{feeStr}</span>}
+                                                                                {idx < sale.payments.length - 1 && <span className="text-gray-300 ml-1.5">•</span>}
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -906,9 +935,9 @@ const Vendas: React.FC = () => {
                 )}
             </div>
 
-            {statusFilter === 'Promissoria' && (
+            {statusFilter === 'Crediário' && (
                 <div className="bg-red-50 border border-red-200 rounded-3xl p-4 flex justify-between items-center text-red-800 shadow-sm">
-                    <span className="font-bold text-red-800">Total Pago em Promissória (nesta lista):</span>
+                    <span className="font-bold text-red-800">Total Pago no Crediário (nesta lista):</span>
                     <span className="text-xl font-black text-red-700">
                         {formatCurrency(filteredSales.reduce((acc, sale) => acc + sale.payments.filter(p => p.type === 'pending').reduce((sum, p) => sum + p.value, 0), 0))}
                     </span>

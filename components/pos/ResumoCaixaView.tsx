@@ -133,13 +133,13 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 md:gap-2">
                                 {Object.entries(totalsByMethod).sort((a, b) => (a[0].trim().toLowerCase() === 'dinheiro' ? -1 : 1)).map(([method, value]) => {
                                     const isCash = method.trim().toLowerCase() === 'dinheiro';
-                                    const isPromissoria = method.trim().toLowerCase().includes('promiss');
+                                    const isCrediario = method.trim().toLowerCase().includes('promiss') || method.trim().toLowerCase().includes('credi');
                                     return (
-                                        <div key={method} className={`p-1.5 px-2 md:p-2 md:px-3 rounded-xl border flex items-center justify-between gap-1 transition-all ${isCash ? 'bg-success/5 border-success/30 ring-1 ring-success/10' : isPromissoria ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
-                                            <span className={`text-[7px] md:text-[9px] font-bold uppercase tracking-wider truncate shrink ${isCash ? 'text-success' : isPromissoria ? 'text-red-600' : 'text-gray-500'}`}>
+                                        <div key={method} className={`p-1.5 px-2 md:p-2 md:px-3 rounded-xl border flex items-center justify-between gap-1 transition-all ${isCash ? 'bg-success/5 border-success/30 ring-1 ring-success/10' : isCrediario ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
+                                            <span className={`text-[7px] md:text-[9px] font-bold uppercase tracking-wider truncate shrink ${isCash ? 'text-success' : isCrediario ? 'text-red-600' : 'text-gray-500'}`}>
                                                 {method}
                                             </span>
-                                            <span className={`text-xs md:text-sm font-black shrink-0 ${isCash ? 'text-success' : isPromissoria ? 'text-red-600' : 'text-gray-800'}`}>
+                                            <span className={`text-xs md:text-sm font-black shrink-0 ${isCash ? 'text-success' : isCrediario ? 'text-red-600' : 'text-gray-800'}`}>
                                                 {formatCurrency(value)}
                                             </span>
                                         </div>
@@ -272,7 +272,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-gray-700">
                             {sessionSales.map(sale => {
-                                const hasPromissoria = (sale.payments || []).some(p => p.method?.toLowerCase().includes('promiss'));
+                                const hasCrediario = (sale.payments || []).some(p => p.method?.toLowerCase().includes('promiss') || p.method?.toLowerCase().includes('credi'));
                                 return (
                                     <tr key={sale.id} className="hover:bg-gray-50/80 transition-colors">
                                         <td className="px-6 py-4 font-black text-primary">#{sale.id}</td>
@@ -290,7 +290,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                                     <>
                                                         {sale.status === 'Editada' && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-600">Editada</span>}
                                                         <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-600">Finalizada</span>
-                                                        {hasPromissoria && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Promissória</span>}
+                                                        {hasCrediario && <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-600">Crediário</span>}
                                                     </>
                                                 )}
                                             </div>
@@ -334,7 +334,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                         <div className="p-8 text-center text-muted italic text-sm">Nenhuma venda realizada.</div>
                     ) : (
                         sessionSales.map(sale => {
-                            const hasPromissoria = (sale.payments || []).some(p => p.method?.toLowerCase().includes('promiss'));
+                            const hasCrediario = (sale.payments || []).some(p => p.method?.toLowerCase().includes('promiss') || p.method?.toLowerCase().includes('credi'));
                             return (
                                 <div key={sale.id} className="p-2 mb-2 rounded-xl border border-white/20 shadow-sm flex items-center justify-between gap-3 glass-panel bg-white/40 hover:bg-white/60">
                                     <div className="flex-1 min-w-0">
@@ -350,7 +350,7 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                                     <>
                                                         {sale.status === 'Editada' && <span className="text-[7px] font-black px-1 rounded uppercase border bg-purple-50 text-purple-600 border-purple-100 py-0.5 leading-none">EDITADA</span>}
                                                         <span className="text-[7px] font-black px-1 rounded uppercase border bg-green-50 text-green-600 border-green-100 py-0.5 leading-none">FINALIZADA</span>
-                                                        {hasPromissoria && <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none text-center">PROMISSÓRIA</span>}
+                                                        {hasCrediario && <span className="text-[7px] font-black px-1 rounded uppercase border bg-red-50 text-red-600 border-red-100 py-0.5 leading-none text-center">CREDIÁRIO</span>}
                                                     </>
                                                 )}
                                             </div>

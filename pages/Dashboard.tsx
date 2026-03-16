@@ -938,7 +938,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                     methodKey = normalizeMap[methodKey];
                 }
 
-                if (['Crediário', 'Crediario', 'Promissória'].includes(methodKey)) {
+                if (['Crediário', 'Crediario'].includes(methodKey)) {
                     // Calculate from actual installments if we have them
                     const saleInstallments = creditInstallments.filter(i => i.saleId === sale.id);
                     if (saleInstallments.length > 0) {

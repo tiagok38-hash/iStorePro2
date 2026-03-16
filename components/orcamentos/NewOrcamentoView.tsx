@@ -232,17 +232,26 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
         otherMethods.forEach(p => {
             const lowerName = p.name.toLowerCase();
             if (lowerName === 'débito' || lowerName === 'debito' || lowerName.includes('cartão débito') || lowerName.includes('cartão de débito')) return;
-            dynamic.push({ label: p.name, icon: getPaymentIcon(p.name, p.type) });
+            
+            let finalLabel = p.name;
+            if (finalLabel === 'Promissória') finalLabel = 'Crediário';
+
+            // Avoid adding duplicates if "Crediário" is already there
+            if (!dynamic.find(d => d.label === finalLabel)) {
+                // Determine icon
+                const icon = getPaymentIcon(finalLabel, p.type);
+                dynamic.push({ label: finalLabel, icon });
+            }
         });
 
-        if (cardMethods.length > 0) {
+        if (cardMethods.length > 0 && !dynamic.find(d => d.label === 'Cartão')) {
             dynamic.push({ label: 'Cartão', icon: <CreditCardIcon /> });
         }
 
 
-        // Ensure Crediário/Promissória is visible or added if not in paymentMethods (though it should be)
-        if (!dynamic.find(d => d.label === 'Crediário' || d.label === 'Promissória')) {
-            dynamic.push({ label: 'Crediário', icon: <div className="text-[10px] font-black border-2 border-current px-1 rounded">CRE</div> });
+        // Ensure Crediário is visible or added if not in paymentMethods (though it should be)
+        if (!dynamic.find(d => d.label === 'Crediário')) {
+            dynamic.push({ label: 'Crediário', icon: getPaymentIcon('Crediário', 'other') });
         }
 
         return dynamic;
@@ -639,7 +648,7 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                                 key={label}
                                                 type="button"
                                                 onClick={() => {
-                                                    if (label === 'Crediário' || label === 'Promissória') {
+                                                    if (label === 'Crediário') {
                                                         if (balance <= 0.01) {
                                                             showToast('Não há saldo pendente para parcelar.', 'error');
                                                             return;

@@ -402,7 +402,7 @@ const getInstallmentsForPrinting = (sale: Sale): CreditInstallment[] => {
     const installments: CreditInstallment[] = [];
 
     sale.payments.forEach(p => {
-        if ((p.method === 'Crediário' || p.method === 'Promissória') && p.creditDetails) {
+        if ((p.method === 'Crediário' || p.method === 'Crediario') && p.creditDetails) {
             const count = p.creditDetails.installments || (p.installments || 1);
             const value = p.creditDetails.installmentValue || (p.value / count);
             const firstDate = p.creditDetails.firstDueDate ? new Date(p.creditDetails.firstDueDate) : new Date();

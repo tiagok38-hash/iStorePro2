@@ -62,7 +62,6 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
     const [customerToEdit, setCustomerToEdit] = React.useState<Customer | null>(null);
     const [isCreditModalOpen, setIsCreditModalOpen] = React.useState(false);
-    const [creditMethodSelected, setCreditMethodSelected] = React.useState<'Crediário' | 'Promissória'>('Crediário');
     const [creditWarning, setCreditWarning] = React.useState<{ isOpen: boolean, customerName: string, creditLimit: number, creditUsed: number, purchaseAmount: number } | null>(null);
     const [variationModalConfig, setVariationModalConfig] = React.useState<{ isOpen: boolean, method: string, variations: string[] } | null>(null);
 
@@ -234,17 +233,26 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         otherMethods.forEach(p => {
             const lowerName = p.name.toLowerCase();
             if (lowerName === 'débito' || lowerName === 'debito' || lowerName.includes('cartão débito') || lowerName.includes('cartão de débito')) return;
-            dynamic.push({ label: p.name, icon: getPaymentIcon(p.name, p.type) });
+            
+            let finalLabel = p.name;
+            if (finalLabel === 'Promissória') finalLabel = 'Crediário';
+
+            // Avoid adding duplicates if "Crediário" is already there
+            if (!dynamic.find(d => d.label === finalLabel)) {
+                // Determine icon
+                const icon = getPaymentIcon(finalLabel, p.type);
+                dynamic.push({ label: finalLabel, icon });
+            }
         });
 
-        if (cardMethods.length > 0) {
+        if (cardMethods.length > 0 && !dynamic.find(d => d.label === 'Cartão')) {
             dynamic.push({ label: 'Cartão', icon: <CreditCardIcon /> });
         }
 
 
-        // Ensure Crediário/Promissória is visible or added if not in paymentMethods (though it should be)
-        if (!dynamic.find(d => d.label === 'Crediário' || d.label === 'Promissória')) {
-            dynamic.push({ label: 'Crediário', icon: <div className="text-[10px] font-black border-2 border-current px-1 rounded">CRE</div> });
+        // Ensure Crediário is visible or added if not in paymentMethods (though it should be)
+        if (!dynamic.find(d => d.label === 'Crediário')) {
+            dynamic.push({ label: 'Crediário', icon: getPaymentIcon('Crediário', 'other') });
         }
 
         return dynamic;
@@ -683,7 +691,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 key={label}
                                                 type="button"
                                                 onClick={() => {
-                                                    if (label === 'Crediário' || label === 'Promissória') {
+                                                    if (label === 'Crediário') {
                                                         if (balance <= 0.01) {
                                                             showToast('Não há saldo pendente para parcelar.', 'error');
                                                             return;
@@ -696,8 +704,6 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                             alert('Selecione um cliente para prosseguir.');
                                                             return;
                                                         }
-
-                                                        setCreditMethodSelected(label as 'Crediário' | 'Promissória');
                                                         setIsCreditModalOpen(true);
 
                                                     } else {
@@ -1076,7 +1082,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     if (details.financedAmount > 0) {
                         addPayment({
                             id: `pay-credit-${Date.now()}`,
-                            method: creditMethodSelected,
+                            method: 'Crediário',
                             value: details.financedAmount,
                             type: 'pending',
                             creditDetails: details

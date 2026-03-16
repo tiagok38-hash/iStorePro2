@@ -290,7 +290,7 @@ export const syncCustomerCreditLimit = async (customerId: string) => {
 
         for (const sale of (sales || [])) {
             const payments = Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? JSON.parse(sale.payments) : []);
-            const hasCredit = payments.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória');
+            const hasCredit = payments.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario');
             if (!hasCredit) continue;
 
             let debt = Number(sale.current_debt_balance || 0);

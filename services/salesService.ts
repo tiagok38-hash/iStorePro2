@@ -681,7 +681,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
     // Generate Credit Installments if (Crediário)
     if (saleData.status === 'Finalizada') {
         const creditPayment = data.payments?.find((p: any) =>
-            (['Crediário', 'Crediario', 'Promissória'].includes(p.method)) && p.creditDetails
+            (['Crediário', 'Crediario'].includes(p.method)) && p.creditDetails
         );
 
         if (creditPayment && creditPayment.creditDetails) {
@@ -740,10 +740,10 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
             } catch (err: any) {
                 console.error('Failed to create credit installments or update limit:', err);
-                throw new Error(`Erro no Crediário/Promissória: ${err.message || 'Falha desconhecida'}`);
+                throw new Error(`Erro no Crediário: ${err.message || 'Falha desconhecida'}`);
             }
-        } else if (data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario' || p.method === 'Promissória')) {
-            throw new Error('Falha: Pagamento Crediário ou Promissória selecionado, mas os detalhes das parcelas estão ausentes.');
+        } else if (data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario')) {
+            throw new Error('Falha: Pagamento Crediário selecionado, mas os detalhes das parcelas estão ausentes.');
         }
     }
 
@@ -1007,7 +1007,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         }
 
         // Auto-generate installments when finalizing a pending sale with Credit
-        const creditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
+        const creditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário') || [];
         if (creditPayments.length > 0 && updated.customer_id && (newStatus === 'Finalizada' || newStatus === 'Editada') && (oldStatus !== 'Finalizada' && oldStatus !== 'Editada')) {
             try {
                 let totalAdded = 0;
@@ -1059,8 +1059,8 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
         // Reconcile payments if they changed between Finalizada/Editada states
         if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Finalizada' || newStatus === 'Editada')) {
-            const oldCreditPayments = originalSale?.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
-            const newCreditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
+            const oldCreditPayments = originalSale?.payments?.filter((p: any) => p.method === 'Crediário') || [];
+            const newCreditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário') || [];
 
             const oldCreditJSON = JSON.stringify(oldCreditPayments);
             const newCreditJSON = JSON.stringify(newCreditPayments);
@@ -1235,7 +1235,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
     // If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
     if (originalSale && (oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Cancelada' || newStatus === 'Pendente')) {
-        const oldCreditPayments = originalSale.payments?.filter((p: any) => p.method === 'Crediário' || p.method === 'Promissória') || [];
+        const oldCreditPayments = originalSale.payments?.filter((p: any) => p.method === 'Crediário') || [];
 
         if (oldCreditPayments.length > 0 && originalSale.customer_id) {
 
