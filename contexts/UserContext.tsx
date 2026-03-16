@@ -89,6 +89,7 @@ const fullPermissions: PermissionSet = {
   canCreateBancoHoras: true,
   canPayBancoHoras: true,
   osCanViewStockStats: true,
+  isTechnicianProfile: false,
 };
 
 // Permissões vazias (Segurança: Deny by Default para novos recursos e falhas de carregamento)

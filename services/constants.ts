@@ -1,3 +1,12 @@
+const colorsAirM5 = ['Azul-céu', 'Estelar', 'Meia-noite', 'Prateado'];
+const colorsProM5 = ['Prateado', 'Preto-Espacial'];
+const colorsAirM4 = ['Azul Céu', 'Prateado', 'Estelar', 'Meia-noite'];
+const colorsProM4 = ['Preto Espacial', 'Prateado'];
+const colorsAirM2_M3 = ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'];
+const colorsM1_M2 = ['Prata', 'Cinza Espacial'];
+const colorsProM3 = ['Prata', 'Preto Espacial'];
+const colorsIMac = ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'];
+
 
 export const appleProductHierarchy = {
     'Acessórios': {
@@ -6,6 +15,8 @@ export const appleProductHierarchy = {
         'Adaptador de energia USB de 5W': { 'Padrão': ['Branco'] },
         'AirTag (1 un.)': { 'Padrão': ['Branco/Prata'] },
         'AirTag (Kit 4 un.)': { 'Padrão': ['Branco/Prata'] },
+        'AirTag (2ª geração) (1un.)': { 'Padrão': ['Branco/Prata'] },
+        'AirTag (2ª geração) (Pack 4un.)': { 'Padrão': ['Branco/Prata'] },
         'Apple Pencil 1 (2015, 1ª Geração) Lightning': { 'Padrão': ['Branco'] },
         'Apple Pencil 2 (2018, 2ª Geração)': { 'Padrão': ['Branco'] },
         'Apple Pencil Pro': { 'Padrão': ['Branco'] },
@@ -69,16 +80,16 @@ export const appleProductHierarchy = {
         'iPad Air M3 (2025) 13″ Wi-Fi + Cellular': { '128GB': ['Cinza Espacial', 'Prata', 'Azul', 'Roxo'], '256GB': ['Cinza Espacial', 'Prata', 'Azul', 'Roxo'], '512GB': ['Cinza Espacial', 'Prata', 'Azul', 'Roxo'], '1TB': ['Cinza Espacial', 'Prata', 'Azul', 'Roxo'] },
         'iPad mini 6 (2021) 8,3″': { '64GB': ['Azul', 'Roxo', 'Estelar', 'Cinza Espacial'], '256GB': ['Azul', 'Roxo', 'Estelar', 'Cinza Espacial'] },
         'iPad mini 7 (2024) 8,3″': { '128GB': ['Cinza Espacial', 'Estelar', 'Roxo', 'Azul'], '256GB': ['Cinza Espacial', 'Estelar', 'Roxo', 'Azul'], '512GB': ['Cinza Espacial', 'Estelar', 'Roxo', 'Azul'] },
-        'iPad Pro 3 M1 (2021) 11″ Wi-Fi': { '128GB': ['Prata', 'Cinza Espacial'], '256GB': ['Prata', 'Cinza Espacial'], '512GB': ['Prata', 'Cinza Espacial'], '1TB': ['Prata', 'Cinza Espacial'], '2TB': ['Prata', 'Cinza Espacial'] },
-        'iPad Pro 3 M1 (2021) 11″ Wi-Fi + Cellular': { '128GB': ['Prata', 'Cinza Espacial'], '256GB': ['Prata', 'Cinza Espacial'], '512GB': ['Prata', 'Cinza Espacial'], '1TB': ['Prata', 'Cinza Espacial'], '2TB': ['Prata', 'Cinza Espacial'] },
-        'iPad Pro 4 M2 (2022) 11″ Wi-Fi': { '128GB': ['Prata', 'Cinza Espacial'], '256GB': ['Prata', 'Cinza Espacial'], '512GB': ['Prata', 'Cinza Espacial'], '1TB': ['Prata', 'Cinza Espacial'], '2TB': ['Prata', 'Cinza Espacial'] },
-        'iPad Pro 4 M2 (2022) 11″ Wi-Fi + Cellular': { '128GB': ['Prata', 'Cinza Espacial'], '256GB': ['Prata', 'Cinza Espacial'], '512GB': ['Prata', 'Cinza Espacial'], '1TB': ['Prata', 'Cinza Espacial'], '2TB': ['Prata', 'Cinza Espacial'] },
-        'iPad Pro 4 M2 (2022) 12,9″ Wi-Fi': { '128GB': ['Prata', 'Cinza Espacial'], '256GB': ['Prata', 'Cinza Espacial'], '512GB': ['Prata', 'Cinza Espacial'], '1TB': ['Prata', 'Cinza Espacial'], '2TB': ['Prata', 'Cinza Espacial'] },
-        'iPad Pro 4 M2 (2022) 12,9″ Wi-Fi + Cellular': { '128GB': ['Prata', 'Cinza Espacial'], '256GB': ['Prata', 'Cinza Espacial'], '512GB': ['Prata', 'Cinza Espacial'], '1TB': ['Prata', 'Cinza Espacial'], '2TB': ['Prata', 'Cinza Espacial'] },
-        'iPad Pro M4 (2024) 11″ Wi-Fi': { '256GB': ['Prata', 'Preto Espacial'], '512GB': ['Prata', 'Preto Espacial'], '1TB': ['Prata', 'Preto Espacial'], '2TB': ['Prata', 'Preto Espacial'] },
-        'iPad Pro M4 (2024) 11″ Wi-Fi + Cellular': { '256GB': ['Prata', 'Preto Espacial'], '512GB': ['Prata', 'Preto Espacial'], '1TB': ['Prata', 'Preto Espacial'], '2TB': ['Prata', 'Preto Espacial'] },
-        'iPad Pro M4 (2024) 13″ Wi-Fi': { '256GB': ['Prata', 'Preto Espacial'], '512GB': ['Prata', 'Preto Espacial'], '1TB': ['Prata', 'Preto Espacial'], '2TB': ['Prata', 'Preto Espacial'] },
-        'iPad Pro M4 (2024) 13″ Wi-Fi + Cellular': { '256GB': ['Prata', 'Preto Espacial'], '512GB': ['Prata', 'Preto Espacial'], '1TB': ['Prata', 'Preto Espacial'], '2TB': ['Prata', 'Preto Espacial'] }
+        'iPad Pro 3 M1 (2021) 11″ Wi-Fi': { '128GB': colorsM1_M2, '256GB': colorsM1_M2, '512GB': colorsM1_M2, '1TB': colorsM1_M2, '2TB': colorsM1_M2 },
+        'iPad Pro 3 M1 (2021) 11″ Wi-Fi + Cellular': { '128GB': colorsM1_M2, '256GB': colorsM1_M2, '512GB': colorsM1_M2, '1TB': colorsM1_M2, '2TB': colorsM1_M2 },
+        'iPad Pro 4 M2 (2022) 11″ Wi-Fi': { '128GB': colorsM1_M2, '256GB': colorsM1_M2, '512GB': colorsM1_M2, '1TB': colorsM1_M2, '2TB': colorsM1_M2 },
+        'iPad Pro 4 M2 (2022) 11″ Wi-Fi + Cellular': { '128GB': colorsM1_M2, '256GB': colorsM1_M2, '512GB': colorsM1_M2, '1TB': colorsM1_M2, '2TB': colorsM1_M2 },
+        'iPad Pro 4 M2 (2022) 12,9″ Wi-Fi': { '128GB': colorsM1_M2, '256GB': colorsM1_M2, '512GB': colorsM1_M2, '1TB': colorsM1_M2, '2TB': colorsM1_M2 },
+        'iPad Pro 4 M2 (2022) 12,9″ Wi-Fi + Cellular': { '128GB': colorsM1_M2, '256GB': colorsM1_M2, '512GB': colorsM1_M2, '1TB': colorsM1_M2, '2TB': colorsM1_M2 },
+        'iPad Pro M4 (2024) 11″ Wi-Fi': { '256GB': colorsProM3, '512GB': colorsProM3, '1TB': colorsProM3, '2TB': colorsProM3 },
+        'iPad Pro M4 (2024) 11″ Wi-Fi + Cellular': { '256GB': colorsProM3, '512GB': colorsProM3, '1TB': colorsProM3, '2TB': colorsProM3 },
+        'iPad Pro M4 (2024) 13″ Wi-Fi': { '256GB': colorsProM3, '512GB': colorsProM3, '1TB': colorsProM3, '2TB': colorsProM3 },
+        'iPad Pro M4 (2024) 13″ Wi-Fi + Cellular': { '256GB': colorsProM3, '512GB': colorsProM3, '1TB': colorsProM3, '2TB': colorsProM3 }
     },
     'iPhone': {
         'iPhone 6s': { '16GB': ['Cinza Espacial', 'Prata', 'Dourado', 'Ouro Rosa'], '32GB': ['Cinza Espacial', 'Prata', 'Dourado', 'Ouro Rosa'], '64GB': ['Cinza Espacial', 'Prata', 'Dourado', 'Ouro Rosa'], '128GB': ['Cinza Espacial', 'Prata', 'Dourado', 'Ouro Rosa'], },
@@ -115,6 +126,7 @@ export const appleProductHierarchy = {
         'iPhone 16 Pro': { '128GB': ['Titânio Preto', 'Titânio Branco', 'Titânio Natural', 'Titânio Deserto'], '256GB': ['Titânio Preto', 'Titânio Branco', 'Titânio Natural', 'Titânio Deserto'], '512GB': ['Titânio Preto', 'Titânio Branco', 'Titânio Natural', 'Titânio Deserto'], '1TB': ['Titânio Preto', 'Titânio Branco', 'Titânio Natural', 'Titânio Deserto'], },
         'iPhone 16 Pro Max': { '256GB': ['Titânio Preto', 'Titânio Branco', 'Titânio Natural', 'Titânio Deserto'], '512GB': ['Titânio Preto', 'Titânio Branco', 'Titânio Natural', 'Titânio Deserto'], '1TB': ['Titânio Preto', 'Titânio Branco', 'Titânio Natural', 'Titânio Deserto'], },
         'iPhone 16e': { '128GB': ['Preto', 'Branco'], '256GB': ['Preto', 'Branco'], '512GB': ['Preto', 'Branco'], },
+        'iPhone 17e': { '256GB': ['Branco', 'Preto', 'Rosa-Pálido'], '512GB': ['Branco', 'Preto', 'Rosa-Pálido'], },
         'iPhone 17': { '256GB': ['Preto', 'Branco', 'Azul Névoa', 'Sálvia', 'Lavanda'], '512GB': ['Preto', 'Branco', 'Azul Névoa', 'Sálvia', 'Lavanda'], },
         'iPhone Air': { '256GB': ['Preto Espacial', 'Branco Nuvem', 'Dourado Claro', 'Azul Céu'], '512GB': ['Preto Espacial', 'Branco Nuvem', 'Dourado Claro', 'Azul Céu'], '1TB': ['Preto Espacial', 'Branco Nuvem', 'Dourado Claro', 'Azul Céu'], },
         'iPhone 17 Pro': { '256GB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '512GB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '1TB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '2TB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], },
@@ -122,21 +134,21 @@ export const appleProductHierarchy = {
     },
     'Mac': {
         'MacBook Pro (2024, 14") M4 Max': {
-            '36GB/1TB': ['Preto Espacial', 'Prateado'],
-            '48GB/1TB': ['Preto Espacial', 'Prateado'],
-            '64GB/2TB': ['Preto Espacial', 'Prateado'],
-            '128GB/4TB': ['Preto Espacial', 'Prateado']
+            '36GB/1TB': colorsProM4,
+            '48GB/1TB': colorsProM4,
+            '64GB/2TB': colorsProM4,
+            '128GB/4TB': colorsProM4
         },
         'MacBook Pro (2024, 16") M4 Max': {
-            '36GB/1TB': ['Preto Espacial', 'Prateado'],
-            '48GB/1TB': ['Preto Espacial', 'Prateado'],
-            '64GB/2TB': ['Preto Espacial', 'Prateado'],
-            '128GB/4TB': ['Preto Espacial', 'Prateado']
+            '36GB/1TB': colorsProM4,
+            '48GB/1TB': colorsProM4,
+            '64GB/2TB': colorsProM4,
+            '128GB/4TB': colorsProM4
         },
         'MacBook Pro (2024, 16") M4 Pro': {
-            '24GB/512GB': ['Preto Espacial', 'Prateado'],
-            '24GB/1TB': ['Preto Espacial', 'Prateado'],
-            '48GB/1TB': ['Preto Espacial', 'Prateado']
+            '24GB/512GB': colorsProM4,
+            '24GB/1TB': colorsProM4,
+            '48GB/1TB': colorsProM4
         },
         'Mac Mini M4 (2024)': {
             '16GB/256GB': ['Prateado'],
@@ -184,44 +196,161 @@ export const appleProductHierarchy = {
             '16GB/512GB': ['Prata', 'Dourado', 'Cinza Espacial']
         },
         'MacBook Air (2022, 13.6") M2': {
-            '8GB/256GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '8GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '16GB/256GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '16GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '24GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial']
+            '8GB/256GB': colorsAirM2_M3,
+            '8GB/512GB': colorsAirM2_M3,
+            '16GB/256GB': colorsAirM2_M3,
+            '16GB/512GB': colorsAirM2_M3,
+            '24GB/512GB': colorsAirM2_M3
         },
         'MacBook Air (2023, 15") M2': {
-            '8GB/256GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '8GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '16GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '24GB/1TB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial']
+            '8GB/256GB': colorsAirM2_M3,
+            '8GB/512GB': colorsAirM2_M3,
+            '16GB/512GB': colorsAirM2_M3,
+            '24GB/1TB': colorsAirM2_M3
         },
         'MacBook Air (2024, 13") M3 (8-core/10-core GPU)': {
-            '8GB/256GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '8GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '16GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '24GB/1TB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial']
+            '8GB/256GB': colorsAirM2_M3,
+            '8GB/512GB': colorsAirM2_M3,
+            '16GB/512GB': colorsAirM2_M3,
+            '24GB/1TB': colorsAirM2_M3
         },
         'MacBook Air (2024, 13") M3 (8-core/8-core GPU)': {
-            '8GB/256GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '16GB/256GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '16GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial']
+            '8GB/256GB': colorsAirM2_M3,
+            '16GB/256GB': colorsAirM2_M3,
+            '16GB/512GB': colorsAirM2_M3
         },
         'MacBook Air (2024, 15") M3': {
-            '8GB/256GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '8GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '16GB/512GB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial'],
-            '24GB/1TB': ['Meia-noite', 'Estelar', 'Prateado', 'Cinza Espacial']
+            '8GB/256GB': colorsAirM2_M3,
+            '8GB/512GB': colorsAirM2_M3,
+            '16GB/512GB': colorsAirM2_M3,
+            '24GB/1TB': colorsAirM2_M3
         },
         'MacBook Air (2025, 13.6") M4': {
-            '16GB/256GB': ['Azul Céu', 'Prateado', 'Estelar', 'Meia-noite'],
-            '16GB/512GB': ['Azul Céu', 'Prateado', 'Estelar', 'Meia-noite'],
-            '24GB/512GB': ['Azul Céu', 'Prateado', 'Estelar', 'Meia-noite']
+            '16GB/256GB': colorsAirM4,
+            '16GB/512GB': colorsAirM4,
+            '24GB/512GB': colorsAirM4
         },
         'MacBook Air (2025, 15.3") M4': {
-            '16GB/256GB': ['Azul Céu', 'Prateado', 'Estelar', 'Meia-noite'],
-            '16GB/512GB': ['Azul Céu', 'Prateado', 'Estelar', 'Meia-noite'],
-            '24GB/512GB': ['Azul Céu', 'Prateado', 'Estelar', 'Meia-noite']
+            '16GB/256GB': colorsAirM4,
+            '16GB/512GB': colorsAirM4,
+            '24GB/512GB': colorsAirM4
+        },
+        'MacBook Neo': {
+            '8GB/256GB': ['Amarelo-Cítrico', 'Blush', 'Índigo', 'Prateado'],
+            '8GB/512GB (Com Touch ID)': ['Amarelo-Cítrico', 'Blush', 'Índigo', 'Prateado']
+        },
+        'MacBook Air M5 (2025, 13\') M5 (CPU de 10 núcleos, GPU de 8 núcleos)': {
+            '16GB/512GB': colorsAirM5,
+            '16GB/1TB': colorsAirM5,
+            '16GB/2TB': colorsAirM5,
+            '16GB/4TB': colorsAirM5,
+            '24GB/1TB': colorsAirM5,
+            '24GB/2TB': colorsAirM5,
+            '24GB/4TB': colorsAirM5,
+            '32GB/1TB': colorsAirM5,
+            '32GB/2TB': colorsAirM5,
+            '32GB/4TB': colorsAirM5
+        },
+        'MacBook Air M5 (2025, 13\') M5 (CPU de 10 núcleos, GPU de 10 núcleos)': {
+            '16GB/512GB': colorsAirM5,
+            '16GB/1TB': colorsAirM5,
+            '16GB/2TB': colorsAirM5,
+            '16GB/4TB': colorsAirM5,
+            '24GB/1TB': colorsAirM5,
+            '24GB/2TB': colorsAirM5,
+            '24GB/4TB': colorsAirM5,
+            '32GB/1TB': colorsAirM5,
+            '32GB/2TB': colorsAirM5,
+            '32GB/4TB': colorsAirM5
+        },
+        'MacBook Air M5 (2025, 15\') M5': {
+            '16GB/512GB': colorsAirM5,
+            '16GB/1TB': colorsAirM5,
+            '16GB/2TB': colorsAirM5,
+            '16GB/4TB': colorsAirM5,
+            '24GB/1TB': colorsAirM5,
+            '24GB/2TB': colorsAirM5,
+            '24GB/4TB': colorsAirM5,
+            '32GB/1TB': colorsAirM5,
+            '32GB/2TB': colorsAirM5,
+            '32GB/4TB': colorsAirM5
+        },
+        'MacBook Pro (2026, 14\') M5 (CPU de 10 núcleos, GPU de 10 núcleos)': {
+            '16GB/1TB': colorsProM5,
+            '16GB/2TB': colorsProM5,
+            '16GB/4TB': colorsProM5,
+            '24GB/1TB': colorsProM5,
+            '24GB/2TB': colorsProM5,
+            '24GB/4TB': colorsProM5,
+            '32GB/1TB': colorsProM5,
+            '32GB/2TB': colorsProM5,
+            '32GB/4TB': colorsProM5
+        },
+        'MacBook Pro (2026, 14\') M5 Pro (CPU de 18 núcleos, GPU de 20 núcleos)': {
+            '16GB/1TB': colorsProM5,
+            '16GB/2TB': colorsProM5,
+            '16GB/4TB': colorsProM5,
+            '24GB/1TB': colorsProM5,
+            '24GB/2TB': colorsProM5,
+            '24GB/4TB': colorsProM5,
+            '32GB/1TB': colorsProM5,
+            '32GB/2TB': colorsProM5,
+            '32GB/4TB': colorsProM5
+        },
+        'MacBook Pro (2026, 16\') M5 Pro (CPU de 18 núcleos, GPU de 20 núcleos)': {
+            '16GB/1TB': colorsProM5,
+            '16GB/2TB': colorsProM5,
+            '16GB/4TB': colorsProM5,
+            '24GB/1TB': colorsProM5,
+            '24GB/2TB': colorsProM5,
+            '24GB/4TB': colorsProM5,
+            '32GB/1TB': colorsProM5,
+            '32GB/2TB': colorsProM5,
+            '32GB/4TB': colorsProM5
+        },
+        'MacBook Pro (2026, 14\') M5 Max (CPU de 18 núcleos, GPU de 32 núcleos)': {
+            '16GB/1TB': colorsProM5,
+            '16GB/2TB': colorsProM5,
+            '16GB/4TB': colorsProM5,
+            '24GB/1TB': colorsProM5,
+            '24GB/2TB': colorsProM5,
+            '24GB/4TB': colorsProM5,
+            '32GB/1TB': colorsProM5,
+            '32GB/2TB': colorsProM5,
+            '32GB/4TB': colorsProM5
+        },
+        'MacBook Pro (2026, 14\') M5 Max (CPU de 18 núcleos, GPU de 40 núcleos)': {
+            '16GB/1TB': colorsProM5,
+            '16GB/2TB': colorsProM5,
+            '16GB/4TB': colorsProM5,
+            '24GB/1TB': colorsProM5,
+            '24GB/2TB': colorsProM5,
+            '24GB/4TB': colorsProM5,
+            '32GB/1TB': colorsProM5,
+            '32GB/2TB': colorsProM5,
+            '32GB/4TB': colorsProM5
+        },
+        'MacBook Pro (2026, 16\') M5 Max (CPU de 18 núcleos, GPU de 32 núcleos)': {
+            '16GB/1TB': colorsProM5,
+            '16GB/2TB': colorsProM5,
+            '16GB/4TB': colorsProM5,
+            '24GB/1TB': colorsProM5,
+            '24GB/2TB': colorsProM5,
+            '24GB/4TB': colorsProM5,
+            '32GB/1TB': colorsProM5,
+            '32GB/2TB': colorsProM5,
+            '32GB/4TB': colorsProM5
+        },
+        'MacBook Pro (2026, 16\') M5 Max (CPU de 18 núcleos, GPU de 40 núcleos)': {
+            '16GB/1TB': colorsProM5,
+            '16GB/2TB': colorsProM5,
+            '16GB/4TB': colorsProM5,
+            '24GB/1TB': colorsProM5,
+            '24GB/2TB': colorsProM5,
+            '24GB/4TB': colorsProM5,
+            '32GB/1TB': colorsProM5,
+            '32GB/2TB': colorsProM5,
+            '32GB/4TB': colorsProM5
         },
         'MacBook Pro (2012, 13") i5 2.5GHz': {
             '8GB/500GB (HDD)': ['Prata'],
@@ -248,74 +377,74 @@ export const appleProductHierarchy = {
             '16GB/512GB': ['Prata']
         },
         'MacBook Pro (2017, 13") i5 3.1GHz': {
-            '8GB/256GB': ['Prata', 'Cinza Espacial'],
-            '8GB/512GB': ['Prata', 'Cinza Espacial']
+            '8GB/256GB': colorsM1_M2,
+            '8GB/512GB': colorsM1_M2
         },
         'MacBook Pro (2020, 13") M1': {
-            '8GB/256GB': ['Prata', 'Cinza Espacial'],
-            '8GB/512GB': ['Prata', 'Cinza Espacial'],
-            '16GB/256GB': ['Prata', 'Cinza Espacial'],
-            '16GB/512GB': ['Prata', 'Cinza Espacial']
+            '8GB/256GB': colorsM1_M2,
+            '8GB/512GB': colorsM1_M2,
+            '16GB/256GB': colorsM1_M2,
+            '16GB/512GB': colorsM1_M2
         },
         'MacBook Pro (2021, 14") M1 Pro': {
-            '16GB/512GB': ['Prata', 'Cinza Espacial'],
-            '16GB/1TB': ['Prata', 'Cinza Espacial'],
-            '32GB/1TB': ['Prata', 'Cinza Espacial']
+            '16GB/512GB': colorsM1_M2,
+            '16GB/1TB': colorsM1_M2,
+            '32GB/1TB': colorsM1_M2
         },
         'MacBook Pro (2021, 16") M1 Pro': {
-            '16GB/512GB': ['Prata', 'Cinza Espacial'],
-            '16GB/1TB': ['Prata', 'Cinza Espacial'],
-            '32GB/1TB': ['Prata', 'Cinza Espacial']
+            '16GB/512GB': colorsM1_M2,
+            '16GB/1TB': colorsM1_M2,
+            '32GB/1TB': colorsM1_M2
         },
         'MacBook Pro (2022, 13") M2': {
-            '8GB/256GB': ['Prata', 'Cinza Espacial'],
-            '8GB/512GB': ['Prata', 'Cinza Espacial'],
-            '16GB/512GB': ['Prata', 'Cinza Espacial'],
-            '24GB/1TB': ['Prata', 'Cinza Espacial']
+            '8GB/256GB': colorsM1_M2,
+            '8GB/512GB': colorsM1_M2,
+            '16GB/512GB': colorsM1_M2,
+            '24GB/1TB': colorsM1_M2
         },
         'MacBook Pro (2023, 14.2") M3 (8-core CPU, 10-core GPU)': {
-            '8GB/512GB': ['Prata', 'Preto Espacial'],
-            '16GB/512GB': ['Prata', 'Preto Espacial']
+            '8GB/512GB': colorsProM3,
+            '16GB/512GB': colorsProM3
         },
         'MacBook Pro (2023, 14.2") M3 Max (14-core CPU, 30-core GPU)': {
-            '36GB/1TB': ['Prata', 'Preto Espacial'],
-            '48GB/1TB': ['Prata', 'Preto Espacial'],
-            '64GB/2TB': ['Prata', 'Preto Espacial']
+            '36GB/1TB': colorsProM3,
+            '48GB/1TB': colorsProM3,
+            '64GB/2TB': colorsProM3
         },
         'MacBook Pro (2023, 14.2") M3 Pro (11-core CPU, 14-core GPU)': {
-            '18GB/512GB': ['Prata', 'Preto Espacial'],
-            '18GB/1TB': ['Prata', 'Preto Espacial'],
-            '36GB/1TB': ['Prata', 'Preto Espacial']
+            '18GB/512GB': colorsProM3,
+            '18GB/1TB': colorsProM3,
+            '36GB/1TB': colorsProM3
         },
         'MacBook Pro (2023, 14") M2 Max (12-core CPU, 30-core GPU)': {
-            '32GB/1TB': ['Prata', 'Cinza Espacial'],
-            '64GB/1TB': ['Prata', 'Cinza Espacial']
+            '32GB/1TB': colorsM1_M2,
+            '64GB/1TB': colorsM1_M2
         },
         'MacBook Pro (2023, 14") M2 Max (12-core CPU, 38-core GPU)': {
-            '32GB/1TB': ['Prata', 'Cinza Espacial'],
-            '64GB/1TB': ['Prata', 'Cinza Espacial']
+            '32GB/1TB': colorsM1_M2,
+            '64GB/1TB': colorsM1_M2
         },
         'MacBook Pro (2023, 14") M2 Pro': {
-            '16GB/512GB': ['Prata', 'Cinza Espacial'],
-            '16GB/1TB': ['Prata', 'Cinza Espacial'],
-            '32GB/1TB': ['Prata', 'Cinza Espacial']
+            '16GB/512GB': colorsM1_M2,
+            '16GB/1TB': colorsM1_M2,
+            '32GB/1TB': colorsM1_M2
         },
         'MacBook Pro (2023, 16.2") M3 Max (14-core CPU, 30-core GPU)': {
-            '36GB/1TB': ['Prata', 'Preto Espacial'],
-            '48GB/1TB': ['Prata', 'Preto Espacial'],
-            '64GB/2TB': ['Prata', 'Preto Espacial']
+            '36GB/1TB': colorsProM3,
+            '48GB/1TB': colorsProM3,
+            '64GB/2TB': colorsProM3
         },
         'MacBook Pro (2023, 16.2") M3 Pro (12-core CPU, 18-core GPU)': {
-            '18GB/512GB': ['Prata', 'Preto Espacial'],
-            '18GB/1TB': ['Prata', 'Preto Espacial'],
-            '36GB/1TB': ['Prata', 'Preto Espacial']
+            '18GB/512GB': colorsProM3,
+            '18GB/1TB': colorsProM3,
+            '36GB/1TB': colorsProM3
         },
         'MacBook Pro (2024, 14") M4': {
-            '24GB/512GB': ['Preto Espacial', 'Prateado'],
-            '36GB/1TB': ['Preto Espacial', 'Prateado'],
-            '48GB/1TB': ['Preto Espacial', 'Prateado'],
-            '64GB/2TB': ['Preto Espacial', 'Prateado'],
-            '128GB/4TB': ['Preto Espacial', 'Prateado']
+            '24GB/512GB': colorsProM4,
+            '36GB/1TB': colorsProM4,
+            '48GB/1TB': colorsProM4,
+            '64GB/2TB': colorsProM4,
+            '128GB/4TB': colorsProM4
         },
         'iMac (2017, 21.5", Retina 4K) Intel': {
             '8GB/1TB (Fusion/HD)': ['Prata'],
@@ -339,23 +468,23 @@ export const appleProductHierarchy = {
             '16GB/1TB': ['Prata']
         },
         'iMac (2021, 24") M1 (7-GPU)': {
-            '8GB/256GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'],
-            '8GB/512GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo']
+            '8GB/256GB': colorsIMac,
+            '8GB/512GB': colorsIMac
         },
         'iMac (2021, 24") M1 (8-GPU)': {
-            '8GB/256GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'],
-            '8GB/512GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'],
-            '16GB/512GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo']
+            '8GB/256GB': colorsIMac,
+            '8GB/512GB': colorsIMac,
+            '16GB/512GB': colorsIMac
         },
         'iMac (2023, 24") M3': {
-            '8GB/256GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'],
-            '8GB/512GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'],
-            '16GB/512GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo']
+            '8GB/256GB': colorsIMac,
+            '8GB/512GB': colorsIMac,
+            '16GB/512GB': colorsIMac
         },
         'iMac (2024, 24") M4': {
-            '8GB/256GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'],
-            '8GB/512GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo'],
-            '16GB/512GB': ['Azul', 'Verde', 'Rosa', 'Prata', 'Amarelo', 'Laranja', 'Roxo']
+            '8GB/256GB': colorsIMac,
+            '8GB/512GB': colorsIMac,
+            '16GB/512GB': colorsIMac
         }
     },
     'Watch': {
@@ -371,8 +500,8 @@ export const appleProductHierarchy = {
         'Apple Watch SE (3ª Geração, 2025) 44mm (GPS)': { 'Padrão': ['Meia-noite', 'Estelar', 'Rosa', 'Prata'] },
         'Apple Watch SE (3ª Geração, 2025) 40mm (GPS + Cellular)': { 'Padrão': ['Meia-noite', 'Estelar', 'Rosa', 'Prata'] },
         'Apple Watch SE (3ª Geração, 2025) 44mm (GPS + Cellular)': { 'Padrão': ['Meia-noite', 'Estelar', 'Rosa', 'Prata'] },
-        'Apple Watch Series 3 (2017) 38mm (GPS)': { 'Padrão': ['Prata', 'Cinza Espacial'] },
-        'Apple Watch Series 3 (2017) 42mm (GPS)': { 'Padrão': ['Prata', 'Cinza Espacial'] },
+        'Apple Watch Series 3 (2017) 38mm (GPS)': { 'Padrão': colorsM1_M2 },
+        'Apple Watch Series 3 (2017) 42mm (GPS)': { 'Padrão': colorsM1_M2 },
         'Apple Watch Series 4 (2018) 40mm (GPS)': { 'Padrão': ['Prata', 'Cinza Espacial', 'Dourado'] },
         'Apple Watch Series 4 (2018) 44mm (GPS)': { 'Padrão': ['Prata', 'Cinza Espacial', 'Dourado'] },
         'Apple Watch Series 4 (2018) 40mm (GPS + Cellular)': { 'Padrão': ['Prata', 'Cinza Espacial', 'Dourado'] },
