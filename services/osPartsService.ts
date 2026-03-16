@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.ts';
 import { FinancialStatus } from '../types.ts';
 import { getNowISO } from '../utils/dateUtils.ts';
 import { fetchWithCache, clearCache } from './cacheUtils.ts';
+import { cleanUUIDs } from '../utils/formatters.ts';
 
 // ============================================================
 // ESTOQUE EXCLUSIVO DE ORDEM DE SERVIÇO (OS)
@@ -80,7 +81,7 @@ export interface OsPurchaseOrder {
 
 const mapOsPart = (p: any): OsPart => ({
     id: p.id,
-    name: p.name,
+    name: cleanUUIDs(p.name),
     brand: p.brand,
     category: p.category,
     model: p.model,
@@ -120,7 +121,13 @@ const mapOsPurchaseOrder = (p: any): OsPurchaseOrder => ({
     observations: p.observations,
     purchaseTerm: p.purchase_term,
     origin: p.origin,
-    items: Array.isArray(p.items) ? p.items : [],
+    items: (Array.isArray(p.items) ? p.items : []).map((item: any) => ({
+        ...item,
+        partName: cleanUUIDs(item.partName),
+        brand: item.brand,
+        category: item.category,
+        model: item.model,
+    })),
     createdBy: p.created_by,
     createdByName: p.created_by_name,
     createdAt: p.created_at,

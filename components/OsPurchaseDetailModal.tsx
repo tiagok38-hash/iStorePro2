@@ -6,6 +6,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { XCircleIcon } from './icons.tsx';
 import { formatCurrency, OsPurchaseOrder } from '../services/mockApi.ts';
+import { cleanUUIDs } from '../utils/formatters.ts';
 
 const formatDateTime = (dateString: string) =>
     new Date(dateString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -22,13 +23,13 @@ const OsPurchaseDetailModal: React.FC<Props> = ({ purchase, brands = [], categor
     
     const getBrandName = (idOrName: string) => {
         if (!idOrName) return '';
-        const brand = brands.find(b => b.id === idOrName);
+        const brand = brands.find(b => String(b.id) === String(idOrName));
         return brand ? brand.name : idOrName;
     };
 
     const getCategoryName = (idOrName: string) => {
         if (!idOrName) return '';
-        const category = categories.find(c => c.id === idOrName);
+        const category = categories.find(c => String(c.id) === String(idOrName));
         return category ? category.name : idOrName;
     };
 
@@ -77,7 +78,7 @@ const OsPurchaseDetailModal: React.FC<Props> = ({ purchase, brands = [], categor
                                         <td className="px-3 py-1.5 max-w-xs">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="font-bold text-gray-900 leading-tight">
-                                                    {item.partName || item.description || 'Sem nome'}
+                                                    {cleanUUIDs(item.partName || item.description || 'Sem nome')}
                                                 </span>
                                                 <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-gray-500 font-bold uppercase tracking-tighter">
                                                     {item.brand && <span className="bg-gray-100 px-1.5 rounded-xl">{getBrandName(item.brand)}</span>}
@@ -85,7 +86,7 @@ const OsPurchaseDetailModal: React.FC<Props> = ({ purchase, brands = [], categor
                                                     {item.condition && <span className="bg-gray-100 px-1.5 rounded-xl">{item.condition}</span>}
                                                     {item.warranty && <span>{item.warranty}</span>}
                                                     {item.storageLocation && <span className="text-emerald-600 bg-emerald-50 px-1.5 rounded-xl">📍 {item.storageLocation}</span>}
-                                                    {item.model && <span className="text-accent">| {item.model}</span>}
+                                                    {item.model && <span className="text-accent">| {cleanUUIDs(item.model)}</span>}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[9px] text-gray-400 mt-0.5 font-medium">
                                                     {item.barcode && <span className="font-mono text-success">EAN: {item.barcode}</span>}

@@ -61,3 +61,18 @@ export const deduplicateWarranties = (warranties: any[]): any[] => {
 
     return unique.sort((a, b) => (Number(a.days) || 0) - (Number(b.days) || 0));
 };
+
+/** Remove UUIDs de uma string (comum em nomes de peças/insumos com erro de lookup) */
+export const cleanUUIDs = (text: string | null | undefined): string => {
+    if (!text) return "";
+    const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+    
+    // Se a string for EXATAMENTE uma UUID, mantemos (provavelmente um ID sem resolução)
+    // Caso contrário, limpamos apenas os UUIDs que "vazaram" no meio do texto
+    const trimmed = text.trim();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+        return trimmed;
+    }
+
+    return text.replace(uuidRegex, '').trim().replace(/\s+/g, ' ');
+};

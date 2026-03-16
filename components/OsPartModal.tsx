@@ -107,7 +107,7 @@ const OsPartModal: React.FC<OsPartModalProps> = ({
                     const pModel = modelStr.toLowerCase().trim();
                     const pName = nameStr.toLowerCase().trim();
 
-                    return m.id === modelStr ||
+                    return String(m.id) === String(modelStr) ||
                         mName === pModel ||
                         (pModel !== '' && pModel.includes(mName) && mName.length > 2) ||
                         (pName !== '' && pName.includes(mName) && mName.length > 2);
@@ -116,7 +116,7 @@ const OsPartModal: React.FC<OsPartModalProps> = ({
 
             // Tenta primeiro com os modelos da categoria encontrada, depois global
             const scopedModels = categoryObj
-                ? productModels.filter(m => m.categoryId === categoryObj.id)
+                ? productModels.filter(m => String(m.categoryId || m.category_id) === String(categoryObj.id))
                 : [];
             const modelObj = findModel(scopedModels) || findModel(productModels);
 
@@ -158,11 +158,11 @@ const OsPartModal: React.FC<OsPartModalProps> = ({
 
     /* ── derived lists ── */
     const filteredCategories = useMemo(() =>
-        formData.brand ? categories.filter(c => c.brandId === formData.brand) : [],
+        formData.brand ? categories.filter(c => String(c.brandId || c.brand_id) === String(formData.brand)) : [],
         [categories, formData.brand]);
 
     const filteredModels = useMemo(() =>
-        formData.category ? productModels.filter(m => m.categoryId === formData.category) : [],
+        formData.category ? productModels.filter(m => String(m.categoryId || m.category_id) === String(formData.category)) : [],
         [productModels, formData.category]);
 
     const availableGradeValues = useMemo(() =>
@@ -270,16 +270,22 @@ const OsPartModal: React.FC<OsPartModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const brandObj = brands.find(b => b.id === formData.brand);
-        const categoryObj = categories.find(c => c.id === formData.category);
-        const modelObj = productModels.find(m => m.id === formData.model);
+        const brandObj = brands.find(b => String(b.id) === String(formData.brand));
+        const categoryObj = categories.find(c => String(c.id) === String(formData.category));
+        const modelObj = productModels.find(m => String(m.id) === String(formData.model));
+
+        const isUUID = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(val);
+
+        const resolvedBrand = brandObj?.name || (formData.brand && !isUUID(formData.brand) ? formData.brand : '');
+        const resolvedCategory = categoryObj?.name || (formData.category && !isUUID(formData.category) ? formData.category : '');
+        const resolvedModel = modelObj?.name || (formData.model && !isUUID(formData.model) ? formData.model : '');
 
         const payload: Partial<OsPart> = {
             ...formData,
-            brand: brandObj?.name || formData.brand || '',
-            category: categoryObj?.name || formData.category || '',
-            model: modelObj ? modelObj.name : formData.model || '',
-            name: formData.name || (modelObj ? `${categoryObj?.name || ''} ${brandObj?.name || ''} ${modelObj.name}`.trim().replace(/\s+/g, ' ') : ''),
+            brand: resolvedBrand,
+            category: resolvedCategory,
+            model: resolvedModel,
+            name: formData.name || [resolvedCategory, resolvedBrand, resolvedModel].filter(Boolean).join(' ').trim().replace(/\s+/g, ' '),
             salePrice: formData.salePrice || 0,
             costPrice: formData.costPrice || 0,
             stock: formData.stock || 0,

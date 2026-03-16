@@ -4,6 +4,7 @@ import { Service, ServiceOrder, AuditActionType, AuditEntityType, ReceiptTermPar
 import { getNowISO } from '../utils/dateUtils.ts';
 import { fetchWithCache, fetchWithRetry, clearCache } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';
+import { cleanUUIDs } from '../utils/formatters.ts';
 
 // --- SERVICES ---
 
@@ -133,6 +134,10 @@ export const mapServiceOrderData = (so: any): ServiceOrder => ({
     isQuick: so.is_quick,
     phone: so.phone,
     receiptTermId: so.receipt_term_id,
+    items: (so.items || []).map((item: any) => ({
+        ...item,
+        description: cleanUUIDs(item.description)
+    })),
 });
 
 export const getServiceOrders = async (): Promise<ServiceOrder[]> => {

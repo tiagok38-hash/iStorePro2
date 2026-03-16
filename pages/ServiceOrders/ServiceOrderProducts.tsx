@@ -24,7 +24,7 @@ import OsPurchaseDetailModal from '../../components/OsPurchaseDetailModal';
 import { formatDateBR } from '../../utils/dateUtils';
 import { getOsWarranties } from '../../services/mockApi';
 import { useUser } from '../../contexts/UserContext';
-import { deduplicateWarranties } from '../../utils/formatters.ts';
+import { deduplicateWarranties, cleanUUIDs } from '../../utils/formatters.ts';
 
 // --- Service Modal Component ---
 interface ServiceModalProps {
@@ -904,7 +904,7 @@ const ServiceOrderProducts: React.FC = () => {
                                 ) : (
                                     paginatedParts.map((part) => {
                                         const supplierName = part.supplierId
-                                            ? suppliers.find(s => s.id === part.supplierId)?.name || '-'
+                                            ? suppliers.find(s => String(s.id) === String(part.supplierId))?.name || '-'
                                             : '-';
                                         const createdDate = part.createdAt
                                             ? new Date(part.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -924,7 +924,7 @@ const ServiceOrderProducts: React.FC = () => {
                                                 <td className="pl-0 pr-4 py-3">
                                                     <div className="flex items-center gap-3">
                                                         <div className="min-w-0">
-                                                            <p className="font-semibold text-gray-900 truncate">{part.name}</p>
+                                                            <p className="font-semibold text-gray-900 truncate">{cleanUUIDs(part.name)}</p>
                                                             {(part.barcode || part.sku) && (
                                                                 <p className="text-[10px] text-gray-400 mt-0.5 flex gap-2">
                                                                     {part.sku && <span>SKU: <strong>{part.sku}</strong></span>}

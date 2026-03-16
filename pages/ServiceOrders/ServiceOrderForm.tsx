@@ -57,7 +57,7 @@ import {
 } from '../../services/mockApi';
 import { getOsReceiptTerms } from '../../services/parametersService';
 import { generateCommissionsForOS } from '../../services/commissionService.ts';
-import { formatStorageUnit, deduplicateWarranties } from '../../utils/formatters.ts';
+import { formatStorageUnit, deduplicateWarranties, cleanUUIDs } from '../../utils/formatters.ts';
 import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
@@ -296,7 +296,7 @@ const ServiceOrderForm: React.FC = () => {
             setTechnicalReport(so.technicalReport || '');
             setObservations(so.observations || '');
             setPhotos(so.photos || []);
-            setItems(so.items || []);
+            setItems((so.items || []).map(item => ({ ...item, description: cleanUUIDs(item.description) })));
             setDiscount(so.discount || 0);
             setResponsibleId(so.responsibleId || '');
             setAttendantId((so as any).attendantId || '');
@@ -475,7 +475,7 @@ const ServiceOrderForm: React.FC = () => {
         const newItem: ServiceOrderItem = {
             id: Date.now().toString(),
             catalogItemId: item.id,
-            description: type === 'service' ? (item as Service).name : (item as OsPart).name,
+            description: cleanUUIDs(type === 'service' ? (item as Service).name : (item as OsPart).name),
             type: type,
             price: type === 'service' ? (item as Service).price : (item as OsPart).salePrice,
             cost: type === 'service' ? (item as Service).cost : (item as OsPart).costPrice,

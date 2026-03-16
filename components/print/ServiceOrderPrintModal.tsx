@@ -2,6 +2,7 @@ import React, { useId, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ServiceOrder, CompanyInfo, Product, Customer, ChecklistItemParameter, ReceiptTermParameter } from '../../types.ts';
 import { formatCurrency, getCompanyInfo, getCustomers, getChecklistItems } from '../../services/mockApi.ts';
+import { cleanUUIDs } from '../../utils/formatters.ts';
 import { getOsReceiptTerms } from '../../services/parametersService.ts';
 import { CloseIcon, PrinterIcon, SpinnerIcon, WhatsAppIcon } from '../icons.tsx';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
@@ -170,7 +171,7 @@ const A4Layout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyInfo |
                             return (
                                 <tr key={item.id || index} className="border-b border-gray-100">
                                     <td className="py-1 px-2">{item.quantity}</td>
-                                    <td className="py-1 px-2">{item.description}</td>
+                                    <td className="py-1 px-2">{cleanUUIDs(item.description)}</td>
                                     <td className="py-1 px-2 text-[9px]">
                                         {item.warranty ? (
                                             <div className="flex flex-col">
@@ -336,7 +337,7 @@ const ThermalLayout: React.FC<{ os: Props['serviceOrder']; companyInfo: CompanyI
                     const expiryDate = (item.warranty && os.exitDate) ? calculateWarrantyExpiry(os.exitDate, item.warranty) : null;
                     return (
                         <div key={item.id || i} className="mb-1 text-[11px]">
-                            <p className="truncate">{item.description}</p>
+                            <p className="truncate">{cleanUUIDs(item.description)}</p>
                             <div className="flex justify-between">
                                 <span>{item.quantity} x {formatCurrency(item.price)}</span>
                                 <div className="text-right">

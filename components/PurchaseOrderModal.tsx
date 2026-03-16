@@ -230,14 +230,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             return;
         }
 
-        const supplier = suppliers.find(s => s.id === selectedId);
+        const supplier = suppliers.find(s => String(s.id) === String(selectedId));
         if (supplier) {
             setFormData(prev => ({ ...prev, supplierId: selectedId, supplierName: supplier.name }));
             setIsCustomerPurchase(!!supplier.linkedCustomerId);
             return;
         }
 
-        const customer = customers.find(c => c.id === selectedId);
+        const customer = customers.find(c => String(c.id) === String(selectedId));
         if (customer) {
             try {
                 const convertedSupplier = await findOrCreateSupplierFromCustomer(customer);
@@ -300,8 +300,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 // Creation on demand
                 let currentSupplierName = formData.supplierName;
                 if (!currentSupplierName && formData.supplierId) {
-                    const supplier = suppliers.find(s => s.id === formData.supplierId);
-                    const customer = customers.find(c => c.id === formData.supplierId);
+                    const supplier = suppliers.find(s => String(s.id) === String(formData.supplierId));
+                    const customer = customers.find(c => String(c.id) === String(formData.supplierId));
                     currentSupplierName = supplier?.name || customer?.name || 'Fornecedor Desconhecido';
                 }
 
@@ -473,8 +473,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
     const handleAddVariation = () => {
         if (!currentGradeId) return;
-        const grade = grades.find(g => g.id === currentGradeId);
-        const value = currentValueId ? gradeValues.find(v => v.id === currentValueId) : null;
+        const grade = grades.find(g => String(g.id) === String(currentGradeId));
+        const value = currentValueId ? gradeValues.find(v => String(v.id) === String(currentValueId)) : null;
 
         if (!grade) return;
 
@@ -518,17 +518,18 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             finalProductDetails.model = modelString;
             finalProductDetails.brand = 'Apple';
         } else {
-            const brandObj = brands.find(b => b.id === currentItem.productDetails?.brand);
-            const brandName = brandObj?.name || currentItem.productDetails?.brand || '';
+            const brandObj = localBrands.find(b => String(b.id) === String(currentItem.productDetails?.brand));
+            const brandName = brandObj?.name || (currentItem.productDetails?.brand && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(currentItem.productDetails.brand) ? currentItem.productDetails.brand : '');
             finalProductDetails.brand = brandName;
 
-            const categoryObj = categories.find(c => c.id === currentItem.productDetails?.category);
-            const categoryName = categoryObj?.name || currentItem.productDetails?.category || '';
+            const categoryObj = localCategories.find(c => String(c.id) === String(currentItem.productDetails?.category));
+            const categoryName = categoryObj?.name || (currentItem.productDetails?.category && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(currentItem.productDetails.category) ? currentItem.productDetails.category : '');
+            finalProductDetails.category = categoryName;
 
-            const modelObj = productModels.find(m => m.id === currentItem.productDetails?.model);
-            const modelName = modelObj?.name || '';
+            const modelObj = localModels.find(m => String(m.id) === String(currentItem.productDetails?.model));
+            const modelName = modelObj?.name || (currentItem.productDetails?.model && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(currentItem.productDetails.model) ? currentItem.productDetails.model : '');
 
-            modelString = `${categoryName} ${brandName} ${modelName} ${variationString}`.trim().replace(/\s+/g, ' ');
+            modelString = [categoryName, brandName, modelName, variationString].filter(Boolean).join(' ').trim().replace(/\s+/g, ' ');
 
             finalProductDetails.model = modelString;
         }
@@ -621,29 +622,45 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             if (isOsMode) {
                 let currentSupplierName = formData.supplierName;
                 if (!currentSupplierName && formData.supplierId) {
-                    const supplier = suppliers.find(s => s.id === formData.supplierId);
+                    const supplier = suppliers.find(s => String(s.id) === String(formData.supplierId));
                     currentSupplierName = supplier?.name || 'Fornecedor';
                 }
 
                 // Converter PurchaseItems para OsPurchaseOrderItems
                 const osItems: OsPurchaseOrderItem[] = sanitizedItems.map(item => {
                     const originalItem = purchaseOrderToEdit?.items?.find((i: any) => i.id === item.id);
+                    
+                    // Resolve names again in handleSubmit to be extra safe
+                    const brandObj = localBrands.find(b => String(b.id) === String(item.productDetails?.brand));
+                    const brandName = brandObj?.name || (item.productDetails?.brand && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(item.productDetails.brand) ? item.productDetails.brand : '');
+                    
+                    const catObj = localCategories.find(c => String(c.id) === String(item.productDetails?.category));
+                    const catName = catObj?.name || (item.productDetails?.category && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(item.productDetails.category) ? item.productDetails.category : '');
+                    
+                    const modelObj = localModels.find(m => String(m.id) === String(item.productDetails?.model));
+                    const modelNameOnly = modelObj?.name || (item.productDetails?.model && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(item.productDetails.model) ? item.productDetails.model : '');
+
+                    // Ensure we have a descriptive name
+                    const resolvedPartName = item.productDetails?.model && /^[0-9a-f]{8}/i.test(item.productDetails.model)
+                        ? [catName, brandName, modelNameOnly].filter(Boolean).join(' ')
+                        : (item.productDetails?.model || '');
+                    
                     return {
                         id: item.id || crypto.randomUUID(),
                         osPartId: originalItem?.osPartId || (item as any).osPartId || null,
-                        partName: item.productDetails?.model || '',
-                        brand: item.productDetails?.brand || '',
-                        category: item.productDetails?.category || '',
-                    model: item.productDetails?.model || '',
-                    condition: item.productDetails?.condition || 'Novo',
-                    warranty: item.productDetails?.warranty || null,
-                    barcode: item.barcodes && item.barcodes.length > 0 ? item.barcodes[0] : null,
-                    variations: (item as any).variations || [],
-                    storageLocation: item.productDetails?.storageLocation || null,
-                    wholesalePrice: item.productDetails?.wholesalePrice || 0,
-                    quantity: item.quantity,
-                    unitCost: item.unitCost,
-                    finalUnitCost: item.finalUnitCost,
+                        partName: resolvedPartName,
+                        brand: brandName,
+                        category: catName,
+                        model: modelNameOnly || resolvedPartName,
+                        condition: item.productDetails?.condition || 'Novo',
+                        warranty: item.productDetails?.warranty || null,
+                        barcode: item.barcodes && item.barcodes.length > 0 ? item.barcodes[0] : null,
+                        variations: (item as any).variations || [],
+                        storageLocation: item.productDetails?.storageLocation || null,
+                        wholesalePrice: item.productDetails?.wholesalePrice || 0,
+                        quantity: item.quantity,
+                        unitCost: item.unitCost,
+                        finalUnitCost: item.finalUnitCost,
                     };
                 });
 
@@ -695,8 +712,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             } else {
                 let currentSupplierName = formData.supplierName;
                 if (!currentSupplierName && formData.supplierId) {
-                    const supplier = suppliers.find(s => s.id === formData.supplierId);
-                    const customer = customers.find(c => c.id === formData.supplierId);
+                    const supplier = suppliers.find(s => String(s.id) === String(formData.supplierId));
+                    const customer = customers.find(c => String(c.id) === String(formData.supplierId));
                     currentSupplierName = supplier?.name || customer?.name || 'Fornecedor Desconhecido';
                 }
 
@@ -736,13 +753,13 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
 
     const filteredCategories = useMemo(() => {
         if (!currentItem.productDetails?.brand) return [];
-        return localCategories.filter(c => c.brandId === currentItem.productDetails?.brand);
+        return localCategories.filter(c => String(c.brandId || c.brand_id) === String(currentItem.productDetails?.brand));
     }, [localCategories, currentItem.productDetails?.brand]);
 
     const filteredModels = useMemo(() => {
         if (!currentItem.productDetails?.category) return [];
         return localModels
-            .filter(m => m.categoryId === currentItem.productDetails?.category)
+            .filter(m => String(m.categoryId || m.category_id) === String(currentItem.productDetails?.category))
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [localModels, currentItem.productDetails?.category]);
 
