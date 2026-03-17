@@ -5,7 +5,7 @@
 import React from 'react';
 import { PurchaseOrderModal } from './PurchaseOrderModal';
 import { Supplier, Brand, Category, ProductModel, Grade, GradeValue, PurchaseOrder } from '../types';
-import { OsPart } from '../services/mockApi';
+import { OsPart, addSupplier } from '../services/mockApi';
 
 interface OsPurchaseModalProps {
     isOpen: boolean;
@@ -29,6 +29,10 @@ const OsPurchaseModal: React.FC<OsPurchaseModalProps> = ({
 }) => {
     if (!isOpen) return null;
 
+    const handleAddNewSupplier = async (supplierData: Omit<Supplier, 'id'>) => {
+        return await addSupplier(supplierData);
+    };
+
     return (
         <PurchaseOrderModal
             mode="os"
@@ -42,6 +46,7 @@ const OsPurchaseModal: React.FC<OsPurchaseModalProps> = ({
             onClose={(refresh) => onClose(refresh)}
             userId={userId}
             userName={userName}
+            onAddNewSupplier={handleAddNewSupplier}
         />
     );
 };
