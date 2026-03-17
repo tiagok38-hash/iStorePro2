@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Customer } from '../types.ts';
 import { formatCurrency, getSales, syncCustomerCreditLimit } from '../services/mockApi.ts';
-import { TrendingUp, TrendingDown, AlertTriangle, ShieldCheck, ShieldAlert, History, RefreshCcw } from 'lucide-react';
+import { TrendingUp, TrendingDown, ShieldCheck, History, RefreshCcw } from 'lucide-react';
 
 interface CustomerFinanceTabProps {
     customer: Customer;

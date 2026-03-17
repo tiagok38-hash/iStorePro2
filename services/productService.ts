@@ -142,13 +142,51 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
             p_offset: fetchOffset
         });
 
-        if (error) {
+        let rows = data || [];
+        let totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
+
+        // Fallback for fast identifier searching (IMEI, SN, SKU) >= 4 digits
+        const cleanQuery = query.trim();
+        if (cleanQuery.length >= 4 && !cleanQuery.includes(' ')) {
+            try {
+                let identifierQuery = supabase
+                    .from('products')
+                    .select('*')
+                    .or(`imei1.ilike.${cleanQuery}%,imei2.ilike.${cleanQuery}%,serialNumber.ilike.${cleanQuery}%,sku.ilike.${cleanQuery}%`)
+                    .limit(fetchLimit);
+
+                if (stockFilter === 'in_stock') identifierQuery = identifierQuery.gt('stock', 0);
+                else if (stockFilter === 'out_of_stock') identifierQuery = identifierQuery.eq('stock', 0);
+
+                if (conditionFilter !== 'Todos') identifierQuery = identifierQuery.eq('condition', conditionFilter);
+                if (locationFilter !== 'Todos') identifierQuery = identifierQuery.eq('storageLocation', locationFilter);
+
+                const { data: identifierData } = await identifierQuery;
+
+                if (identifierData && identifierData.length > 0) {
+                    const validIdentifierRows = identifierData.filter((p: any) => {
+                        if (typeFilter === 'Produtos Apple') return (p.brand || '').toLowerCase() === 'apple';
+                        if (typeFilter === 'Produtos Variados') return (p.brand || '').toLowerCase() !== 'apple';
+                        if (typeFilter === 'Produtos de troca') return p.origin === 'Troca' || p.origin === 'Comprado de Cliente';
+                        if (typeFilter === 'Com Comissão') return p.commission_enabled === true;
+                        return true;
+                    });
+
+                    const existingIds = new Set(rows.map((r: any) => r.id));
+                    const newRows = validIdentifierRows.filter((r: any) => !existingIds.has(r.id));
+
+                    rows = [...newRows, ...rows];
+                    totalCount = Math.max(totalCount, rows.length);
+                }
+            } catch (err) {
+                console.warn('Fallback identifier search failed:', err);
+            }
+        }
+
+        if (error && rows.length === 0) {
             console.warn('searchProductsRPC failed, will throw:', error);
             throw error;
         }
-
-        const rows = data || [];
-        const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
 
         let products: Product[] = rows.map((p: any) => ({
             ...p,

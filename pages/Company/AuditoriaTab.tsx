@@ -7,7 +7,9 @@ import {
     CalculatorIcon, ArchiveBoxIcon, UserCircleIcon, InfoIcon, ErrorIcon
 } from '../../components/icons.tsx';
 import { toDateValue } from '../../utils/dateUtils.ts';
-import CustomDatePicker from '../../components/CustomDatePicker.tsx';type PeriodFilter = 'last_hour' | 'today' | 'yesterday' | 'custom';
+import CustomDatePicker from '../../components/CustomDatePicker.tsx';
+
+type PeriodFilter = 'last_hour' | 'today' | 'yesterday' | 'custom';
 
 const SUSPICIOUS_ACTIONS = [
     AuditActionType.DELETE,
