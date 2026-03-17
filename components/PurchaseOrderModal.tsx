@@ -81,11 +81,11 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     const [localSuppliers, setLocalSuppliers] = useState<Supplier[]>(suppliers);
     const [localCustomers, setLocalCustomers] = useState<Customer[]>(customers);
 
-    useEffect(() => { setLocalBrands(brands); }, [brands]);
-    useEffect(() => { setLocalCategories(categories); }, [categories]);
-    useEffect(() => { setLocalModels(productModels); }, [productModels]);
-    useEffect(() => { setLocalSuppliers(suppliers); }, [suppliers]);
-    useEffect(() => { setLocalCustomers(customers); }, [customers]);
+    useEffect(() => { setLocalBrands(prev => prev.length !== brands.length ? brands : prev); }, [brands]);
+    useEffect(() => { setLocalCategories(prev => prev.length !== categories.length ? categories : prev); }, [categories]);
+    useEffect(() => { setLocalModels(prev => prev.length !== productModels.length ? productModels : prev); }, [productModels]);
+    useEffect(() => { setLocalSuppliers(prev => prev.length !== suppliers.length ? suppliers : prev); }, [suppliers]);
+    useEffect(() => { setLocalCustomers(prev => prev.length !== customers.length ? customers : prev); }, [customers]);
 
     const [isMinimumStockEnabled, setIsMinimumStockEnabled] = useState(false);
     const [showVariations, setShowVariations] = useState(false);
