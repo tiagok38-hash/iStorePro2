@@ -1,51 +1,13 @@
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Brand, Category, ProductModel, Grade, GradeValue, User, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, Address, PermissionProfile, ReceiptTermParameter, PermissionSet, CompanyInfo, Sale, PurchaseOrder, Product } from '../../types.ts';
-import {
-    getBrands, addBrand, updateBrand, deleteBrand,
-    getCategories, addCategory, updateCategory, deleteCategory,
-    getSales, getProducts, getPurchaseOrders,
-    getProductModels, addProductModel, updateProductModel, deleteProductModel,
-    getGrades, addGrade, updateGrade, deleteGrade,
-    getGradeValues, addGradeValue, updateGradeValue, deleteGradeValue,
-    getUsers,
-    getAuditLogs,
-    formatPhone,
-    getProductConditions, addProductCondition, updateProductCondition, deleteProductCondition,
-    getStorageLocations, addStorageLocation, updateStorageLocation, deleteStorageLocation,
-    getWarranties, addWarranty, updateWarranty, deleteWarranty,
-    getPaymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-    updateUser, getPermissionProfiles,
-    getReceiptTerms, addReceiptTerm, updateReceiptTerm, deleteReceiptTerm,
-    getCompanyInfo, updateCompanyInfo,
-    getFullBackup, restoreFullBackup
-} from '../../services/mockApi.ts';
-import { useToast } from '../../contexts/ToastContext.tsx';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AuditLog, AuditActionType, AuditEntityType, Sale, PurchaseOrder, Product } from '../../types.ts';
+import { getSales, getProducts, getPurchaseOrders, getAuditLogs } from '../../services/mockApi.ts';
 import {
     SpinnerIcon, EditIcon, TrashIcon, PlusIcon, ShoppingCartIcon, XCircleIcon,
-    CalculatorIcon, ArchiveBoxIcon, CheckIcon, UserCircleIcon, InfoIcon,
-    PhotographIcon, CameraIcon, DocumentArrowUpIcon, ErrorIcon
+    CalculatorIcon, ArchiveBoxIcon, UserCircleIcon, InfoIcon, ErrorIcon
 } from '../../components/icons.tsx';
-import ConfirmationModal from '../../components/ConfirmationModal.tsx';
-import CardConfigModal from '../../components/CardConfigModal.tsx';
-import Users from '../Users.tsx';
-import SubcategoryModal from '../../components/SubcategoryModal.tsx';
-import { useUser } from '../../contexts/UserContext.tsx';
-import ReceiptTermModal from '../../components/ReceiptTermModal.tsx';
-import CameraModal from '../../components/CameraModal.tsx';
-import PaymentMethodModal from '../../components/PaymentMethodModal.tsx';
-import Button from '../../components/Button.tsx';
-import { toDateValue, formatTimeBR, formatRelativeDate } from '../../utils/dateUtils.ts';
-import { compressImage } from '../../utils/imageUtils.ts';
-import ImageCropperModal from '../../components/ImageCropperModal.tsx';
-import CustomDatePicker from '../../components/CustomDatePicker.tsx';
-import LoadingOverlay from '../../components/LoadingOverlay.tsx';
-import Comissoes from '../Comissoes.tsx';
-import BancoHorasTab from '../BancoHorasTab.tsx';
-import GerenciarFuncionariosTab from '../GerenciarFuncionariosTab.tsx';
-
-type PeriodFilter = 'last_hour' | 'today' | 'yesterday' | 'custom';
+import { toDateValue } from '../../utils/dateUtils.ts';
+import CustomDatePicker from '../../components/CustomDatePicker.tsx';type PeriodFilter = 'last_hour' | 'today' | 'yesterday' | 'custom';
 
 const SUSPICIOUS_ACTIONS = [
     AuditActionType.DELETE,
@@ -399,6 +361,35 @@ const AuditoriaTab: React.FC = () => {
                                     // Primeiro, tentar usar a tradução baseada na ação
                                     const actionText = translateAction(log.action);
                                     const entityText = translateEntity(log.entity);
+
+                                    // ── Tratamento especial: resumo de operação em massa (JSON puro) ──
+                                    // O productService grava o details como JSON direto para BULK_PRICE_UPDATE.
+                                    // Formato: {"count":N,"timestamp":"...","user":"...","updates":[{id,model,location,...}]}
+                                    if (log.action === AuditActionType.BULK_PRICE_UPDATE && text.trim().startsWith('{')) {
+                                        try {
+                                            const bulk = JSON.parse(text);
+                                            const count = bulk.count ?? (bulk.updates?.length ?? 0);
+                                            const updates: any[] = bulk.updates ?? [];
+
+                                            // Detectar tipo de operação predominante na lista
+                                            const hasLocation = updates.some((u: any) => u.location != null);
+                                            const hasPrice    = updates.some((u: any) => u.price != null || u.costPrice != null || u.wholesalePrice != null);
+
+                                            // Descobrir destino único de local (se todos forem para o mesmo)
+                                            const locations = [...new Set(updates.map((u: any) => u.location).filter(Boolean))];
+                                            const locationLabel = locations.length === 1 ? ` → "${locations[0]}"` : '';
+
+                                            if (hasLocation && !hasPrice) {
+                                                return `Atualização em Massa: ${count} produto(s) transferido(s) de local${locationLabel}`;
+                                            }
+                                            if (hasPrice && !hasLocation) {
+                                                return `Atualização em Massa: Preço de ${count} produto(s) atualizado(s)`;
+                                            }
+                                            return `Atualização em Massa: ${count} produto(s) atualizado(s)`;
+                                        } catch {
+                                            // Se falhar o parse, cai no fallback abaixo
+                                        }
+                                    }
 
                                     // Remover JSON técnico e simplificar
                                     if (text.includes('Item adicionado em ') || text.includes('Item atualizado em ') || text.includes('Item excluído de ')) {

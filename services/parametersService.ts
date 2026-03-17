@@ -69,11 +69,19 @@ const deleteItem = async (table: string, id: string, cacheKey: string, userId: s
     if (error) throw error;
 
     if (item) {
+        // Tentar pegar o melhor nome descritivo do item
+        let itemName = item.name || item.model || item.type || id;
+        
+        // Formatar melhor para métodos de pagamento ou configurações que não tem "name" na raiz
+        if (table.includes('payment_methods') && item.config?._meta_type) {
+             itemName = item.name || item.config._meta_type;
+        }
+
         await addAuditLog(
             AuditActionType.DELETE,
             getTableEntityType(table),
             id,
-            `Item excluído de ${table}: ${item.name || item.id}`,
+            `Item excluído de ${table}: ${itemName}`,
             userId,
             userName
         );

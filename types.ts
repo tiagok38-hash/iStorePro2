@@ -842,6 +842,9 @@ export interface CompanyInfo {
     isCatalogOnline?: boolean;
     catalogOfflineMessage?: string;
     catalogOfflineImageUrl?: string;
+    // Telegram Bot Integration (multi-tenant)
+    telegramBotToken?: string;
+    telegramChatId?: string;
 }
 
 

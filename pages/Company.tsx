@@ -13,6 +13,7 @@ import BackupRestauracaoTab from './Company/BackupRestauracaoTab';
 import ParametrosTab from './Company/ParametrosTab';
 import MeiosDePagamentoTab from './Company/MeiosDePagamentoTab';
 import PerfilTab from './Company/PerfilTab';
+import TelegramTab from './Company/TelegramTab';
 import FuncionariosTab from './Company/FuncionariosTab';
 
 // --- MAIN COMPONENT ---
@@ -31,6 +32,7 @@ const Company: React.FC = () => {
         { id: 'meios_pagamento', label: 'Meios de Pagamento', permission: 'canManagePaymentMethods' },
         { id: 'auditoria', label: 'Auditoria', permission: 'canViewAudit' },
         { id: 'backup', label: 'Backup e Restauração', permission: 'canManageBackups' },
+        { id: 'telegram', label: '🤖 Bot Telegram', permission: 'canManageCompanyData' },
     ], []);
 
     const visibleTabs = useMemo(() => {
@@ -65,6 +67,7 @@ const Company: React.FC = () => {
             case 'backup': content = <BackupRestauracaoTab />; break;
             case 'perfil': content = <PerfilTab />; break;
             case 'funcionarios': content = <FuncionariosTab />; break;
+            case 'telegram': content = <TelegramTab />; break;
             default: content = <DadosEmpresaTab />; break;
         }
 

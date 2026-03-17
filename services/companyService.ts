@@ -42,6 +42,8 @@ export const getCompanyInfo = async (): Promise<CompanyInfo | null> => {
                 isCatalogOnline: row.is_catalog_online ?? true,
                 catalogOfflineMessage: row.catalog_offline_message,
                 catalogOfflineImageUrl: row.catalog_offline_image_url,
+                telegramBotToken: row.telegram_bot_token || '',
+                telegramChatId: row.telegram_chat_id || '',
             } as CompanyInfo;
         }, 2, 500);
     });
@@ -70,6 +72,8 @@ export const updateCompanyInfo = async (data: CompanyInfo, userId: string = 'sys
         is_catalog_online: data.isCatalogOnline,
         catalog_offline_message: data.catalogOfflineMessage,
         catalog_offline_image_url: data.catalogOfflineImageUrl,
+        telegram_bot_token: data.telegramBotToken ?? null,
+        telegram_chat_id: data.telegramChatId ?? null,
     };
 
     // We must use the userCompanyId since RLS dictates they can only UPDATE their own company
