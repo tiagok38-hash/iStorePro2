@@ -78,10 +78,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     const [localBrands, setLocalBrands] = useState<Brand[]>(brands);
     const [localCategories, setLocalCategories] = useState<Category[]>(categories);
     const [localModels, setLocalModels] = useState<ProductModel[]>(productModels);
+    const [localSuppliers, setLocalSuppliers] = useState<Supplier[]>(suppliers);
+    const [localCustomers, setLocalCustomers] = useState<Customer[]>(customers);
 
     useEffect(() => { setLocalBrands(brands); }, [brands]);
     useEffect(() => { setLocalCategories(categories); }, [categories]);
     useEffect(() => { setLocalModels(productModels); }, [productModels]);
+    useEffect(() => { setLocalSuppliers(suppliers); }, [suppliers]);
+    useEffect(() => { setLocalCustomers(customers); }, [customers]);
 
     const [isMinimumStockEnabled, setIsMinimumStockEnabled] = useState(false);
     const [showVariations, setShowVariations] = useState(false);
@@ -230,14 +234,14 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             return;
         }
 
-        const supplier = suppliers.find(s => String(s.id) === String(selectedId));
+        const supplier = localSuppliers.find(s => String(s.id) === String(selectedId));
         if (supplier) {
             setFormData(prev => ({ ...prev, supplierId: selectedId, supplierName: supplier.name }));
             setIsCustomerPurchase(!!supplier.linkedCustomerId);
             return;
         }
 
-        const customer = customers.find(c => String(c.id) === String(selectedId));
+        const customer = localCustomers.find(c => String(c.id) === String(selectedId));
         if (customer) {
             try {
                 const convertedSupplier = await findOrCreateSupplierFromCustomer(customer);
@@ -300,8 +304,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 // Creation on demand
                 let currentSupplierName = formData.supplierName;
                 if (!currentSupplierName && formData.supplierId) {
-                    const supplier = suppliers.find(s => String(s.id) === String(formData.supplierId));
-                    const customer = customers.find(c => String(c.id) === String(formData.supplierId));
+                    const supplier = localSuppliers.find(s => String(s.id) === String(formData.supplierId));
+                    const customer = localCustomers.find(c => String(c.id) === String(formData.supplierId));
                     currentSupplierName = supplier?.name || customer?.name || 'Fornecedor Desconhecido';
                 }
 
@@ -362,6 +366,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         };
         const newSupplier = await onAddNewSupplier(supplierPayload);
         if (newSupplier) {
+            setLocalSuppliers(prev => [...prev, newSupplier]);
             // Directly set the supplier data without relying on the props list (which may not have updated yet)
             setFormData(prev => ({ ...prev, supplierId: newSupplier.id, supplierName: newSupplier.name }));
             setIsCustomerPurchase(false);
@@ -622,7 +627,7 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             if (isOsMode) {
                 let currentSupplierName = formData.supplierName;
                 if (!currentSupplierName && formData.supplierId) {
-                    const supplier = suppliers.find(s => String(s.id) === String(formData.supplierId));
+                    const supplier = localSuppliers.find(s => String(s.id) === String(formData.supplierId));
                     currentSupplierName = supplier?.name || 'Fornecedor';
                 }
 
@@ -712,8 +717,8 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
             } else {
                 let currentSupplierName = formData.supplierName;
                 if (!currentSupplierName && formData.supplierId) {
-                    const supplier = suppliers.find(s => String(s.id) === String(formData.supplierId));
-                    const customer = customers.find(c => String(c.id) === String(formData.supplierId));
+                    const supplier = localSuppliers.find(s => String(s.id) === String(formData.supplierId));
+                    const customer = localCustomers.find(c => String(c.id) === String(formData.supplierId));
                     currentSupplierName = supplier?.name || customer?.name || 'Fornecedor Desconhecido';
                 }
 
@@ -745,11 +750,13 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
     };
 
     const combinedSupplierOptions = useMemo(() => {
-        const supplierOpts = suppliers.map(s => ({ value: s.id, label: s.name || 'Fornecedor Sem Nome' }));
-        const linkedCustomerIds = new Set(suppliers.map(s => s.linkedCustomerId).filter(Boolean));
-        const customerOpts = customers.filter(c => !linkedCustomerIds.has(c.id)).map(c => ({ value: c.id, label: c.name || 'Cliente Sem Nome' }));
+        const _suppliers = localSuppliers || [];
+        const _customers = localCustomers || [];
+        const supplierOpts = _suppliers.map(s => ({ value: s.id, label: s.name || 'Fornecedor Sem Nome' }));
+        const linkedCustomerIds = new Set(_suppliers.map(s => s.linkedCustomerId).filter(Boolean));
+        const customerOpts = _customers.filter(c => !linkedCustomerIds.has(c.id)).map(c => ({ value: c.id, label: c.name || 'Cliente Sem Nome' }));
         return [...supplierOpts, ...customerOpts].sort((a, b) => (a.label || '').localeCompare(b.label || ''));
-    }, [suppliers, customers]);
+    }, [localSuppliers, localCustomers]);
 
     const filteredCategories = useMemo(() => {
         if (!currentItem.productDetails?.brand) return [];
