@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Product } from '../types.ts';
+import { Product, Supplier } from '../types.ts';
 import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, ClockIcon } from './icons.tsx';
 import { formatCurrency, getBulkUpdateLogs } from '../services/mockApi.ts';
 import CurrencyInput from './CurrencyInput.tsx';
@@ -8,11 +8,12 @@ import { AuditLog } from '../types.ts';
 
 interface BulkPriceUpdateModalProps {
     allProducts: Product[];
+    suppliers?: Supplier[];
     onClose: () => void;
     onBulkUpdate: (updates: { id: string; price?: number; costPrice?: number; wholesalePrice?: number; commission_enabled?: boolean; commission_type?: 'fixed' | 'percentage'; commission_value?: number; discount_limit_type?: 'fixed' | 'percentage'; discount_limit_value?: number }[]) => Promise<void>;
 }
 
-const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts, onClose, onBulkUpdate }) => {
+const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts, suppliers = [], onClose, onBulkUpdate }) => {
     const [activeTab, setActiveTab] = useState<'precos' | 'comissoes'>('precos');
     const [conditionFilter, setConditionFilter] = useState('todas');
     const [searchTerm, setSearchTerm] = useState('');
@@ -370,13 +371,35 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                                         {product.stock} un.
                                                     </span>
                                                 </div>
-                                                {(product.serialNumber || product.imei1) && (
-                                                    <p className="text-[10px] text-gray-500 mb-2 font-mono">
-                                                        {product.serialNumber && <span>S/N: {product.serialNumber}</span>}
-                                                        {product.serialNumber && product.imei1 && <span className="mx-1">•</span>}
-                                                        {product.imei1 && <span>IMEI: {product.imei1}</span>}
-                                                    </p>
-                                                )}
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+                                                    {(product.serialNumber || product.imei1) && (
+                                                        <p className="text-[10px] text-gray-500 font-mono flex items-center gap-x-2">
+                                                            {product.serialNumber && <span>S/N: {product.serialNumber}</span>}
+                                                            {product.imei1 && <span>IMEI: {product.imei1}</span>}
+                                                        </p>
+                                                    )}
+
+                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-gray-400">
+                                                        <div className="flex items-center gap-1">
+                                                            <ClockIcon className="h-3 w-3" />
+                                                            <span>{new Date(product.createdAt).toLocaleDateString('pt-BR')}</span>
+                                                        </div>
+                                                        {product.supplierId && (
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-bold text-gray-500">Forn.:</span>
+                                                                <span className="text-gray-600 truncate max-w-[100px]">
+                                                                    {suppliers.find(s => s.id === product.supplierId)?.name || 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {product.storageLocation && (
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-bold text-gray-500">Local:</span>
+                                                                <span className="text-gray-600 bg-gray-100/50 px-1 rounded">{product.storageLocation}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
 
                                                 {/* Show different info based on active tab */}
                                                 {activeTab === 'precos' ? (

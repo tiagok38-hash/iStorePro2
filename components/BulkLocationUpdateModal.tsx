@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
-import { Product, StorageLocationParameter, PurchaseOrder, AuditLog } from '../types.ts';
+import { Product, StorageLocationParameter, PurchaseOrder, AuditLog, Supplier } from '../types.ts';
 import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, MapPinIcon, CheckIcon, ClockIcon, ChevronLeftIcon, PlusIcon, CubeIcon } from './icons.tsx';
 import { getStorageLocations, getAuditLogs, getProducts } from '../services/mockApi.ts';
 
 interface BulkLocationUpdateModalProps {
     allProducts: Product[];
     purchases: PurchaseOrder[];
+    suppliers?: Supplier[];
     onClose: () => void;
     onBulkUpdate: (updates: { id: string; storageLocation: string; quantityToMove?: number }[]) => Promise<void>;
 }
@@ -24,7 +25,7 @@ interface LocationChangeHistoryItem {
     changedBy: string;
 }
 
-const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allProducts, purchases, onClose, onBulkUpdate }) => {
+const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allProducts, purchases, suppliers = [], onClose, onBulkUpdate }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<Product[]>([]);
     const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
@@ -442,26 +443,23 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                             <div key={product.id} className={`p-3 flex items-center justify-between gap-3 transition-colors ${isJustAdded ? 'bg-emerald-50' : ''}`}>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-gray-900 text-sm truncate">{desc}</p>
-                                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5 flex-wrap">
-                                                        <span>Estoque: <strong>{product.stock}</strong></span>
-                                                        <span>•</span>
-                                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${product.condition === 'Novo' ? 'bg-green-100 text-green-700' :
+                                                    <div className="flex items-center gap-x-2 gap-y-1 text-[10px] text-gray-500 mt-1 flex-wrap">
+                                                        <span className={`px-1 rounded text-[9px] font-black uppercase ${product.condition === 'Novo' ? 'bg-green-100 text-green-700' :
                                                             product.condition === 'Reservado' ? 'bg-yellow-100 text-yellow-700' :
                                                                 'bg-blue-100 text-blue-700'
                                                             }`}>{product.condition}</span>
-                                                        <span>•</span>
+                                                        <span>Estoque: <strong>{product.stock}</strong></span>
                                                         <span>Local: <strong className="text-emerald-600">{product.storageLocation || 'N/A'}</strong></span>
-                                                        {product.imei1 && (
-                                                            <>
-                                                                <span>•</span>
-                                                                <span className="font-mono text-[10px]">IMEI: {product.imei1}</span>
-                                                            </>
-                                                        )}
-                                                        {product.serialNumber && (
-                                                            <>
-                                                                <span>•</span>
-                                                                <span className="font-mono text-[10px]">N/S: {product.serialNumber}</span>
-                                                            </>
+                                                        {product.imei1 && <span className="font-mono">IMEI:{product.imei1}</span>}
+                                                        {product.serialNumber && <span className="font-mono">S/N:{product.serialNumber}</span>}
+                                                        <span className="flex items-center gap-1">
+                                                            <ClockIcon className="h-3 w-3" />
+                                                            {new Date(product.createdAt).toLocaleDateString('pt-BR')}
+                                                        </span>
+                                                        {product.supplierId && (
+                                                            <span className="truncate max-w-[100px] font-medium" title="Fornecedor">
+                                                                • {suppliers.find(s => s.id === product.supplierId)?.name || 'N/A'}
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>
