@@ -120,7 +120,7 @@ const App: React.FC = () => {
                                             <Route element={<ProtectedRoute permissionKey="canAccessEstoque" />}>
                                                 <Route path="/products" element={<Products />} />
                                             </Route>
-                                            <Route element={<ProtectedRoute permissionKey="canAccessClientes" />}>
+                                            <Route element={<ProtectedRoute permissionKey={["canAccessClientes", "canAccessFornecedores"]} />}>
                                                 <Route path="/customers" element={<Customers />} />
                                             </Route>
                                             <Route element={<ProtectedRoute permissionKey="canAccessVendas" />}>

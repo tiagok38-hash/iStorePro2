@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart2, Package, Wrench, Users, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
-import { getServiceOrders, getOsParts, formatCurrency, OsPart } from '../../services/mockApi';
-import { ServiceOrder } from '../../types';
+import { getServiceOrders, getOsParts, formatCurrency, OsPart, getBrands, getCategories, getProductModels } from '../../services/mockApi';
+import { ServiceOrder, Brand, Category, ProductModel } from '../../types';
 
 type ReportTab = 'stock' | 'services' | 'technicians' | 'os';
 type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
@@ -42,8 +42,12 @@ const formatDateInput = (d: Date) => {
 
 const ServiceOrderReports: React.FC = () => {
     const [activeReport, setActiveReport] = useState<ReportTab>('stock');
+
     const [orders, setOrders] = useState<ServiceOrder[]>([]);
     const [osParts, setOsParts] = useState<OsPart[]>([]);
+    const [brands, setBrands] = useState<Brand[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [productModels, setProductModels] = useState<ProductModel[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Period filter
@@ -65,12 +69,18 @@ const ServiceOrderReports: React.FC = () => {
         const load = async () => {
             setLoading(true);
             try {
-                const [ordersData, partsData] = await Promise.all([
+                const [ordersData, partsData, brandsData, categoriesData, modelsData] = await Promise.all([
                     getServiceOrders(),
                     getOsParts(false),
+                    getBrands(),
+                    getCategories(),
+                    getProductModels()
                 ]);
                 setOrders(ordersData || []);
                 setOsParts(partsData || []);
+                setBrands(brandsData || []);
+                setCategories(categoriesData || []);
+                setProductModels(modelsData || []);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -287,7 +297,13 @@ const ServiceOrderReports: React.FC = () => {
                                                 <tr key={p.id} className="hover:bg-gray-50">
                                                     <td className="px-6 py-3">
                                                         <p className="text-sm font-semibold text-gray-800">{p.name}</p>
-                                                        <p className="text-xs text-gray-400">{[p.brand, p.category, p.model].filter(Boolean).join(' · ')}</p>
+                                                        <p className="text-xs text-gray-400">
+                                                            {[
+                                                                brands.find(b => b.id === p.brand || b.name === p.brand)?.name || p.brand,
+                                                                categories.find(c => c.id === p.category || c.name === p.category)?.name || p.category,
+                                                                productModels.find(m => m.id === p.model || m.name === p.model)?.name || p.model
+                                                            ].filter(Boolean).join(' · ')}
+                                                        </p>
                                                     </td>
                                                     <td className="px-4 py-3 text-center text-sm font-bold text-gray-700">{p.stock}</td>
                                                     <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(p.costPrice)}</td>

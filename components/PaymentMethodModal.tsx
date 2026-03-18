@@ -17,6 +17,20 @@ const defaultCardConfig: CardConfigData = {
     creditWithInterestRates: Array.from({ length: 21 }, (_, i) => ({ installments: i + 1, rate: 0 })),
 };
 
+const ensureInstallments = (rates: InstallmentRate[]): InstallmentRate[] => {
+    const safeRates = Array.isArray(rates) ? rates : [];
+    const existing = new Map(safeRates.map(r => [r.installments, r]));
+    const fullRates: InstallmentRate[] = [];
+    for (let i = 1; i <= 21; i++) {
+        if (existing.has(i)) {
+            fullRates.push(existing.get(i)!);
+        } else {
+            fullRates.push({ installments: i, rate: 0 });
+        }
+    }
+    return fullRates;
+};
+
 const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, onClose, isSaving }) => {
     const [formData, setFormData] = useState<Partial<PaymentMethodParameter>>({
         name: '',
@@ -43,19 +57,6 @@ const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({ item, onSave, o
             });
         }
     }, [item]);
-
-    const ensureInstallments = (rates: InstallmentRate[]): InstallmentRate[] => {
-        const existing = new Map(rates.map(r => [r.installments, r]));
-        const fullRates: InstallmentRate[] = [];
-        for (let i = 1; i <= 21; i++) {
-            if (existing.has(i)) {
-                fullRates.push(existing.get(i)!);
-            } else {
-                fullRates.push({ installments: i, rate: 0 });
-            }
-        }
-        return fullRates;
-    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;

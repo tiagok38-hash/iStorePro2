@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SpinnerIcon } from './icons.tsx';
 import { PermissionSet } from '../types.ts';
@@ -10,6 +11,26 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
     const { isAuthenticated, loading, permissions, user } = useUser();
+    const { showToast } = useToast();
+
+    const effectivePermissions = React.useMemo(() => {
+        if (permissions !== null) return permissions;
+        if (user?.permissionProfileId === 'profile-admin') return new Proxy({}, { get: () => true }) as any;
+        return {} as any;
+    }, [permissions, user]);
+
+    const hasPermission = React.useMemo(() => {
+        if (!permissionKey) return true;
+        return Array.isArray(permissionKey)
+            ? permissionKey.some(key => effectivePermissions[key])
+            : !!effectivePermissions[permissionKey];
+    }, [permissionKey, effectivePermissions]);
+
+    React.useEffect(() => {
+        if (!loading && permissions !== null && isAuthenticated && !hasPermission) {
+            showToast('Acesso negado: Você não tem permissão para acessar esta área.', 'warning');
+        }
+    }, [loading, permissions, isAuthenticated, hasPermission, showToast]);
 
     if (loading) {
         return (
@@ -19,14 +40,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         );
     }
 
-    // If not authenticated at all, redirect to login
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
 
-    // If permissions are still loading, show a loading/waiting state.
-    // If we let a null permission pass below, effectivePermissions will be empty
-    // which causes a redirect to /login, creating an infinite redirect loop.
     if (permissions === null) {
         console.warn('ProtectedRoute: Permissions are null. Access denied as Deny-by-Default fallback used for:', user?.email);
         return (
@@ -43,14 +60,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         );
     }
 
-    const effectivePermissions = permissions || (user?.permissionProfileId === 'profile-admin' ? new Proxy({}, { get: () => true }) : {}) as Record<string, boolean>;
-
-    const hasPermission = !permissionKey || (
-        Array.isArray(permissionKey)
-            ? permissionKey.some(key => effectivePermissions[key as keyof typeof effectivePermissions])
-            : effectivePermissions[permissionKey as keyof typeof effectivePermissions]
-    );
-
     if (!hasPermission) {
         console.warn(`ProtectedRoute: Access denied for ${permissionKey}. Redirecting to first available page.`);
         // Find first available internal page
@@ -62,7 +71,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
         if (effectivePermissions.canAccessEmpresa) return <Navigate to="/company" replace />;
         if (effectivePermissions.canAccessPOS) return <Navigate to="/pos" replace />;
 
-        // If really NO permissions or at login, final fallback
         return <Navigate to="/login" replace />;
     }
 

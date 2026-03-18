@@ -90,6 +90,59 @@ BEGIN
         );
     END IF;
 
+    -- Cartão Débito
+    IF NOT EXISTS (SELECT 1 FROM public.payment_methods WHERE name = 'Cartão Débito' AND company_id = p_company_id) THEN
+        INSERT INTO public.payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            gen_random_uuid()::text, 
+            'Cartão Débito', 
+            'card', 
+            true, 
+            jsonb_build_object(
+                '_meta_type', 'card',
+                '_meta_active', true,
+                'debitRate', 0
+            ), 
+            p_company_id
+        );
+    END IF;
+
+    -- Cartão Crédito
+    IF NOT EXISTS (SELECT 1 FROM public.payment_methods WHERE name = 'Cartão Crédito' AND company_id = p_company_id) THEN
+        INSERT INTO public.payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            gen_random_uuid()::text, 
+            'Cartão Crédito', 
+            'card', 
+            true, 
+            jsonb_build_object(
+                '_meta_type', 'card',
+                '_meta_active', true,
+                'debitRate', 0,
+                'creditNoInterestRates', '[]'::jsonb,
+                'creditWithInterestRates', '[]'::jsonb
+            ), 
+            p_company_id
+        );
+    END IF;
+
+    -- Crediário
+    IF NOT EXISTS (SELECT 1 FROM public.payment_methods WHERE name = 'Crediário' AND company_id = p_company_id) THEN
+        INSERT INTO public.payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            gen_random_uuid()::text, 
+            'Crediário', 
+            'cash', 
+            true, 
+            jsonb_build_object(
+                '_meta_type', 'cash',
+                '_meta_active', true,
+                'debitRate', 0
+            ), 
+            p_company_id
+        );
+    END IF;
+
     -- 3. Inserir Garantias
     INSERT INTO public.warranties (name, days, company_id)
     SELECT name, days, p_company_id
@@ -117,8 +170,8 @@ BEGIN
     );
 
     -- 5. Inserir Termos de Recebimento
-    INSERT INTO public.receipt_terms (name, warranty_term, warranty_exclusions, image_rights, company_id)
-    SELECT name, warranty_term, warranty_exclusions, image_rights, p_company_id
+    INSERT INTO public.receipt_terms (name, "warrantyTerm", "warrantyExclusions", "imageRights", company_id)
+    SELECT name, to_jsonb(warranty_term), to_jsonb(warranty_exclusions), to_jsonb(image_rights), p_company_id
     FROM (VALUES 
         ('Termo Padrão', 'Garantia legal de 90 dias.', 'Danos físicos, contato com líquidos, violação de lacre.', 'Autorizo o uso de imagem para fins de registro.', p_company_id)
     ) AS v(name, warranty_term, warranty_exclusions, image_rights, company_id)
@@ -144,12 +197,78 @@ BEGIN
     WHERE NOT EXISTS (SELECT 1 FROM public.os_warranties WHERE name = v.name AND company_id = p_company_id);
 
     -- 8. Inserir Termos de OS (os_receipt_terms)
-    INSERT INTO public.os_receipt_terms (name, warranty_term, warranty_exclusions, image_rights, company_id)
-    SELECT name, warranty_term, warranty_exclusions, image_rights, p_company_id
+    INSERT INTO public.os_receipt_terms (name, "warrantyTerm", "warrantyExclusions", "imageRights", company_id)
+    SELECT name, to_jsonb(warranty_term), to_jsonb(warranty_exclusions), to_jsonb(image_rights), p_company_id
     FROM (VALUES 
         ('Termo de OS Padrão', 'Garantia de 90 dias sobre a mão de obra.', 'Danos por mau uso.', 'Uso para fins técnicos.', p_company_id)
     ) AS v(name, warranty_term, warranty_exclusions, image_rights, company_id)
     WHERE NOT EXISTS (SELECT 1 FROM public.os_receipt_terms WHERE name = v.name AND company_id = p_company_id);
+
+    -- Formas de Pagamento OS
+    -- Pix OS
+    IF NOT EXISTS (SELECT 1 FROM public.os_payment_methods WHERE name = 'Pix' AND company_id = p_company_id) THEN
+        INSERT INTO public.os_payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            'os_' || gen_random_uuid()::text, 
+            'Pix', 
+            'cash', 
+            true, 
+            jsonb_build_object('_meta_type', 'cash', '_meta_active', true, 'debitRate', 0), 
+            p_company_id
+        );
+    END IF;
+
+    -- Dinheiro OS
+    IF NOT EXISTS (SELECT 1 FROM public.os_payment_methods WHERE name = 'Dinheiro' AND company_id = p_company_id) THEN
+        INSERT INTO public.os_payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            'os_' || gen_random_uuid()::text, 
+            'Dinheiro', 
+            'cash', 
+            true, 
+            jsonb_build_object('_meta_type', 'cash', '_meta_active', true, 'debitRate', 0), 
+            p_company_id
+        );
+    END IF;
+
+    -- Cartão Débito OS
+    IF NOT EXISTS (SELECT 1 FROM public.os_payment_methods WHERE name = 'Cartão Débito' AND company_id = p_company_id) THEN
+        INSERT INTO public.os_payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            'os_' || gen_random_uuid()::text, 
+            'Cartão Débito', 
+            'card', 
+            true, 
+            jsonb_build_object('_meta_type', 'card', '_meta_active', true, 'debitRate', 0), 
+            p_company_id
+        );
+    END IF;
+
+    -- Cartão Crédito OS
+    IF NOT EXISTS (SELECT 1 FROM public.os_payment_methods WHERE name = 'Cartão Crédito' AND company_id = p_company_id) THEN
+        INSERT INTO public.os_payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            'os_' || gen_random_uuid()::text, 
+            'Cartão Crédito', 
+            'card', 
+            true, 
+            jsonb_build_object('_meta_type', 'card', '_meta_active', true, 'debitRate', 0, 'creditNoInterestRates', '[]'::jsonb, 'creditWithInterestRates', '[]'::jsonb), 
+            p_company_id
+        );
+    END IF;
+
+    -- Crediário OS
+    IF NOT EXISTS (SELECT 1 FROM public.os_payment_methods WHERE name = 'Crediário' AND company_id = p_company_id) THEN
+        INSERT INTO public.os_payment_methods (id, name, type, active, config, company_id)
+        VALUES (
+            'os_' || gen_random_uuid()::text, 
+            'Crediário', 
+            'cash', 
+            true, 
+            jsonb_build_object('_meta_type', 'cash', '_meta_active', true, 'debitRate', 0), 
+            p_company_id
+        );
+    END IF;
 
     -- 9. Inserir Dados Bloom (Demonstração: Xiaomi)
     DECLARE

@@ -213,11 +213,8 @@ export const addReceiptTerm = (data: any, userId: string = 'system', userName: s
     const payload = {
         name: data.name || '',
         warrantyTerm: data.warrantyTerm || null,
-        warranty_term: data.warrantyTerm || null,
         warrantyExclusions: data.warrantyExclusions || null,
-        warranty_exclusions: data.warrantyExclusions || null,
         imageRights: data.imageRights || null,
-        image_rights: data.imageRights || null,
     };
     return addItem('receipt_terms', payload, 'receipt_terms', userId, userName);
 };
@@ -228,11 +225,8 @@ export const updateReceiptTerm = (data: any, userId: string = 'system', userName
         id,
         name: rest.name || '',
         warrantyTerm: rest.warrantyTerm || null,
-        warranty_term: rest.warrantyTerm || null,
         warrantyExclusions: rest.warrantyExclusions || null,
-        warranty_exclusions: rest.warrantyExclusions || null,
         imageRights: rest.imageRights || null,
-        image_rights: rest.imageRights || null,
     };
     return updateItem('receipt_terms', payload, 'receipt_terms', userId, userName);
 };
