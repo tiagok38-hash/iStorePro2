@@ -76,3 +76,9 @@ export const cleanUUIDs = (text: string | null | undefined): string => {
 
     return text.replace(uuidRegex, '').trim().replace(/\s+/g, ' ');
 };
+
+/** Remove marcas duplicadas ou prefixos indesejados da descrição do aparelho */
+export const cleanDeviceDescription = (text: string | null | undefined): string => {
+    if (!text) return "";
+    return text.replace(/^Apple\s+/i, '').trim();
+};

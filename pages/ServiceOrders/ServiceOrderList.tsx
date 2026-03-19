@@ -38,6 +38,7 @@ import { useUser } from '../../contexts/UserContext';
 import QuickOSModal from '../../components/QuickOSModal';
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
+import { cleanDeviceDescription } from '../../utils/formatters';
 
 // --- Constants ---
 type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardando Peça' | 'Pronto' | 'Entregue e Faturado' | 'Cancelada';
@@ -146,9 +147,12 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
             </div>
         </div>
 
-        <h4 className="font-bold text-sm text-primary mb-1 whitespace-normal break-words">{os.deviceModel}</h4>
-        <p className="text-xs text-secondary mb-3 flex items-center gap-1">
+        <h4 className="font-bold text-sm text-primary mb-1 whitespace-normal break-words">{cleanDeviceDescription(os.deviceModel)}</h4>
+        <p className="text-xs text-secondary mb-0.5 flex items-center gap-1">
             <User size={10} /> {os.customerName}
+        </p>
+        <p className="text-[10px] text-gray-400 mb-3 flex items-center gap-1 italic">
+            <UserCircle size={10} /> {os.attendantName || '-'}
         </p>
 
         {os.isOrcamentoOnly && os.status !== 'Cancelada' && (
@@ -724,6 +728,7 @@ const ServiceOrderList: React.FC = () => {
                                         <th className="px-4 py-3 font-bold">Aparelho</th>
                                         <th className="px-4 py-3 font-bold">Status</th>
                                         <th className="px-4 py-3 font-bold">Técnico</th>
+                                        <th className="px-4 py-3 font-bold">Atendente</th>
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Entrada</th>
                                         <th className="px-3 py-3 font-bold w-[100px]">Dt. Prevista</th>
                                         <th className="px-4 py-3 font-bold">Garantia</th>
@@ -736,11 +741,11 @@ const ServiceOrderList: React.FC = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={10} className="px-6 py-12 text-center text-secondary">Carregando...</td>
+                                            <td colSpan={13} className="px-6 py-12 text-center text-secondary">Carregando...</td>
                                         </tr>
                                     ) : filteredOrders.length === 0 ? (
                                         <tr>
-                                            <td colSpan={10} className="px-6 py-12 text-center text-secondary">Nenhuma ordem de serviço encontrada.</td>
+                                            <td colSpan={13} className="px-6 py-12 text-center text-secondary">Nenhuma ordem de serviço encontrada.</td>
                                         </tr>
                                     ) : (
                                         filteredOrders.map(os => {
@@ -755,9 +760,10 @@ const ServiceOrderList: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-secondary">{os.customerName}</td>
-                                                    <td className="px-4 py-3 font-medium text-primary max-w-[180px] break-words leading-tight whitespace-normal">{os.deviceModel}</td>
+                                                    <td className="px-4 py-3 font-medium text-primary max-w-[180px] break-words leading-tight whitespace-normal">{cleanDeviceDescription(os.deviceModel)}</td>
                                                     <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
                                                     <td className="px-4 py-3 text-secondary text-sm">{os.responsibleName || '-'}</td>
+                                                    <td className="px-4 py-3 text-secondary text-sm font-bold">{os.attendantName || '-'}</td>
                                                     <td className="px-4 py-3 text-secondary text-sm">
                                                         {os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
                                                     </td>
@@ -874,6 +880,9 @@ const ServiceOrderList: React.FC = () => {
                                                     <h4 className="font-bold text-sm text-primary mb-0.5">{os.deviceModel}</h4>
                                                     <p className="text-xs text-secondary flex items-center gap-1">
                                                         <User size={12} /> {os.customerName}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5 italic">
+                                                        <UserCircle size={10} /> Atendente: {os.attendantName || '-'}
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-col items-end">

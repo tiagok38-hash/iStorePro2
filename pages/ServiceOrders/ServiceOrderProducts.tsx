@@ -9,7 +9,7 @@ import {
 } from '../../services/mockApi';
 import { Service, Supplier, WarrantyParameter, Brand, Category, ProductModel, Grade, GradeValue } from '../../types';
 import {
-    SearchIcon, PlusIcon, EditIcon, TrashIcon, WrenchIcon, PackageIcon, ClockIcon, EyeIcon, XCircleIcon
+    SearchIcon, PlusIcon, EditIcon, TrashIcon, WrenchIcon, PackageIcon, ClockIcon, EyeIcon, XCircleIcon, DocumentTextIcon
 } from '../../components/icons';
 import { AlertTriangle } from 'lucide-react';
 import { SuccessIcon } from '../../components/icons';
@@ -21,6 +21,7 @@ import OsPartModal from '../../components/OsPartModal';
 import OsPurchaseModal from '../../components/OsPurchaseModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
 import OsPurchaseDetailModal from '../../components/OsPurchaseDetailModal';
+import OsPartReportModal from '../../components/OsPartReportModal';
 import { formatDateBR } from '../../utils/dateUtils';
 import { getOsWarranties } from '../../services/mockApi';
 import { useUser } from '../../contexts/UserContext';
@@ -275,6 +276,9 @@ const ServiceOrderProducts: React.FC = () => {
     const [purchaseToCancel, setPurchaseToCancel] = useState<OsPurchaseOrder | null>(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [purchaseToView, setPurchaseToView] = useState<OsPurchaseOrder | null>(null);
+
+    // OS Part Report Modal State
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
     // Confirm delete modal state
     const [confirmModal, setConfirmModal] = useState<{
@@ -626,13 +630,22 @@ const ServiceOrderProducts: React.FC = () => {
                         <Button onClick={() => { setEditingService(null); setIsServiceModalOpen(true); }} icon={<PlusIcon className="h-5 w-5" />}>Novo Serviço</Button>
                     )}
                     {activeTab === 'parts' && (
-                        <button
-                            onClick={() => setIsPurchaseModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-black transition-all shadow-sm active:scale-95"
-                        >
-                            <PlusIcon className="h-4 w-4" />
-                            Lançar Compra Peça/Suprimentos
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setIsReportModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-black transition-all shadow-sm active:scale-95"
+                            >
+                                <DocumentTextIcon className="h-4 w-4 text-amber-600" />
+                                Gerar relatório estoque
+                            </button>
+                            <button
+                                onClick={() => setIsPurchaseModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-black transition-all shadow-sm active:scale-95"
+                            >
+                                <PlusIcon className="h-4 w-4" />
+                                Lançar Compra Peça/Suprimentos
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -1101,6 +1114,14 @@ const ServiceOrderProducts: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {isReportModalOpen && (
+                <OsPartReportModal
+                    isOpen={isReportModalOpen}
+                    onClose={() => setIsReportModalOpen(false)}
+                    parts={osParts}
+                />
             )}
         </div >
     );

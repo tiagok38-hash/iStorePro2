@@ -46,6 +46,7 @@ import {
     OsPart,
     getCustomerDevices,
     addCustomerDevice,
+    updateCustomerDevice,
     getBrands,
     getCategories,
     getProductModels,
@@ -53,11 +54,12 @@ import {
     getGradeValues,
     getChecklistItems,
     getCompanyInfo,
-    deductOsPartsStock
+    deductOsPartsStock,
+    returnOsPartsStock
 } from '../../services/mockApi';
 import { getOsReceiptTerms } from '../../services/parametersService';
 import { generateCommissionsForOS } from '../../services/commissionService.ts';
-import { formatStorageUnit, deduplicateWarranties, cleanUUIDs } from '../../utils/formatters.ts';
+import { formatStorageUnit, deduplicateWarranties, cleanUUIDs, cleanDeviceDescription } from '../../utils/formatters.ts';
 import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
@@ -137,6 +139,7 @@ const ServiceOrderForm: React.FC = () => {
     const [showDeviceResults, setShowDeviceResults] = useState(false);
     const [passcode, setPasscode] = useState('');
     const [patternLock, setPatternLock] = useState<number[]>([]);
+    const [deviceToEdit, setDeviceToEdit] = useState<CustomerDevice | null>(null);
 
     const [checklist, setChecklist] = useState<ServiceOrderChecklist>({});
     const [othersDescription, setOthersDescription] = useState('');
@@ -167,6 +170,7 @@ const ServiceOrderForm: React.FC = () => {
     const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [cancellationReason, setCancellationReason] = useState<string | null>(null);
+    const [originalStatus, setOriginalStatus] = useState<string | null>(null);
 
     // Refs para controle de clique fora
     const customerSearchRef = useRef<HTMLDivElement>(null);
@@ -196,9 +200,9 @@ const ServiceOrderForm: React.FC = () => {
             const defTech = localStorage.getItem('os_default_technician_id');
             const defWar = localStorage.getItem('os_default_warranty_term');
 
-            setResponsibleId(prev => prev || defTech || currentUser.id);
-            setAttendantId(prev => prev || currentUser.id);
-            if (defWar) setReceiptTermId(prev => prev || defWar);
+            setResponsibleId(prev => (prev && prev !== '') ? prev : (defTech || currentUser.id));
+            setAttendantId(prev => (prev && prev !== '') ? prev : currentUser.id);
+            if (defWar) setReceiptTermId(prev => (prev && prev !== '') ? prev : defWar);
         }
     }, [currentUser, isEditing]);
 
@@ -272,6 +276,14 @@ const ServiceOrderForm: React.FC = () => {
         }
     };
 
+    // Sincronização secundária para garantir que campos complexos sejam mantidos após carregamento das listas
+    useEffect(() => {
+        if (isEditing && receiptTerms.length > 0 && receiptTermId) {
+            // Apenas para garantir que o componente select re-sincronize se necessário
+            setReceiptTermId(prev => prev);
+        }
+    }, [receiptTerms, receiptTermId, isEditing]);
+
     const loadServiceOrderData = async (id: string, preloadedCustomers?: any[]) => {
         setIsLoadingEdit(true);
         try {
@@ -284,7 +296,7 @@ const ServiceOrderForm: React.FC = () => {
 
             // Preencher todos os campos com os dados da OS
             setCustomerDeviceId(so.customerDeviceId || '');
-            setDeviceModel(so.deviceModel || '');
+            setDeviceModel(cleanDeviceDescription(so.deviceModel));
             setImei(so.imei || '');
             setSerialNumber(so.serialNumber || '');
             setPasscode(so.passcode || '');
@@ -308,6 +320,8 @@ const ServiceOrderForm: React.FC = () => {
             if ((so as any).exitDate) setExitDate((so as any).exitDate);
             setReceiptTermId(so.receiptTermId || '');
             setCancellationReason((so as any).cancellationReason || null);
+            setOriginalStatus(so.status || 'Orçamento');
+            
             // Bloquear edição para OS Entregues e Faturadas
             if (so.status === 'Entregue e Faturado') setIsLocked(true);
             // Carregar estado de edição anterior
@@ -413,12 +427,17 @@ const ServiceOrderForm: React.FC = () => {
 
     // Função auxiliar para montar descrição completa do aparelho
     const buildDeviceFullLabel = (device: CustomerDevice): string => {
+        const brand = device.brand || '';
+        const model = device.model || '';
+        const isApple = brand.toLowerCase() === 'apple';
+        const modelHasBrand = model.toLowerCase().includes(brand.toLowerCase());
+        
         const parts = [
-            device.brand && device.brand !== device.model ? device.brand : '',
-            device.model || '',
+            (brand && !isApple && !modelHasBrand) ? brand : '',
+            model || '',
             // Evita duplicar se storage/color já estiverem no model
-            device.storage && !device.model?.includes(device.storage) ? formatStorageUnit(device.storage) : '',
-            device.color && !device.model?.includes(device.color) ? device.color : ''
+            device.storage && !model.includes(device.storage) ? formatStorageUnit(device.storage) : '',
+            device.color && !model.includes(device.color) ? device.color : ''
         ].filter(Boolean);
         return parts.join(' ').trim().replace(/\s+/g, ' ');
     };
@@ -426,7 +445,7 @@ const ServiceOrderForm: React.FC = () => {
     const handleSelectDevice = (device: CustomerDevice, forceSetCustomer: boolean = false, knownCustomers?: Customer[]) => {
         const fullLabel = buildDeviceFullLabel(device);
         setCustomerDeviceId(device.id);
-        setDeviceModel(fullLabel || device.model || device.brand || '');
+        setDeviceModel(cleanDeviceDescription(fullLabel || device.model || device.brand));
         setImei(device.imei || '');
         setSerialNumber(device.serialNumber || '');
         setDeviceSearch(fullLabel || device.model || '');
@@ -564,16 +583,40 @@ const ServiceOrderForm: React.FC = () => {
         setIsLoading(true);
         try {
             const serviceOrderData = buildServiceOrderData();
+            const currentStatus = serviceOrderData.status;
+
             if (isEditing && editId) {
                 await updateServiceOrder(editId, { ...serviceOrderData, isEdited: true } as any);
+                
+                // --- Lógica de Estoque ---
+                // 1. OS mudou PARA "Entregue e Faturado": Baixar estoque
+                if (originalStatus !== 'Entregue e Faturado' && currentStatus === 'Entregue e Faturado') {
+                    await deductOsPartsStock(editId, displayId || 0, items);
+                }
+                // 2. OS saiu de "Entregue e Faturado" para outro status: Devolver estoque
+                else if (originalStatus === 'Entregue e Faturado' && currentStatus !== 'Entregue e Faturado') {
+                    await returnOsPartsStock(editId);
+                }
+                // 3. Permanece em "Entregue e Faturado": Sincronizar (devolver tudo e baixar de novo para garantir acuidade com as peças atuais)
+                else if (originalStatus === 'Entregue e Faturado' && currentStatus === 'Entregue e Faturado') {
+                    await returnOsPartsStock(editId);
+                    await deductOsPartsStock(editId, displayId || 0, items);
+                }
+
                 setIsEdited(true);
+                setOriginalStatus(currentStatus);
                 toast.success("Ordem de Serviço atualizada com sucesso!");
             } else {
-                await addServiceOrder(serviceOrderData);
+                const created = await addServiceOrder(serviceOrderData);
+                // Se criou direto como Entregue e Faturado (ex: via modal customizado se houver), baixa estoque
+                if (currentStatus === 'Entregue e Faturado' && created?.id) {
+                    await deductOsPartsStock(created.id, created.displayId || 0, items);
+                }
                 toast.success("Ordem de Serviço criada com sucesso!");
             }
             navigate('/service-orders/list');
         } catch (error) {
+            console.error("Error saving OS:", error);
             toast.error("Erro ao salvar Ordem de Serviço.");
         } finally {
             setIsLoading(false);
@@ -845,7 +888,11 @@ const ServiceOrderForm: React.FC = () => {
                                             {users
                                                 .filter(u => {
                                                     const profile = profiles.find(p => p.id === u.permissionProfileId);
-                                                    return (u.active !== false && profile?.permissions?.isTechnicianProfile) || u.id === responsibleId;
+                                                    const isTech = profile?.permissions?.isTechnicianProfile;
+                                                    const isActive = u.active !== false;
+                                                    const isCurrentlySelected = u.id === responsibleId;
+                                                    // Se estiver editando e for o selecionado, mantém mesmo se não for técnico ou inativo
+                                                    return (isActive && isTech) || isCurrentlySelected;
                                                 })
                                                 .map(u => (
                                                     <option key={u.id} value={u.id}>{u.name}</option>
@@ -1101,22 +1148,103 @@ const ServiceOrderForm: React.FC = () => {
                                         <div className="flex justify-between items-center mb-2">
                                             <label className="block text-xs font-black text-primary uppercase">Detalhes do Dispositivo</label>
                                         </div>
-                                        {!isEditing && (
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div ref={deviceSearchRef} className="relative w-full lg:w-[45%] min-w-[250px]">
-                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Buscar aparelhos do cliente ou bipar IMEI..."
-                                                        value={deviceSearch}
-                                                        onChange={e => {
-                                                            setDeviceSearch(e.target.value);
-                                                            setShowDeviceResults(true);
+                                        <div className="flex flex-wrap lg:flex-nowrap items-end gap-2">
+                                            {!customerDeviceId ? (
+                                                <>
+                                                    <button
+                                                        onClick={() => {
+                                                            setDeviceToEdit(null);
+                                                            setIsDeviceModalOpen(true);
                                                         }}
-                                                        onFocus={() => setShowDeviceResults(true)}
-                                                        className="w-full h-10 pl-10 pr-10 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-sm"
-                                                    />
-                                                    {customerDeviceId && !isEditing && (
+                                                        className="h-10 px-4 flex items-center gap-2 bg-accent text-white rounded-xl text-xs font-black transition-all hover:scale-105 shadow-md shadow-accent/20 whitespace-nowrap shrink-0"
+                                                        title="Novo Aparelho"
+                                                    >
+                                                        <Plus size={16} /> Novo Aparelho
+                                                    </button>
+
+                                                    <div ref={deviceSearchRef} className="relative flex-1 min-w-[200px]">
+                                                        <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">Buscar Aparelho</label>
+                                                        <div className="relative">
+                                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Modelo ou IMEI..."
+                                                                value={deviceSearch}
+                                                                onChange={e => {
+                                                                    setDeviceSearch(e.target.value);
+                                                                    setShowDeviceResults(true);
+                                                                }}
+                                                                onFocus={() => setShowDeviceResults(true)}
+                                                                className="w-full h-10 pl-9 pr-9 bg-white border border-gray-200 rounded-xl focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-sm"
+                                                            />
+                                                            {customerDeviceId && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setCustomerDeviceId('');
+                                                                        setDeviceModel('');
+                                                                        setImei('');
+                                                                        setSerialNumber('');
+                                                                        setDeviceSearch('');
+                                                                    }}
+                                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                                    title="Limpar seleção"
+                                                                >
+                                                                    <X size={14} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        {showDeviceResults && deviceSearch && (
+                                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                                                {filteredDevices.length > 0 ? (
+                                                                    filteredDevices.map(d => (
+                                                                        <button
+                                                                            type="button"
+                                                                            key={d.id}
+                                                                            onClick={() => handleSelectDevice(d)}
+                                                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                                                                        >
+                                                                            <div className="font-bold text-primary">{buildDeviceFullLabel(d)}</div>
+                                                                            <div className="text-xs text-secondary font-mono">
+                                                                                {d.imei && `IMEI: ${d.imei} `}
+                                                                                {d.serialNumber && `N/S: ${d.serialNumber}`}
+                                                                            </div>
+                                                                        </button>
+                                                                    ))
+                                                                ) : (
+                                                                    <div className="px-4 py-3 text-sm text-gray-400">Nenhum aparelho encontrado.</div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex-1">
+                                                    <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">Aparelho Selecionado</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            readOnly
+                                                            value={deviceModel}
+                                                            className="flex-1 h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-primary cursor-not-allowed"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const dev = customerDevices.find(d => d.id === customerDeviceId);
+                                                                if (dev) {
+                                                                    setDeviceToEdit(dev);
+                                                                    setIsDeviceModalOpen(true);
+                                                                } else {
+                                                                    toast.error("Aparelho não encontrado para edição.");
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-2 px-3 h-10 bg-white border border-gray-200 text-accent rounded-xl hover:bg-gray-50 transition-all font-bold text-xs shadow-sm whitespace-nowrap"
+                                                            title="Editar Aparelho"
+                                                        >
+                                                            <PencilLine size={14} /> Editar
+                                                        </button>
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
@@ -1127,76 +1255,35 @@ const ServiceOrderForm: React.FC = () => {
                                                                 setSerialNumber('');
                                                                 setDeviceSearch('');
                                                             }}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                            className="flex items-center justify-center w-10 h-10 bg-white border border-gray-200 text-gray-400 rounded-xl hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                                                            title="Desvincular Aparelho"
                                                         >
-                                                            <X size={16} />
+                                                            <X size={18} />
                                                         </button>
-                                                    )}
-                                                    {showDeviceResults && deviceSearch && (
-                                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
-                                                            {filteredDevices.length > 0 ? (
-                                                                filteredDevices.map(d => (
-                                                                    <button
-                                                                        key={d.id}
-                                                                        onClick={() => handleSelectDevice(d)}
-                                                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0"
-                                                                    >
-                                                                        <div className="font-bold text-primary">{d.brand} {d.model}</div>
-                                                                        <div className="text-xs text-secondary font-mono">
-                                                                            {d.imei && `IMEI: ${d.imei} `}
-                                                                            {d.serialNumber && `N/S: ${d.serialNumber}`}
-                                                                        </div>
-                                                                    </button>
-                                                                ))
-                                                            ) : (
-                                                                <div className="px-4 py-3 text-sm text-gray-400">Nenhum aparelho encontrado. Cadastre um novo.</div>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    </div>
                                                 </div>
+                                            )}
 
-                                                <button
-                                                    onClick={() => setIsDeviceModalOpen(true)}
-                                                    className="h-11 px-6 flex items-center gap-2 bg-accent text-white rounded-xl text-sm font-black transition-all hover:scale-105 shadow-md shadow-accent/20"
-                                                    title="Novo Aparelho"
-                                                >
-                                                    <Plus size={18} /> Novo Aparelho
-                                                </button>
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Modelo</label>
+                                            <div className="flex-1 sm:max-w-[200px]">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">IMEI</label>
                                                 <input
                                                     type="text"
-                                                    placeholder="Ex: iPhone 13 Pro"
-                                                    value={deviceModel}
-                                                    onChange={e => setDeviceModel(e.target.value)}
-                                                    className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm focus:border-accent"
+                                                    readOnly
+                                                    placeholder="IMEI"
+                                                    value={imei}
+                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-[13px] font-mono text-gray-500 cursor-not-allowed"
                                                 />
                                             </div>
-                                            <div className="flex gap-2">
-                                                <div className="flex-1">
-                                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">IMEI</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="IMEI"
-                                                        value={imei}
-                                                        onChange={e => setImei(e.target.value.replace(/\D/g, '').slice(0, 15))}
-                                                        maxLength={15}
-                                                        className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm font-mono focus:border-accent"
-                                                    />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Número de série</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Opcional"
-                                                        value={serialNumber}
-                                                        onChange={e => setSerialNumber(e.target.value)}
-                                                        className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg outline-none text-sm font-mono focus:border-accent"
-                                                    />
-                                                </div>
+
+                                            <div className="flex-1 sm:max-w-[150px]">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">N. Série</label>
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    placeholder="Opcional"
+                                                    value={serialNumber}
+                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-[13px] font-mono text-gray-500 cursor-not-allowed"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -1684,22 +1771,34 @@ const ServiceOrderForm: React.FC = () => {
                 isDeviceModalOpen && (
                     <ServiceOrderElectronicDevicesModal
                         isOpen={isDeviceModalOpen}
-                        onClose={() => setIsDeviceModalOpen(false)}
+                        onClose={() => {
+                            setIsDeviceModalOpen(false);
+                            setDeviceToEdit(null);
+                        }}
                         customers={customers}
                         brands={brands}
                         categories={categories}
                         productModels={productModels}
                         grades={grades}
                         gradeValues={gradeValues}
-                        initialData={selectedCustomer ? {
+                        initialData={deviceToEdit ? deviceToEdit : (selectedCustomer ? {
                             customerId: selectedCustomer.id,
                             customerName: selectedCustomer.name,
                             customerCpf: selectedCustomer.cpf
-                        } : undefined}
+                        } : undefined)}
                         onSave={async (device) => {
                             try {
-                                const savedDevice = await addCustomerDevice(device);
-                                setCustomerDevices([...customerDevices, savedDevice]);
+                                let savedDevice;
+                                if (deviceToEdit) {
+                                  savedDevice = await updateCustomerDevice(deviceToEdit.id, device);
+                                  // Update the local list
+                                  setCustomerDevices(prev => prev.map(d => d.id === savedDevice.id ? savedDevice : d));
+                                  toast.success("Aparelho atualizado com sucesso!");
+                                } else {
+                                  savedDevice = await addCustomerDevice(device);
+                                  setCustomerDevices([...customerDevices, savedDevice]);
+                                  toast.success("Aparelho cadastrado e vinculado!");
+                                }
                                 
                                 // Fetch latest customers directly since a new one could have been created in the modal
                                 const updatedCustomers = await getCustomers();
@@ -1708,9 +1807,11 @@ const ServiceOrderForm: React.FC = () => {
                                 // Força a atualização do cliente e do aparelho recém criados/selecionados
                                 handleSelectDevice(savedDevice, true, updatedCustomers);
                                 
-                                toast.success("Aparelho cadastrado e vinculado!");
+                                setIsDeviceModalOpen(false);
+                                setDeviceToEdit(null);
                             } catch (err) {
                                 toast.error("Erro ao salvar aparelho.");
+                                console.error(err);
                             }
                         }}
                     />
@@ -1826,7 +1927,14 @@ const ServiceOrderForm: React.FC = () => {
                             status: 'Cancelada',
                             cancellationReason: reason
                         } as any);
+                        
+                        // Devolver estoque se estava faturada
+                        if (originalStatus === 'Entregue e Faturado' || osStatus === 'Entregue e Faturado') {
+                            await returnOsPartsStock(editId);
+                        }
+
                         setOsStatus('Cancelada');
+                        setOriginalStatus('Cancelada');
                         setCancellationReason(reason);
                         toast.success("OS cancelada com sucesso!");
                         setIsCancelModalOpen(false);
