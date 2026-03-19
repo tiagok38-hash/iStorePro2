@@ -38,7 +38,7 @@ import { useUser } from '../../contexts/UserContext';
 import QuickOSModal from '../../components/QuickOSModal';
 import ServiceOrderPrintModal from '../../components/print/ServiceOrderPrintModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
-import { cleanDeviceDescription } from '../../utils/formatters';
+import { calculateOSProfit, cleanDeviceDescription } from '../../utils/formatters';
 
 // --- Constants ---
 type OSStatus = 'Orçamento' | 'Análise' | 'Aprovado' | 'Em Reparo' | 'Aguardando Peça' | 'Pronto' | 'Entregue e Faturado' | 'Cancelada';
@@ -54,11 +54,6 @@ const STATUS_CONFIG: Record<OSStatus, { color: string, bg: string, border: strin
     'Pronto': { color: 'text-purple-700', bg: 'bg-purple-100/80', border: 'border-purple-300', dot: 'bg-purple-600', gradient: 'from-purple-100 to-purple-50', dropBg: 'bg-purple-50' },
     'Entregue e Faturado': { color: 'text-emerald-700', bg: 'bg-emerald-100/80', border: 'border-emerald-200', dot: 'bg-emerald-500', gradient: 'from-emerald-100 to-emerald-50', dropBg: 'bg-emerald-50' },
     'Cancelada': { color: 'text-red-700', bg: 'bg-red-100/80', border: 'border-red-200', dot: 'bg-red-500', gradient: 'from-red-100 to-red-50', dropBg: 'bg-red-50' },
-};
-
-const calculateOSProfit = (os: any) => {
-    const totalCost = (os.items || []).reduce((acc: number, item: any) => acc + ((item.cost || 0) * (item.quantity || 1)), 0);
-    return (os.total || 0) - totalCost;
 };
 
 // --- Components ---
@@ -176,7 +171,7 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
             )}
         </div>
         <div className="flex justify-between items-end mt-1">
-            {os.total > 0 && <span className="text-xs font-black text-gray-900">R$ {os.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>}
+            {os.total > 0 && <span className="text-xs font-black text-emerald-600">R$ {os.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>}
             {showProfit && (() => {
                 const profit = calculateOSProfit(os);
                 return profit > 0 ? (
@@ -729,10 +724,10 @@ const ServiceOrderList: React.FC = () => {
                                         <th className="px-4 py-3 font-bold">Status</th>
                                         <th className="px-4 py-3 font-bold">Técnico</th>
                                         <th className="px-4 py-3 font-bold">Atendente</th>
-                                        <th className="px-3 py-3 font-bold w-[100px]">Dt. Entrada</th>
-                                        <th className="px-3 py-3 font-bold w-[100px]">Dt. Prevista</th>
-                                        <th className="px-4 py-3 font-bold">Garantia</th>
-                                        <th className="px-4 py-3 font-bold">Data Fat.</th>
+                                        <th className="px-1 py-3 font-bold">Dt. Entrada</th>
+                                        <th className="px-1 py-3 font-bold">Dt. Prevista</th>
+                                        <th className="px-2 py-3 font-bold">Garantia</th>
+                                        <th className="px-1 py-3 font-bold">Data Fat.</th>
                                         <th className="px-4 py-3 font-bold text-right">Valor</th>
                                         {permissions?.canViewServiceOrderProfit && <th className="px-4 py-3 font-bold text-right">Lucro</th>}
                                         <th className="px-4 py-3 font-bold text-right">Ações</th>
@@ -764,10 +759,10 @@ const ServiceOrderList: React.FC = () => {
                                                     <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
                                                     <td className="px-4 py-3 text-secondary text-sm">{os.responsibleName || '-'}</td>
                                                     <td className="px-4 py-3 text-secondary text-sm font-bold">{os.attendantName || '-'}</td>
-                                                    <td className="px-4 py-3 text-secondary text-sm">
+                                                    <td className="px-2 py-3 text-secondary text-sm whitespace-nowrap">
                                                         {os.entryDate ? new Date(os.entryDate).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
                                                     </td>
-                                                    <td className="px-4 py-3 text-secondary text-sm">
+                                                    <td className="px-2 py-3 text-blue-600 text-sm font-bold whitespace-nowrap">
                                                         {os.estimatedDate ? new Date(os.estimatedDate).toLocaleDateString('pt-BR') : '-'}
                                                     </td>
                                                     <td className="px-4 py-3">
@@ -801,12 +796,12 @@ const ServiceOrderList: React.FC = () => {
                                                             );
                                                         })()}
                                                     </td>
-                                                    <td className="px-4 py-3 text-emerald-600 text-sm font-black whitespace-nowrap">
+                                                    <td className="px-2 py-3 text-emerald-600 text-sm font-black whitespace-nowrap">
                                                         {os.exitDate ? new Date(os.exitDate).toLocaleDateString('pt-BR') : '-'}
                                                     </td>
-                                                    <td className="px-4 py-3 text-right font-black text-gray-900">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
+                                                    <td className="px-4 py-3 text-right font-black text-emerald-600 whitespace-nowrap">{os.total > 0 ? `R$ ${os.total.toLocaleString()}` : '-'}</td>
                                                     {permissions?.canViewServiceOrderProfit && (
-                                                        <td className="px-4 py-3 text-right font-bold text-emerald-600">{profit > 0 ? `R$ ${profit.toLocaleString()}` : '-'}</td>
+                                                        <td className="px-4 py-3 text-right font-bold text-emerald-600 whitespace-nowrap">{profit > 0 ? `R$ ${profit.toLocaleString()}` : '-'}</td>
                                                     )}
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-1 justify-end">
@@ -887,7 +882,7 @@ const ServiceOrderList: React.FC = () => {
                                                 </div>
                                                 <div className="flex flex-col items-end">
                                                     {os.total > 0 && (
-                                                        <span className="font-black text-gray-900 text-sm">R$ {os.total.toLocaleString()}</span>
+                                                        <span className="font-black text-emerald-600 text-sm">R$ {os.total.toLocaleString()}</span>
                                                     )}
                                                     {permissions?.canViewServiceOrderProfit && profit > 0 && (
                                                         <span className="font-bold text-emerald-600 text-[10px]">Lucro: R$ {profit.toLocaleString()}</span>

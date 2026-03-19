@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, CreditCard, Plus, EyeIcon, TrashIcon, Search, Filter, ChartBar, AlertTriangle } from 'lucide-react';
 import { getServiceOrders } from '../../services/mockApi';
 import { ServiceOrder } from '../../types';
+import { useUser } from '../../contexts/UserContext';
+import { calculateOSProfit, formatCurrency } from '../../utils/formatters';
 
 interface Expense {
     id: string;
@@ -11,6 +13,7 @@ interface Expense {
 }
 
 const ServiceOrderFinancial: React.FC = () => {
+    const { permissions } = useUser();
     const [expenses, setExpenses] = useState<Expense[]>(() => {
         const saved = localStorage.getItem('os_expenses');
         return saved ? JSON.parse(saved) : [];
@@ -153,8 +156,7 @@ const ServiceOrderFinancial: React.FC = () => {
         const technicalRevenueOrders = orders.filter(os => os.status === 'Entregue e Faturado' || os.status === 'Concluído');
 
         const partsCost = technicalRevenueOrders.reduce((acc, os) => {
-            const itemsCost = os.items?.reduce((iAcc, item: any) => iAcc + (((item.cost || item.costPrice || 0) * item.quantity)), 0) || 0;
-            return acc + itemsCost;
+            return acc + ((os.total || 0) - calculateOSProfit(os));
         }, 0);
 
         const expTotal = expenses.reduce((acc, exp) => acc + (exp.amount || 0), 0);
@@ -171,9 +173,7 @@ const ServiceOrderFinancial: React.FC = () => {
         };
     }, [orders, expenses]);
 
-    const formatCurrency = (value: number) => {
-        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
+
 
     const fmtDate = (d: string) => {
         if (!d) return '—';
@@ -256,18 +256,20 @@ const ServiceOrderFinancial: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-3 transition-all duration-300 hover:shadow-md group">
-                    <div className="flex items-center justify-between">
-                        <div className={`p-2.5 rounded-xl shadow-sm ${netProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                            <ChartBar className={`h-5 w-5 ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+                {permissions?.canViewServiceOrderProfit && (
+                    <div className="p-5 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-3 transition-all duration-300 hover:shadow-md group">
+                        <div className="flex items-center justify-between">
+                            <div className={`p-2.5 rounded-xl shadow-sm ${netProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                                <ChartBar className={`h-5 w-5 ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Lucro Líquido</p>
+                            <h3 className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{formatCurrency(netProfit)}</h3>
+                            <p className="text-xs text-gray-400 mt-0.5">Descontando peças/serviços</p>
                         </div>
                     </div>
-                    <div>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Lucro Líquido</p>
-                        <h3 className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{formatCurrency(netProfit)}</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Descontando peças/serviços</p>
-                    </div>
-                </div>
+                )}
             </div>
 
             {isAddingExpense && (

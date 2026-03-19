@@ -82,3 +82,14 @@ export const cleanDeviceDescription = (text: string | null | undefined): string 
     if (!text) return "";
     return text.replace(/^Apple\s+/i, '').trim();
 };
+
+/** Calcula o lucro de uma Ordem de Serviço */
+export const calculateOSProfit = (os: any) => {
+    if (!os) return 0;
+    const items = os.items || [];
+    const totalCost = items.reduce((acc: number, item: any) => {
+        const cost = typeof item.cost === 'string' ? parseFloat(item.cost) : (item.cost || 0);
+        return acc + (cost * (item.quantity || 1));
+    }, 0);
+    return (os.total || 0) - totalCost;
+};

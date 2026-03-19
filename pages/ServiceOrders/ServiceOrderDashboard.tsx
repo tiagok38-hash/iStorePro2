@@ -17,6 +17,7 @@ import {
     Wrench
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../../contexts/UserContext';
 import { getServiceOrders, getOsPartsStockStats } from '../../services/mockApi';
 import {
     calculateWarrantyExpiry,
@@ -24,6 +25,7 @@ import {
     formatDateBR,
     getWarrantyStatus
 } from '../../utils/dateUtils';
+import { calculateOSProfit, formatCurrency } from '../../utils/formatters';
 import { ServiceOrder } from '../../types';
 import {
     BarChart,
@@ -49,6 +51,7 @@ const KPI_CONFIG = [
 
 const ServiceOrderDashboard: React.FC = () => {
     const navigate = useNavigate();
+    const { permissions } = useUser();
     const [orders, setOrders] = useState<ServiceOrder[]>([]);
     const [expenses, setExpenses] = useState<any[]>(() => {
         const saved = localStorage.getItem('os_expenses');
@@ -117,9 +120,7 @@ const ServiceOrderDashboard: React.FC = () => {
         }
     };
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-    };
+    // Removido formatCurrency local
 
     // Greeting logic
     const hour = new Date().getHours();
@@ -172,11 +173,7 @@ const ServiceOrderDashboard: React.FC = () => {
                 const exitDate = new Date(exitDateStr);
                 if (exitDate instanceof Date && !isNaN(exitDate.getTime())) {
                     flow[exitDate.getDay()].receita += (os.total || 0);
-
-                    let osCost = 0;
-                    os.items.forEach(item => {
-                        osCost += (item.cost || 0) * item.quantity;
-                    });
+                    const osCost = (os.total || 0) - calculateOSProfit(os);
                     flow[exitDate.getDay()].custoOS += osCost;
                 }
             }
@@ -467,11 +464,13 @@ const ServiceOrderDashboard: React.FC = () => {
                             <h3 className="font-black text-2xl text-primary">Fluxo Semanal</h3>
                             <p className="text-base font-medium text-secondary mt-1">Balanço Financeiro (Receita vs Despesas)</p>
                             <div className="flex gap-4 mt-3">
-                                <div className={weeklyTotals.lucro >= 0 ? "bg-emerald-100 px-4 py-1.5 rounded-xl border border-emerald-200" : "bg-red-100 px-4 py-1.5 rounded-xl border border-red-200"}>
-                                    <span className={`text-sm ${weeklyTotals.lucro >= 0 ? "text-emerald-600" : "text-red-600"} font-black`}>
-                                        {formatCurrency(weeklyTotals.lucro)} {weeklyTotals.lucro >= 0 ? "Lucro" : "Prejuízo"}
-                                    </span>
-                                </div>
+                                {permissions?.canViewServiceOrderProfit && (
+                                    <div className={weeklyTotals.lucro >= 0 ? "bg-emerald-100 px-4 py-1.5 rounded-xl border border-emerald-200" : "bg-red-100 px-4 py-1.5 rounded-xl border border-red-200"}>
+                                        <span className={`text-sm ${weeklyTotals.lucro >= 0 ? "text-emerald-600" : "text-red-600"} font-black`}>
+                                            {formatCurrency(weeklyTotals.lucro)} {weeklyTotals.lucro >= 0 ? "Lucro" : "Prejuízo"}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="flex flex-col gap-3 text-sm font-black text-gray-600">
@@ -483,10 +482,12 @@ const ServiceOrderDashboard: React.FC = () => {
                                 <span className="w-3.5 h-3.5 bg-red-400 rounded-full"></span>
                                 Despesas: {formatCurrency(weeklyTotals.despesas)}
                             </span>
-                            <span className="flex items-center gap-2">
-                                <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span>
-                                Lucro (R - D): {formatCurrency(weeklyTotals.lucro)}
-                            </span>
+                            {permissions?.canViewServiceOrderProfit && (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span>
+                                    Lucro (R - D): {formatCurrency(weeklyTotals.lucro)}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -503,7 +504,9 @@ const ServiceOrderDashboard: React.FC = () => {
                                 />
                                 <Bar dataKey="receita" name="Receita" fill="#3B82F6" radius={[4, 4, 4, 4]} barSize={12} />
                                 <Bar dataKey="despesas" name="Despesas" fill="#F87171" radius={[4, 4, 4, 4]} barSize={12} />
-                                <Bar dataKey="lucro" name="Lucro (R - D)" fill="#10B981" radius={[4, 4, 4, 4]} barSize={12} />
+                                {permissions?.canViewServiceOrderProfit && (
+                                    <Bar dataKey="lucro" name="Lucro (R - D)" fill="#10B981" radius={[4, 4, 4, 4]} barSize={12} />
+                                )}
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
