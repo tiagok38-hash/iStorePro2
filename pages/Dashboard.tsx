@@ -857,6 +857,18 @@ const BillingChart: React.FC<{
 const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; creditInstallments: CreditInstallment[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ sales, activeMethods, creditInstallments, className, isPrivacyMode, onNavigate }) => {
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
+    const normalizeName = (name: string) => {
+        if (!name) return 'Outro';
+        const n = name.trim();
+        const lower = n.toLowerCase();
+        if (lower === 'aparelho na troca') return 'Aparelho na Troca';
+        if (lower === 'promissória' || lower === 'crediario' || lower === 'crediário') return 'Crediário';
+        if (lower === 'débito' || lower === 'cartão débito' || lower === 'cartão de débito') return 'Débito';
+        if (lower === 'crédito' || lower === 'cartão crédito' || lower === 'cartão de crédito') return 'Crédito';
+        if (lower === 'dinheiro' || lower === 'espécie') return 'Dinheiro';
+        return n;
+    };
+
     const getColorForMethod = (method: string) => {
         const lower = method.toLowerCase();
         if (lower.includes('pix')) return { color: 'bg-green-500', lightColor: 'bg-green-100 text-green-700' };
@@ -864,7 +876,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
         if (lower.includes('débito')) return { color: 'bg-blue-500', lightColor: 'bg-blue-100 text-blue-700' };
         if (lower.includes('crédito')) return { color: 'bg-purple-500', lightColor: 'bg-purple-100 text-purple-700' };
         if (lower.includes('troca')) return { color: 'bg-orange-500', lightColor: 'bg-orange-100 text-orange-700' };
-        if (lower.includes('crediário')) return { color: 'bg-red-500', lightColor: 'bg-red-100 text-red-700' };
+        if (lower.includes('crediário') || lower.includes('crediario') || lower.includes('promissória')) return { color: 'bg-red-500', lightColor: 'bg-red-100 text-red-700' };
 
         const colors = [
             { color: 'bg-pink-500', lightColor: 'bg-pink-100 text-pink-700' },
@@ -879,13 +891,13 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
     };
 
     const allMethodNames = useMemo(() => {
-        const configured = activeMethods.map(m => m.name);
+        const configured = activeMethods.map(m => normalizeName(m.name));
         const systemMethods = ['Aparelho na Troca'];
         const all = new Set([...configured, ...systemMethods]);
         return Array.from(all);
     }, [activeMethods]);
 
-    const paymentTotals = useMemo(() => {
+    const paymentData = useMemo(() => {
         const now = new Date();
         let startDate = new Date();
         let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -924,34 +936,28 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
         });
 
         const totals: Record<string, number> = {};
-        allMethodNames.forEach(name => totals[name] = 0);
+        const open: Record<string, number> = {};
+        allMethodNames.forEach(name => {
+            totals[name] = 0;
+            open[name] = 0;
+        });
 
         filteredSales.forEach(sale => {
             sale.payments.forEach(payment => {
-                let methodKey = payment.method;
-                const normalizeMap: Record<string, string> = {
-                    'Crédito': 'Cartão Crédito',
-                    'Cartão de crédito': 'Cartão Crédito',
-                    'Débito': 'Cartão de débito'
-                };
-                if (normalizeMap[methodKey] && allMethodNames.includes(normalizeMap[methodKey])) {
-                    methodKey = normalizeMap[methodKey];
-                }
+                const methodKey = normalizeName(payment.method);
+                if (totals[methodKey] === undefined) totals[methodKey] = 0;
+                totals[methodKey] += payment.value;
 
-                if (['Crediário', 'Crediario'].includes(methodKey)) {
-                    // Calculate from actual installments if we have them
+                if (methodKey === 'Crediário') {
                     const saleInstallments = creditInstallments.filter(i => i.saleId === sale.id);
                     if (saleInstallments.length > 0) {
                         const pendingSum = saleInstallments.reduce((sum, inst) => sum + (inst.amount - inst.amountPaid), 0);
-                        if (totals[methodKey] === undefined) totals[methodKey] = 0;
-                        totals[methodKey] += pendingSum;
+                        if (open[methodKey] === undefined) open[methodKey] = 0;
+                        open[methodKey] += pendingSum;
                     } else {
-                        if (totals[methodKey] === undefined) totals[methodKey] = 0;
-                        totals[methodKey] += payment.value;
+                        if (open[methodKey] === undefined) open[methodKey] = 0;
+                        open[methodKey] += payment.value;
                     }
-                } else {
-                    if (totals[methodKey] === undefined) totals[methodKey] = 0;
-                    totals[methodKey] += payment.value;
                 }
             });
         });
@@ -960,42 +966,35 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
             if (inst.paidAt && inst.amountPaid > 0) {
                 const paidDate = new Date(inst.paidAt);
                 if (paidDate >= startDate && paidDate <= endDate) {
-                    let methodKey = inst.paymentMethod || 'Dinheiro';
-                    const normalizeMap: Record<string, string> = {
-                        'Crédito': 'Cartão Crédito',
-                        'Cartão de crédito': 'Cartão Crédito',
-                        'Débito': 'Cartão de débito'
-                    };
-                    if (normalizeMap[methodKey] && allMethodNames.includes(normalizeMap[methodKey])) {
-                        methodKey = normalizeMap[methodKey];
-                    }
+                    const methodKey = normalizeName(inst.paymentMethod || 'Dinheiro');
                     if (totals[methodKey] === undefined) totals[methodKey] = 0;
                     totals[methodKey] += inst.amountPaid;
                 }
             }
         });
 
-        return totals;
+        return { totals, open };
     }, [sales, period, allMethodNames, creditInstallments]);
 
     const grandTotal = useMemo(() =>
-        Object.values(paymentTotals).reduce((sum: number, val: number) => sum + val, 0)
-        , [paymentTotals]);
+        Object.values(paymentData.totals).reduce((sum: number, val: number) => sum + val, 0)
+        , [paymentData.totals]);
 
     const renderedList = useMemo(() => {
-        const keys = Object.keys(paymentTotals);
+        const keys = Object.keys(paymentData.totals);
         return keys.sort((a, b) => {
-            const valA = paymentTotals[a];
-            const valB = paymentTotals[b];
+            const valA = paymentData.totals[a];
+            const valB = paymentData.totals[b];
             if (valA !== valB) return valB - valA;
             return a.localeCompare(b);
         }).map(key => ({
             key,
             label: key,
-            value: paymentTotals[key],
+            value: paymentData.totals[key],
+            pendingValue: paymentData.open[key] || 0,
             ...getColorForMethod(key)
         }));
-    }, [paymentTotals]);
+    }, [paymentData]);
 
     return (
         <div className={`p-6 card-premium flex flex-col h-full group transition-all duration-300 ${className || ''}`}>
@@ -1030,7 +1029,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
             </div>
 
             <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                {renderedList.map(({ key, label, color, lightColor, value }) => {
+                {renderedList.map(({ key, label, color, lightColor, value, pendingValue }) => {
                     const percentage = grandTotal > 0 ? (value / grandTotal) * 100 : 0;
 
                     return (
@@ -1038,7 +1037,14 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                             <div className={`w-3 h-3 rounded-full ${color} shrink-0`}></div>
                             <div className="flex-grow">
                                 <div className="flex justify-between items-center mb-1">
-                                    <span className="text-sm font-medium text-secondary">{label}</span>
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-sm font-medium text-secondary truncate">{label}</span>
+                                        {key === 'Crediário' && (
+                                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${pendingValue > 0 ? 'text-red-600 bg-red-50 border border-red-100' : 'text-emerald-600 bg-emerald-50 border border-emerald-100'}`}>
+                                                Aberto: {isPrivacyMode ? '***' : formatCurrency(pendingValue)}
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-sm font-bold text-primary">{isPrivacyMode ? 'R$ ****' : formatCurrency(value)}</span>
                                 </div>
                                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

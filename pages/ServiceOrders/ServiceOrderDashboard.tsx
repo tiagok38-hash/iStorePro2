@@ -25,7 +25,7 @@ import {
     formatDateBR,
     getWarrantyStatus
 } from '../../utils/dateUtils';
-import { calculateOSProfit, formatCurrency } from '../../utils/formatters';
+import { calculateOSProfit, formatCurrency, cleanDeviceDescription } from '../../utils/formatters';
 import { ServiceOrder } from '../../types';
 import {
     BarChart,
@@ -58,7 +58,7 @@ const ServiceOrderDashboard: React.FC = () => {
         return saved ? JSON.parse(saved) : [];
     });
     const [isLoading, setIsLoading] = useState(true);
-    const [periodFilter, setPeriodFilter] = useState('month');
+    const [periodFilter, setPeriodFilter] = useState('week');
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
     const [osPartsStats, setOsPartsStats] = useState<{ totalParts: number; totalCost: number; totalSaleValue: number; lowStockCount: number } | null>(null);
@@ -156,45 +156,70 @@ const ServiceOrderDashboard: React.FC = () => {
     const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + (exp.amount || 0), 0), [filteredExpenses]);
 
     // Compute chart data dynamically
-    const weeklyFlowData = useMemo(() => {
-        const flow = [
-            { name: 'Dom', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
-            { name: 'Seg', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
-            { name: 'Ter', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
-            { name: 'Qua', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
-            { name: 'Qui', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
-            { name: 'Sex', receita: 0, despesas: 0, lucro: 0, custoOS: 0 },
-            { name: 'Sáb', receita: 0, despesas: 0, lucro: 0, custoOS: 0 }
-        ];
+    const periodFlowData = useMemo(() => {
+        if (!customStartDate || !customEndDate) return [];
+
+        const start = new Date(customStartDate + 'T00:00:00');
+        const end = new Date(customEndDate + 'T23:59:59');
+        
+        // Calculate days between
+        const days = [];
+        let curr = new Date(start);
+        while (curr <= end) {
+            days.push(new Date(curr));
+            curr.setDate(curr.getDate() + 1);
+            if (days.length > 31) break; // Limit to 31 days for visualization
+        }
+
+        const data = days.map(date => {
+            const dateStr = date.toISOString().split('T')[0];
+            let name = "";
+            
+            if (days.length <= 1) {
+                name = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            } else if (days.length <= 7) {
+                name = date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+                name = name.charAt(0).toUpperCase() + name.slice(1);
+            } else {
+                name = date.getDate().toString();
+            }
+            
+            return {
+                name,
+                fullDate: dateStr,
+                receita: 0,
+                despesas: 0,
+                lucro: 0,
+                custoOS: 0
+            };
+        });
 
         filteredOrders.forEach(os => {
             if (os.status === 'Entregue e Faturado' || os.status === 'Concluído') {
-                const exitDateStr = os.exitDate || os.updatedAt || os.createdAt;
-                const exitDate = new Date(exitDateStr);
-                if (exitDate instanceof Date && !isNaN(exitDate.getTime())) {
-                    flow[exitDate.getDay()].receita += (os.total || 0);
+                const exitDateStr = (os.exitDate || os.updatedAt || os.createdAt).split('T')[0];
+                const dayMatch = data.find(d => d.fullDate === exitDateStr);
+                if (dayMatch) {
+                    dayMatch.receita += (os.total || 0);
                     const osCost = (os.total || 0) - calculateOSProfit(os);
-                    flow[exitDate.getDay()].custoOS += osCost;
+                    dayMatch.custoOS += osCost;
                 }
             }
         });
 
         filteredExpenses.forEach(exp => {
-            const expDateStr = exp.date || exp.createdAt;
-            const expDate = new Date(expDateStr);
-            if (expDate instanceof Date && !isNaN(expDate.getTime())) {
-                const day = expDate.getDay();
-                flow[day].despesas -= (exp.amount || 0); // Torna negativo para o gráfico descer
+            const expDateStr = (exp.date || exp.createdAt).split('T')[0];
+            const dayMatch = data.find(d => d.fullDate === expDateStr);
+            if (dayMatch) {
+                dayMatch.despesas -= (exp.amount || 0); // Negative for chart
             }
         });
 
-        flow.forEach(day => {
+        data.forEach(day => {
             day.lucro = day.receita + day.despesas - day.custoOS;
         });
 
-        // Reorder to start from Monday for better visualization in Brazil
-        return [...flow.slice(1), flow[0]];
-    }, [filteredOrders, filteredExpenses]);
+        return data;
+    }, [filteredOrders, filteredExpenses, customStartDate, customEndDate]);
 
     const revenueChartData = useMemo(() => {
         let services = 0;
@@ -246,17 +271,17 @@ const ServiceOrderDashboard: React.FC = () => {
         return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 5);
     }, [filteredOrders]);
 
-    const weeklyTotals = useMemo(() => {
+    const periodTotals = useMemo(() => {
         let receita = 0;
         let despesas = 0;
         let lucro = 0;
-        weeklyFlowData.forEach(d => {
+        periodFlowData.forEach(d => {
             receita += d.receita;
-            despesas += d.despesas;
+            despesas += Math.abs(d.despesas); // Keep absolute for totals display
             lucro += d.lucro;
         });
         return { receita, despesas, lucro };
-    }, [weeklyFlowData]);
+    }, [periodFlowData]);
 
     const activeWarranties = useMemo(() => {
         const today = new Date();
@@ -289,6 +314,17 @@ const ServiceOrderDashboard: React.FC = () => {
             })
             .filter(Boolean)
             .sort((a, b) => (a?.expiry?.getTime() || 0) - (b?.expiry?.getTime() || 0)) as any[];
+    }, [orders]);
+
+    const agendaOrders = useMemo(() => {
+        return orders.filter(os => 
+            os.status === 'Pronto' || 
+            os.status === 'Aguardando Peça'
+        ).sort((a, b) => {
+            if (a.status === 'Pronto' && b.status !== 'Pronto') return -1;
+            if (a.status !== 'Pronto' && b.status === 'Pronto') return 1;
+            return 0;
+        });
     }, [orders]);
 
     return (
@@ -456,44 +492,40 @@ const ServiceOrderDashboard: React.FC = () => {
             {/* 3. Main Dashboard Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* 3.1 Weekly Flow Chart (Bar) */}
+                {/* 3.1 Flow Chart (Bar) */}
                 <div className="lg:col-span-2 card-premium p-8 flex flex-col">
 
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h3 className="font-black text-2xl text-primary">Fluxo Semanal</h3>
-                            <p className="text-base font-medium text-secondary mt-1">Balanço Financeiro (Receita vs Despesas)</p>
+                            <h3 className="font-black text-2xl text-primary">Fluxo de entrada/saídas e lucro</h3>
+                            <p className="text-base font-medium text-secondary mt-1">Balanço Financeiro no Período Selecionado</p>
                             <div className="flex gap-4 mt-3">
-                                {permissions?.canViewServiceOrderProfit && (
-                                    <div className={weeklyTotals.lucro >= 0 ? "bg-emerald-100 px-4 py-1.5 rounded-xl border border-emerald-200" : "bg-red-100 px-4 py-1.5 rounded-xl border border-red-200"}>
-                                        <span className={`text-sm ${weeklyTotals.lucro >= 0 ? "text-emerald-600" : "text-red-600"} font-black`}>
-                                            {formatCurrency(weeklyTotals.lucro)} {weeklyTotals.lucro >= 0 ? "Lucro" : "Prejuízo"}
-                                        </span>
-                                    </div>
-                                )}
+                                <div className={periodTotals.lucro >= 0 ? "bg-emerald-100 px-4 py-1.5 rounded-xl border border-emerald-200" : "bg-red-100 px-4 py-1.5 rounded-xl border border-red-200"}>
+                                    <span className={`text-sm ${periodTotals.lucro >= 0 ? "text-emerald-600" : "text-red-600"} font-black`}>
+                                        {formatCurrency(periodTotals.lucro)} {periodTotals.lucro >= 0 ? "Lucro" : "Prejuízo"}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div className="flex flex-col gap-3 text-sm font-black text-gray-600">
                             <span className="flex items-center gap-2">
                                 <span className="w-3.5 h-3.5 bg-blue-500 rounded-full"></span>
-                                Receita: {formatCurrency(weeklyTotals.receita)}
+                                Receita: {formatCurrency(periodTotals.receita)}
                             </span>
                             <span className="flex items-center gap-2">
                                 <span className="w-3.5 h-3.5 bg-red-400 rounded-full"></span>
-                                Despesas: {formatCurrency(weeklyTotals.despesas)}
+                                Despesas: {formatCurrency(periodTotals.despesas)}
                             </span>
-                            {permissions?.canViewServiceOrderProfit && (
-                                <span className="flex items-center gap-2">
-                                    <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span>
-                                    Lucro (R - D): {formatCurrency(weeklyTotals.lucro)}
-                                </span>
-                            )}
+                            <span className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full"></span>
+                                Lucro: {formatCurrency(periodTotals.lucro)}
+                            </span>
                         </div>
                     </div>
 
                     <div className="flex-1 w-full min-h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={weeklyFlowData} barGap={8}>
+                            <BarChart data={periodFlowData} barGap={8}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 13, fontWeight: 'bold' }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 13, fontWeight: 'bold' }} tickFormatter={(value) => `R$ ${value}`} />
@@ -504,9 +536,7 @@ const ServiceOrderDashboard: React.FC = () => {
                                 />
                                 <Bar dataKey="receita" name="Receita" fill="#3B82F6" radius={[4, 4, 4, 4]} barSize={12} />
                                 <Bar dataKey="despesas" name="Despesas" fill="#F87171" radius={[4, 4, 4, 4]} barSize={12} />
-                                {permissions?.canViewServiceOrderProfit && (
-                                    <Bar dataKey="lucro" name="Lucro (R - D)" fill="#10B981" radius={[4, 4, 4, 4]} barSize={12} />
-                                )}
+                                <Bar dataKey="lucro" name="Lucro" fill="#10B981" radius={[4, 4, 4, 4]} barSize={12} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -520,22 +550,45 @@ const ServiceOrderDashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h3 className="font-black text-[24px] text-gray-900 tracking-tight">Agenda do Dia</h3>
-                            <p className="text-sm text-gray-500 font-medium mt-1">Próximos compromissos</p>
+                            <p className="text-sm text-gray-500 font-medium mt-1">Status de entregas e peças</p>
                         </div>
                         <button className="text-accent text-sm font-black hover:opacity-80 transition-opacity bg-accent/10 hover:bg-accent/20 px-4 py-2 rounded-xl">Ver tudo</button>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center py-10 gap-4 text-center">
-                        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
-                            <Calendar size={28} className="text-gray-400" />
-                        </div>
-                        <div>
-                            <p className="text-base font-black text-gray-500">Nenhum compromisso hoje</p>
-                            <p className="text-sm text-gray-400 font-medium mt-1">As OS prontas para entrega aparecerão aqui</p>
-                        </div>
-                        <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1.5 rounded-xl">
-                            {orders.filter(os => os.status === 'Pronto').length} OS pronta{orders.filter(os => os.status === 'Pronto').length !== 1 ? 's' : ''} para entrega
-                        </span>
+                    <div className="flex-1 overflow-y-auto pr-1">
+                        {agendaOrders.length > 0 ? (
+                            <div className="space-y-4">
+                                {agendaOrders.slice(0, 6).map((os, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 hover:bg-gray-100/50 transition-colors border border-transparent hover:border-gray-200">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={`p-2 rounded-xl shrink-0 ${os.status === 'Pronto' ? 'bg-purple-100 text-purple-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                {os.status === 'Pronto' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-gray-400">OS-{os.displayId}</span>
+                                                    <p className="text-[13px] font-black text-gray-800 truncate">{cleanDeviceDescription(os.deviceModel)}</p>
+                                                </div>
+                                                <p className="text-[11px] font-bold text-gray-500 truncate">{os.customerName}</p>
+                                            </div>
+                                        </div>
+                                        <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider shrink-0 ${os.status === 'Pronto' ? 'bg-purple-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                            {os.status === 'Aguardando Peça' ? 'Peças' : os.status}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center py-10 gap-4 text-center">
+                                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                                    <Calendar size={28} className="text-gray-400" />
+                                </div>
+                                <div>
+                                    <p className="text-base font-black text-gray-500">Nenhum compromisso hoje</p>
+                                    <p className="text-sm text-gray-400 font-medium mt-1">OS prontas ou aguardando peças aparecerão aqui</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
