@@ -53,17 +53,34 @@ const ServiceOrderFinancial: React.FC = () => {
         e.preventDefault();
         if (!expenseDesc || !expenseAmount) return;
 
+        // Parse do valor com máscara (ex: 1.000,50 -> 1000.50)
+        const parsedAmount = parseFloat(expenseAmount.replace(/\./g, "").replace(",", "."));
+        if (isNaN(parsedAmount)) return;
+
         const newExpense: Expense = {
             id: Date.now().toString(),
             description: expenseDesc,
-            amount: parseFloat(expenseAmount),
+            amount: parsedAmount,
             date: new Date().toISOString()
         };
 
         setExpenses([newExpense, ...expenses]);
-        setExpenseDesc('');
-        setExpenseAmount('');
+        setExpenseDesc("");
+        setExpenseAmount("");
         setIsAddingExpense(false);
+    };
+
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value === "") {
+            setExpenseAmount("");
+            return;
+        }
+        const numericValue = parseInt(value, 10) / 100;
+        setExpenseAmount(numericValue.toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }));
     };
 
     const handleDeleteExpense = (id: string) => {
@@ -257,7 +274,7 @@ const ServiceOrderFinancial: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in p-4" onClick={() => setIsAddingExpense(false)}>
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
                         <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-                            <h2 className="text-lg font-black text-gray-900">Nova Despesa de Oficina</h2>
+                            <h2 className="text-lg font-black text-gray-900">Nova Despesa de Assistência</h2>
                         </div>
                         <form onSubmit={handleAddExpense} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                             <div>
@@ -276,13 +293,11 @@ const ServiceOrderFinancial: React.FC = () => {
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">R$</span>
                                     <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0.01"
+                                        type="text"
                                         value={expenseAmount}
-                                        onChange={(e) => setExpenseAmount(e.target.value)}
+                                        onChange={handleAmountChange}
                                         className="w-full h-11 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all"
-                                        placeholder="0.00"
+                                        placeholder="0,00"
                                         required
                                     />
                                 </div>
