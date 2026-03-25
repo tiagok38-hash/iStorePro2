@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CloseIcon as XIcon, BanknotesIcon as BanknoteIcon, CalendarDaysIcon as CalendarIcon, ErrorIcon as AlertTriangleIcon, CheckIcon as CheckCircleIcon } from '../icons.tsx';
 import { formatCurrency, getCreditSettings, payInstallment } from '../../services/mockApi.ts';
-import CustomDatePicker from '../CustomDatePicker.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
 import { CreditInstallment } from '../../types.ts';
-import { getPaymentIcon } from '../pos/utils.tsx';
 
 interface InstallmentPaymentModalProps {
     isOpen: boolean;
@@ -15,32 +13,36 @@ interface InstallmentPaymentModalProps {
     userName?: string;
 }
 
+// Retorna data no formato YYYY-MM-DD no fuso local
+const toLocalDateString = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpen, onClose, installment, onPaymentSuccess, userId, userName }) => {
     const [amountToPay, setAmountToPay] = useState(0);
     const [penalty, setPenalty] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
     const [observation, setObservation] = useState('');
+    const [paymentDate, setPaymentDate] = useState(toLocalDateString(new Date()));
     const [isLate, setIsLate] = useState(false);
     const [lateDays, setLateDays] = useState(0);
     const [settings, setSettings] = useState({ defaultInterestRate: 0, lateFeePercentage: 0 });
     const [isProcessing, setIsProcessing] = useState(false);
 
+    const today = toLocalDateString(new Date());
+    const isRetroactive = paymentDate < today;
+
     useEffect(() => {
         if (isOpen && installment) {
-            // Load settings
             getCreditSettings().then(setSettings);
 
-            // Calculate initial state
             const remaining = installment.amount - installment.amountPaid;
 
-            // Check delay
             const due = new Date(installment.dueDate);
-            const today = new Date();
-            // Reset hours for fair date comparison
+            const now = new Date();
             due.setHours(0, 0, 0, 0);
-            today.setHours(0, 0, 0, 0);
+            now.setHours(0, 0, 0, 0);
 
-            const diffTime = today.getTime() - due.getTime();
+            const diffTime = now.getTime() - due.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             setIsLate(diffDays > 0);
@@ -48,48 +50,56 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
 
             let calculatedPenalty = 0;
             if (diffDays > 0) {
-                // Simple logic: Late fee % (once) + 1% per month logic or just simple percentage?
-                // Using the simple percentage from settings for now as per requirement "multa/juros padrão"
-                // Ideally this could be (amount * percentage/100) * (days/30) or just flat fee. 
-                // Let's assume flat fee percentage for now as it's easier.
-                // Or maybe simple accumulation: 2% + 1% per month.
-                // Let's use the `lateFeePercentage` as a flat penalty for now.
-                // If the user wants to edit, they can.
-                // We'll calculate it only if it hasn't been applied yet? 
-                // Currently `penaltyApplied` stores what WAS applied.
-                // Ideally we propose a New Penalty.
                 calculatedPenalty = (remaining * (settings.lateFeePercentage || 0)) / 100;
             }
 
-            setAmountToPay(remaining); // Default to full payment
+            setAmountToPay(remaining);
             setPenalty(calculatedPenalty);
             setObservation('');
+            setPaymentDate(toLocalDateString(new Date()));
             setPaymentMethod('Dinheiro');
         }
-    }, [isOpen, installment, settings.lateFeePercentage]); // Added settings dependency trigger
+    }, [isOpen, installment, settings.lateFeePercentage]);
 
     if (!isOpen || !installment) return null;
 
     const totalDue = (installment.amount - installment.amountPaid) + penalty;
-    const isPayingFull = amountToPay >= (totalDue - 0.01); // floating point tolerance
+    const isPayingFull = amountToPay >= (totalDue - 0.01);
+
+    // Monta observação final: junta nota de data retroativa (se houver) com obs do usuário
+    const buildFinalObservation = (): string => {
+        const parts: string[] = [];
+        if (isRetroactive) {
+            const [y, m, d] = paymentDate.split('-');
+            const dateFormatted = `${d}/${m}/${y}`;
+            parts.push(`Baixa retroativa — pagamento recebido em ${dateFormatted}`);
+        }
+        if (observation.trim()) parts.push(observation.trim());
+        return parts.join(' | ');
+    };
 
     const handleConfirm = async () => {
         setIsProcessing(true);
         try {
+            // Converte a data escolhida para ISO (meio-dia local para evitar virada de fuso)
+            const [y, m, d] = paymentDate.split('-').map(Number);
+            const paymentDateISO = new Date(y, m - 1, d, 12, 0, 0).toISOString();
+
             const updated = await payInstallment(
                 installment.id,
                 amountToPay,
                 paymentMethod,
                 penalty,
-                observation,
+                buildFinalObservation(),
                 userId,
-                userName
+                userName,
+                paymentDateISO
             );
             onPaymentSuccess(updated);
             onClose();
         } catch (error) {
-            console.error("Payment error", error);
-            alert("Erro ao processar pagamento");
+            console.error('Payment error', error);
+            alert('Erro ao processar pagamento');
         } finally {
             setIsProcessing(false);
         }
@@ -109,9 +119,10 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 text-gray-400"><XIcon className="h-5 w-5" /></button>
                 </div>
 
-                <div className="p-6 space-y-5">
+                <div className="p-6 space-y-4">
 
-                    <div className="bg-white border boundary-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
+                    {/* Vencimento + Valor */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-center shadow-sm">
                         <div className="flex flex-col">
                             <span className="text-[10px] uppercase font-bold text-gray-400">Vencimento</span>
                             <span className={`text-sm font-black ${isLate ? 'text-red-500' : 'text-gray-800'}`}>
@@ -125,6 +136,7 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                         </div>
                     </div>
 
+                    {/* Multa / Juros (se atrasado) */}
                     {isLate && (
                         <div className="bg-red-50 p-4 rounded-2xl border border-red-100 animate-slide-down">
                             <div className="flex items-center gap-2 mb-2 text-red-600">
@@ -145,18 +157,42 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                     )}
 
                     <div className="space-y-3">
+                        {/* DATA DO PAGAMENTO */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1 flex items-center gap-1">
+                                <CalendarIcon className="h-3.5 w-3.5" />
+                                Data do Pagamento
+                            </label>
+                            <input
+                                type="date"
+                                value={paymentDate}
+                                max={today}
+                                onChange={e => setPaymentDate(e.target.value)}
+                                className={`w-full h-10 px-3 border rounded-xl font-bold text-sm outline-none focus:ring-2 transition-colors
+                                    ${isRetroactive
+                                        ? 'bg-amber-50 border-amber-300 text-amber-800 focus:ring-amber-400/20'
+                                        : 'bg-white border-gray-200 text-gray-800 focus:ring-indigo-500/20'
+                                    }`}
+                            />
+                            {isRetroactive && (
+                                <p className="text-[10px] font-bold text-amber-600 mt-1 flex items-center gap-1">
+                                    <AlertTriangleIcon className="h-3 w-3" />
+                                    Data retroativa — a observação será registrada automaticamente
+                                </p>
+                            )}
+                        </div>
+
+                        {/* VALOR A PAGAR */}
                         <div className="space-y-1">
                             <div className="flex justify-between items-end mb-1">
                                 <label className="block text-xs font-bold text-gray-700 uppercase">Valor a Pagar</label>
                                 <span className="text-[10px] font-bold text-gray-400">Total Devido: {formatCurrency(totalDue)}</span>
                             </div>
-                            <div className="relative">
-                                <CurrencyInput
-                                    value={amountToPay}
-                                    onChange={setAmountToPay}
-                                    className="h-12 text-lg bg-gray-50 font-black text-gray-900 border-gray-200 focus:border-indigo-500 transition-colors pr-4"
-                                />
-                            </div>
+                            <CurrencyInput
+                                value={amountToPay}
+                                onChange={setAmountToPay}
+                                className="h-12 text-lg bg-gray-50 font-black text-gray-900 border-gray-200 focus:border-indigo-500 transition-colors pr-4"
+                            />
                             {!isPayingFull && (
                                 <p className="text-[10px] font-bold text-orange-500 mt-1 flex items-center gap-1">
                                     <AlertTriangleIcon className="h-3 w-3" />
@@ -165,6 +201,7 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                             )}
                         </div>
 
+                        {/* FORMA DE PAGAMENTO */}
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Forma de Pagamento</label>
                             <select
@@ -179,6 +216,7 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                             </select>
                         </div>
 
+                        {/* OBSERVAÇÃO */}
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Observação (Opcional)</label>
                             <input
@@ -186,8 +224,13 @@ const InstallmentPaymentModal: React.FC<InstallmentPaymentModalProps> = ({ isOpe
                                 value={observation}
                                 onChange={e => setObservation(e.target.value)}
                                 className="w-full h-10 px-3 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 placeholder:text-gray-300"
-                                placeholder="..."
+                                placeholder="Ex: Pago via transferência, recibo nº..."
                             />
+                            {isRetroactive && observation.trim() === '' && (
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                    A nota de baixa retroativa já será registrada automaticamente na observação.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

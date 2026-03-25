@@ -166,9 +166,12 @@ export const payInstallment = async (
     penalty: number,
     observation?: string,
     userId?: string,
-    userName?: string
+    userName?: string,
+    paymentDate?: string  // ISO string opcional — quando informado, usa como data da baixa
 ): Promise<CreditInstallment> => {
     const now = new Date().toISOString();
+    const paidAt = paymentDate || now;  // data efetiva do pagamento
+    const paidAtDateOnly = paidAt.split('T')[0];
 
     // First get current installment to check total and get customer name
     const { data: current, error: fetchError } = await supabase
@@ -196,7 +199,7 @@ export const payInstallment = async (
             amount_paid: newAmountPaid,
             penalty_applied: penalty,
             status: newStatus,
-            paid_at: now,
+            paid_at: paidAt,
             payment_method: method,
             observation: observation
         })
@@ -284,8 +287,8 @@ export const payInstallment = async (
                 description: description,
                 amount: amountPaid,
                 category_id: categoryId,
-                due_date: now.split('T')[0],
-                payment_date: now.split('T')[0],
+                due_date: paidAtDateOnly,
+                payment_date: paidAtDateOnly,
                 status: 'paid',
                 payment_method: method,
                 entity_name: customerName,
