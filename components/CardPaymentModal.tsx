@@ -225,7 +225,7 @@ const CardPaymentModal: React.FC<CardPaymentModalProps> = ({ isOpen, onClose, on
 
     const modalContent = (
         <div
-            className={`fixed inset-0 z-[1000] flex items-center justify-center p-4 ${isClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'}`}
+            className={`fixed inset-0 z-[10000] flex items-center justify-center p-4 ${isClosing ? 'modal-backdrop-exit' : 'modal-backdrop-enter'}`}
             style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
         >
           <div

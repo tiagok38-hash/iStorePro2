@@ -125,22 +125,56 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
             </div>
             <div className="flex items-center gap-1">
                 {os.isQuick && (
-                    <span title="OS Rápida" className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-100">
+                    <span className="group/tag relative flex items-center justify-center w-5 h-5 rounded-full bg-amber-100">
                         <Zap size={11} className="text-amber-500 fill-amber-400" />
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/tag:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none">
+                            OS Rápida
+                        </span>
                     </span>
                 )}
-                {os.priority === 'Urgent' && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Urgente" />}
+                {os.priority === 'Urgent' && (
+                    <span className="group/tag relative w-2 h-2 rounded-full bg-red-500 animate-pulse">
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/tag:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none">
+                            Urgente
+                        </span>
+                    </span>
+                )}
                 {os.status !== 'Cancelada' && canDelete && (
                     <button
                         onClick={(e) => { e.stopPropagation(); onCancel(os.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 transition-all"
-                        title="Cancelar OS"
+                        className="group/btn relative opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 transition-all"
                     >
                         <XCircle size={12} />
+                        <span className="absolute bottom-full right-0 mb-1 opacity-0 group-hover/btn:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none">
+                            Cancelar OS
+                        </span>
+                    </button>
+                )}
+                {os.status === 'Entregue e Faturado' && (
+                    <button
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            window.location.href = `/service-orders/new?warranty_from=${os.id}`;
+                        }}
+                        className="group/btn relative opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-amber-100 text-amber-500 hover:text-amber-700 transition-all"
+                    >
+                        <ShieldCheck size={12} />
+                        <span className="absolute bottom-full right-0 mb-1 opacity-0 group-hover/btn:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none">
+                            Gerar Garantia (Re-entrada)
+                        </span>
                     </button>
                 )}
             </div>
         </div>
+
+        {os.isWarranty && (
+            <div className="mb-2 flex">
+                <span className="bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm animate-pulse">
+                    <ShieldCheck size={10} strokeWidth={3} />
+                    GARANTIA (RE-ENTRADA)
+                </span>
+            </div>
+        )}
 
         <h4 className="font-bold text-sm text-primary mb-1 whitespace-normal break-words">{cleanDeviceDescription(os.deviceModel)}</h4>
         <p className="text-xs text-secondary mb-0.5 flex items-center gap-1">
@@ -749,9 +783,14 @@ const ServiceOrderList: React.FC = () => {
                                             return (
                                                 <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-indigo-100/40 hover:bg-indigo-100/60' : 'hover:bg-gray-50/50'}`}>
                                                     <td className="px-4 py-3 font-medium text-primary">
-                                                        <div className="flex items-center gap-1">
-                                                            {os.isQuick && <Zap size={11} className="text-amber-500 fill-amber-400 flex-shrink-0" />}
-                                                            <span className="cursor-pointer hover:text-accent" onClick={() => navigate(`/service-orders/edit/${os.id}`)}>OS-{os.displayId}</span>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <div className="flex items-center gap-1">
+                                                                {os.isQuick && <Zap size={11} className="text-amber-500 fill-amber-400 flex-shrink-0" />}
+                                                                <span className="cursor-pointer hover:text-accent font-bold" onClick={() => navigate(`/service-orders/edit/${os.id}`)}>OS-{os.displayId}</span>
+                                                            </div>
+                                                            {os.isWarranty && (
+                                                                <span className="text-[8px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-1 rounded inline-block w-fit">GARANTIA</span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-secondary">{os.customerName}</td>
@@ -807,38 +846,57 @@ const ServiceOrderList: React.FC = () => {
                                                         <div className="flex items-center gap-1 justify-end">
                                                             <button
                                                                 onClick={() => navigate(`/service-orders/edit/${os.id}`)}
-                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                                                                title="Visualizar / Editar"
+                                                                className="group/btn relative p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
                                                             >
                                                                 <Eye size={14} />
+                                                                <span className="absolute bottom-full right-0 mb-1.5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-75 bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none shadow-lg shadow-gray-900/20">
+                                                                    Visualizar / Editar
+                                                                </span>
                                                             </button>
                                                             <button
                                                                 onClick={() => navigate(`/service-orders/edit/${os.id}`)}
-                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/10 transition-all"
-                                                                title="Editar"
+                                                                className="group/btn relative p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/10 transition-all"
                                                             >
                                                                 <Edit2 size={14} />
+                                                                <span className="absolute bottom-full right-0 mb-1.5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-75 bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none shadow-lg shadow-gray-900/20">
+                                                                    Editar
+                                                                </span>
                                                             </button>
                                                             <button
                                                                 onClick={() => {
                                                                     setSelectedOSForPrint(os);
                                                                     setIsPrintModalOpen(true);
                                                                 }}
-                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-                                                                title="Re-imprimir"
+                                                                className="group/btn relative p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
                                                             >
                                                                 <Printer size={14} />
+                                                                <span className="absolute bottom-full right-0 mb-1.5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-75 bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none shadow-lg shadow-gray-900/20">
+                                                                    Re-imprimir
+                                                                </span>
                                                             </button>
+                                                            {os.status === 'Entregue e Faturado' && (
+                                                                <button
+                                                                    onClick={() => navigate(`/service-orders/new?warranty_from=${os.id}`)}
+                                                                    className="group/btn relative p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-all"
+                                                                >
+                                                                    <ShieldCheck size={14} />
+                                                                    <span className="absolute bottom-full right-0 mb-1.5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-75 bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none shadow-lg shadow-gray-900/20">
+                                                                        Gerar Garantia (Re-entrada)
+                                                                    </span>
+                                                                </button>
+                                                            )}
                                                             {permissions?.canDeleteServiceOrder && (
                                                                 <button
                                                                     onClick={() => {
                                                                         setOsToCancel(os.id);
                                                                         setIsCancelModalOpen(true);
                                                                     }}
-                                                                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                                                                    title="Cancelar OS"
+                                                                    className="group/btn relative p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
                                                                 >
                                                                     <XCircle size={14} />
+                                                                    <span className="absolute bottom-full right-0 mb-1.5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-75 bg-gray-900 text-white text-[10px] font-bold rounded-lg py-1 px-2.5 whitespace-nowrap z-50 pointer-events-none shadow-lg shadow-gray-900/20">
+                                                                        Cancelar OS
+                                                                    </span>
                                                                 </button>
                                                             )}
                                                         </div>

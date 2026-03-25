@@ -134,6 +134,8 @@ export const mapServiceOrderData = (so: any): ServiceOrder => ({
     isQuick: so.is_quick,
     phone: so.phone,
     receiptTermId: so.receipt_term_id,
+    isWarranty: so.is_warranty,
+    parentOsId: so.parent_os_id,
     items: (so.items || []).map((item: any) => ({
         ...item,
         description: cleanUUIDs(item.description)
@@ -259,6 +261,8 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         phone: (data as any).phone || null,
         receipt_term_id: data.receiptTermId || null,
         cancellation_reason: data.cancellationReason || null,
+        is_warranty: data.isWarranty ?? false,
+        parent_os_id: data.parentOsId || null,
     };
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
@@ -276,7 +280,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly', 'isQuick', 'phone',
-        'cancellationReason', 'isEdited', 'receiptTermId'
+        'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -296,29 +300,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
     );
 
     clearCache(['service_orders']);
-    return {
-        ...created,
-        customerId: created.customer_id,
-        customerName: created.customer_name,
-        deviceModel: created.device_model,
-        serialNumber: created.serial_number,
-        patternLock: created.pattern_lock,
-        defectDescription: created.defect_description,
-        technicalReport: created.technical_report,
-        createdAt: created.created_at,
-        updatedAt: created.updated_at,
-        responsibleId: created.responsible_id,
-        responsibleName: created.responsible_name,
-        entryDate: created.entry_date,
-        exitDate: created.exit_date,
-        attendantObservations: created.attendant_observations,
-        customerDeviceId: created.customer_device_id,
-        displayId: created.display_id,
-        isOrcamentoOnly: created.is_orcamento_only,
-        isQuick: created.is_quick,
-        phone: created.phone,
-        receiptTermId: created.receipt_term_id,
-    };
+    return mapServiceOrderData(created);
 };
 
 export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>) => {
@@ -352,6 +334,8 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).phone !== undefined) updatePayload.phone = (data as any).phone;
     if (data.receiptTermId !== undefined) updatePayload.receipt_term_id = data.receiptTermId;
     if (data.cancellationReason !== undefined) updatePayload.cancellation_reason = data.cancellationReason;
+    if ((data as any).isWarranty !== undefined) updatePayload.is_warranty = (data as any).isWarranty;
+    if ((data as any).parentOsId !== undefined) updatePayload.parent_os_id = (data as any).parentOsId;
     if ((data as any).isEdited !== undefined) updatePayload.is_edited = (data as any).isEdited;
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
@@ -369,7 +353,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId'
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 
@@ -394,28 +378,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     );
 
     clearCache(['service_orders']);
-    return {
-        ...updated,
-        customerId: updated.customer_id,
-        customerName: updated.customer_name,
-        deviceModel: updated.device_model,
-        serialNumber: updated.serial_number,
-        patternLock: updated.pattern_lock,
-        defectDescription: updated.defect_description,
-        technicalReport: updated.technical_report,
-        createdAt: updated.created_at,
-        updatedAt: updated.updated_at,
-        responsibleId: updated.responsible_id,
-        responsibleName: updated.responsible_name,
-        entryDate: updated.entry_date,
-        exitDate: updated.exit_date,
-        attendantObservations: updated.attendant_observations,
-        customerDeviceId: updated.customer_device_id,
-        displayId: updated.display_id,
-        isOrcamentoOnly: updated.is_orcamento_only,
-        cancellationReason: updated.cancellation_reason,
-        receiptTermId: updated.receipt_term_id,
-    };
+    return mapServiceOrderData(updated);
 };
 
 export const deductOsPartsStock = async (

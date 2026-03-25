@@ -25,7 +25,7 @@ import {
     ShieldCheck,
     Smartphone
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { openWhatsApp } from '../../utils/whatsappUtils.ts';
 import { calculateWarrantyExpiry, formatDateBR, toDateTimeLocalValue, getTodayDateString } from '../../utils/dateUtils.ts';
 import { useToast } from '../../contexts/ToastContext';
@@ -166,11 +166,15 @@ const ServiceOrderForm: React.FC = () => {
     const [exitDate, setExitDate] = useState<string | null>(null);
     const [justBilled, setJustBilled] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [showPrintMenu, setShowPrintMenu] = useState(false);
     const [printFormat, setPrintFormat] = useState<'A4' | 'thermal'>('thermal');
     const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [cancellationReason, setCancellationReason] = useState<string | null>(null);
     const [originalStatus, setOriginalStatus] = useState<string | null>(null);
+    const location = useLocation();
+    const [isWarranty, setIsWarranty] = useState(false);
+    const [parentOsId, setParentOsId] = useState<string | null>(null);
 
     // Refs para controle de clique fora
     const customerSearchRef = useRef<HTMLDivElement>(null);
@@ -193,7 +197,7 @@ const ServiceOrderForm: React.FC = () => {
     // --- Effects ---
     useEffect(() => {
         loadData();
-    }, []);
+    }, [editId]);
 
     useEffect(() => {
         if (!isEditing && currentUser) {
@@ -205,6 +209,60 @@ const ServiceOrderForm: React.FC = () => {
             if (defWar) setReceiptTermId(prev => (prev && prev !== '') ? prev : defWar);
         }
     }, [currentUser, isEditing]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const warrantyFromId = params.get('warranty_from');
+        if (warrantyFromId && !isEditing && (customers.length > 0)) {
+            handleWarrantyReentry(warrantyFromId);
+        }
+    }, [location.search, isEditing, customers]);
+
+    const handleWarrantyReentry = async (originalId: string) => {
+        try {
+            const originalOs = await getServiceOrder(originalId);
+            if (originalOs) {
+                const customer = customers.find(c => c.id === originalOs.customerId);
+                if (customer) setSelectedCustomer(customer);
+                
+                setOsPhone(originalOs.phone || '');
+                setDeviceModel(originalOs.deviceModel || '');
+                setImei(originalOs.imei || '');
+                setSerialNumber(originalOs.serialNumber || '');
+                setCustomerDeviceId(originalOs.customerDeviceId || '');
+                setPasscode(originalOs.passcode || '');
+                setPatternLock(originalOs.patternLock || []);
+                
+                setIsWarranty(true);
+                setParentOsId(originalId);
+                setDefectDescription(`[GARANTIA] - Retorno da OS #${originalOs.displayId}. Defeito: `);
+                
+                // Items with 0 price but keep cost and remaining warranty
+                const newItems = (originalOs.items || []).map((item: any) => {
+                    let remainingWarranty = item.warranty || '';
+                    if (originalOs.exitDate && item.warranty) {
+                        const expiry = calculateWarrantyExpiry(originalOs.exitDate, item.warranty);
+                        if (expiry) {
+                            const now = new Date();
+                            const diffTime = expiry.getTime() - now.getTime();
+                            const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            remainingWarranty = days > 0 ? `${days} dias` : 'Consumida/Expirada';
+                        }
+                    }
+                    
+                    return {
+                        ...item,
+                        unitPrice: 0,
+                        totalPrice: 0,
+                        warranty: remainingWarranty
+                    };
+                });
+                setItems(newItems);
+            }
+        } catch (error) {
+            console.error('Error loading warranty source:', error);
+        }
+    };
 
 
     const [availableChecklistItems, setAvailableChecklistItems] = useState<ChecklistItemParameter[]>([]);
@@ -278,11 +336,16 @@ const ServiceOrderForm: React.FC = () => {
 
     // Sincronização secundária para garantir que campos complexos sejam mantidos após carregamento das listas
     useEffect(() => {
-        if (isEditing && receiptTerms.length > 0 && receiptTermId) {
-            // Apenas para garantir que o componente select re-sincronize se necessário
-            setReceiptTermId(prev => prev);
+        if (isEditing) {
+            if (receiptTerms.length > 0 && receiptTermId) {
+                setReceiptTermId(prev => (prev === receiptTermId ? prev : receiptTermId));
+            }
+            if (users.length > 0) {
+                if (responsibleId) setResponsibleId(prev => (prev === responsibleId ? prev : responsibleId));
+                if (attendantId) setAttendantId(prev => (prev === attendantId ? prev : attendantId));
+            }
         }
-    }, [receiptTerms, receiptTermId, isEditing]);
+    }, [receiptTerms, users, isEditing, receiptTermId, responsibleId, attendantId]);
 
     const loadServiceOrderData = async (id: string, preloadedCustomers?: any[]) => {
         setIsLoadingEdit(true);
@@ -311,7 +374,9 @@ const ServiceOrderForm: React.FC = () => {
             setItems((so.items || []).map(item => ({ ...item, description: cleanUUIDs(item.description) })));
             setDiscount(so.discount || 0);
             setResponsibleId(so.responsibleId || '');
-            setAttendantId((so as any).attendantId || '');
+            setAttendantId(so.attendantId || '');
+            setIsWarranty(!!so.isWarranty);
+            setParentOsId(so.parentOsId || null);
             setOsStatus(so.status || 'Orçamento');
             setIsOrcamentoOnly(!!(so as any).isOrcamentoOnly);
             setDisplayId(so.displayId || null);
@@ -557,7 +622,9 @@ const ServiceOrderForm: React.FC = () => {
             customerDeviceId: safeCustomerDeviceId,
             receiptTermId: receiptTermId || undefined,
             phone: selectedCustomer?.phone || osPhone || undefined,
-            cancellationReason
+            cancellationReason,
+            isWarranty,
+            parentOsId
         };
     };
 
@@ -735,6 +802,11 @@ const ServiceOrderForm: React.FC = () => {
                                     <Lock size={10} /> Somente Leitura
                                 </span>
                             )}
+                            {isWarranty && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500 border border-amber-600 text-[9px] font-black text-white shadow-sm animate-pulse">
+                                    <ShieldCheck size={10} strokeWidth={3} /> GARANTIA (RE-ENTRADA)
+                                </span>
+                            )}
                         </div>
                         <p className="text-sm font-medium text-secondary">
                             {isEditing ? 'Edição completa do atendimento' : 'Preencha os dados para registrar o atendimento'}
@@ -758,7 +830,7 @@ const ServiceOrderForm: React.FC = () => {
                 {/* Main Content Area - Full Width No Sidebar */}
                 <div className="flex flex-col gap-3">
                     {/* Botões de Ação na mesma linha (WhatsApp, Impressão, Cancelar, Salvar, Faturar) */}
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center justify-between gap-4 flex-wrap z-30 relative">
                         {/* Lado Esquerdo: WhatsApp e Impressão (apenas se edição) */}
                         <div className="flex items-center gap-2 flex-wrap">
                             {isEditing && (
@@ -770,69 +842,100 @@ const ServiceOrderForm: React.FC = () => {
                                     >
                                         <WhatsAppIcon size={16} className="text-white fill-white" /> WhatsApp
                                     </button>
-                                    <button
-                                        onClick={() => { setPrintFormat('A4'); setIsPrintModalOpen(true); }}
-                                        title="Imprimir A4"
-                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105"
-                                    >
-                                        <Printer size={16} /> A4
-                                    </button>
-                                    <button
-                                        onClick={() => { setPrintFormat('thermal'); setIsPrintModalOpen(true); }}
-                                        title="Imprimir 80mm"
-                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105"
-                                    >
-                                        <Printer size={16} /> 80mm
-                                    </button>
-                                    <button
-                                        onClick={() => window.print()}
-                                        title="Imprimir Etiqueta"
-                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105"
-                                    >
-                                        <Tag size={16} /> Etiqueta
-                                    </button>
+
+                                    {/* Botão Imprimir Único com Dropdown */}
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPrintMenu(!showPrintMenu)}
+                                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-all hover:scale-105"
+                                        >
+                                            <Printer size={16} /> Imprimir 
+                                            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showPrintMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"></path></svg>
+                                        </button>
+                                        
+                                        {showPrintMenu && (
+                                            <>
+                                                {/* Overlay transparente para fechar ao clicar fora */}
+                                                <div className="fixed inset-0 z-40" onClick={() => setShowPrintMenu(false)}></div>
+                                                <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                                    <button
+                                                        onClick={() => { setShowPrintMenu(false); setPrintFormat('A4'); setIsPrintModalOpen(true); }}
+                                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm font-bold flex items-center gap-3 border-b border-gray-50 transition-colors"
+                                                    >
+                                                        <FileText size={18} className="text-gray-400" /> Folha A4
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setShowPrintMenu(false); setPrintFormat('thermal'); setIsPrintModalOpen(true); }}
+                                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm font-bold flex items-center gap-3 border-b border-gray-50 transition-colors"
+                                                    >
+                                                        <Printer size={18} className="text-gray-400" /> Bobina 80mm
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setShowPrintMenu(false); window.print(); }}
+                                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-700 text-sm font-bold flex items-center gap-3 transition-colors"
+                                                    >
+                                                        <Tag size={18} className="text-gray-400" /> Etiqueta do Dispositivo
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </>
                             )}
                         </div>
 
                         {/* Lado Direito: OS Rápida, Cancelar, Salvar, Faturar */}
                         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-                            <button
-                                onClick={() => { if (!isLocked) navigate('/service-orders/list'); }}
-                                disabled={isLocked}
-                                className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center justify-center ${isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : 'bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 active:scale-95'}`}
-                            >
-                                Cancelar
-                            </button>
+                            {!isLocked && (
+                                <>
+                                    <button
+                                        onClick={() => { if (!isLocked) navigate('/service-orders/list'); }}
+                                        className="h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center justify-center bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 active:scale-95"
+                                    >
+                                        Cancelar
+                                    </button>
 
-                            {!isEditing && (
-                                <button
-                                    onClick={() => setIsQuickOSOpen(true)}
-                                    className="bg-amber-500 hover:bg-amber-600 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
-                                >
-                                    <Zap size={18} className="fill-white" />
-                                    OS Rápida
-                                </button>
+                                    {!isEditing && (
+                                        <button
+                                            onClick={() => setIsQuickOSOpen(true)}
+                                            className="bg-amber-500 hover:bg-amber-600 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
+                                        >
+                                            <Zap size={18} className="fill-white" />
+                                            OS Rápida
+                                        </button>
+                                    )}
+
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={isLoading}
+                                        className="bg-gray-800 hover:bg-gray-900 text-white shadow-xl shadow-gray-200 active:scale-95 h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center gap-2"
+                                    >
+                                        <Save size={18} />
+                                        {isLoading ? 'Salvando...' : 'Salvar OS'}
+                                    </button>
+
+                                    {/* Botão Faturar — só visível ao editar */}
+                                    {isEditing && (
+                                        <button
+                                            onClick={() => { if (!isLocked) setIsBillingModalOpen(true); }}
+                                            className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30 active:scale-95 h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap"
+                                        >
+                                            <DollarSign size={18} />
+                                            Faturar
+                                        </button>
+                                    )}
+                                </>
                             )}
 
-                            <button
-                                onClick={handleSave}
-                                disabled={isLoading || isLocked}
-                                className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${isLocked ? 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed opacity-60' : 'bg-gray-800 hover:bg-gray-900 text-white shadow-xl shadow-gray-200 active:scale-95'}`}
-                            >
-                                <Save size={18} />
-                                {isLoading ? 'Salvando...' : 'Salvar OS'}
-                            </button>
-
-                            {/* Botão Faturar — só visível ao editar */}
-                            {isEditing && (
+                            {/* Botão Gerar Garantia — visível apenas se Entregue e Faturado (Re-entrada) */}
+                            {isEditing && osStatus === 'Entregue e Faturado' && (
                                 <button
-                                    onClick={() => { if (!isLocked) setIsBillingModalOpen(true); }}
-                                    disabled={isLocked}
-                                    className={`h-11 px-6 rounded-xl text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap ${isLocked ? 'bg-gray-200 text-gray-500 shadow-none cursor-not-allowed opacity-60' : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30 active:scale-95'}`}
+                                    onClick={() => navigate(`/service-orders/new?warranty_from=${editId}`)}
+                                    className="bg-red-500 hover:bg-red-600 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-red-500/30 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap ml-2"
                                 >
-                                    <DollarSign size={18} />
-                                    Faturar
+                                    <ShieldCheck size={18} />
+                                    Gerar Garantia (Re-entrada)
                                 </button>
                             )}
 
