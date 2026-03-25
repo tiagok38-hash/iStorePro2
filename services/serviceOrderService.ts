@@ -6,6 +6,8 @@ import { fetchWithCache, fetchWithRetry, clearCache } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';
 import { cleanUUIDs } from '../utils/formatters.ts';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // --- SERVICES ---
 
 export const getServices = async (): Promise<Service[]> => {
@@ -266,10 +268,9 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
     };
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
-    const _uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     uuidFields.forEach(field => {
         const val = newOrder[field];
-        if (!val || (typeof val === 'string' && !_uuidRegex.test(val))) {
+        if (!val || (typeof val === 'string' && !UUID_REGEX.test(val))) {
             newOrder[field] = null;
         }
     });
@@ -339,10 +340,9 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).isEdited !== undefined) updatePayload.is_edited = (data as any).isEdited;
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
-    const _uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     uuidFields.forEach(field => {
         const val = updatePayload[field];
-        if (!val || (typeof val === 'string' && !_uuidRegex.test(val))) {
+        if (!val || (typeof val === 'string' && !UUID_REGEX.test(val))) {
             updatePayload[field] = null;
         }
     });

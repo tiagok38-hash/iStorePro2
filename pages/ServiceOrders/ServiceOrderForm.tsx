@@ -334,18 +334,6 @@ const ServiceOrderForm: React.FC = () => {
         }
     };
 
-    // Sincronização secundária para garantir que campos complexos sejam mantidos após carregamento das listas
-    useEffect(() => {
-        if (isEditing) {
-            if (receiptTerms.length > 0 && receiptTermId) {
-                setReceiptTermId(prev => (prev === receiptTermId ? prev : receiptTermId));
-            }
-            if (users.length > 0) {
-                if (responsibleId) setResponsibleId(prev => (prev === responsibleId ? prev : responsibleId));
-                if (attendantId) setAttendantId(prev => (prev === attendantId ? prev : attendantId));
-            }
-        }
-    }, [receiptTerms, users, isEditing, receiptTermId, responsibleId, attendantId]);
 
     const loadServiceOrderData = async (id: string, preloadedCustomers?: any[]) => {
         setIsLoadingEdit(true);
@@ -397,7 +385,6 @@ const ServiceOrderForm: React.FC = () => {
                 setCustomerSearch(so.customerName || '');
                 // Salvar o phone diretamente da OS como fallback
                 if ((so as any).phone) setOsPhone((so as any).phone);
-                // Carregar e selecionar cliente — usando lista já carregada para evitar race condition
                 const custList = preloadedCustomers && preloadedCustomers.length > 0
                     ? preloadedCustomers
                     : await getCustomers();
