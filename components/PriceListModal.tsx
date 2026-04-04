@@ -435,11 +435,12 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                     let line = `• ${pName}`;
                     let htmlLine = `• <strong>${pName}</strong>`;
 
-                    const isNew = (p.condition || '').toLowerCase().trim() === 'novo';
-                    if (showBatteryHealth && p.batteryHealth && p.batteryHealth > 0 && !isNew) {
+                    const isNewOrCpo = (p.condition || '').toLowerCase().trim() === 'novo' || (p.condition || '').toLowerCase().trim() === 'cpo';
+                    if (showBatteryHealth && p.batteryHealth && p.batteryHealth > 0 && !isNewOrCpo) {
                         const healthStr = ` [🔋 ${p.batteryHealth}%]`;
+                        const healthHtmlStr = ` <span style="color: ${p.batteryHealth < 80 ? '#ef4444' : '#22c55e'}; font-weight: bold;">[🔋 ${p.batteryHealth}%]</span>`;
                         line += healthStr;
-                        htmlLine += healthStr;
+                        htmlLine += healthHtmlStr;
                     }
 
                     if (showStockLocation && p.storageLocation && !selectedLocationId) {
@@ -518,11 +519,12 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                     let line = `• ${pName}`;
                     let htmlLine = `• <strong>${pName}</strong>`;
 
-                    const isNew = (p.condition || '').toLowerCase().trim() === 'novo';
-                    if (showBatteryHealth && p.batteryHealth && p.batteryHealth > 0 && !isNew) {
+                    const isNewOrCpo = (p.condition || '').toLowerCase().trim() === 'novo' || (p.condition || '').toLowerCase().trim() === 'cpo';
+                    if (showBatteryHealth && p.batteryHealth && p.batteryHealth > 0 && !isNewOrCpo) {
                         const healthStr = ` [🔋 ${p.batteryHealth}%]`;
+                        const healthHtmlStr = ` <span style="color: ${p.batteryHealth < 80 ? '#ef4444' : '#22c55e'}; font-weight: bold;">[🔋 ${p.batteryHealth}%]</span>`;
                         line += healthStr;
-                        htmlLine += healthStr;
+                        htmlLine += healthHtmlStr;
                     }
 
                     if (showStockLocation && p.storageLocation && !selectedLocationId) {

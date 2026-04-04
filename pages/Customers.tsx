@@ -65,9 +65,19 @@ const PurchaseHistoryModal: React.FC<{
                     {(() => {
                         const debtDetails = sales.reduce((acc, sale) => {
                             if (sale.status === 'Cancelada') return acc;
-                            const pendingAmount = sale.payments
-                                .filter(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario')
-                                .reduce((sum, p) => sum + p.value, 0);
+
+                            let pendingAmount = 0;
+                            const hadCredit = sale.payments.some(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario');
+
+                            if (hadCredit) {
+                                if (sale.currentDebtBalance !== undefined && sale.currentDebtBalance !== null) {
+                                    pendingAmount = sale.currentDebtBalance;
+                                } else {
+                                    pendingAmount = sale.payments
+                                        .filter(p => p.type === 'pending' || p.method === 'Crediário' || p.method === 'Crediario')
+                                        .reduce((sum, p) => sum + p.value, 0);
+                                }
+                            }
 
                             if (pendingAmount > 0) {
                                 const salesperson = users.find(u => u.id === sale.salespersonId)?.name || 'Desconhecido';
@@ -82,7 +92,7 @@ const PurchaseHistoryModal: React.FC<{
                                 });
                             }
                             return acc;
-                        }, [] as { id: string, fullId: string, date: string, amount: number, salesperson: string }[]);
+                        }, [] as { id: string, fullId: string, date: string, amount: number, salesperson: string, internalNote?: string }[]);
 
                         const totalDebt = debtDetails.reduce((sum, d) => sum + d.amount, 0);
 
@@ -155,7 +165,7 @@ const PurchaseHistoryModal: React.FC<{
                                                                         </span>
                                                                         <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-1">
                                                                             {product?.imei1 && <span>IMEI: <span className="font-mono">{product.imei1}</span></span>}
-                                                                            {product?.batteryHealth !== undefined && <span>Bateria: <span className={product.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'}>{product.batteryHealth}%</span></span>}
+                                                                            {product?.batteryHealth !== undefined && product?.condition !== 'Novo' && product?.condition !== 'CPO' && <span>Bateria: <span className={product.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{product.batteryHealth}%</span></span>}
                                                                         </div>
                                                                     </li>
                                                                 );
@@ -252,7 +262,7 @@ const PurchaseHistoryModal: React.FC<{
                                                 {tradeIn.batteryHealth !== undefined && tradeIn.batteryHealth !== null && (
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-500 font-medium">Bateria</span>
-                                                        <span className={`font-bold ${tradeIn.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>{tradeIn.batteryHealth}%</span>
+                                                        <span className={`font-bold ${tradeIn.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>{tradeIn.batteryHealth}%</span>
                                                     </div>
                                                 )}
                                             </div>

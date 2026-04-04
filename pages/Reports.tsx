@@ -856,7 +856,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                                                 {product.origin === 'Troca' && (
                                                     <span className="px-2 py-0.5 rounded-lg text-[9px] font-black bg-purple-100 text-purple-700 uppercase tracking-widest">Troca</span>
                                                 )}
-                                                {product.batteryHealth !== undefined && product.batteryHealth > 0 && (product.brand || '').toLowerCase().includes('apple') && (
+                                                {product.batteryHealth !== undefined && product.batteryHealth > 0 && (product.brand || '').toLowerCase().includes('apple') && product.condition !== 'Novo' && product.condition !== 'CPO' && (
                                                     <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black tracking-widest ${product.batteryHealth < 80 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                         {product.batteryHealth}% SAÚDE
                                                     </span>

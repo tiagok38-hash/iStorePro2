@@ -133,11 +133,11 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                             </span>
                                                                         </>
                                                                     )}
-                                                                    {product.condition !== 'Novo' && typeof product.batteryHealth === 'number' && (
+                                                                    {product.condition !== 'Novo' && product.condition !== 'CPO' && typeof product.batteryHealth === 'number' && (
                                                                         <>
                                                                             <span className="text-gray-300">|</span>
                                                                             <span>
-                                                                                Bateria: <span className="font-semibold">{product.batteryHealth}%</span>
+                                                                                Bateria: <span className={`font-semibold ${product.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>{product.batteryHealth}%</span>
                                                                             </span>
                                                                         </>
                                                                     )}
@@ -241,7 +241,9 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                             <p className="font-semibold text-primary">{payment.tradeInDetails.model}</p>
                                                             <p>
                                                                 {payment.tradeInDetails.imei1 ? `IMEI: ${payment.tradeInDetails.imei1}` : `S/N: ${payment.tradeInDetails.serialNumber}`}
-                                                                {payment.tradeInDetails.batteryHealth && (payment.tradeInDetails as any).condition !== 'Novo' ? ` | Bateria: ${payment.tradeInDetails.batteryHealth}%` : ''}
+                                                                {payment.tradeInDetails.batteryHealth && (payment.tradeInDetails as any).condition !== 'Novo' && (payment.tradeInDetails as any).condition !== 'CPO' && (
+                                                                    <span> | Bateria: <span className={payment.tradeInDetails.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{payment.tradeInDetails.batteryHealth}%</span></span>
+                                                                )}
                                                             </p>
                                                         </div>
                                                     )}
@@ -270,10 +272,10 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                         <span>Condição: <span className="font-semibold">{legacyTradedInProduct.condition}</span></span>
                                                     </>
                                                 )}
-                                                {legacyTradedInProduct.condition !== 'Novo' && typeof legacyTradedInProduct.batteryHealth === 'number' && (
+                                                {legacyTradedInProduct.condition !== 'Novo' && legacyTradedInProduct.condition !== 'CPO' && typeof legacyTradedInProduct.batteryHealth === 'number' && (
                                                     <>
                                                         <span className="text-blue-300">|</span>
-                                                        <span>Bateria: <span className="font-semibold">{legacyTradedInProduct.batteryHealth}%</span></span>
+                                                        <span>Bateria: <span className={`font-semibold ${legacyTradedInProduct.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>{legacyTradedInProduct.batteryHealth}%</span></span>
                                                     </>
                                                 )}
                                             </div>

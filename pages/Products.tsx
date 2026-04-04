@@ -1114,10 +1114,10 @@ const Products: React.FC = () => {
                                                             <span>S/N: {product.serialNumber}</span>
                                                         </>
                                                     )}
-                                                    {(product.brand || '').toLowerCase().includes('apple') && product.condition !== 'Novo' && product.batteryHealth !== undefined && product.batteryHealth > 0 && (
+                                                    {(product.brand || '').toLowerCase().includes('apple') && product.condition !== 'Novo' && product.condition !== 'CPO' && product.batteryHealth !== undefined && product.batteryHealth > 0 && (
                                                         <>
                                                             <span className="opacity-30">·</span>
-                                                            <span className={`font-bold ${product.batteryHealth < 80 ? 'text-red-500' : 'text-blue-600'}`}>
+                                                            <span className={`font-bold ${product.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>
                                                                 Saúde: {product.batteryHealth}%
                                                             </span>
                                                         </>

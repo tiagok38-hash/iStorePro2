@@ -1676,14 +1676,19 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
         }
     }
 
-    // CREDIT REVERT: If sale had "Crediário", revert the customer's credit_used and delete installments
-    if (sale.payments && Array.isArray(sale.payments)) {
-        const creditPayment = sale.payments.find((p: any) =>
-            p.method === 'Crediário' || p.method === 'Crediario'
-        );
+    // CREDIT REVERT: Guarantee cleaning up installments linked to this sale
+    if (sale.customer_id) {
+        try {
+            // First find how much was actually financed from the installments table
+            const { data: installments } = await supabase
+                .from('credit_installments')
+                .select('amount, amount_paid')
+                .eq('sale_id', sale.id);
 
-        if (creditPayment && sale.customer_id) {
-            try {
+            if (installments && installments.length > 0) {
+                // We sum up the original amount issued
+                const totalFinanced = installments.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0);
+
                 // 1. Delete installments
                 const { error: delError } = await supabase.from('credit_installments').delete().eq('sale_id', sale.id);
                 if (delError) console.error('Error deleting installments:', delError);
@@ -1696,11 +1701,8 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                     .single();
 
                 if (customer) {
-                    // Important: Use financedAmount if available, otherwise fallback to payment value
-                    // The creditDetails might be in creditPayment.creditDetails
-                    const financedAmount = creditPayment.creditDetails?.financedAmount || creditPayment.value;
                     const currentUsed = Number(customer.credit_used || 0);
-                    const newUsed = Math.max(0, currentUsed - Number(financedAmount));
+                    const newUsed = Math.max(0, currentUsed - totalFinanced);
 
                     const { error: updError } = await supabase
                         .from('customers')
@@ -1714,15 +1716,15 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                             AuditActionType.UPDATE,
                             AuditEntityType.CUSTOMER,
                             sale.customer_id,
-                            `Estorno de crédito (venda cancelada): -${formatCurrency(financedAmount)}. Novo total: ${formatCurrency(newUsed)}`,
+                            `Estorno de crédito (cancelamento de venda): -${formatCurrency(totalFinanced)}. Novo total: ${formatCurrency(newUsed)}`,
                             userId,
                             userName
                         );
                     }
                 }
-            } catch (err) {
-                console.error('Error reverting credit on cancellation:', err);
             }
+        } catch (err) {
+            console.error('Error reverting credit and cleaning installments on cancellation:', err);
         }
     }
 

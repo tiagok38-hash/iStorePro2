@@ -369,10 +369,10 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                                                             </span>
                                                                         </>
                                                                     )}
-                                                                    {p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && (
+                                                                    {p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && p.condition !== 'Novo' && p.condition !== 'CPO' && (
                                                                         <>
                                                                             {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length) && <span className="opacity-30">|</span>}
-                                                                            <span className={`font-bold ${p.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>
+                                                                            <span className={`font-bold ${p.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>
                                                                                 Saúde: {p.batteryHealth}%
                                                                             </span>
                                                                         </>
@@ -423,8 +423,8 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                                             {item.imei1 && <span className="truncate">IMEI: <span className="font-mono text-gray-700">{item.imei1}</span></span>}
                                                             <div className="flex items-center gap-2 truncate">
                                                                 {item.condition && <span>{item.condition}</span>}
-                                                                {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && (
-                                                                    <span>| Bat: <span className={`${item.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-600 font-bold'}`}>{item.batteryHealth}%</span></span>
+                                                                {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && item.condition !== 'CPO' && (
+                                                                    <span>| Bat: <span className={`${item.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}`}>{item.batteryHealth}%</span></span>
                                                                 )}
                                                                 {item.variations && item.variations.length > 0 && (
                                                                     <>
@@ -536,8 +536,8 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                                     {item.serialNumber && <p>N/S: <span className="font-mono text-gray-600">{item.serialNumber}</span></p>}
                                                     {item.imei1 && <p>IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></p>}
                                                     <p>
-                                                        {item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && (
-                                                            <span className={`font-bold ${item.batteryHealth < 80 ? 'text-red-500' : 'text-green-600'}`}>| Bat: {item.batteryHealth}%</span>
+                                                        {item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && item.condition !== 'CPO' && (
+                                                            <span className={`font-bold ${item.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>| Bat: {item.batteryHealth}%</span>
                                                         )}
                                                         {item.variations && item.variations.length > 0 && (
                                                             <span className="italic text-gray-800 font-bold uppercase tracking-tighter">

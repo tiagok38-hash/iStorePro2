@@ -191,7 +191,7 @@ const StockSearchModal: React.FC<StockSearchModalProps> = ({ products, onClose }
                                                 {p.imei1 && <span><strong className="text-gray-500">IMEI:</strong> {p.imei1}</span>}
                                                 {p.serialNumber && <span><strong className="text-gray-500">S/N:</strong> {p.serialNumber}</span>}
                                                 {p.storageLocation && <span><strong className="text-gray-500">Local:</strong> {p.storageLocation}</span>}
-                                                {(p.batteryHealth !== undefined && p.batteryHealth > 0 && p.condition !== 'Novo') && <span><strong className="text-gray-500">Bat:</strong> {p.batteryHealth}%</span>}
+                                                {(p.batteryHealth !== undefined && p.batteryHealth > 0 && p.condition !== 'Novo' && p.condition !== 'CPO') && <span><strong className="text-gray-500">Bat:</strong> <span className={p.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{p.batteryHealth}%</span></span>}
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 pt-2 sm:pt-0 border-t sm:border-0 border-gray-50">

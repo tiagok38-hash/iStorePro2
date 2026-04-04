@@ -369,8 +369,8 @@ const CatalogAdmin: React.FC = () => {
                                             <div>
                                                 <p className="font-semibold text-sm text-primary">{item.productName}</p>
                                                 <p className="text-xs text-secondary">{item.productBrand} · {item.productCategory}</p>
-                                                {item.condition === 'Seminovo' && item.batteryHealth && (
-                                                    <span className="inline-block mt-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full">
+                                                {item.condition !== 'Novo' && item.condition !== 'CPO' && item.batteryHealth !== undefined && item.batteryHealth > 0 && (
+                                                    <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-full ${item.batteryHealth < 80 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                                                         🔋 {item.batteryHealth}%
                                                     </span>
                                                 )}

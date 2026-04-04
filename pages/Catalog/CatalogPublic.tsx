@@ -237,8 +237,8 @@ const ProductDetailsModal: React.FC<{
                             {item.condition}
                         </span>
                         {/* Battery Health - Only in Modal */}
-                        {item.condition === 'Seminovo' && item.batteryHealth && (
-                            <span className="inline-block px-2.5 py-1 text-[10px] font-bold rounded-full bg-gray-100 text-gray-700">
+                        {item.condition !== 'Novo' && item.condition !== 'CPO' && item.batteryHealth !== undefined && item.batteryHealth > 0 && (
+                            <span className={`inline-block px-2.5 py-1 text-[10px] font-bold rounded-full ${item.batteryHealth < 80 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                                 Bateria {item.batteryHealth}%
                             </span>
                         )}
