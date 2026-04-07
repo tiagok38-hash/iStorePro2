@@ -19,7 +19,7 @@ import {
     UserCircle
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getServiceOrders, getCustomers, getCustomerDevices, updateServiceOrder, returnOsPartsStock } from '../../services/mockApi';
+import { getServiceOrders, getCustomers, getCustomerDevices, updateServiceOrder, returnOsPartsStock, deductOsPartsStock } from '../../services/mockApi';
 import { ServiceOrder, Customer, CustomerDevice } from '../../types';
 import Modal from '../../components/Modal';
 import CustomerModal from '../../components/CustomerModal';
@@ -463,6 +463,14 @@ const ServiceOrderList: React.FC = () => {
 
         try {
             await updateServiceOrder(id, { status: newStatus } as any);
+            
+            // Stock logic compatibility for Kanban drop
+            if (os.status !== 'Entregue e Faturado' && newStatus === 'Entregue e Faturado') {
+                await deductOsPartsStock(id, os.displayId || 0, os.items || []);
+            } else if (os.status === 'Entregue e Faturado' && newStatus !== 'Entregue e Faturado') {
+                await returnOsPartsStock(id);
+            }
+
             showToast(`OS movida para "${newStatus}"`, 'success');
         } catch (error) {
             showToast("Erro ao mover OS. Tente novamente.", 'error');

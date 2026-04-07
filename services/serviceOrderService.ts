@@ -270,7 +270,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
     uuidFields.forEach(field => {
         const val = newOrder[field];
-        if (!val || (typeof val === 'string' && !UUID_REGEX.test(val))) {
+        if (!val || val.trim() === '') {
             newOrder[field] = null;
         }
     });
@@ -342,7 +342,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
     uuidFields.forEach(field => {
         const val = updatePayload[field];
-        if (!val || (typeof val === 'string' && !UUID_REGEX.test(val))) {
+        if (!val || (typeof val === 'string' && val.trim() === '')) {
             updatePayload[field] = null;
         }
     });

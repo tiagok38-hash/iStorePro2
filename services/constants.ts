@@ -131,6 +131,9 @@ export const appleProductHierarchy = {
         'iPhone Air': { '256GB': ['Preto Espacial', 'Branco Nuvem', 'Dourado Claro', 'Azul Céu'], '512GB': ['Preto Espacial', 'Branco Nuvem', 'Dourado Claro', 'Azul Céu'], '1TB': ['Preto Espacial', 'Branco Nuvem', 'Dourado Claro', 'Azul Céu'], },
         'iPhone 17 Pro': { '256GB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '512GB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '1TB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '2TB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], },
         'iPhone 17 Pro Max': { '256GB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '512GB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '1TB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], '2TB': ['Laranja Cósmico', 'Azul Profundo', 'Prateado'], },
+        'iPhone SE': { '16GB': ['Prata', 'Cinza Espacial', 'Dourado', 'Ouro Rosa'], '32GB': ['Prata', 'Cinza Espacial', 'Dourado', 'Ouro Rosa'], '64GB': ['Prata', 'Cinza Espacial', 'Dourado', 'Ouro Rosa'], '128GB': ['Prata', 'Cinza Espacial', 'Dourado', 'Ouro Rosa'], },
+        'iPhone SE (2 Geracao)': { '64GB': ['Preto', 'Branco', '(PRODUCT)RED'], '128GB': ['Preto', 'Branco', '(PRODUCT)RED'], '256GB': ['Preto', 'Branco', '(PRODUCT)RED'], },
+        'iPhone SE (3 Geracao)': { '64GB': ['Meia-noite', 'Estelar', '(PRODUCT)RED'], '128GB': ['Meia-noite', 'Estelar', '(PRODUCT)RED'], '256GB': ['Meia-noite', 'Estelar', '(PRODUCT)RED'], },
     },
     'Mac': {
         'MacBook Pro (2024, 14") M4 Max': {

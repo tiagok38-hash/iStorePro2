@@ -129,7 +129,9 @@ const ServiceOrderForm: React.FC = () => {
     const [showCustomerResults, setShowCustomerResults] = useState(false);
 
     const [responsibleId, setResponsibleId] = useState('');
+    const [responsibleName, setResponsibleName] = useState('');
     const [attendantId, setAttendantId] = useState('');
+    const [attendantName, setAttendantName] = useState('');
 
     const [customerDeviceId, setCustomerDeviceId] = useState('');
     const [deviceModel, setDeviceModel] = useState('');
@@ -362,7 +364,9 @@ const ServiceOrderForm: React.FC = () => {
             setItems((so.items || []).map(item => ({ ...item, description: cleanUUIDs(item.description) })));
             setDiscount(so.discount || 0);
             setResponsibleId(so.responsibleId || '');
+            setResponsibleName(so.responsibleName || '');
             setAttendantId(so.attendantId || '');
+            setAttendantName(so.attendantName || '');
             setIsWarranty(!!so.isWarranty);
             setParentOsId(so.parentOsId || null);
             setOsStatus(so.status || 'Orçamento');
@@ -600,9 +604,9 @@ const ServiceOrderForm: React.FC = () => {
             discount,
             total,
             responsibleId: safeResponsibleId,
-            responsibleName: responsible?.name || '',
+            responsibleName: responsible?.name || responsibleName || '',
             attendantId: safeAttendantId,
-            attendantName: users.find(u => u.id === attendantId)?.name || currentUser?.name || '',
+            attendantName: users.find(u => u.id === attendantId)?.name || attendantName || currentUser?.name || '',
             photos,
             entryDate: entryDate || new Date().toISOString(),
             estimatedDate: estimatedDate ? new Date(estimatedDate + 'T12:00:00').toISOString() : undefined,
@@ -684,12 +688,16 @@ const ServiceOrderForm: React.FC = () => {
         const data = buildServiceOrderData('Entregue e Faturado');
         // Add payments array
         await updateServiceOrder(editId, { ...data, payments } as any);
-        // Baixar peças do estoque
+        // Baixar peças do estoque (com segurança para devolução se já faturada)
         try {
+            if (originalStatus === 'Entregue e Faturado') {
+                await returnOsPartsStock(editId);
+            }
             await deductOsPartsStock(editId, displayId || 0, items);
         } catch (e) {
             console.error('Erro ao baixar estoque:', e);
         }
+
         
         // Registrar comissão
         try {
