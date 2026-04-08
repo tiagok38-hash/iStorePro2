@@ -277,10 +277,13 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 const s = formatStorageUnit(p.storage).toLowerCase();
                 const col = (p.color || '').trim().toLowerCase(); // Color is part of key
                 const brand = (p.brand || '').trim().toLowerCase(); // Include brand for non-Apple safety
+                // BUGFIX: include storageLocation in the key so products from different
+                // locations are NEVER merged, guaranteeing the location filter works correctly.
+                const loc = (p.storageLocation || '').trim().toLowerCase();
 
                 // For Non-Apple, model is the main identifier usually.
                 // Key needs to be specific enough to group "identical" items
-                const keyParts = [brand, m, c, s, col];
+                const keyParts = [brand, m, c, s, col, loc];
                 if (!calculateAverages) {
                     if (showCost) keyParts.push((p.costPrice || 0).toString());
                     if (showWholesale) keyParts.push((p.wholesalePrice || 0).toString());

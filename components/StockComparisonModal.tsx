@@ -168,28 +168,10 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                     .toLowerCase()
                     .replace(/[^a-z0-9]/g, ''); // Keep only alphanumeric
 
-                const lowModel = model.toLowerCase();
                 const normModel = norm(model);
                 const normStorage = norm(storage.replace(/gb/i, ''));
                 const normColor = norm(color);
                 const normCondition = norm(condition);
-
-                // Build a normalized key to avoid issues with naming inconsistencies (hyphens, accents, etc.)
-                let keyParts = [normModel, normCondition];
-
-                // Only add storage to key if it's not already clearly in the model name (comparing normalized versions)
-                if (normStorage && !normModel.includes(normStorage)) {
-                    keyParts.push(normStorage);
-                }
-
-                // Same for color
-                if (normColor && !normModel.includes(normColor)) {
-                    keyParts.push(normColor);
-                }
-
-                const key = keyParts.join('|');
-
-                const existing = grouped.get(key);
 
                 // Collect identifiers
                 const ids: string[] = [];
@@ -197,6 +179,40 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                 if (p.imei2) ids.push(`IMEI 2: ${p.imei2}`);
                 if (p.serialNumber) ids.push(`S/N: ${p.serialNumber}`);
                 if (p.barcodes && p.barcodes.length > 0) ids.push(`EAN: ${p.barcodes.join(', ')}`);
+
+                // BUGFIX: For unique products (with IMEI or serial number), use the
+                // identifier itself as the key. This ensures the same physical unit is
+                // always matched correctly across locations, regardless of minor naming
+                // differences (e.g. "Titânio Branco" vs "Titanio Branco") and also
+                // prevents two distinct units with different IMEIs from being merged.
+                const isUnique = !!(p.imei1 || p.imei2 || p.serialNumber);
+                let key: string;
+
+                if (isUnique) {
+                    // Use IMEI1 (primary), IMEI2 (secondary) or S/N as the unique key.
+                    // Normalize to avoid casing issues.
+                    const uniqueId = norm(p.imei1 || p.imei2 || p.serialNumber || '');
+                    // Include model+condition so that, in the extremely unlikely case two
+                    // different products share the same identifier, they're still separated.
+                    key = `uid|${uniqueId}|${normModel}|${normCondition}`;
+                } else {
+                    // Batch/lot products: group by normalized model + condition + storage + color
+                    let keyParts = [normModel, normCondition];
+
+                    // Only add storage to key if it's not already clearly in the model name
+                    if (normStorage && !normModel.includes(normStorage)) {
+                        keyParts.push(normStorage);
+                    }
+
+                    // Same for color
+                    if (normColor && !normModel.includes(normColor)) {
+                        keyParts.push(normColor);
+                    }
+
+                    key = keyParts.join('|');
+                }
+
+                const existing = grouped.get(key);
 
                 if (existing) {
                     existing.stock += p.stock;
