@@ -26,6 +26,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
     const [locationB, setLocationB] = useState<string>(locations[1]?.name || locations[0]?.name || '');
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<'Todos' | 'Apple' | 'Variados'>('Todos');
+    const [groupByModel, setGroupByModel] = useState(false);
 
     const handleGenerateList = () => {
         const previewWindow = window.open('', '_blank');
@@ -188,7 +189,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                 const isUnique = !!(p.imei1 || p.imei2 || p.serialNumber);
                 let key: string;
 
-                if (isUnique) {
+                if (isUnique && !groupByModel) {
                     // Use IMEI1 (primary), IMEI2 (secondary) or S/N as the unique key.
                     // Normalize to avoid casing issues.
                     const uniqueId = norm(p.imei1 || p.imei2 || p.serialNumber || '');
@@ -196,7 +197,8 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                     // different products share the same identifier, they're still separated.
                     key = `uid|${uniqueId}|${normModel}|${normCondition}`;
                 } else {
-                    // Batch/lot products: group by normalized model + condition + storage + color
+                    // Batch/lot products OR agrupamento ativo:
+                    // group by normalized model + condition + storage + color
                     let keyParts = [normModel, normCondition];
 
                     // Only add storage to key if it's not already clearly in the model name
@@ -236,8 +238,8 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
         return grouped;
     };
 
-    const stockA = useMemo(() => getGroupedStock(locationA), [products, locationA, typeFilter]);
-    const stockB = useMemo(() => getGroupedStock(locationB), [products, locationB, typeFilter]);
+    const stockA = useMemo(() => getGroupedStock(locationA), [products, locationA, typeFilter, groupByModel]);
+    const stockB = useMemo(() => getGroupedStock(locationB), [products, locationB, typeFilter, groupByModel]);
 
     // Comparison Logic: Find what's in A but NOT in B (at all)
     const diffAtoB = useMemo(() => {
@@ -353,7 +355,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                             />
                         </div>
 
-                        <div className="md:col-span-3 flex justify-center mt-2">
+                        <div className="md:col-span-3 flex flex-wrap justify-center items-center gap-3 mt-2">
                             <div className="bg-gray-100/50 p-1.5 rounded-2xl border border-border flex gap-1 shadow-inner">
                                 {(['Todos', 'Apple', 'Variados'] as const).map((type) => (
                                     <button
@@ -368,6 +370,22 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                     </button>
                                 ))}
                             </div>
+
+                            {/* Toggle: Agrupar por modelo */}
+                            <button
+                                onClick={() => setGroupByModel(v => !v)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    groupByModel
+                                        ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                                        : 'bg-white border-gray-300 text-muted hover:border-primary/40'
+                                }`}
+                                title="Agrupa produtos com IMEI/SN diferentes mas mesma Descrição, Condição, Cor e GB em um único card"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h10M4 18h10" />
+                                </svg>
+                                {groupByModel ? 'Agrupado' : 'Agrupar por modelo'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -485,7 +503,9 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                 {/* Footer Tips */}
                 <div className="p-4 bg-gray-50 border-t border-border flex justify-center">
                     <p className="text-[10px] font-bold text-muted uppercase tracking-widest flex items-center gap-2">
-                        💡 Dica: Verifique a condição para garantir que a transferência seja do modelo correto.
+                        {groupByModel
+                            ? '📦 Modo Agrupado: produtos com o mesmo modelo, condição, cor e GB são exibidos juntos, somando o estoque.'
+                            : '💡 Dica: Verifique a condição para garantir que a transferência seja do modelo correto.'}
                     </p>
                 </div>
             </div>
