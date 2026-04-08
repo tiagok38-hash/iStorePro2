@@ -395,7 +395,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                                     </div>
                                     <div className="divide-y divide-gray-100">
                                         {searchResults.map(product => {
-                                            const desc = `${product.brand} ${product.model}${product.color ? ' ' + product.color : ''}`;
+                                            const desc = `${product.brand} ${product.model}${product.color && !product.model.toLowerCase().includes(product.color.toLowerCase()) ? ' ' + product.color : ''}`;
                                             return (
                                                 <button
                                                     key={product.id}
