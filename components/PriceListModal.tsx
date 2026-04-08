@@ -714,12 +714,23 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                             }
                             @media print {
                                 .header-bar { display: none !important; }
-                                body { padding: 0 !important; background: white !important; }
+                                body { 
+                                    padding: 0 !important; 
+                                    background: white !important;
+                                    font-size: 60% !important;
+                                }
                                 .container { 
                                     box-shadow: none !important; 
                                     border: none !important; 
-                                    padding: 0 !important; 
+                                    padding: 8px !important; 
                                     max-width: none !important;
+                                }
+                                pre { 
+                                    font-size: 9.6px !important; 
+                                    line-height: 1.3 !important;
+                                }
+                                @page {
+                                    margin: 8mm 10mm;
                                 }
                             }
                         </style>
