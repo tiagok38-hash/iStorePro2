@@ -489,7 +489,7 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     Object.keys(productData).forEach(key => productData[key] === undefined && delete productData[key]);
 
     // Sanitize UUID fields to prevent 400 Bad Request from Supabase
-    const uuidFields = ['supplier_id', 'categoryId', 'brandId', 'createdBy'];
+    const uuidFields = ['supplier_id', 'categoryId', 'brandId'];
     uuidFields.forEach(f => {
         if (productData[f] && typeof productData[f] === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productData[f])) {
             productData[f] = null;

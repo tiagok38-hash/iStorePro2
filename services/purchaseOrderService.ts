@@ -413,6 +413,8 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                 createdAt: now,
                 updatedAt: now,
                 sku: p.sku || `#${currentSkuCount}`,
+                createdBy: p.createdBy || launchedBy || createdBy,
+                createdByName: p.createdByName || launchedBy || createdBy,
                 stockHistory: initialStockHistory,
                 priceHistory: []
             });

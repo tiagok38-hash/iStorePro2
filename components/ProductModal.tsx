@@ -403,7 +403,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
         } else {
             const defaults = {
-                stock: 1, batteryHealth: 100, condition: isTradeInMode ? 'Seminovo' : 'Novo', warranty: isTradeInMode ? '' : '1 Ano', storageLocation: isTradeInMode ? '' : 'Loja Santa Cruz', variations: [], barcodes: [], createdBy: user?.name || 'Keiler', origin: 'Compra'
+                stock: 1, batteryHealth: 100, condition: isTradeInMode ? 'Seminovo' : 'Novo', warranty: isTradeInMode ? '' : '1 Ano', storageLocation: isTradeInMode ? '' : 'Loja Santa Cruz', variations: [], barcodes: [], createdBy: user?.id || 'Admin User', origin: 'Compra'
             };
             setFormData(defaults);
             setProductType('Apple'); // Default for new - Always Apple for trade-in mode
