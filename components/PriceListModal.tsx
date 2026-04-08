@@ -409,7 +409,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 };
 
                 // Group by CleanModel + Storage + Condition + Price
-                const colorGroups: Record<string, { product: Product, colors: Set<string>, cleanModel: string }> = {};
+                const colorGroups: Record<string, { product: Product, colors: Set<string>, cleanModel: string, allIdentifiers: string[] }> = {};
 
                 sortedGroup.forEach(p => {
                     const cleanModel = getCleanModel(p);
@@ -422,12 +422,27 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                     const key = `${cleanModel}|${formatStorageUnit(p.storage)}|${p.condition}|${priceKey}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
 
                     if (!colorGroups[key]) {
-                        colorGroups[key] = { product: p, colors: new Set(), cleanModel };
+                        colorGroups[key] = { product: p, colors: new Set(), cleanModel, allIdentifiers: [] };
                     }
                     if (p.color) colorGroups[key].colors.add(p.color);
+
+                    // Acumular identificadores de TODOS os produtos do grupo de cor
+                    if (showProductIdentifiers) {
+                        const pIds: string[] = (p as any)._groupIdentifiers || [];
+                        if (pIds.length > 0) {
+                            colorGroups[key].allIdentifiers.push(...pIds);
+                        } else {
+                            // Produto não passou pelo groupIdentical (ex: sem agrupamento ativo)
+                            const directIds: string[] = [];
+                            if (p.imei1) directIds.push(`IMEI: ${p.imei1}`);
+                            if (p.serialNumber) directIds.push(`S/N: ${p.serialNumber}`);
+                            if (p.barcodes && p.barcodes.length > 0) directIds.push(`EAN: ${p.barcodes.join(', ')}`);
+                            if (directIds.length > 0) colorGroups[key].allIdentifiers.push(directIds.join(' | '));
+                        }
+                    }
                 });
 
-                Object.values(colorGroups).forEach(({ product: p, colors, cleanModel }) => {
+                Object.values(colorGroups).forEach(({ product: p, colors, cleanModel, allIdentifiers }) => {
                     let pName = cleanModel;
                     if (p.storage) pName += ` ${formatStorageUnit(p.storage)}`;
 
@@ -479,20 +494,11 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                     }
 
                     if (showProductIdentifiers) {
-                        const ids = (p as any)._groupIdentifiers || [];
-                        if (ids.length > 0) {
-                            const idsStr = ` [${ids.join('; ')}]`;
+                        // allIdentifiers já contém os IDs de TODOS os produtos do grupo de cor
+                        if (allIdentifiers.length > 0) {
+                            const idsStr = ` [${allIdentifiers.join('; ')}]`;
                             line += idsStr;
                             htmlLine += ` <span style="font-size: 10px; color: #64748b; font-weight: normal;">${idsStr}</span>`;
-                        } else if (p.imei1 || p.serialNumber || (p.barcodes && p.barcodes.length > 0)) {
-                            // Fallback for non-grouped
-                            const singleIds: string[] = [];
-                            if (p.imei1) singleIds.push(`IMEI: ${p.imei1}`);
-                            if (p.serialNumber) singleIds.push(`S/N: ${p.serialNumber}`);
-                            if (p.barcodes && p.barcodes.length > 0) singleIds.push(`EAN: ${p.barcodes.join(', ')}`);
-                            const singleIdsStr = ` [${singleIds.join(' | ')}]`;
-                            line += singleIdsStr;
-                            htmlLine += ` <span style="font-size: 10px; color: #64748b; font-weight: normal;">${singleIdsStr}</span>`;
                         }
                     }
 
