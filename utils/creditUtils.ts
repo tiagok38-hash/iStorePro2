@@ -9,19 +9,22 @@ export const calculateInstallmentDates = (
     const [year, month, day] = startDate.split('-').map(Number);
 
     for (let i = 0; i < count; i++) {
-        let nextDate = new Date(year, month - 1, day);
+        let nextDate: Date;
 
         if (frequency === 'mensal') {
-            const targetMonth = month - 1 + (i + 1);
+            const targetMonth = month - 1 + i;
             nextDate = new Date(year, targetMonth, day);
             if (nextDate.getDate() !== day) {
                 nextDate.setDate(0);
             }
-        } else if (frequency === 'quinzenal') {
-            nextDate = new Date(year, month - 1, day + ((i + 1) * 15));
+        } else {
+            nextDate = new Date(year, month - 1, day + i * 15);
         }
 
-        dates.push(nextDate.toISOString().split('T')[0]);
+        const y = nextDate.getFullYear();
+        const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+        const d = String(nextDate.getDate()).padStart(2, '0');
+        dates.push(`${y}-${m}-${d}`);
     }
 
     return dates;

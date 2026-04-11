@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { XIcon, CalculatorIcon, CalendarIcon, PercentIcon, AlertCircleIcon, Edit2Icon, CheckIcon } from 'lucide-react';
 import { formatCurrency, getCreditSettings, updateCustomer } from '../../services/mockApi.ts';
 import CustomDatePicker from '../CustomDatePicker.tsx';
@@ -9,7 +9,7 @@ interface NewCreditModalProps {
     isOpen: boolean;
     onClose: () => void;
     totalAmount: number;
-    availableLimit: number; // New prop
+    availableLimit: number;
     customerId?: string;
     onConfirm: (details: any) => void;
     onUpdateLimit?: (newLimit: number) => void;
@@ -20,11 +20,18 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
     const [financedAmount, setFinancedAmount] = useState(totalAmount);
     const [installments, setInstallments] = useState(1);
     const [frequency, setFrequency] = useState<'mensal' | 'quinzenal'>('mensal');
-    const [firstDueDate, setFirstDueDate] = useState(() => {
+    
+    const getDefaultDate = (freq: 'mensal' | 'quinzenal') => {
         const d = new Date();
-        d.setMonth(d.getMonth() + 1); // Default next month
+        if (freq === 'mensal') {
+            d.setMonth(d.getMonth() + 1);
+        } else {
+            d.setDate(d.getDate() + 15);
+        }
         return d.toISOString().split('T')[0];
-    });
+    };
+
+    const [firstDueDate, setFirstDueDate] = useState(() => getDefaultDate('mensal'));
     const [applyInterest, setApplyInterest] = useState(false);
     const [interestRate, setInterestRate] = useState(0);
     const [defaultSettings, setDefaultSettings] = useState({ defaultInterestRate: 0, lateFeePercentage: 0 });
@@ -41,6 +48,8 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
         if (isOpen) {
             setEntryAmount(0);
             setFinancedAmount(totalAmount);
+            setFrequency('mensal');
+            setFirstDueDate(getDefaultDate('mensal'));
             getCreditSettings().then(settings => {
                 setDefaultSettings(settings);
                 setInterestRate(settings.defaultInterestRate);
@@ -55,54 +64,47 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
         };
     }, [isOpen, totalAmount]);
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        if (isOpen) {
+            setFirstDueDate(getDefaultDate(frequency));
+        }
+    }, [frequency, isOpen]);
 
-    // Regra 2: Cálculo do valor total financiado (Juros Simples)
-    // valor_total_financiado = valor_produto × (1 + taxa_juros_percentual)
     const totalWithInterest = applyInterest
         ? financedAmount * (1 + (interestRate / 100))
         : financedAmount;
 
     const installmentValue = installments > 0 ? totalWithInterest / installments : 0;
-
     const limitExceeded = totalWithInterest > currentLimit;
 
-    // Calculate dates logic moved to utility
-    // We only preview date logic here for visualization if we implemented the full calculator
-    // But since the requirement asks for a preview...
-
-
-
-    const getPreviewDates = () => {
-        // Simple preview based on state
+    const previewInstallments = useMemo(() => {
         const dates = calculateInstallmentDates(firstDueDate, installments, frequency);
         return dates.map((date, index) => ({
             number: index + 1,
             date,
             amount: installmentValue
         }));
-    };
-
-    const previewInstallments = getPreviewDates();
+    }, [firstDueDate, installments, frequency, installmentValue]);
 
     const handleConfirm = () => {
-        if (installments < 1) return;
-        if (limitExceeded) return; // Prevent confirmation if limit exceeded
+        if (installments < 1 || limitExceeded) return;
 
         onConfirm({
             entryAmount,
-            financedAmount, // Explicitly return financed amount
+            financedAmount,
             installments,
             totalInstallments: installments,
             firstDueDate,
             frequency,
             applyInterest,
             interestRate: applyInterest ? interestRate : 0,
-            installmentValue,
+             installmentValue,
             installmentsPreview: previewInstallments
         });
         onClose();
     };
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in py-10">
@@ -137,29 +139,16 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-
                                                 setIsEditingLimit(false);
-                                                // Optimistic update of local UI state
                                                 setCurrentLimit(editedLimit);
-
-                                                if (onUpdateLimit) {
-                                                    onUpdateLimit(editedLimit);
-                                                } else if (customerId) {
-                                                    updateCustomer({ id: customerId, credit_limit: editedLimit })
-                                                        .catch(err => {
-                                                            console.error('Failed to update limit:', err);
-                                                            setCurrentLimit(availableLimit);
-                                                        });
-                                                }
+                                                if (onUpdateLimit) onUpdateLimit(editedLimit);
+                                                else if (customerId) updateCustomer({ id: customerId, credit_limit: editedLimit });
                                             }}
                                             className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all shadow-md active:scale-95"
                                         >
                                             <CheckIcon className="w-4 h-4" />
                                         </button>
-                                        <button
-                                            onClick={() => setIsEditingLimit(false)}
-                                            className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                                        >
+                                        <button onClick={() => setIsEditingLimit(false)} className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors">
                                             <XIcon className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -178,19 +167,11 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Entrada (Opcional)</label>
-                            <CurrencyInput
-                                value={entryAmount}
-                                onChange={setEntryAmount}
-                                className="bg-gray-50 font-bold text-gray-800"
-                            />
+                            <CurrencyInput value={entryAmount} onChange={setEntryAmount} className="bg-gray-50 font-bold text-gray-800" />
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Valor a Parcelar</label>
-                            <CurrencyInput
-                                value={financedAmount}
-                                onChange={setFinancedAmount}
-                                className={`${limitExceeded ? 'text-red-600 border-red-300 focus:ring-red-200' : ''}`}
-                            />
+                            <CurrencyInput value={financedAmount} onChange={setFinancedAmount} className={limitExceeded ? 'text-red-600 border-red-300 focus:ring-red-200' : ''} />
                         </div>
                     </div>
 
@@ -199,7 +180,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                             <AlertCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="text-sm font-bold text-red-700">Limite Excedido</p>
-                                <p className="text-xs text-red-600">O valor parcelado excede o limite disponível do cliente. Aumente a entrada para continuar.</p>
+                                <p className="text-xs text-red-600">O valor parcelado excede o limite disponível do cliente.</p>
                             </div>
                         </div>
                     )}
@@ -212,7 +193,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                                 min="1"
                                 value={installments}
                                 onChange={e => setInstallments(Math.max(1, parseInt(e.target.value) || 0))}
-                                className="w-full h-10 px-3 border border-gray-300 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                className="w-full h-10 px-3 border border-gray-300 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                             />
                         </div>
                         <div>
@@ -220,7 +201,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                             <select
                                 value={frequency}
                                 onChange={e => setFrequency(e.target.value as any)}
-                                className="w-full h-10 px-3 border border-gray-300 rounded-xl font-bold text-gray-800 bg-white outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                className="w-full h-10 px-3 border border-gray-300 rounded-xl font-bold text-gray-800 bg-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                             >
                                 <option value="mensal">Mensal</option>
                                 <option value="quinzenal">Quinzenal</option>
@@ -233,19 +214,14 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                         <CustomDatePicker value={firstDueDate} onChange={setFirstDueDate} className="w-full" />
                     </div>
 
-                    <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3 transition-all hover:border-indigo-200">
+                    <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 space-y-3">
                         <div className="flex items-center justify-between">
                             <label className="flex items-center gap-3 cursor-pointer select-none">
                                 <div className="relative">
-                                    <input
-                                        type="checkbox"
-                                        checked={applyInterest}
-                                        onChange={() => setApplyInterest(!applyInterest)}
-                                        className="sr-only peer"
-                                    />
+                                    <input type="checkbox" checked={applyInterest} onChange={() => setApplyInterest(!applyInterest)} className="sr-only peer" />
                                     <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </div>
-                                <span className={`text-xs font-bold uppercase tracking-wide transition-colors ${applyInterest ? 'text-indigo-900' : 'text-gray-500'}`}>Aplicar Juros?</span>
+                                <span className={`text-xs font-bold uppercase transition-colors ${applyInterest ? 'text-indigo-900' : 'text-gray-500'}`}>Aplicar Juros?</span>
                             </label>
 
                             {applyInterest && (
@@ -255,19 +231,11 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                                         type="number"
                                         value={interestRate}
                                         onChange={e => setInterestRate(parseFloat(e.target.value) || 0)}
-                                        className="w-20 h-9 px-2 border border-indigo-200 rounded-lg font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500 text-center bg-white shadow-sm"
-                                        placeholder="0.00"
+                                        className="w-16 h-8 border border-indigo-200 rounded-lg font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                                     />
-                                    <PercentIcon className="h-3.5 w-3.5 text-indigo-400" />
                                 </div>
                             )}
                         </div>
-                        {applyInterest && (
-                            <div className="flex justify-between text-xs font-medium text-indigo-700 pt-2 border-t border-indigo-200/50">
-                                <span>Acréscimo:</span>
-                                <span>+{formatCurrency(totalWithInterest - financedAmount)}</span>
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -280,7 +248,9 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                             <div key={inst.number} className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded-xl shadow-sm gap-4">
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black text-gray-800 uppercase truncate max-w-[100px]">Parcela {inst.number}/{installments}</span>
-                                    <span className="text-xs font-bold text-gray-700 whitespace-nowrap">{new Date(inst.date).toLocaleDateString('pt-BR')}</span>
+                                    <span className="text-xs font-bold text-gray-700 whitespace-nowrap">
+                                        {inst.date.split('-').reverse().join('/')}
+                                    </span>
                                 </div>
                                 <span className="font-black text-gray-900 whitespace-nowrap">{formatCurrency(inst.amount)}</span>
                             </div>
@@ -305,7 +275,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 
