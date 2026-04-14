@@ -229,7 +229,7 @@ export const getPublicServiceOrderTracking = async (id: string): Promise<{ os: S
     });
 };
 
-export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'updatedAt' | 'displayId'>) => {
+export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'updatedAt' | 'displayId'>, userId: string = 'system', userName: string = 'Sistema') => {
     // Generate sequential unique Display ID
     const { data: maxRow } = await supabase
         .from('service_orders')
@@ -297,14 +297,16 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         AuditActionType.CREATE,
         AuditEntityType.SERVICE_ORDER,
         created.id,
-        `OS #${created.display_id} criada para ${created.customer_name}`
+        `OS #${created.display_id} criada para ${created.customer_name}`,
+        userId,
+        userName
     );
 
     clearCache(['service_orders']);
     return mapServiceOrderData(created);
 };
 
-export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>) => {
+export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>, userId: string = 'system', userName: string = 'Sistema') => {
     const updatePayload: any = {
         ...data,
         updated_at: getNowISO()
@@ -374,7 +376,9 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         AuditActionType.UPDATE,
         AuditEntityType.SERVICE_ORDER,
         id,
-        "Ordem de serviço atualizada"
+        "Ordem de serviço atualizada",
+        userId,
+        userName
     );
 
     clearCache(['service_orders']);

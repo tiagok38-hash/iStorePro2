@@ -101,17 +101,17 @@ const ServiceOrderCustomers: React.FC = () => {
 
             if (entityType === 'Cliente' || entityType === 'Ambos') {
                 if (isEdit && activeTab === 'customers') {
-                    await updateCustomer(preparePayload(data));
+                    await updateCustomer(preparePayload(data), currentUser?.id, currentUser?.name);
                 } else if (!isEdit) {
-                    await addCustomer(preparePayload(data));
+                    await addCustomer(preparePayload(data), currentUser?.id, currentUser?.name);
                 }
             }
 
             if (entityType === 'Fornecedor' || entityType === 'Ambos') {
                 if (isEdit && activeTab === 'suppliers') {
-                    await updateSupplier(preparePayload(data));
+                    await updateSupplier(preparePayload(data), currentUser?.id, currentUser?.name);
                 } else if (!isEdit) {
-                    await addSupplier(preparePayload(data));
+                    await addSupplier(preparePayload(data), currentUser?.id, currentUser?.name);
                 }
             }
 

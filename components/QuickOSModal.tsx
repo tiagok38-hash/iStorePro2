@@ -34,7 +34,7 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
                 name: form.customerName.trim(),
                 phone: form.phone.trim(),
                 customTag: 'OS Rápida'
-            }, 'system', 'Sistema');
+            }, user?.id || 'system', user?.name || 'Sistema');
 
             await addServiceOrder({
                 customerId: newCustomer.id,
@@ -61,7 +61,7 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
                 checklist: {} as any,
                 entryDate: new Date().toISOString(),
                 phone: form.phone,
-            } as any);
+            } as any, user?.id, user?.name);
             showToast('OS Rápida criada com sucesso!', 'success');
             onSaved();
         } catch (e) {

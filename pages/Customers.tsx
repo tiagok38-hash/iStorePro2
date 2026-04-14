@@ -512,9 +512,9 @@ const CustomersAndSuppliers: React.FC = () => {
                 }
 
                 if (isEditing && originTab === 'clientes') {
-                    await updateCustomer({ ...customerPayload, id: entityData.id });
+                    await updateCustomer({ ...customerPayload, id: entityData.id }, user?.id, user?.name);
                 } else {
-                    await addCustomer(customerPayload);
+                    await addCustomer(customerPayload, user?.id, user?.name);
 
                     // Se moveu de Fornecedor para Cliente (exclusivo), tenta apagar o fornecedor antigo
                     if (isEditing && originTab === 'fornecedores' && entityType === 'Cliente') {
@@ -560,9 +560,9 @@ const CustomersAndSuppliers: React.FC = () => {
                 }
 
                 if (isEditing && originTab === 'fornecedores') {
-                    await updateSupplier({ ...supplierPayload, id: entityData.id });
+                    await updateSupplier({ ...supplierPayload, id: entityData.id }, user?.id, user?.name);
                 } else {
-                    await addSupplier(supplierPayload);
+                    await addSupplier(supplierPayload, user?.id, user?.name);
 
                     // Se moveu de Cliente para Fornecedor (exclusivo), tenta apagar o cliente antigo
                     if (isEditing && originTab === 'clientes' && entityType === 'Fornecedor') {

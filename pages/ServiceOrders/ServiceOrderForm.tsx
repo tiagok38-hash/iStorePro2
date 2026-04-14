@@ -646,7 +646,7 @@ const ServiceOrderForm: React.FC = () => {
             const currentStatus = serviceOrderData.status;
 
             if (isEditing && editId) {
-                await updateServiceOrder(editId, { ...serviceOrderData, isEdited: true } as any);
+                await updateServiceOrder(editId, { ...serviceOrderData, isEdited: true } as any, currentUser?.id, currentUser?.name);
                 
                 // --- Lógica de Estoque ---
                 // 1. OS mudou PARA "Entregue e Faturado": Baixar estoque
@@ -667,7 +667,7 @@ const ServiceOrderForm: React.FC = () => {
                 setOriginalStatus(currentStatus);
                 toast.success("Ordem de Serviço atualizada com sucesso!");
             } else {
-                const created = await addServiceOrder(serviceOrderData);
+                const created = await addServiceOrder(serviceOrderData, currentUser?.id, currentUser?.name);
                 // Se criou direto como Entregue e Faturado (ex: via modal customizado se houver), baixa estoque
                 if (currentStatus === 'Entregue e Faturado' && created?.id) {
                     await deductOsPartsStock(created.id, created.displayId || 0, items);
@@ -689,7 +689,7 @@ const ServiceOrderForm: React.FC = () => {
         // Salva OS com status Entregue e Faturado
         const data = buildServiceOrderData('Entregue e Faturado');
         // Add payments array
-        await updateServiceOrder(editId, { ...data, payments } as any);
+        await updateServiceOrder(editId, { ...data, payments } as any, currentUser?.id, currentUser?.name);
         // Baixar peças do estoque (com segurança para devolução se já faturada)
         try {
             if (originalStatus === 'Entregue e Faturado') {
