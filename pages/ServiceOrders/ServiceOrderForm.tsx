@@ -202,15 +202,17 @@ const ServiceOrderForm: React.FC = () => {
     }, [editId]);
 
     useEffect(() => {
-        if (!isEditing && currentUser) {
+        if (!isEditing && currentUser && permissions) {
             const defTech = localStorage.getItem('os_default_technician_id');
             const defWar = localStorage.getItem('os_default_warranty_term');
 
-            setResponsibleId(prev => (prev && prev !== '') ? prev : (defTech || currentUser.id));
+            const validDefaultTech = permissions.isTechnicianProfile ? currentUser.id : '';
+
+            setResponsibleId(prev => (prev && prev !== '') ? prev : (defTech || validDefaultTech));
             setAttendantId(prev => (prev && prev !== '') ? prev : currentUser.id);
             if (defWar) setReceiptTermId(prev => (prev && prev !== '') ? prev : defWar);
         }
-    }, [currentUser, isEditing]);
+    }, [currentUser, permissions, isEditing]);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -988,7 +990,7 @@ const ServiceOrderForm: React.FC = () => {
                                                     const profile = profiles.find(p => p.id === u.permissionProfileId);
                                                     const isTech = profile?.permissions?.isTechnicianProfile;
                                                     const isActive = u.active !== false;
-                                                    const isCurrentlySelected = u.id === responsibleId;
+                                                    const isCurrentlySelected = isEditing && (u.id === responsibleId);
                                                     // Se estiver editando e for o selecionado, mantém mesmo se não for técnico ou inativo
                                                     return (isActive && isTech) || isCurrentlySelected;
                                                 })
@@ -1818,12 +1820,11 @@ const ServiceOrderForm: React.FC = () => {
                                     setCustomers(prev => [...prev, newCustomer]);
                                     handleSelectCustomer(newCustomer);
                                     toast.success("Cliente cadastrado e selecionado!");
+                                    setIsCustomerModalOpen(false);
                                 }
-                            } catch (error) {
+                            } catch (error: any) {
                                 console.error("Error creating customer from OS:", error);
-                                toast.error("Erro ao criar cliente.");
-                            } finally {
-                                setIsCustomerModalOpen(false);
+                                toast.error(error.message || "Erro ao criar cliente.");
                             }
                         }}
                     />

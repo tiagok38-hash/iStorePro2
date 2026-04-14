@@ -619,15 +619,23 @@ const CustomersAndSuppliers: React.FC = () => {
     const filteredCustomers = useMemo(() => {
         // Se showInactive está ligado, mostra APENAS os inativos. Se desligado, mostra apenas os ativos.
         const searchLower = searchTerm.toLowerCase();
-        let filtered = customers.filter(c =>
-            (showInactive ? c.active === false : c.active !== false) &&
+        const searchDigits = searchTerm.replace(/\D/g, '');
+
+        let filtered = customers.filter(c => {
+            const cpfDigits = (c.cpf || '').replace(/\D/g, '');
+            const phoneDigits = (c.phone || '').replace(/\D/g, '');
+            
+            const cpfMatch = searchDigits ? cpfDigits.includes(searchDigits) : (c.cpf || '').includes(searchTerm);
+            const phoneMatch = searchDigits ? phoneDigits.includes(searchDigits) : (c.phone || '').includes(searchTerm);
+
+            return (showInactive ? c.active === false : c.active !== false) &&
             (
                 (c.name || '').toLowerCase().includes(searchLower) ||
                 (c.email || '').toLowerCase().includes(searchLower) ||
-                (c.cpf || '').includes(searchTerm) ||
-                (c.phone || '').includes(searchTerm)
-            )
-        );
+                cpfMatch ||
+                phoneMatch
+            );
+        });
 
         if (birthdayFilter !== 'none') {
             filtered = filtered.filter(c => isBirthdayInPeriod(c.birthDate, birthdayFilter));

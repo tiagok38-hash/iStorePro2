@@ -62,11 +62,23 @@ const ServiceOrderCustomers: React.FC = () => {
     const filteredData = useMemo(() => {
         const data = activeTab === 'customers' ? customers : suppliers;
         const sl = searchTerm.toLowerCase();
-        let filtered = data.filter(item =>
-            (item.name || '').toLowerCase().includes(sl) ||
-            (item.phone || '').includes(searchTerm) ||
-            (item.email || '').toLowerCase().includes(sl)
-        );
+        const sd = searchTerm.replace(/\D/g, '');
+
+        let filtered = data.filter(item => {
+            const cpfDigits = ((item as Customer).cpf || '').replace(/\D/g, '');
+            const cnpjDigits = ((item as Supplier).cnpj || '').replace(/\D/g, '');
+            const phoneDigits = (item.phone || '').replace(/\D/g, '');
+            
+            const cpfMatch = sd ? cpfDigits.includes(sd) : ((item as Customer).cpf || '').includes(searchTerm);
+            const cnpjMatch = sd ? cnpjDigits.includes(sd) : ((item as Supplier).cnpj || '').includes(searchTerm);
+            const phoneMatch = sd ? phoneDigits.includes(sd) : (item.phone || '').includes(searchTerm);
+
+            return (item.name || '').toLowerCase().includes(sl) ||
+                   (item.email || '').toLowerCase().includes(sl) ||
+                   phoneMatch ||
+                   (activeTab === 'customers' && cpfMatch) ||
+                   (activeTab === 'suppliers' && cnpjMatch);
+        });
 
         if (showQuickOSOnly && activeTab === 'customers') {
             filtered = filtered.filter(item => (item as Customer).customTag === 'OS Rápida');
