@@ -186,7 +186,31 @@ export const deletePurchaseOrder = async (id: string, userId: string = 'system',
 
     const { error: deleteProdError } = await supabase.from('products').delete().eq('purchaseOrderId', id);
     if (deleteProdError) {
-        throw new Error("Não é possível excluir a compra pois existem vínculos ativos no banco de dados.");
+        // Fallback: if there are FK violations (e.g. repurchased items attached to old sales), just set stock to 0
+        const { data: productsToZero } = await supabase.from('products').select('id').eq('purchaseOrderId', id);
+        if (productsToZero && productsToZero.length > 0) {
+            for (const prod of productsToZero) {
+                try {
+                    await supabase.from('products').delete().eq('id', prod.id);
+                } catch (err) {
+                    const { data: currentProd } = await supabase.from('products').select('stock, stockHistory').eq('id', prod.id).single();
+                    const currentStock = currentProd?.stock || 0;
+                    const existingHistory = currentProd?.stockHistory || [];
+                    const newHistoryEntry = {
+                        id: crypto.randomUUID(),
+                        oldStock: currentStock,
+                        newStock: 0,
+                        adjustment: -currentStock,
+                        reason: 'Exclusão de Compra',
+                        relatedId: id,
+                        timestamp: getNowISO(),
+                        changedBy: userId,
+                        details: `Compra #${po.displayId || id} Excluída`
+                    };
+                    await supabase.from('products').update({ stock: 0, purchaseOrderId: null, stockHistory: [...existingHistory, newHistoryEntry] }).eq('id', prod.id);
+                }
+            }
+        }
     }
 
     const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
@@ -220,7 +244,21 @@ export const cancelPurchaseOrder = async (id: string, reason: string, userId: st
                     try {
                         await supabase.from('products').delete().eq('id', prod.id);
                     } catch (err) {
-                        await supabase.from('products').update({ stock: 0 }).eq('id', prod.id);
+                        const { data: currentProd } = await supabase.from('products').select('stock, stockHistory').eq('id', prod.id).single();
+                        const currentStock = currentProd?.stock || 0;
+                        const existingHistory = currentProd?.stockHistory || [];
+                        const newHistoryEntry = {
+                            id: crypto.randomUUID(),
+                            oldStock: currentStock,
+                            newStock: 0,
+                            adjustment: -currentStock,
+                            reason: 'Cancelamento de Compra',
+                            relatedId: id,
+                            timestamp: getNowISO(),
+                            changedBy: userId,
+                            details: `Compra Cancelada - ${reason}`
+                        };
+                        await supabase.from('products').update({ stock: 0, stockHistory: [...existingHistory, newHistoryEntry] }).eq('id', prod.id);
                     }
                 }
             }
@@ -265,12 +303,37 @@ export const revertPurchaseLaunch = async (id: string) => {
         const { error: deleteError } = await supabase.from('products').delete().eq('purchaseOrderId', id);
         if (deleteError) throw deleteError;
     } catch (error: any) {
-        await supabase.from('purchase_orders').update({ stockStatus: 'Lançado' }).eq('id', id);
-
-        if (error.code === '23503') { // Foreign key violation
-            throw new Error('Não é possível reverter esta compra pois alguns produtos já foram vendidos.');
+        if (error.code === '23503') { 
+            // Foreign key violation means this is a repurchased item from an old sale
+            // Instead of throwing, we just set its stock back to 0
+            const { data: productsToZero } = await supabase.from('products').select('id').eq('purchaseOrderId', id);
+            if (productsToZero && productsToZero.length > 0) {
+                for (const prod of productsToZero) {
+                    try {
+                        await supabase.from('products').delete().eq('id', prod.id);
+                    } catch (err) {
+                        const { data: currentProd } = await supabase.from('products').select('stock, stockHistory').eq('id', prod.id).single();
+                        const currentStock = currentProd?.stock || 0;
+                        const existingHistory = currentProd?.stockHistory || [];
+                        const newHistoryEntry = {
+                            id: crypto.randomUUID(),
+                            oldStock: currentStock,
+                            newStock: 0,
+                            adjustment: -currentStock,
+                            reason: 'Reversão de Lançamento',
+                            relatedId: id,
+                            timestamp: getNowISO(),
+                            changedBy: 'Sistema',
+                            details: `Lançamento Revertido`
+                        };
+                        await supabase.from('products').update({ stock: 0, purchaseOrderId: null, stockHistory: [...existingHistory, newHistoryEntry] }).eq('id', prod.id);
+                    }
+                }
+            }
+        } else {
+            await supabase.from('purchase_orders').update({ stockStatus: 'Lançado' }).eq('id', id);
+            throw error;
         }
-        throw error;
     }
 
     clearCache(['purchase_orders', 'products']);

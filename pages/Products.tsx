@@ -532,10 +532,6 @@ const Products: React.FC = () => {
     const handleFilterChange = (filterName: keyof typeof filters, value: string) => setFilters(prev => ({ ...prev, [filterName]: value }));
 
     const handleOpenProductModal = (product: Partial<Product> | null = null) => {
-        if (product && product.id && soldProductIds.has(String(product.id)) && (product.stock === 0)) {
-            showToast('Não é possível editar um produto que já foi vendido e está com estoque zero. Cancele a venda primeiro para retornar o produto ao estoque.', 'warning');
-            return;
-        }
         setEditingProduct(product ? { ...product } : {});
         setIsProductModalOpen(true);
     };
@@ -595,10 +591,6 @@ const Products: React.FC = () => {
     };
 
     const handleOpenStockUpdateModal = (product: Product) => {
-        if (soldProductIds.has(String(product.id)) && product.stock === 0) {
-            showToast('Não é possível editar o estoque de um produto que já foi vendido e está com estoque zero. Cancele a venda primeiro para retornar o produto ao estoque.', 'warning');
-            return;
-        }
         setProductForStockUpdate(product);
         setIsUpdateStockModalOpen(true);
     };
@@ -764,7 +756,7 @@ const Products: React.FC = () => {
         if (!purchaseToDelete) return;
 
         const isLaunched = purchaseToDelete.stockStatus === 'Lançado' || purchaseToDelete.stockStatus === 'Parcialmente Lançado';
-        const soldItemsFromPurchase = products.filter(prod => prod.purchaseOrderId === purchaseToDelete.id && soldProductIds.has(prod.id));
+        const soldItemsFromPurchase = products.filter(prod => prod.purchaseOrderId === purchaseToDelete.id && soldProductIds.has(prod.id) && prod.stock === 0);
         const hasSoldProducts = soldItemsFromPurchase.length > 0;
 
         if (hasSoldProducts) {
@@ -807,7 +799,7 @@ const Products: React.FC = () => {
         } catch (error) { showToast('Erro ao atualizar status financeiro.', 'error'); }
     };
     const handleAttemptRevert = (p: PurchaseOrder) => {
-        const soldItems = products.filter(prod => prod.purchaseOrderId === p.id && soldProductIds.has(prod.id));
+        const soldItems = products.filter(prod => prod.purchaseOrderId === p.id && soldProductIds.has(prod.id) && prod.stock === 0);
 
         if (soldItems.length > 0) {
             const soldWithSales = soldItems.map(prod => {
@@ -1401,7 +1393,7 @@ const Products: React.FC = () => {
                                     return paginatedPurchases.map(p => {
                                         const isLaunched = p.stockStatus === 'Lançado' || p.stockStatus === 'Parcialmente Lançado';
                                         const productIdsFromPurchase = productIdsByPurchase[p.id] || [];
-                                        const hasSoldProducts = productIdsFromPurchase.some(pid => soldProductIds.has(pid));
+                                        const hasSoldProducts = productIdsFromPurchase.some(pid => soldProductIds.has(pid) && products.find(prod => prod.id === pid)?.stock === 0);
                                         const disabledReason = 'Não é possível alterar pois contém produtos já vendidos.';
                                         return (
                                             <tr key={p.id} className={`border-t border-border hover:bg-surface-secondary ${p.status === 'Cancelada' ? 'opacity-60 bg-gray-50' : ''}`}>
@@ -1571,8 +1563,8 @@ const Products: React.FC = () => {
             </Suspense>
             {purchaseToDelete && (() => {
                 const isLaunched = purchaseToDelete.stockStatus === 'Lançado' || purchaseToDelete.stockStatus === 'Parcialmente Lançado';
-                const productIdsFromPurchase = products.filter(prod => prod.purchaseOrderId === purchaseToDelete.id).map(prod => prod.id);
-                const isCancelOnly = isLaunched || productIdsFromPurchase.some(pid => soldProductIds.has(pid));
+                const productsFromPurchase = products.filter(prod => prod.purchaseOrderId === purchaseToDelete.id);
+                const isCancelOnly = isLaunched || productsFromPurchase.some(prod => soldProductIds.has(prod.id) && prod.stock === 0);
 
                 return (
                     <DeleteWithReasonModal
