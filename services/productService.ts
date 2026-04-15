@@ -736,7 +736,7 @@ export const deleteProduct = async (id: string, userId: string = 'system', userN
         .from('sales')
         .select('id, createdAt, created_at')
         .neq('status', 'Cancelada')
-        .contains('items', [{ productId: id }]);
+        .contains('items', JSON.stringify([{ productId: id }]));
 
     if (activeSales && activeSales.length > 0) {
         // Pegar a data de recompra (createdAt do produto, que é atualizado a cada recompra)

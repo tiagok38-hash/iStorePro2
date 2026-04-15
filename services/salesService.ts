@@ -144,7 +144,7 @@ export const getProductSalesHistory = async (productId: string): Promise<Sale[]>
     const { data, error } = await supabase
         .from('sales')
         .select('*')
-        .contains('items', [{ productId }])
+        .contains('items', JSON.stringify([{ productId }]))
         .order('date', { ascending: false });
 
     if (error) {
