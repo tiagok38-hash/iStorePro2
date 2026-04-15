@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SpinnerIcon } from './icons.tsx';
 import { PermissionSet } from '../types.ts';
@@ -11,7 +10,6 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
     const { isAuthenticated, loading, permissions, user } = useUser();
-    const { showToast } = useToast();
 
     const effectivePermissions = React.useMemo(() => {
         if (permissions !== null) return permissions;
@@ -26,11 +24,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
             : !!effectivePermissions[permissionKey];
     }, [permissionKey, effectivePermissions]);
 
-    React.useEffect(() => {
-        if (!loading && permissions !== null && isAuthenticated && !hasPermission) {
-            showToast('Acesso negado: Você não tem permissão para acessar esta área.', 'warning');
-        }
-    }, [loading, permissions, isAuthenticated, hasPermission, showToast]);
 
     if (loading) {
         return (
