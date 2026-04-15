@@ -12,15 +12,18 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = '' }) => 
         case 'paid':
         case 'Pago':
         case 'Finalizada':
-            colorClass = 'bg-emerald-100 text-emerald-700';
+        case 'Entregue e Faturado':
+            colorClass = 'bg-emerald-50 text-emerald-700';
             break;
         case 'pending':
         case 'Pendente':
             colorClass = 'bg-yellow-100 text-yellow-700';
             break;
         case 'overdue':
+        case 'Atrasada':
         case 'Atrasado':
         case 'Em Aberto':
+        case 'Aberto':
             colorClass = 'bg-red-100 text-red-700';
             break;
         case 'partial':
@@ -28,7 +31,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = '' }) => 
             colorClass = 'bg-orange-100 text-orange-700';
             break;
         case 'Cancelada':
-            colorClass = 'bg-gray-200 text-gray-500 line-through';
+            colorClass = 'bg-gray-100 text-gray-500 line-through';
             break;
         default:
             colorClass = 'bg-gray-100 text-gray-600';

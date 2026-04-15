@@ -84,7 +84,8 @@ import {
     Wallet,
     TrendingUp,
     Construction,
-    ReceiptText
+    ReceiptText,
+    History
 } from 'lucide-react';
 
 /**
@@ -259,6 +260,7 @@ export const ArrowUpDownIcon = wrapIcon(ArrowUpDown);
 export const WalletIcon = wrapIcon(Wallet);
 export const ConstructionIcon = wrapIcon(Construction);
 export const ReceiptIcon = wrapIcon(ReceiptText);
+export const HistoryIcon = wrapIcon(History);
 
 const Icon = (props: any) => <div {...props} />;
 export default Icon;

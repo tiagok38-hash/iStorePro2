@@ -5,6 +5,7 @@ import { useUser } from '../../contexts/UserContext';
 import { getCustomers, addCustomer, updateCustomer, deleteCustomer, getSuppliers, addSupplier, updateSupplier, deleteSupplier } from '../../services/mockApi';
 import { Customer, Supplier } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
+import CustomerHistoryModal from '../../components/CustomerHistoryModal';
 import {
     SearchIcon,
     PlusIcon,
@@ -14,7 +15,8 @@ import {
     FilterIcon,
     ClockIcon,
     WhatsAppIcon,
-    EnvelopeIcon
+    EnvelopeIcon,
+    HistoryIcon
 } from '../../components/icons';
 import Button from '../../components/Button';
 import GlobalLoading from '../../components/GlobalLoading';
@@ -37,6 +39,10 @@ const ServiceOrderCustomers: React.FC = () => {
     const [selectedEntity, setSelectedEntity] = useState<Partial<Customer | Supplier> | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [entityToDelete, setEntityToDelete] = useState<Customer | Supplier | null>(null);
+
+    // History Modal State
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
 
     useEffect(() => {
         loadData();
@@ -150,6 +156,11 @@ const ServiceOrderCustomers: React.FC = () => {
     const openNew = () => {
         setSelectedEntity(null);
         setIsModalOpen(true);
+    };
+
+    const openHistory = (customer: Customer) => {
+        setSelectedCustomerForHistory(customer);
+        setIsHistoryModalOpen(true);
     };
 
     // Mock Debt Check (Replace with real logic if available)
@@ -273,6 +284,15 @@ const ServiceOrderCustomers: React.FC = () => {
                             </div>
 
                             <div className="flex flex-col gap-2">
+                                {activeTab === 'customers' && (
+                                    <button
+                                        onClick={() => openHistory(item as Customer)}
+                                        className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-purple-50 text-gray-400 hover:text-purple-600 flex items-center justify-center transition-colors"
+                                        title="Ver Histórico"
+                                    >
+                                        <HistoryIcon className="w-4 h-4" />
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => openEdit(item)}
                                     className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition-colors"
@@ -314,6 +334,16 @@ const ServiceOrderCustomers: React.FC = () => {
                 onConfirm={handleDelete}
                 onCancel={() => setIsDeleteModalOpen(false)}
             />
+
+            {isHistoryModalOpen && selectedCustomerForHistory && (
+                <CustomerHistoryModal
+                    customer={selectedCustomerForHistory}
+                    onClose={() => {
+                        setIsHistoryModalOpen(false);
+                        setSelectedCustomerForHistory(null);
+                    }}
+                />
+            )}
         </div>
     );
 };
