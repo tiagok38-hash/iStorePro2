@@ -70,7 +70,9 @@ export const login = async (email: string, password_param: string): Promise<User
     // Nível Máximo: Política de sessão única por dispositivo
     // Administradores são isentos desta regra (podem logar em múltiplos lugares)
     if (profile.permissionProfileId !== 'profile-admin') {
-        const newSessionId = crypto.randomUUID();
+        const newSessionId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') 
+            ? crypto.randomUUID() 
+            : 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 15);
         const { error: updateSessionError } = await supabase
             .from('users')
             .update({ lastSessionId: newSessionId })
