@@ -211,6 +211,7 @@ export const updateUser = async (data: any) => {
     if (data.password) {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (currentUser && currentUser.id === data.id) {
+            // Self-update
             const { error: authError } = await supabase.auth.updateUser({
                 password: data.password
             });
@@ -219,8 +220,16 @@ export const updateUser = async (data: any) => {
                 throw authError;
             }
         } else {
-            console.warn('authService: Cannot update password for other users via client SDK.');
-            throw new Error('Não é possível alterar a senha de outros usuários por aqui. O usuário deve usar "Esqueci minha senha" ou alterar no próprio perfil.');
+            // Update another user's password using the RPC function
+            const { error: rpcError } = await supabase.rpc('admin_update_user_password', {
+                target_user_id: data.id,
+                new_password: data.password
+            });
+            
+            if (rpcError) {
+                console.error('authService: RPC admin password update error:', rpcError);
+                throw new Error(`Falha ao alterar a senha: ${rpcError.message}. Certifique-se de executar o script SQL de atualização de senha no Supabase.`);
+            }
         }
     }
 
