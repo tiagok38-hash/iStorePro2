@@ -736,16 +736,34 @@ export const deleteProduct = async (id: string, userId: string = 'system', userN
     // Pegar infos do produto antes de deletar para o log e verificação de estoque
     const { data: product } = await supabase.from('products').select('*').eq('id', id).single();
 
-    // Verificação de Segurança: Impedir exclusão se houver vendas vinculadas (Exceto Canceladas)
-    // O produto não pode ser excluído se já foi vendido, a menos que a venda tenha sido cancelada.
-    const { count } = await supabase
+    // Verificação de Segurança: Impedir exclusão se houver vendas vinculadas ativas (Exceto Canceladas)
+    // REGRA: Só bloqueia se a venda ativa for MAIS RECENTE que a entrada atual no estoque.
+    // Se o produto foi recomprado depois da venda, essa venda pertence a um ciclo anterior
+    // e não deve impedir o cancelamento da entrada atual.
+    const { data: activeSales } = await supabase
         .from('sales')
-        .select('id', { count: 'exact', head: true })
+        .select('id, createdAt, created_at')
         .neq('status', 'Cancelada')
         .contains('items', [{ productId: id }]);
 
-    if (count && count > 0) {
-        throw new Error('Este produto possui vendas registradas e não pode ser excluído. Cancele as vendas associadas antes de excluir.');
+    if (activeSales && activeSales.length > 0) {
+        // Pegar a data de recompra (createdAt do produto, que é atualizado a cada recompra)
+        const productCreatedAt = product?.createdAt || product?.created_at;
+        const productEntryDate = productCreatedAt ? new Date(productCreatedAt).getTime() : 0;
+
+        // Filtrar apenas vendas que são MAIS RECENTES que a entrada atual do produto
+        // Vendas antigas (de ciclos anteriores) não devem bloquear
+        const blockingSales = activeSales.filter((sale: any) => {
+            const saleDateStr = sale.createdAt || sale.created_at;
+            if (!saleDateStr) return true; // Se não tem data, bloqueia por segurança
+            const saleDate = new Date(saleDateStr).getTime();
+            // A venda bloqueia apenas se ela for DEPOIS da entrada no estoque
+            return saleDate >= productEntryDate;
+        });
+
+        if (blockingSales.length > 0) {
+            throw new Error('Este produto possui vendas registradas e não pode ser excluído. Cancele as vendas associadas antes de excluir.');
+        }
     }
 
     const { error } = await supabase.from('products').delete().eq('id', id);
