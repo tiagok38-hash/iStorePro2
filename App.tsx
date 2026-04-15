@@ -9,12 +9,25 @@ import { ChatProvider, useChat } from './contexts/ChatContext.tsx';
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext.tsx';
 
 import ProtectedRoute from './components/ProtectedRoute.tsx';
+import { getFirstAvailablePage } from './components/ProtectedRoute.tsx';
 import AuthLayout from './components/AuthLayout.tsx';
 import { OnlineStatusIndicator, SuspenseFallback } from './components/GlobalLoading.tsx';
 import BottomNav from './components/BottomNav.tsx';
 import ChatLayout from './components/chat/ChatLayout.tsx';
 import { useUser } from './contexts/UserContext.tsx';
 import { lazyWithRetry } from './utils/lazyWithRetry.ts';
+
+/** Redireciona o usuário para a primeira página que ele tem acesso ao entrar na rota "/". */
+const SmartHomeRedirect: React.FC = () => {
+    const { permissions, user, loading } = useUser();
+    if (loading) return <SuspenseFallback fullScreen />;
+    // Admin sempre vai para o dashboard
+    if (user?.permissionProfileId === 'profile-admin' || permissions?.canAccessDashboard) {
+        return <Dashboard />;
+    }
+    const dest = getFirstAvailablePage(permissions);
+    return <Navigate to={dest} replace />;
+};
 
 // Sincroniza o userId do usuário logado com o ChatContext (para cálculo de não lidas)
 const ChatUserSync: React.FC = () => {
@@ -114,8 +127,8 @@ const App: React.FC = () => {
                                     {/* Protected App Routes */}
                                     <Route element={<ProtectedRoute />}>
                                         <Route element={<MainLayout />}>
-                                            <Route element={<ProtectedRoute permissionKey="canAccessDashboard" />}>
-                                                <Route path="/" element={<Dashboard />} />
+                                            <Route element={<ProtectedRoute />}>
+                                                <Route path="/" element={<SmartHomeRedirect />} />
                                             </Route>
                                             <Route element={<ProtectedRoute permissionKey="canAccessEstoque" />}>
                                                 <Route path="/products" element={<Products />} />

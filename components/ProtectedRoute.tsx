@@ -4,6 +4,22 @@ import { useUser } from '../contexts/UserContext.tsx';
 import { SpinnerIcon } from './icons.tsx';
 import { PermissionSet } from '../types.ts';
 
+/** Retorna a primeira rota que o usuário tem permissão de acessar. */
+export const getFirstAvailablePage = (p: Partial<PermissionSet> | null): string => {
+    if (!p) return '/login';
+    if (p.canAccessDashboard) return '/';
+    if (p.canAccessServiceOrders) return '/service-orders/list';
+    if (p.canAccessVendas) return '/vendas';
+    if (p.canAccessEstoque) return '/products';
+    if (p.canAccessClientes || p.canAccessFornecedores) return '/customers';
+    if (p.canAccessRelatorios) return '/reports';
+    if (p.canAccessFinanceiro) return '/financeiro';
+    if (p.canAccessCatalog) return '/catalog';
+    if (p.canAccessPOS) return '/pos';
+    if (p.canEditOwnProfile || p.canAccessEmpresa) return '/company';
+    return '/login';
+};
+
 interface ProtectedRouteProps {
     permissionKey?: keyof PermissionSet | (keyof PermissionSet)[];
 }
@@ -54,17 +70,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permissionKey }) => {
     }
 
     if (!hasPermission) {
-        console.warn(`ProtectedRoute: Access denied for ${permissionKey}. Redirecting to first available page.`);
-        // Find first available internal page
-        if (effectivePermissions.canAccessDashboard) return <Navigate to="/" replace />;
-        if (effectivePermissions.canAccessVendas) return <Navigate to="/vendas" replace />;
-        if (effectivePermissions.canAccessEstoque) return <Navigate to="/products" replace />;
-        if (effectivePermissions.canAccessClientes || effectivePermissions.canAccessFornecedores) return <Navigate to="/customers" replace />;
-        if (effectivePermissions.canAccessRelatorios) return <Navigate to="/reports" replace />;
-        if (effectivePermissions.canAccessEmpresa) return <Navigate to="/company" replace />;
-        if (effectivePermissions.canAccessPOS) return <Navigate to="/pos" replace />;
-
-        return <Navigate to="/login" replace />;
+        const dest = getFirstAvailablePage(effectivePermissions);
+        return <Navigate to={dest} replace />;
     }
 
     return <Outlet />;
