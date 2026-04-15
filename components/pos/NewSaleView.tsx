@@ -317,7 +317,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                         </div>
                     </section>
 
-                    <fieldset disabled={!selectedCustomerId || !selectedSalespersonId} className="space-y-4 disabled:opacity-50 transition-opacity">
+                    <fieldset disabled={!selectedCustomerId || !selectedSalespersonId} className="min-w-0 space-y-4 disabled:opacity-50 transition-opacity">
                         <section>
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="flex items-center gap-2 font-bold text-gray-800 uppercase text-[10px] sm:text-xs tracking-widest"><ShoppingCartIcon className="h-4 w-4 text-success" /> Carrinho</h3>
@@ -725,8 +725,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     </div>
 
                                     {paymentInput && (
-                                        <div className="p-2 bg-success-light border border-success/30 rounded-xl flex items-end gap-2 animate-slide-down">
-                                            <div className="flex-grow">
+                                        <div className="p-2 bg-success-light border border-success/30 rounded-xl flex flex-wrap items-end gap-2 animate-slide-down">
+                                            <div className="flex-grow min-w-[150px]">
                                                 <label className="text-[9px] font-bold text-success-dark mb-1 block">
                                                     Valor ({paymentInput.method}
                                                     {paymentInput.pixVariation && <span className="text-[8px] font-normal ml-1 opacity-80">- {paymentInput.pixVariation}</span>}
@@ -735,7 +735,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 <CurrencyInput value={paymentInput.amount} onChange={v => setPaymentInput(p => p ? { ...p, amount: v || 0 } : null)} />
                                             </div>
                                             {paymentMethods.find(m => m.name === paymentInput.method)?.allowInternalNotes && (
-                                                <div className="flex-grow">
+                                                <div className="flex-grow min-w-[150px]">
                                                     <label className="text-[9px] font-bold text-success-dark mb-1 block">Obs. Interna (Opcional)</label>
                                                     <input
                                                         type="text"
@@ -746,8 +746,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     />
                                                 </div>
                                             )}
-                                            <button onClick={handleConfirmPayment} className="px-3 h-10 bg-success text-white rounded-xl font-bold shadow-sm text-xs">OK</button>
-                                            <button onClick={() => setPaymentInput(null)} className="px-3 h-10 bg-white text-gray-500 rounded-xl font-bold border border-gray-200 text-xs">X</button>
+                                            <button onClick={handleConfirmPayment} className="px-3 h-10 bg-success text-white rounded-xl font-bold shadow-sm text-xs shrink-0 mt-2 sm:mt-0">OK</button>
+                                            <button onClick={() => setPaymentInput(null)} className="px-3 h-10 bg-white text-gray-500 rounded-xl font-bold border border-gray-200 text-xs shrink-0 mt-2 sm:mt-0">X</button>
                                         </div>
                                     )}
 
