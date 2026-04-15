@@ -479,6 +479,11 @@ export interface SaleItem {
     discountType: '%' | 'R$';
     discountValue: number;
     netTotal: number;
+    // Snapshot do nome no momento da venda (fallback quando produto é excluído)
+    productName?: string;
+    model?: string;
+    costPrice?: number;
+    additionalCostPrice?: number;
 }
 
 export type PaymentMethodType = 'Pix' | 'Dinheiro' | 'Crédito' | 'Débito' | 'Aparelho na Troca' | 'Crediário' | string;

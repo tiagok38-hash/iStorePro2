@@ -838,7 +838,7 @@ const Vendas: React.FC = () => {
 
                                                             const discountStr = item.discountValue > 0 ? ` (Desc: ${item.discountType === '%' ? `${item.discountValue}%` : formatCurrency(item.discountValue)})` : '';
                                                             const priceStr = `${item.quantity}x ${formatCurrency(item.salePrice || item.unitPrice)}${discountStr}`;
-                                                            const itemName = item.name || product?.model || 'Produto Desconhecido';
+                                                            const itemName = (item as any).productName || (item as any).model || item.name || product?.model || 'Produto Desconhecido';
 
                                                             return (
                                                                 <div key={idx} className="flex flex-wrap items-center gap-1.5 text-xs sm:text-[13px] text-gray-500 group-hover:text-gray-600 transition-colors w-full font-bold">

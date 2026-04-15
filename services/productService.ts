@@ -272,18 +272,18 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
             let existing: any = null;
 
             if (serialNumber) {
-                const { data } = await supabase.from('products').select('*').eq('serialNumber', serialNumber).maybeSingle();
-                if (data) existing = data;
+                const { data } = await supabase.from('products').select('*').eq('serialNumber', serialNumber).limit(1);
+                if (data && data.length > 0) existing = data[0];
             }
 
             if (!existing && imei1) {
-                const { data } = await supabase.from('products').select('*').or(`imei1.eq.${imei1},imei2.eq.${imei1}`).maybeSingle();
-                if (data) existing = data;
+                const { data } = await supabase.from('products').select('*').or(`imei1.eq.${imei1},imei2.eq.${imei1}`).limit(1);
+                if (data && data.length > 0) existing = data[0];
             }
 
             if (!existing && imei2) {
-                const { data } = await supabase.from('products').select('*').or(`imei1.eq.${imei2},imei2.eq.${imei2}`).maybeSingle();
-                if (data) existing = data;
+                const { data } = await supabase.from('products').select('*').or(`imei1.eq.${imei2},imei2.eq.${imei2}`).limit(1);
+                if (data && data.length > 0) existing = data[0];
             }
 
             existingProduct = existing;

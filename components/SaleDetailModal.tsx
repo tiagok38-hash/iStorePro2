@@ -114,18 +114,18 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                             return (
                                                 <tr key={item.productId} className="border-t border-border">
                                                     <td className="px-4 py-2 text-primary align-top">
-                                                        <div className="font-bold text-base">{product?.model || 'Produto desconhecido'}</div>
-                                                        {product && (
+                                                        <div className="font-bold text-base">{product?.model || item.productName || item.model || 'Produto desconhecido'}</div>
+                                                        {(product || item.productName || item.model) && (
                                                             <>
                                                                 <div className="text-xs text-muted font-normal mt-1 flex flex-wrap items-center gap-x-2">
-                                                                    {product.serialNumber && <span>S/N: {product.serialNumber}</span>}
-                                                                    {product.imei1 && (
+                                                                    {(product?.serialNumber || (item as any).serialNumber) && <span>S/N: {product?.serialNumber || (item as any).serialNumber}</span>}
+                                                                    {(product?.imei1 || (item as any).imei1) && (
                                                                         <>
-                                                                            {product.serialNumber && <span className="text-gray-300">|</span>}
-                                                                            <span>IMEI: {product.imei1}</span>
+                                                                            {(product?.serialNumber || (item as any).serialNumber) && <span className="text-gray-300">|</span>}
+                                                                            <span>IMEI: {product?.imei1 || (item as any).imei1}</span>
                                                                         </>
                                                                     )}
-                                                                    {product.condition && (
+                                                                    {product?.condition && (
                                                                         <>
                                                                             {(product.serialNumber || product.imei1) && <span className="text-gray-300">|</span>}
                                                                             <span>
@@ -133,7 +133,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                             </span>
                                                                         </>
                                                                     )}
-                                                                    {product.condition !== 'Novo' && product.condition !== 'CPO' && typeof product.batteryHealth === 'number' && (
+                                                                    {product?.condition !== 'Novo' && product?.condition !== 'CPO' && typeof product?.batteryHealth === 'number' && (
                                                                         <>
                                                                             <span className="text-gray-300">|</span>
                                                                             <span>
@@ -142,7 +142,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                         </>
                                                                     )}
                                                                 </div>
-                                                                {(product.variations && product.variations.length > 0 || product.supplierId) && (
+                                                                {product && (product.variations && product.variations.length > 0 || product.supplierId) && (
                                                                     <div className="mt-2 flex flex-wrap gap-1.5 items-center">
                                                                         {product.variations?.map((variation, index) => (
                                                                             <span key={variation.gradeId || index} className="px-2 py-0.5 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700 border border-gray-200">

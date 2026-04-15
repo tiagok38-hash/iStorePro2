@@ -160,11 +160,11 @@ const PurchaseHistoryModal: React.FC<{
                                                                 return (
                                                                     <li key={index} className="flex flex-col">
                                                                         <span className={`text-base font-bold ${isCancelled ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                                                                            {product?.model || 'Produto desconhecido'}
+                                                                            {product?.model || item.productName || item.model || 'Produto desconhecido'}
                                                                             {item.quantity > 1 && <span className="text-xs font-medium text-gray-500 ml-2">x{item.quantity}</span>}
                                                                         </span>
                                                                         <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-1">
-                                                                            {product?.imei1 && <span>IMEI: <span className="font-mono">{product.imei1}</span></span>}
+                                                                            {(product?.imei1 || (item as any).imei1) && <span>IMEI: <span className="font-mono">{product?.imei1 || (item as any).imei1}</span></span>}
                                                                             {product?.batteryHealth !== undefined && product?.condition !== 'Novo' && product?.condition !== 'CPO' && <span>Bateria: <span className={product.batteryHealth < 80 ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{product.batteryHealth}%</span></span>}
                                                                         </div>
                                                                     </li>
