@@ -1562,22 +1562,12 @@ const Dashboard: React.FC = () => {
     const [isPrivacyMode, setIsPrivacyMode] = useState(() => {
         return localStorage.getItem('iStorePro_privacyMode') === 'true';
     });
-    const [permissionToast, setPermissionToast] = useState<string | null>(null);
-
     useEffect(() => {
         localStorage.setItem('iStorePro_privacyMode', isPrivacyMode.toString());
     }, [isPrivacyMode]);
 
-    useEffect(() => {
-        if (permissionToast) {
-            const timer = setTimeout(() => setPermissionToast(null), 3500);
-            return () => clearTimeout(timer);
-        }
-    }, [permissionToast]);
-
-    const handlePermissionDenied = useCallback(() => {
-        setPermissionToast('Você não tem permissão para acessar esta seção.');
-    }, []);
+    // Silencioso: sem toast ao negar acesso — comportamento premium SaaS
+    const handlePermissionDenied = useCallback(() => {}, []);
 
     const handleNavigateVendas = useCallback(() => {
         if (getPermissionForRoute('/vendas', permissions)) { navigate('/vendas'); } else { handlePermissionDenied(); }
@@ -1952,17 +1942,7 @@ const Dashboard: React.FC = () => {
                 <PaymentMethodTotalsCard sales={sales} activeMethods={paymentMethods} creditInstallments={installments} isPrivacyMode={isPrivacyMode} onNavigate={handleNavigateVendas} />
                 <ProtectedLink to="/vendas" className="block h-full" permissions={permissions} onDenied={handlePermissionDenied}><RecentSoldProductsCard soldItems={recentSoldItems} isPrivacyMode={isPrivacyMode} /></ProtectedLink>
             </div>
-            {/* Permission Denied Toast */}
-            {permissionToast && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] animate-slide-up">
-                    <div className="flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-2xl shadow-2xl shadow-red-500/30 border border-red-500">
-                        <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                        <span className="text-sm font-bold">{permissionToast}</span>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 };
