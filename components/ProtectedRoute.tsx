@@ -20,6 +20,20 @@ export const getFirstAvailablePage = (p: Partial<PermissionSet> | null): string 
     return '/login';
 };
 
+/** Retorna a primeira rota do ERP padrão (ignorando submódulos como OS ou Catálogo) que o usuário pode acessar. */
+export const getErpHomePage = (p: Partial<PermissionSet> | null): string | null => {
+    if (!p) return null;
+    if (p.canAccessDashboard) return '/';
+    if (p.canAccessVendas) return '/vendas';
+    if (p.canAccessEstoque) return '/products';
+    if (p.canAccessClientes || p.canAccessFornecedores) return '/customers';
+    if (p.canAccessRelatorios) return '/reports';
+    if (p.canAccessFinanceiro) return '/financeiro';
+    if (p.canAccessPOS) return '/pos';
+    if (p.canEditOwnProfile || p.canAccessEmpresa) return '/company';
+    return null;
+};
+
 interface ProtectedRouteProps {
     permissionKey?: keyof PermissionSet | (keyof PermissionSet)[];
 }

@@ -17,6 +17,7 @@ import {
 import { useToast } from '../../contexts/ToastContext.tsx';
 import { useUser } from '../../contexts/UserContext.tsx';
 import { PermissionSet } from '../../types.ts';
+import { getErpHomePage } from '../../components/ProtectedRoute.tsx';
 
 const NAV_ITEMS: { label: string; path: string; icon: any; permissionKey?: keyof PermissionSet | (keyof PermissionSet)[] }[] = [
     { label: 'Dashboard', path: '/service-orders', icon: LayoutGrid, permissionKey: 'osCanAccessDashboard' },
@@ -107,7 +108,11 @@ const ServiceOrderLayout: React.FC = () => {
                 {/* Back to ERP Desktop */}
                 <div className="p-3 border-t border-white/10">
                     <button
-                        onClick={() => navigate('/')}
+                        onClick={() => {
+                            const erpHome = getErpHomePage(permissions);
+                            if (erpHome) navigate(erpHome);
+                            else showToast('Você não possui acesso a outros módulos do ERP.', 'warning');
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                         title="Voltar ao ERP"
                     >
@@ -155,7 +160,11 @@ const ServiceOrderLayout: React.FC = () => {
 
                     {/* Back to ERP Mobile */}
                     <button
-                        onClick={() => navigate('/')}
+                        onClick={() => {
+                            const erpHome = getErpHomePage(permissions);
+                            if (erpHome) navigate(erpHome);
+                            else showToast('Nenhum outro módulo disponível.', 'warning');
+                        }}
                         className={`flex flex-col items-center justify-center py-2 transition-all duration-200 flex-none w-[20%] min-w-[20%] text-white/50 hover:text-white hover:bg-white/5 rounded-xl`}
                     >
                         <ChevronLeftIcon className="h-5 w-5 mb-1.5" />
