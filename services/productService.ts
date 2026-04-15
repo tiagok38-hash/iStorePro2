@@ -328,10 +328,12 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
             condition: data.condition,
             storageLocation: data.storageLocation,
             warranty: data.warranty || existingProduct.warranty,
-            batteryHealth: data.batteryHealth || existingProduct.batteryHealth,
             origin: data.origin || 'Recompra',
             supplier_id: data.supplierId || existingProduct.supplier_id,
             updatedAt: now,
+            createdAt: now,
+            createdBy: userId,
+            createdByName: userName,
             stockHistory: [...existingHistory, newStockHistoryEntry]
         };
 
