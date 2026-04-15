@@ -25,6 +25,25 @@ export { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs 
 
 // --- PRODUCTS ---
 
+export const mapProduct = (p: any): Product => ({
+    ...p,
+    supplierId: p.supplier_id || p.supplierId,
+    storageLocation: p.storage_location || p.storageLocation,
+    costPrice: p.cost_price || p.costPrice,
+    totalCostPrice: (Number(p.cost_price || 0) + Number(p.additional_cost_price || 0)),
+    wholesalePrice: p.wholesale_price || p.wholesalePrice,
+    batteryHealth: p.battery_health || p.batteryHealth,
+    serialNumber: p.serial_number || p.serialNumber,
+    additionalCostPrice: p.additional_cost_price || p.additionalCostPrice,
+    stockHistory: p.stock_history || p.stockHistory || [],
+    priceHistory: p.price_history || p.priceHistory || [],
+    createdAt: p.created_at || p.createdAt,
+    updatedAt: p.updated_at || p.updatedAt,
+    minimumStock: p.minimum_stock || p.minimumStock,
+    createdBy: p.created_by || p.createdBy,
+    createdByName: p.created_by_name || p.createdByName,
+});
+
 export const getProducts = async (filters: { model?: string, categoryId?: string, brandId?: string, onlyInStock?: boolean, select?: string } = {}): Promise<Product[]> => {
     const cacheKey = `products_${JSON.stringify(filters)}`;
     return fetchWithCache(cacheKey, async () => {
@@ -41,23 +60,7 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
             const { data, error } = await query.order('createdAt', { ascending: false }).limit(1000);
 
             if (error) throw error;
-            return (data || []).map((p: any) => ({
-                ...p,
-                supplierId: p.supplier_id || p.supplierId,
-                storageLocation: p.storage_location || p.storageLocation,
-                costPrice: p.cost_price || p.costPrice,
-                wholesalePrice: p.wholesale_price || p.wholesalePrice,
-                batteryHealth: p.battery_health || p.batteryHealth,
-                serialNumber: p.serial_number || p.serialNumber,
-                additionalCostPrice: p.additional_cost_price || p.additionalCostPrice,
-                stockHistory: p.stock_history || p.stockHistory,
-                priceHistory: p.price_history || p.priceHistory,
-                createdAt: p.created_at || p.createdAt,
-                updatedAt: p.updated_at || p.updatedAt,
-                minimumStock: p.minimum_stock || p.minimumStock,
-                createdBy: p.created_by || p.createdBy,
-                createdByName: p.created_by_name || p.createdByName,
-            }));
+            return (data || []).map(mapProduct);
         });
     });
 };
@@ -74,23 +77,7 @@ export const searchProducts = async (term: string): Promise<Product[]> => {
             .limit(50);
 
         if (error) throw error;
-        return (data || []).map((p: any) => ({
-            ...p,
-            supplierId: p.supplier_id || p.supplierId,
-            storageLocation: p.storage_location || p.storageLocation,
-            costPrice: p.cost_price || p.costPrice,
-            wholesalePrice: p.wholesale_price || p.wholesalePrice,
-            batteryHealth: p.battery_health || p.batteryHealth,
-            serialNumber: p.serial_number || p.serialNumber,
-            additionalCostPrice: p.additional_cost_price || p.additionalCostPrice,
-            stockHistory: p.stock_history || p.stockHistory,
-            priceHistory: p.price_history || p.priceHistory,
-            createdAt: p.created_at || p.createdAt,
-            updatedAt: p.updated_at || p.updatedAt,
-            minimumStock: p.minimum_stock || p.minimumStock,
-            createdBy: p.created_by || p.createdBy,
-            createdByName: p.created_by_name || p.createdByName,
-        }));
+        return (data || []).map(mapProduct);
     });
 };
 

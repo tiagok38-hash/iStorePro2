@@ -1,12 +1,4 @@
 
-import { createClient } from '@supabase/supabase-js';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings, InventoryMovement, FinancialStatus, CustomerDevice, ElectronicType } from '../types.ts';
-import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
-import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
-import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
-import { sortProductsCommercial } from '../utils/productSorting.ts';
-
 // --- Shared infrastructure (imported from dedicated modules) ---
 import { fetchWithCache, clearCache, getAllCacheKeys, fetchWithRetry, withTimeout, CACHE_TTL, METADATA_TTL } from './cacheUtils.ts';
 export { clearCache } from './cacheUtils.ts';

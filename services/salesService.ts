@@ -1,4 +1,3 @@
-
 import { getProducts, updateProductStock } from './productService.ts';
 import { syncCustomerCreditLimit } from './customerService.ts';
 import { addCreditInstallments } from './creditService.ts';
@@ -9,6 +8,12 @@ import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUt
 import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
 import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
 import { sortProductsCommercial } from '../utils/productSorting.ts';
+
+// --- Shared infrastructure ---
+import { fetchWithCache, clearCache, getAllCacheKeys, fetchWithRetry, withTimeout, CACHE_TTL, METADATA_TTL } from './cacheUtils.ts';
+import { formatCurrency, formatPhone } from '../utils/formatters.ts';
+import { resolvePermissions, login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile } from './authService.ts';
+import { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs } from './auditService.ts';
 
 export const mapSale = (sale: any): Sale => {
     try {
@@ -135,31 +140,23 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
 };
 
 export const getProductSalesHistory = async (productId: string): Promise<Sale[]> => {
-    // Optimization: Reuse the cached 'sales' list instead of a specific DB query
-    const allSales = await getSales();
-    return allSales.filter((s: Sale) => s.items.some((i: any) => i.productId === productId));
+    // Optimization: Directly query Supabase for sales containing this product
+    const { data, error } = await supabase
+        .from('sales')
+        .select('*')
+        .contains('items', [{ productId }])
+        .order('date', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching product sales history:', error);
+        throw error;
+    }
+    return (data || []).map(mapSale);
 };
 
 export const getTodaysSales = async (): Promise<TodaySale[]> => {
     return [];
 };
-
-
-// --- Shared infrastructure (imported from dedicated modules) ---
-import { fetchWithCache, clearCache, getAllCacheKeys, fetchWithRetry, withTimeout, CACHE_TTL, METADATA_TTL } from './cacheUtils.ts';
-export { clearCache } from './cacheUtils.ts';
-
-// --- Formatters (imported from dedicated utility and re-exported) ---
-import { formatCurrency, formatPhone } from '../utils/formatters.ts';
-export { formatCurrency, formatPhone };
-
-// --- Auth, Users, Permissions (imported from dedicated service and re-exported) ---
-import { resolvePermissions, login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile } from './authService.ts';
-export { login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile };
-
-// --- Audit (imported from dedicated service and re-exported) ---
-import { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs } from './auditService.ts';
-export { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs };
 
 // --- SALES ---
 

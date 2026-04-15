@@ -442,7 +442,7 @@ const StockInModal: React.FC<{
                 };
             });
 
-            await launchPurchaseToStock(purchaseOrder.id, newProducts, user?.name || 'Usuário');
+            await launchPurchaseToStock(purchaseOrder.id, newProducts, user?.name || 'Usuário', user?.id || undefined);
             showToast(`Estoque da compra #${purchaseOrder.displayId} lançado com sucesso!`, 'success');
             localStorage.removeItem(`stock_launch_draft_${purchaseOrder.id}`);
             onClose(true);

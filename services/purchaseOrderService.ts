@@ -276,7 +276,7 @@ export const revertPurchaseLaunch = async (id: string) => {
     clearCache(['purchase_orders', 'products']);
 };
 
-export const launchPurchaseToStock = async (purchaseOrderId: string, products: any[], launchedBy?: string) => {
+export const launchPurchaseToStock = async (purchaseOrderId: string, products: any[], launchedBy?: string, launchedById?: string) => {
     const now = getNowISO();
 
     let purchaseOrder: any = null;
@@ -384,6 +384,10 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                         purchaseOrderId: purchaseOrderId,
                         purchaseItemId: p.purchaseItemId,
                         updatedAt: now,
+                        // ✅ Atualiza campos de auditoria de criação na reentrada
+                        createdAt: now,
+                        createdBy: p.createdBy || launchedById || null,
+                        createdByName: p.createdByName || launchedBy || createdBy,
                         stockHistory: [...existingHistory, newStockHistoryEntry]
                     }
                 });
@@ -413,7 +417,8 @@ export const launchPurchaseToStock = async (purchaseOrderId: string, products: a
                 createdAt: now,
                 updatedAt: now,
                 sku: p.sku || `#${currentSkuCount}`,
-                createdBy: p.createdBy || launchedBy || createdBy,
+                // ✅ Usa o ID do usuário para createdBy, e o nome para createdByName
+                createdBy: p.createdBy || launchedById || null,
                 createdByName: p.createdByName || launchedBy || createdBy,
                 stockHistory: initialStockHistory,
                 priceHistory: []
