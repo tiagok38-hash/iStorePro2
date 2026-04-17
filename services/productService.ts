@@ -1,27 +1,14 @@
 
-import { createClient } from '@supabase/supabase-js';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings, InventoryMovement, FinancialStatus, CustomerDevice, ElectronicType } from '../types.ts';
-import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
-import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
-import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
+import { supabase } from '../supabaseClient.ts';
+import { Product, AuditActionType, AuditEntityType, StockHistoryEntry } from '../types.ts';
+import { getNowISO } from '../utils/dateUtils.ts';
 import { sortProductsCommercial } from '../utils/productSorting.ts';
+import { fetchWithCache, clearCache, fetchWithRetry } from './cacheUtils.ts';
+import { formatCurrency } from '../utils/formatters.ts';
+import { addAuditLog } from './auditService.ts';
 
-// --- Shared infrastructure (imported from dedicated modules) ---
-import { fetchWithCache, clearCache, getAllCacheKeys, fetchWithRetry, withTimeout, CACHE_TTL, METADATA_TTL } from './cacheUtils.ts';
 export { clearCache } from './cacheUtils.ts';
-
-// --- Formatters (imported from dedicated utility and re-exported) ---
-import { formatCurrency, formatPhone } from '../utils/formatters.ts';
-export { formatCurrency, formatPhone };
-
-// --- Auth, Users, Permissions (imported from dedicated service and re-exported) ---
-import { resolvePermissions, login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile } from './authService.ts';
-export { login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile };
-
-// --- Audit (imported from dedicated service and re-exported) ---
-import { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs } from './auditService.ts';
-export { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs };
+export { formatCurrency, formatPhone } from '../utils/formatters.ts';
 
 // --- PRODUCTS ---
 

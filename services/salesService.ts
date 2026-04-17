@@ -1,19 +1,14 @@
 import { getProducts, updateProductStock } from './productService.ts';
 import { syncCustomerCreditLimit } from './customerService.ts';
 import { addCreditInstallments } from './creditService.ts';
-import { createClient } from '@supabase/supabase-js';
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabaseClient.ts';
-import { Product, Customer, Sale, User, Supplier, PurchaseOrder, Brand, Category, ProductModel, Grade, GradeValue, TodaySale, Payment, AuditLog, AuditActionType, AuditEntityType, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, PaymentMethodParameter, CardConfigData, CompanyInfo, PermissionProfile, PermissionSet, ReceiptTermParameter, CashSession, CashMovement, StockHistoryEntry, PurchaseItem, PriceHistoryEntry, TradeInEntry, Service, ServiceOrder, CatalogItem, TransactionCategory, FinancialTransaction, CrmDeal, CrmActivity, CrmColumn, CreditInstallment, CreditSettings, InventoryMovement, FinancialStatus, CustomerDevice, ElectronicType } from '../types.ts';
-import { getNowISO, getTodayDateString, formatDateTimeBR } from '../utils/dateUtils.ts';
-import { sendSaleNotification, sendPurchaseNotification } from './telegramService.ts';
-import { calculateInstallmentDates, calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
-import { sortProductsCommercial } from '../utils/productSorting.ts';
-
-// --- Shared infrastructure ---
-import { fetchWithCache, clearCache, getAllCacheKeys, fetchWithRetry, withTimeout, CACHE_TTL, METADATA_TTL } from './cacheUtils.ts';
-import { formatCurrency, formatPhone } from '../utils/formatters.ts';
-import { resolvePermissions, login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile } from './authService.ts';
-import { addAuditLog, getAuditLogs, getBulkUpdateLogs, getCashRegisterAuditLogs } from './auditService.ts';
+import { supabase } from '../supabaseClient.ts';
+import { AuditActionType, AuditEntityType, Payment, CreditInstallment } from '../types.ts';
+import { getNowISO } from '../utils/dateUtils.ts';
+import { sendSaleNotification } from './telegramService.ts';
+import { calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
+import { fetchWithCache, clearCache, fetchWithRetry } from './cacheUtils.ts';
+import { formatCurrency } from '../utils/formatters.ts';
+import { addAuditLog } from './auditService.ts';
 
 export const mapSale = (sale: any): Sale => {
     try {
