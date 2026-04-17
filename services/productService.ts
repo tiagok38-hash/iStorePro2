@@ -539,6 +539,11 @@ export const updateProduct = async (data: any, userId?: string, userName?: strin
         selectedCustomerId,
         stockHistory,
         priceHistory: inputPriceHistory,
+        // --- Strip RPC-only / computed fields that are NOT columns in the products table ---
+        // These fields come from search_products RPC results and must never be sent to .update()
+        relevance_score,
+        total_count,
+        totalCostPrice, // computed field (costPrice + additionalCostPrice), not a DB column
         ...rest
     } = data;
     const now = getNowISO();
