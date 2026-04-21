@@ -453,12 +453,12 @@ export interface ServiceOrder {
     customerDeviceId?: string;
     trackingToken?: string;
     phone?: string;
-    isOrcamentoOnly?: boolean;
     isQuick?: boolean;
     cancellationReason?: string;
     receiptTermId?: string;
     isWarranty?: boolean;
     parentOsId?: string;
+    osType?: string;
 }
 
 // CartItem interface to be used across components like NewSaleModal.

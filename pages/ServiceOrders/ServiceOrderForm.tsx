@@ -57,7 +57,7 @@ import {
     deductOsPartsStock,
     returnOsPartsStock
 } from '../../services/mockApi';
-import { getOsReceiptTerms } from '../../services/parametersService';
+import { getOsReceiptTerms, getOsTypes } from '../../services/parametersService';
 import { generateCommissionsForOS } from '../../services/commissionService.ts';
 import { formatStorageUnit, deduplicateWarranties, cleanUUIDs, cleanDeviceDescription } from '../../utils/formatters.ts';
 import { WhatsAppIcon } from '../../components/icons';
@@ -143,6 +143,9 @@ const ServiceOrderForm: React.FC = () => {
     const [patternLock, setPatternLock] = useState<number[]>([]);
     const [deviceToEdit, setDeviceToEdit] = useState<CustomerDevice | null>(null);
 
+    const [osTypes, setOsTypes] = useState<{id: string, name: string}[]>([]);
+    const [selectedOsType, setSelectedOsType] = useState<string>('');
+
     const [checklist, setChecklist] = useState<ServiceOrderChecklist>({});
     const [othersDescription, setOthersDescription] = useState('');
 
@@ -160,8 +163,6 @@ const ServiceOrderForm: React.FC = () => {
 
     // OS Status (para edição)
     const [osStatus, setOsStatus] = useState<string>('Orçamento');
-    // Orçamento only toggle (para criação)
-    const [isOrcamentoOnly, setIsOrcamentoOnly] = useState(false);
     // Datas
     const [entryDate, setEntryDate] = useState(() => new Date().toISOString());
     const [estimatedDate, setEstimatedDate] = useState(() => getTodayDateString());
@@ -290,7 +291,8 @@ const ServiceOrderForm: React.FC = () => {
                 modelsData,
                 gradesData,
                 gradeValuesData,
-                receiptTermsData
+                receiptTermsData,
+                osTypesData
             ] = await Promise.all([
                 getUsers(),
                 getCustomers(),
@@ -307,7 +309,8 @@ const ServiceOrderForm: React.FC = () => {
                 getProductModels(),
                 getGrades(),
                 getGradeValues(),
-                getOsReceiptTerms()
+                getOsReceiptTerms(),
+                getOsTypes()
             ]);
             setUsers(usersData);
             setCustomers(customersData);
@@ -328,10 +331,11 @@ const ServiceOrderForm: React.FC = () => {
             setGrades(gradesData);
             setGradeValues(gradeValuesData);
             setReceiptTerms(receiptTermsData);
+            setOsTypes(osTypesData);
 
             // Carrega OS DEPOIS que os dados base estiverem prontos (evita race condition)
             if (isEditing && editId) {
-                await loadServiceOrderData(editId, customersData);
+                await loadServiceOrderData(editId, customersData, osTypesData);
             }
         } catch (error) {
             toast.error("Erro ao carregar dados iniciais.");
@@ -339,7 +343,7 @@ const ServiceOrderForm: React.FC = () => {
     };
 
 
-    const loadServiceOrderData = async (id: string, preloadedCustomers?: any[]) => {
+    const loadServiceOrderData = async (id: string, preloadedCustomers?: any[], preloadedOsTypes?: any[]) => {
         setIsLoadingEdit(true);
         try {
             const so = await getServiceOrder(id);
@@ -372,7 +376,10 @@ const ServiceOrderForm: React.FC = () => {
             setIsWarranty(!!so.isWarranty);
             setParentOsId(so.parentOsId || null);
             setOsStatus(so.status || 'Orçamento');
-            setIsOrcamentoOnly(!!(so as any).isOrcamentoOnly);
+            if ((so as any).osType && preloadedOsTypes) {
+                const foundType = preloadedOsTypes.find((t: any) => t.name === (so as any).osType);
+                if (foundType) setSelectedOsType(foundType.id);
+            }
             setDisplayId(so.displayId || null);
             if ((so as any).entryDate) setEntryDate(new Date((so as any).entryDate).toISOString());
             if ((so as any).estimatedDate) setEstimatedDate(new Date((so as any).estimatedDate).toISOString().slice(0, 10));
@@ -533,6 +540,20 @@ const ServiceOrderForm: React.FC = () => {
         setIsCameraOpen(false);
     };
 
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                if (reader.result) {
+                    handleAddPhoto(reader.result as string);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        e.target.value = '';
+    };
+
     const removePhoto = (index: number) => {
         setPhotos(photos.filter((_, i) => i !== index));
     };
@@ -600,7 +621,7 @@ const ServiceOrderForm: React.FC = () => {
             technicalReport,
             observations,
             status: (overrideStatus ?? (isEditing ? osStatus : 'Orçamento')) as any,
-            isOrcamentoOnly,
+            osType: osTypes.find(t => t.id === selectedOsType)?.name || '',
             items,
             subtotal,
             discount,
@@ -893,15 +914,7 @@ const ServiceOrderForm: React.FC = () => {
                                         Cancelar
                                     </button>
 
-                                    {!isEditing && (
-                                        <button
-                                            onClick={() => setIsQuickOSOpen(true)}
-                                            className="bg-amber-500 hover:bg-amber-600 text-white h-11 px-6 rounded-xl text-sm font-black shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
-                                        >
-                                            <Zap size={18} className="fill-white" />
-                                            OS Rápida
-                                        </button>
-                                    )}
+
 
                                     <button
                                         onClick={handleSave}
@@ -1143,25 +1156,19 @@ const ServiceOrderForm: React.FC = () => {
                                         </label>
                                     </div>
 
-                                    {/* Toggle Orçamento */}
-                                    <div className="flex flex-col gap-0.5">
+                                    {/* Select Tipo de OS */}
+                                    <div className="flex flex-col gap-0.5 min-w-[150px]">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase">Tipo</label>
-                                        <div className={`h-10 flex items-center gap-2 px-3 rounded-xl border transition-all flex-shrink-0 ${isOrcamentoOnly
-                                            ? 'bg-amber-50 border-amber-300'
-                                            : 'bg-gray-50 border-gray-200'
-                                            }`}>
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsOrcamentoOnly(!isOrcamentoOnly)}
-                                                className={`relative w-10 h-5 rounded-full transition-all duration-300 flex-shrink-0 ${isOrcamentoOnly ? 'bg-amber-500 shadow-sm' : 'bg-gray-300'
-                                                    }`}
-                                            >
-                                                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${isOrcamentoOnly ? 'left-[22px]' : 'left-0.5'
-                                                    }`} />
-                                            </button>
-                                            <span className={`text-xs font-bold whitespace-nowrap ${isOrcamentoOnly ? 'text-amber-600' : 'text-gray-400'
-                                                }`}>Orçamento</span>
-                                        </div>
+                                        <select
+                                            value={selectedOsType}
+                                            onChange={e => setSelectedOsType(e.target.value)}
+                                            className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-gray-700 w-full"
+                                        >
+                                            <option value="">Selecione...</option>
+                                            {osTypes.map(type => (
+                                                <option key={type.id} value={type.id}>{type.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 
@@ -1262,7 +1269,7 @@ const ServiceOrderForm: React.FC = () => {
                                                         <Plus size={16} /> Novo Aparelho
                                                     </button>
 
-                                                    <div ref={deviceSearchRef} className="relative flex-1 min-w-[200px]">
+                                                    <div ref={deviceSearchRef} className="relative flex-1 md:flex-[0.6] min-w-[200px]">
                                                         <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">Buscar Aparelho</label>
                                                         <div className="relative">
                                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -1320,7 +1327,7 @@ const ServiceOrderForm: React.FC = () => {
                                                     </div>
                                                 </>
                                             ) : (
-                                                <div className="flex-1">
+                                                <div className="flex-1 md:flex-[0.6]">
                                                     <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">Aparelho Selecionado</label>
                                                     <div className="flex gap-2">
                                                         <input
@@ -1364,7 +1371,7 @@ const ServiceOrderForm: React.FC = () => {
                                                 </div>
                                             )}
 
-                                            <div className="flex-1 sm:max-w-[200px]">
+                                            <div className="flex-1 sm:max-w-[320px]">
                                                 <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">IMEI</label>
                                                 <input
                                                     type="text"
@@ -1375,7 +1382,7 @@ const ServiceOrderForm: React.FC = () => {
                                                 />
                                             </div>
 
-                                            <div className="flex-1 sm:max-w-[150px]">
+                                            <div className="flex-1 sm:max-w-[280px]">
                                                 <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">N. Série</label>
                                                 <input
                                                     type="text"
@@ -1480,12 +1487,6 @@ const ServiceOrderForm: React.FC = () => {
                                         <label className="block text-sm font-bold text-primary flex items-center gap-2">
                                             <ImageIcon size={16} /> Fotos do Aparelho
                                         </label>
-                                        <button
-                                            onClick={() => setIsCameraOpen(true)}
-                                            className="text-xs flex items-center gap-1 text-accent font-bold hover:underline"
-                                        >
-                                            <Camera size={14} /> Adicionar Foto
-                                        </button>
                                     </div>
 
                                     {photos.length > 0 ? (
@@ -1494,6 +1495,7 @@ const ServiceOrderForm: React.FC = () => {
                                                 <div key={index} className="relative w-24 h-24 flex-shrink-0 group">
                                                     <img src={photo} alt={`Foto ${index + 1}`} className="w-full h-full object-cover rounded-lg border border-gray-200" />
                                                     <button
+                                                        type="button"
                                                         onClick={() => { if (!isLocked) removePhoto(index); }}
                                                         disabled={isLocked}
                                                         className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 transition-opacity shadow-sm ${isLocked ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}
@@ -1504,12 +1506,25 @@ const ServiceOrderForm: React.FC = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div
-                                            onClick={() => { if (!isLocked) setIsCameraOpen(true); }}
-                                            className={`w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center transition-colors ${isLocked ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-gray-300'}`}
-                                        >
-                                            <Camera size={24} className="mb-2" />
-                                            <span className="text-xs">Toque para adicionar fotos</span>
+                                        <div className="flex gap-4 w-full">
+                                            <div
+                                                onClick={() => { if (!isLocked) setIsCameraOpen(true); }}
+                                                className={`flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors ${isLocked ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-gray-300'}`}
+                                            >
+                                                <Camera size={20} />
+                                            </div>
+                                            <label
+                                                className={`flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors ${isLocked ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-gray-300'}`}
+                                            >
+                                                <ImageIcon size={20} />
+                                                <input 
+                                                    type="file" 
+                                                    accept="image/*" 
+                                                    className="hidden" 
+                                                    disabled={isLocked}
+                                                    onChange={handleFileUpload} 
+                                                />
+                                            </label>
                                         </div>
                                     )}
                                 </div>

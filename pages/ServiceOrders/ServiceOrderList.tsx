@@ -107,7 +107,7 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
             ${isDragging ? 'opacity-40 scale-95 rotate-1' : 'opacity-100'}
             ${os.status === 'Cancelada'
                 ? 'bg-red-50/80 border-red-200 hover:border-red-300'
-                : os.isOrcamentoOnly
+                : os.osType === 'Orçamento'
                     ? 'bg-indigo-100/60 border-indigo-200/80 hover:border-indigo-400/50 hover:bg-indigo-100/80 transition-all'
                     : 'bg-white border-gray-100 hover:border-accent/40'}
             `}
@@ -184,7 +184,7 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
             <UserCircle size={10} /> {os.attendantName || '-'}
         </p>
 
-        {os.isOrcamentoOnly && os.status !== 'Cancelada' && (
+        {os.osType === 'Orçamento' && os.status !== 'Cancelada' && (
             <div className="mb-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-black text-indigo-600 bg-indigo-50/50 border border-indigo-200/60 shadow-sm">
                 <div className="w-6 h-3.5 bg-indigo-500 rounded-full relative flex-shrink-0 shadow-inner">
                     <div className="absolute right-0.5 top-[2px] w-2.5 h-2.5 bg-white rounded-full shadow-sm"></div>
@@ -252,6 +252,8 @@ const ServiceOrderList: React.FC = () => {
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dragOverColumn, setDragOverColumn] = useState<OSStatus | null>(null);
     const [warrantyFilter, setWarrantyFilter] = useState<'all' | 'active' | 'expiring_month'>('all');
+    const [typeFilter, setTypeFilter] = useState<string>('Todos');
+    const [osTypes, setOsTypes] = useState<any[]>([]);
 
     // Date filters
     const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'>('today');
@@ -299,8 +301,12 @@ const ServiceOrderList: React.FC = () => {
     const loadOrders = async () => {
         setIsLoading(true);
         try {
-            const data = await getServiceOrders();
-            setOrders(data || []);
+            const [ordersData, typesData] = await Promise.all([
+                getServiceOrders(),
+                import('../../services/parametersService').then(m => m.getOsTypes())
+            ]);
+            setOrders(ordersData || []);
+            setOsTypes(typesData || []);
         } catch (error) {
             showToast("Erro ao carregar ordens de serviço", "error");
         } finally {
@@ -351,6 +357,7 @@ const ServiceOrderList: React.FC = () => {
                 (os.displayId?.toString() || '').includes(searchTerm) ||
                 os.id.includes(searchTerm);
             const matchStatus = statusFilter === 'Todos' || os.status === statusFilter;
+            const matchType = typeFilter === 'Todos' || os.osType === typeFilter;
 
             let matchWarranty = true;
             if (warrantyFilter !== 'all') {
@@ -399,7 +406,7 @@ const ServiceOrderList: React.FC = () => {
                 if (!entryInRange && !exitInRange) matchDate = false;
             }
 
-            return matchSearch && matchStatus && matchWarranty && matchDate;
+            return matchSearch && matchStatus && matchType && matchWarranty && matchDate;
         });
     }, [orders, searchTerm, statusFilter, warrantyFilter, startDate, endDate]);
 
@@ -689,6 +696,18 @@ const ServiceOrderList: React.FC = () => {
                         </select>
                     )}
 
+                    {/* Type Filter */}
+                    <select
+                        value={typeFilter}
+                        onChange={(e) => setTypeFilter(e.target.value)}
+                        className="h-10 px-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none transition-all text-secondary cursor-pointer"
+                    >
+                        <option value="Todos">Tipos de OS</option>
+                        {osTypes.map(t => (
+                            <option key={t.id} value={t.name}>{t.name}</option>
+                        ))}
+                    </select>
+
                     <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
                         <button
                             onClick={() => handlePeriodChange('today')}
@@ -789,7 +808,7 @@ const ServiceOrderList: React.FC = () => {
                                             const profit = calculateOSProfit(os);
 
                                             return (
-                                                <tr key={os.id} className={`transition-colors group ${os.isOrcamentoOnly ? 'bg-indigo-100/40 hover:bg-indigo-100/60' : 'hover:bg-gray-50/50'}`}>
+                                                <tr key={os.id} className={`transition-colors group ${os.osType === 'Orçamento' ? 'bg-indigo-100/40 hover:bg-indigo-100/60' : 'hover:bg-gray-50/50'}`}>
                                                     <td className="px-4 py-3 font-medium text-primary">
                                                         <div className="flex flex-col gap-0.5">
                                                             <div className="flex items-center gap-1">
@@ -928,7 +947,7 @@ const ServiceOrderList: React.FC = () => {
                                     const profit = calculateOSProfit(os);
 
                                     return (
-                                        <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.isOrcamentoOnly ? 'bg-indigo-100/40 hover:bg-indigo-100/60 active:bg-indigo-200/40' : 'active:bg-gray-50'}`}>
+                                        <div key={os.id} onClick={() => navigate(`/service-orders/edit/${os.id}`)} className={`p-4 transition-colors cursor-pointer ${os.osType === 'Orçamento' ? 'bg-indigo-100/40 hover:bg-indigo-100/60 active:bg-indigo-200/40' : 'active:bg-gray-50'}`}>
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex flex-col">
                                                     <span className="text-xs font-bold text-primary">OS-{os.displayId}</span>

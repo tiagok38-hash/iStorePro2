@@ -21,7 +21,6 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
         passcode: '',
         observations: '',
     });
-    const [isOrcamentoOnly, setIsOrcamentoOnly] = useState(false);
     const [patternLock, setPatternLock] = useState<number[]>([]);
     const [passType, setPassType] = useState<'alpha' | 'pattern'>('alpha');
 
@@ -47,7 +46,6 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
                 attendantObservations: '',
                 technicalReport: '',
                 status: 'Orçamento' as any,
-                isOrcamentoOnly: isOrcamentoOnly,
                 isQuick: true,
                 items: [],
                 subtotal: 0,
@@ -191,18 +189,7 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
                         />
                     </div>
 
-                    {/* Toggle Orçamento */}
-                    <div className={`h-10 flex items-center justify-between px-3 rounded-xl border transition-all ${isOrcamentoOnly ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}>
-                        <span className={`text-xs font-bold ${isOrcamentoOnly ? 'text-amber-600' : 'text-gray-500'}`}>Obrigatório fazer Orçamento?</span>
-                        <button
-                            type="button"
-                            onClick={() => setIsOrcamentoOnly(!isOrcamentoOnly)}
-                            className={`relative w-10 h-5 rounded-full transition-all duration-300 flex-shrink-0 ${isOrcamentoOnly ? 'bg-amber-500 shadow-sm' : 'bg-gray-300'}`}
-                        >
-                            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${isOrcamentoOnly ? 'left-[22px]' : 'left-0.5'}`} />
-                        </button>
                     </div>
-                </div>
 
                 {/* Footer */}
                 <div className="flex gap-3 p-5 pt-0">

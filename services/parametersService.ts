@@ -431,3 +431,10 @@ export const deleteOsReceiptTerm = (id: string, userId: string = 'system', userN
     deleteItem('os_receipt_terms', id, 'os_receipt_terms', userId, userName);
 
 // --- fin OS-exclusive parameters ---
+
+// --- OS Types (os_types) ---
+export const getOsTypes = () => getTable('os_types', 'os_types');
+export const addOsType = (data: any, userId?: string, userName?: string) => addItem('os_types', data, 'os_types', userId, userName);
+export const updateOsType = (data: any, userId?: string, userName?: string) => updateItem('os_types', data, 'os_types', userId, userName);
+export const deleteOsType = (id: string, userId?: string, userName?: string) => deleteItem('os_types', id, 'os_types', userId, userName);
+

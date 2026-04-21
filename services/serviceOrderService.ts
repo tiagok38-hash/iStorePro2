@@ -138,6 +138,7 @@ export const mapServiceOrderData = (so: any): ServiceOrder => ({
     receiptTermId: so.receipt_term_id,
     isWarranty: so.is_warranty,
     parentOsId: so.parent_os_id,
+    osType: so.os_type,
     items: (so.items || []).map((item: any) => ({
         ...item,
         description: cleanUUIDs(item.description)
@@ -258,13 +259,13 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         estimated_date: (data as any).estimatedDate || null,
         attendant_observations: data.attendantObservations || null,
         customer_device_id: data.customerDeviceId || null,
-        is_orcamento_only: (data as any).isOrcamentoOnly ?? false,
         is_quick: (data as any).isQuick ?? false,
         phone: (data as any).phone || null,
         receipt_term_id: data.receiptTermId || null,
         cancellation_reason: data.cancellationReason || null,
         is_warranty: data.isWarranty ?? false,
         parent_os_id: data.parentOsId || null,
+        os_type: data.osType || null,
     };
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
@@ -280,8 +281,8 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         'patternLock', 'defectDescription', 'technicalReport',
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
-        'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly', 'isQuick', 'phone',
-        'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId'
+        'attendantObservations', 'customerDeviceId', 'isQuick', 'phone',
+        'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -332,13 +333,13 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).estimatedDate !== undefined) updatePayload.estimated_date = (data as any).estimatedDate;
     if (data.attendantObservations !== undefined) updatePayload.attendant_observations = data.attendantObservations;
     if (data.customerDeviceId !== undefined) updatePayload.customer_device_id = data.customerDeviceId;
-    if ((data as any).isOrcamentoOnly !== undefined) updatePayload.is_orcamento_only = (data as any).isOrcamentoOnly;
     if ((data as any).isQuick !== undefined) updatePayload.is_quick = (data as any).isQuick;
     if ((data as any).phone !== undefined) updatePayload.phone = (data as any).phone;
     if (data.receiptTermId !== undefined) updatePayload.receipt_term_id = data.receiptTermId;
     if (data.cancellationReason !== undefined) updatePayload.cancellation_reason = data.cancellationReason;
     if ((data as any).isWarranty !== undefined) updatePayload.is_warranty = (data as any).isWarranty;
     if ((data as any).parentOsId !== undefined) updatePayload.parent_os_id = (data as any).parentOsId;
+    if ((data as any).osType !== undefined) updatePayload.os_type = (data as any).osType;
     if ((data as any).isEdited !== undefined) updatePayload.is_edited = (data as any).isEdited;
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
@@ -354,8 +355,8 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'patternLock', 'defectDescription', 'technicalReport',
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
-        'attendantObservations', 'customerDeviceId', 'isOrcamentoOnly',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId'
+        'attendantObservations', 'customerDeviceId',
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 

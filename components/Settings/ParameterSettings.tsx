@@ -9,6 +9,9 @@ import {
     getOsReceiptTerms, addOsReceiptTerm, updateOsReceiptTerm, deleteOsReceiptTerm,
     getChecklistItems, addChecklistItem, updateChecklistItem, deleteChecklistItem
 } from '../../services/mockApi';
+import {
+    getOsTypes, addOsType, updateOsType, deleteOsType
+} from '../../services/parametersService';
 import Button from '../Button';
 import { PlusIcon, EditIcon, TrashIcon } from '../icons';
 import ReceiptTermModal from '../ReceiptTermModal';
@@ -225,12 +228,13 @@ const ParameterManager = <T extends { id: string; name: string;[key: string]: an
 
 // --- Main ParameterSettings Component ---
 const ParameterSettings: React.FC = () => {
-    const [activeSubTab, setActiveSubTab] = useState('condicao');
+    const [activeSubTab, setActiveSubTab] = useState('tipos_os');
     const [conditions, setConditions] = useState<ProductConditionParameter[]>([]);
     const [locations, setLocations] = useState<StorageLocationParameter[]>([]);
     const [warranties, setWarranties] = useState<WarrantyParameter[]>([]);
     const [receiptTerms, setReceiptTerms] = useState<ReceiptTermParameter[]>([]);
     const [checklistItems, setChecklistItems] = useState<ChecklistItemParameter[]>([]);
+    const [osTypes, setOsTypes] = useState<{id: string, name: string}[]>([]);
     const [isTermModalOpen, setIsTermModalOpen] = useState(false);
     const [editingTerm, setEditingTerm] = useState<Partial<ReceiptTermParameter> | null>(null);
     const [deletingTerm, setDeletingTerm] = useState<ReceiptTermParameter | null>(null);
@@ -239,14 +243,15 @@ const ParameterSettings: React.FC = () => {
 
     const fetchData = useCallback(async () => {
         try {
-            const [c, l, w, t, ch] = await Promise.all([
+            const [c, l, w, t, ch, ot] = await Promise.all([
                 getOsProductConditions(),
                 getOsStorageLocations(),
                 getOsWarranties(),
                 getOsReceiptTerms(),
-                getChecklistItems()
+                getChecklistItems(),
+                getOsTypes()
             ]);
-            setConditions(c); setLocations(l); setWarranties(w); setReceiptTerms(t); setChecklistItems(ch);
+            setConditions(c); setLocations(l); setWarranties(w); setReceiptTerms(t); setChecklistItems(ch); setOsTypes(ot);
         } catch (error) {
             console.error('Failed to fetch parameter settings:', error);
         }
@@ -297,7 +302,8 @@ const ParameterSettings: React.FC = () => {
 
     return (
         <div className="bg-surface rounded-[2.5rem] border border-gray-100 p-8 space-y-8 shadow-sm max-w-[886px]">
-            <div className="flex items-center gap-2 bg-gray-100/50 p-2 rounded-[1.5rem] border border-gray-100 shadow-inner flex-nowrap overflow-x-auto no-scrollbar">
+            <div className="flex flex-wrap items-center gap-2 bg-gray-100/50 p-2 rounded-[1.5rem] border border-gray-100 shadow-inner">
+                <button onClick={() => setActiveSubTab('tipos_os')} className={tabClasses('tipos_os')}>Tipos de OS</button>
                 <button onClick={() => setActiveSubTab('condicao')} className={tabClasses('condicao')}>Condição</button>
                 <button onClick={() => setActiveSubTab('local')} className={tabClasses('local')}>Local de estoque</button>
                 <button onClick={() => setActiveSubTab('garantia')} className={tabClasses('garantia')}>Garantia</button>
@@ -310,6 +316,7 @@ const ParameterSettings: React.FC = () => {
                 {activeSubTab === 'local' && <ParameterManager permissions={permissions} title="Locais de Estoque (OS)" items={locations} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addOsStorageLocation, update: updateOsStorageLocation, del: deleteOsStorageLocation }} fetchData={fetchData} />}
                 {activeSubTab === 'garantia' && <ParameterManager permissions={permissions} title="Garantias (OS)" items={warranties} fields={[{ name: 'name', label: 'Nome', type: 'text' }, { name: 'days', label: 'Qtd. Dias', type: 'number' }]} api={{ add: addOsWarranty as any, update: updateOsWarranty as any, del: deleteOsWarranty as any }} fetchData={fetchData} />}
                 {activeSubTab === 'checklist' && <ParameterManager permissions={permissions} title="Itens de Checklist (OS)" items={checklistItems} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addChecklistItem, update: updateChecklistItem, del: deleteChecklistItem }} fetchData={fetchData} />}
+                {activeSubTab === 'tipos_os' && <ParameterManager permissions={permissions} title="Tipos de OS" items={osTypes} fields={[{ name: 'name', label: 'Nome', type: 'text' }]} api={{ add: addOsType, update: updateOsType, del: deleteOsType }} fetchData={fetchData} />}
                 {activeSubTab === 'termos' && (
                     <div className="space-y-4">
                         <div className="flex justify-between items-center bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
