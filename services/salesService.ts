@@ -9,6 +9,7 @@ import { calculateFinancedAmount, generateAmortizationTable } from '../utils/cre
 import { fetchWithCache, clearCache, fetchWithRetry } from './cacheUtils.ts';
 import { formatCurrency } from '../utils/formatters.ts';
 import { addAuditLog } from './auditService.ts';
+import { getProfile, resolvePermissions } from './authService.ts';
 
 export const mapSale = (sale: any): Sale => {
     try {
