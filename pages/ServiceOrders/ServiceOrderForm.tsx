@@ -64,6 +64,7 @@ import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
 import QuickOSModal from '../../components/QuickOSModal';
+import PatternGrid from '../../components/PatternGrid';
 import CameraModal from '../../components/CameraModal';
 import ItemSelectionModal from '../../components/ItemSelectionModal';
 import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrderElectronicDevicesModal';
@@ -747,35 +748,7 @@ const ServiceOrderForm: React.FC = () => {
     };
 
     // --- Pattern Lock Grid ---
-    const PatternGrid = () => (
-        <div className="grid grid-cols-3 gap-4 w-40 mx-auto select-none">
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(dot => {
-                const indexInPattern = patternLock.indexOf(dot);
-                const isSelected = indexInPattern !== -1;
-                return (
-                    <button
-                        key={dot}
-                        type="button"
-                        onClick={() => {
-                            if (isLocked) return;
-                            if (isSelected) {
-                                setPatternLock(prev => prev.filter(p => p !== dot));
-                            } else {
-                                setPatternLock(prev => [...prev, dot]);
-                            }
-                        }}
-                        disabled={isLocked}
-                        className={`w-10 h-10 rounded-full border-[3px] transition-all flex items-center justify-center font-bold text-sm ${
-                            isLocked ? (isSelected ? 'bg-gray-400 border-gray-400 text-white scale-110 shadow-sm opacity-60' : 'bg-gray-100 border-gray-200 text-transparent opacity-60') :
-                            isSelected ? 'bg-accent border-accent text-white scale-110 shadow-md' : 'bg-white border-gray-300 hover:border-accent/50 text-transparent shadow-inner'
-                        }`}
-                    >
-                        {isSelected ? indexInPattern + 1 : ''}
-                    </button>
-                )
-            })}
-        </div>
-    );
+
 
     if (isLoadingEdit) {
         return (
@@ -1162,7 +1135,7 @@ const ServiceOrderForm: React.FC = () => {
                                         <select
                                             value={selectedOsType}
                                             onChange={e => setSelectedOsType(e.target.value)}
-                                            className="h-10 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-gray-700 w-full"
+                                            className="h-10 px-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold focus:border-accent focus:ring-2 focus:ring-accent/10 outline-none transition-all text-amber-900 w-full shadow-sm"
                                         >
                                             <option value="">Selecione...</option>
                                             {osTypes.map(type => (
@@ -1371,25 +1344,25 @@ const ServiceOrderForm: React.FC = () => {
                                                 </div>
                                             )}
 
-                                            <div className="flex-1 sm:max-w-[320px]">
-                                                <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">IMEI</label>
+                                            <div className="flex-1 sm:max-w-[320px] flex flex-col gap-0.5">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase">IMEI</label>
                                                 <input
                                                     type="text"
                                                     readOnly
                                                     placeholder="IMEI"
                                                     value={imei}
-                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-[13px] font-mono text-gray-500 cursor-not-allowed"
+                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm text-gray-500 cursor-not-allowed"
                                                 />
                                             </div>
 
-                                            <div className="flex-1 sm:max-w-[280px]">
-                                                <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase pl-1">N. Série</label>
+                                            <div className="flex-1 sm:max-w-[280px] flex flex-col gap-0.5">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase">N. Série</label>
                                                 <input
                                                     type="text"
                                                     readOnly
                                                     placeholder="Opcional"
                                                     value={serialNumber}
-                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-[13px] font-mono text-gray-500 cursor-not-allowed"
+                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm text-gray-500 cursor-not-allowed"
                                                 />
                                             </div>
                                         </div>
@@ -1398,41 +1371,55 @@ const ServiceOrderForm: React.FC = () => {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 pt-4 border-t border-gray-100">
                                     {/* Lock Pattern / Password */}
-                                    <div className="sm:col-span-4 lg:col-span-3">
-                                        <label className="block text-sm font-bold text-primary mb-4 flex items-center gap-2">
-                                            <Unlock size={16} /> Senha / Padrão
+                                    <div className="sm:col-span-5 lg:col-span-4">
+                                        <label className="block text-sm font-black text-primary mb-4 flex items-center gap-2">
+                                            <Unlock size={16} className="text-secondary" /> Senha / Padrão
                                         </label>
-                                        <div className="flex flex-col gap-4">
-                                            <div className="w-full">
+                                        <div className="flex flex-wrap gap-6 items-start">
+                                            {/* Alfanumérica Column */}
+                                            <div className="w-52 space-y-1.5">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase pl-1">Alfanumérica (PIN)</label>
                                                 <input
                                                     type="text"
                                                     disabled={isLocked}
-                                                    placeholder="Senha numérica (PIN) ou Alfanumérica"
+                                                    placeholder="Digite a senha..."
                                                     value={passcode}
                                                     onChange={e => setPasscode(e.target.value)}
-                                                    className={`w-full h-11 px-3 border rounded-xl text-sm mb-4 outline-none transition-all shadow-sm ${isLocked ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-red-50 border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 text-red-900'}`}
+                                                    className={`w-full h-11 px-3 border rounded-xl text-sm outline-none transition-all shadow-sm ${isLocked ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-red-50 border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 text-red-900'}`}
                                                 />
-                                                <p className="text-[11px] font-bold text-gray-500 mb-2">Ou desenhe o padrão abaixo (a numeração indica a ordem exata da sequência):</p>
+                                                <p className="text-[9px] text-gray-400 font-medium px-1 leading-tight italic">Senha numérica ou texto</p>
                                             </div>
-                                            <div className="flex flex-col items-start w-full">
-                                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 shadow-inner inline-block">
-                                                    <PatternGrid />
+
+                                            {/* Pattern Column */}
+                                            <div className="w-52 space-y-1.5">
+                                                <div className="flex justify-between items-center px-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Padrão de Desenho</label>
+                                                    {patternLock.length > 0 && !isLocked && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPatternLock([])}
+                                                            className="text-[9px] text-red-500 hover:text-red-700 font-black uppercase"
+                                                        >
+                                                            Limpar
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-200 shadow-inner">
+                                                    <PatternGrid 
+                                                        patternLock={patternLock} 
+                                                        setPatternLock={setPatternLock} 
+                                                        disabled={isLocked}
+                                                    />
                                                 </div>
                                                 {patternLock.length > 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setPatternLock([])}
-                                                        className="mt-3 text-xs text-red-500 hover:text-red-700 hover:underline font-bold"
-                                                    >
-                                                        Limpar Padrão
-                                                    </button>
+                                                    <p className="text-[9px] text-gray-400 font-medium px-1 leading-tight italic">Padrão salvo com {patternLock.length} pontos</p>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Visual Checklist */}
-                                    <div className="sm:col-span-8 lg:col-span-9">
+                                    <div className="sm:col-span-7 lg:col-span-8">
                                         <label className="block text-sm font-bold text-primary mb-4 flex items-center gap-2">
                                             <CheckCircle2 size={16} /> Estado Físico (Checklist)
                                         </label>

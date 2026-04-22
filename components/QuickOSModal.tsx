@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Zap, X } from 'lucide-react';
+import PatternGrid from './PatternGrid';
 import { addServiceOrder, addCustomer } from '../services/mockApi';
 import { useToast } from '../contexts/ToastContext';
 import { useUser } from '../contexts/UserContext';
@@ -69,25 +70,7 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
         }
     };
 
-    const PatternGrid = () => (
-        <div className="grid grid-cols-3 gap-3 w-36 mx-auto select-none mt-2">
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(dot => {
-                const idx = patternLock.indexOf(dot);
-                const selected = idx !== -1;
-                return (
-                    <button
-                        key={dot}
-                        type="button"
-                        onClick={() => setPatternLock(prev => selected ? prev.filter(p => p !== dot) : [...prev, dot])}
-                        className={`w-9 h-9 rounded-full border-[3px] flex items-center justify-center font-bold text-xs transition-all ${selected ? 'bg-accent border-accent text-white scale-110 shadow-md' : 'bg-white border-gray-300 hover:border-accent/50 text-transparent'
-                            }`}
-                    >
-                        {selected ? idx + 1 : ''}
-                    </button>
-                );
-            })}
-        </div>
-    );
+
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -165,7 +148,11 @@ const QuickOSModal: React.FC<QuickOSModalProps> = ({ onClose, onSaved }) => {
                             />
                         ) : (
                             <div className="bg-gray-50 rounded-xl border border-gray-200 p-3">
-                                <PatternGrid />
+                                <PatternGrid 
+                                    patternLock={patternLock} 
+                                    setPatternLock={setPatternLock} 
+                                    size="sm"
+                                />
                                 {patternLock.length > 0 && (
                                     <div className="flex items-center justify-center gap-1 mt-3">
                                         <p className="text-xs text-gray-500 font-medium">

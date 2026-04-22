@@ -162,23 +162,7 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
             throw error;
         }
 
-        let products: Product[] = rows.map((p: any) => ({
-            ...p,
-            supplierId: p.supplier_id || p.supplierId,
-            storageLocation: p.storage_location || p.storageLocation,
-            costPrice: p.cost_price || p.costPrice,
-            wholesalePrice: p.wholesale_price || p.wholesalePrice,
-            batteryHealth: p.battery_health || p.batteryHealth,
-            serialNumber: p.serial_number || p.serialNumber,
-            additionalCostPrice: p.additional_cost_price || p.additionalCostPrice,
-            stockHistory: p.stock_history || p.stockHistory,
-            priceHistory: p.price_history || p.priceHistory,
-            createdAt: p.created_at || p.createdAt,
-            updatedAt: p.updated_at || p.updatedAt,
-            minimumStock: p.minimum_stock || p.minimumStock,
-            createdBy: p.created_by || p.createdBy,
-            createdByName: p.created_by_name || p.createdByName,
-        }));
+        let products: Product[] = rows.map(mapProduct);
 
         if (isIphoneSearch && products.length > 0) {
             // Apply strict deterministic ordering in memory
