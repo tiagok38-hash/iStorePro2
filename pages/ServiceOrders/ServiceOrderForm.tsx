@@ -537,20 +537,28 @@ const ServiceOrderForm: React.FC = () => {
     };
 
     const handleAddPhoto = (photoData: string) => {
-        setPhotos([...photos, photoData]);
+        setPhotos(prev => [...prev, photoData]);
         setIsCameraOpen(false);
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (reader.result) {
-                    handleAddPhoto(reader.result as string);
-                }
-            };
-            reader.readAsDataURL(file);
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            const newPhotos: string[] = [];
+            let processed = 0;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    if (reader.result) {
+                        newPhotos.push(reader.result as string);
+                    }
+                    processed++;
+                    if (processed === files.length) {
+                        setPhotos(prev => [...prev, ...newPhotos]);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
         }
         e.target.value = '';
     };
@@ -1476,8 +1484,8 @@ const ServiceOrderForm: React.FC = () => {
                                         </label>
                                     </div>
 
-                                    {photos.length > 0 ? (
-                                        <div className="flex gap-4 overflow-x-auto pb-2">
+                                    {photos.length > 0 && (
+                                        <div className="flex gap-4 overflow-x-auto pb-4">
                                             {photos.map((photo, index) => (
                                                 <div key={index} className="relative w-24 h-24 flex-shrink-0 group">
                                                     <img src={photo} alt={`Foto ${index + 1}`} className="w-full h-full object-cover rounded-lg border border-gray-200" />
@@ -1485,30 +1493,34 @@ const ServiceOrderForm: React.FC = () => {
                                                         type="button"
                                                         onClick={() => { if (!isLocked) removePhoto(index); }}
                                                         disabled={isLocked}
-                                                        className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 transition-opacity shadow-sm ${isLocked ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}
+                                                        className={`absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 transition-opacity shadow-sm z-10 hover:bg-red-600 ${isLocked ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}
                                                     >
-                                                        <X size={12} />
+                                                        <X size={12} strokeWidth={3} />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
-                                    ) : (
+                                    )}
+
+                                    {!isLocked && (
                                         <div className="flex gap-4 w-full">
                                             <div
-                                                onClick={() => { if (!isLocked) setIsCameraOpen(true); }}
-                                                className={`flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors ${isLocked ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-gray-300'}`}
+                                                onClick={() => { setIsCameraOpen(true); }}
+                                                className="flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors text-gray-500 hover:bg-gray-50 hover:border-gray-300 cursor-pointer gap-2"
                                             >
                                                 <Camera size={20} />
+                                                <span className="font-bold text-sm">Tirar Foto</span>
                                             </div>
                                             <label
-                                                className={`flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors ${isLocked ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-gray-300'}`}
+                                                className="flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors text-gray-500 hover:bg-gray-50 hover:border-gray-300 cursor-pointer gap-2"
                                             >
                                                 <ImageIcon size={20} />
+                                                <span className="font-bold text-sm">Galeria</span>
                                                 <input 
                                                     type="file" 
                                                     accept="image/*" 
+                                                    multiple
                                                     className="hidden" 
-                                                    disabled={isLocked}
                                                     onChange={handleFileUpload} 
                                                 />
                                             </label>
@@ -1519,7 +1531,7 @@ const ServiceOrderForm: React.FC = () => {
                         </div>
 
                         {/* COL 2: DIAGNOSIS */}
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-3 mt-10">
                             <h3 className="font-black text-lg text-primary flex items-center gap-2 border-b border-gray-100 pb-2">
                                 <Wrench size={18} className="text-accent" /> Diagnóstico
                             </h3>
