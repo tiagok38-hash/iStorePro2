@@ -103,6 +103,9 @@ export interface PermissionSet {
     canEditTransaction: boolean;
     canDeleteTransaction: boolean;
     canViewFinancialKPIs: boolean;
+    canViewCrediarios: boolean;
+    canSettleCrediarios: boolean;
+    canPrintCrediarios: boolean;
 
     // Commission permissions
     canViewOwnCommission: boolean;

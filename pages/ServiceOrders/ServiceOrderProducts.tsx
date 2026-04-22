@@ -526,7 +526,7 @@ const ServiceOrderProducts: React.FC = () => {
     if (loading && services.length === 0 && osParts.length === 0) return <GlobalLoading />;
 
     return (
-        <div className="h-full flex flex-col space-y-6">
+        <div className="flex flex-col space-y-6">
             <div className="flex flex-col gap-4 border-b border-gray-100 pb-5">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-amber-100 text-amber-600 rounded-xl shadow-sm">
@@ -692,10 +692,10 @@ const ServiceOrderProducts: React.FC = () => {
             }
 
             {/* List Content */}
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                 {activeTab === 'services' ? (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full text-left border-collapse">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Serviço</th>
@@ -755,8 +755,8 @@ const ServiceOrderProducts: React.FC = () => {
                     </div>
                 ) : partsSubTab === 'compras' ? (
                     // Purchase History Inline View
-                    <div className="overflow-x-auto flex-1">
-                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+                    <div className="flex flex-col">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3 shrink-0">
                             <span className="p-2 bg-gray-900 rounded-xl text-white">
                                 <ClockIcon className="h-5 w-5" />
                             </span>
@@ -765,13 +765,14 @@ const ServiceOrderProducts: React.FC = () => {
                                 <p className="text-xs text-gray-400">Todas as entradas de compras no estoque OS</p>
                             </div>
                         </div>
-                        {purchaseHistoryLoading ? (
-                            <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>
-                        ) : filteredPurchases.length === 0 ? (
-                            <div className="text-center p-12 text-gray-500">Nenhuma compra encontrada.</div>
-                        ) : (
-                            <table className="w-full text-left border-collapse">
-                                <thead>
+                        <div className="overflow-x-auto">
+                            {purchaseHistoryLoading ? (
+                                <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>
+                            ) : filteredPurchases.length === 0 ? (
+                                <div className="text-center p-12 text-gray-500">Nenhuma compra encontrada.</div>
+                            ) : (
+                                <table className="w-full text-left border-collapse relative">
+                                    <thead>
                                     <tr className="bg-gray-50 border-b border-gray-200">
                                         <th className="p-4 text-xs font-bold text-gray-900 uppercase">Data/Hora</th>
                                         <th className="p-4 text-xs font-bold text-gray-900 uppercase">OS/ID</th>
@@ -857,10 +858,11 @@ const ServiceOrderProducts: React.FC = () => {
                                     })}
                                 </tbody>
                             </table>
-                        )}
+                            )}
+                        </div>
                         
                         {!purchaseHistoryLoading && filteredPurchases.length > 0 && (
-                            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50/50 shrink-0">
                                 <span className="text-xs font-semibold text-gray-500">
                                     Mostrando <span className="text-gray-900">{((purchasesPage - 1) * itemsPerPage) + 1}</span> a <span className="text-gray-900">{Math.min(purchasesPage * itemsPerPage, filteredPurchases.length)}</span> de <span className="text-gray-900">{filteredPurchases.length}</span>
                                 </span>
@@ -888,8 +890,9 @@ const ServiceOrderProducts: React.FC = () => {
                     </div>
                 ) : (
                     // OS Parts View
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
+                    <div className="flex flex-col">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse relative">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
                                     <th className="pl-4 pr-2 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider w-16">Estoque</th>
@@ -989,9 +992,10 @@ const ServiceOrderProducts: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
+                        </div>
                         
                         {filteredParts.length > 0 && (
-                            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50/50 shrink-0">
                                 <span className="text-xs font-semibold text-gray-500">
                                     Mostrando <span className="text-gray-900">{((partsPage - 1) * itemsPerPage) + 1}</span> a <span className="text-gray-900">{Math.min(partsPage * itemsPerPage, filteredParts.length)}</span> de <span className="text-gray-900">{filteredParts.length}</span>
                                 </span>

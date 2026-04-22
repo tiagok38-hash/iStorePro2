@@ -1506,13 +1506,13 @@ const ServiceOrderForm: React.FC = () => {
                                         <div className="flex gap-4 w-full">
                                             <div
                                                 onClick={() => { setIsCameraOpen(true); }}
-                                                className="flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors text-gray-500 hover:bg-gray-50 hover:border-gray-300 cursor-pointer gap-2"
+                                                className="flex-1 h-12 border-2 border-dashed border-accent/30 bg-accent/5 rounded-xl flex items-center justify-center transition-all text-accent hover:bg-accent/10 hover:border-accent/50 cursor-pointer gap-2 shadow-sm"
                                             >
                                                 <Camera size={20} />
                                                 <span className="font-bold text-sm">Tirar Foto</span>
                                             </div>
                                             <label
-                                                className="flex-1 h-12 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center transition-colors text-gray-500 hover:bg-gray-50 hover:border-gray-300 cursor-pointer gap-2"
+                                                className="flex-1 h-12 border-2 border-dashed border-accent/30 bg-accent/5 rounded-xl flex items-center justify-center transition-all text-accent hover:bg-accent/10 hover:border-accent/50 cursor-pointer gap-2 shadow-sm"
                                             >
                                                 <ImageIcon size={20} />
                                                 <span className="font-bold text-sm">Galeria</span>
@@ -1531,7 +1531,7 @@ const ServiceOrderForm: React.FC = () => {
                         </div>
 
                         {/* COL 2: DIAGNOSIS */}
-                        <div className="flex flex-col gap-3 mt-10">
+                        <div className="flex flex-col gap-3 mt-12 pt-8 border-t border-gray-200">
                             <h3 className="font-black text-lg text-primary flex items-center gap-2 border-b border-gray-100 pb-2">
                                 <Wrench size={18} className="text-accent" /> Diagnóstico
                             </h3>
@@ -1599,7 +1599,7 @@ const ServiceOrderForm: React.FC = () => {
                         </div>
 
                         {/* COL 3: FINANCIAL */}
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-3 mt-12 pt-8 border-t border-gray-200">
                             <h3 className="font-black text-lg text-primary flex items-center gap-2 border-b border-gray-100 pb-2">
                                 <FileText size={18} className="text-accent" /> Orçamento
                             </h3>

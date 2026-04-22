@@ -177,6 +177,9 @@ const permissionSections: {
                 { key: 'canEditTransaction', label: 'Editar Transações' },
                 { key: 'canDeleteTransaction', label: 'Excluir Transações' },
                 { key: 'canViewFinancialKPIs', label: 'Indicadores Financeiros' },
+                { key: 'canViewCrediarios', label: 'Visualizar Crediários' },
+                { key: 'canSettleCrediarios', label: 'Dar Baixa em Crediários' },
+                { key: 'canPrintCrediarios', label: 'Imprimir Carnê e Enviar WhatsApp' },
             ],
         },
         {
