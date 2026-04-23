@@ -157,6 +157,7 @@ const ServiceOrderForm: React.FC = () => {
 
     const [photos, setPhotos] = useState<string[]>([]);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
     // Financial
     const [items, setItems] = useState<ServiceOrderItem[]>([]);
@@ -1487,11 +1488,11 @@ const ServiceOrderForm: React.FC = () => {
                                     {photos.length > 0 && (
                                         <div className="flex gap-4 overflow-x-auto pb-4">
                                             {photos.map((photo, index) => (
-                                                <div key={index} className="relative w-24 h-24 flex-shrink-0 group">
+                                                <div key={index} className="relative w-24 h-24 flex-shrink-0 group cursor-pointer" onClick={() => setPreviewPhoto(photo)}>
                                                     <img src={photo} alt={`Foto ${index + 1}`} className="w-full h-full object-cover rounded-lg border border-gray-200" />
                                                     <button
                                                         type="button"
-                                                        onClick={() => { if (!isLocked) removePhoto(index); }}
+                                                        onClick={(e) => { e.stopPropagation(); if (!isLocked) removePhoto(index); }}
                                                         disabled={isLocked}
                                                         className={`absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 transition-opacity shadow-sm z-10 hover:bg-red-600 ${isLocked ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}
                                                     >
@@ -2059,6 +2060,21 @@ const ServiceOrderForm: React.FC = () => {
                 message="Tem certeza que deseja cancelar esta OS? Informe o motivo obrigatório."
                 reasonLabel="Motivo do Cancelamento*"
             />
+
+            {/* Modal de Preview de Foto */}
+            {previewPhoto && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4" onClick={() => setPreviewPhoto(null)}>
+                    <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+                        <button 
+                            className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+                            onClick={() => setPreviewPhoto(null)}
+                        >
+                            <X size={32} />
+                        </button>
+                        <img src={previewPhoto} alt="Preview" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

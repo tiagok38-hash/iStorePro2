@@ -457,7 +457,10 @@ export const useSaleForm = ({
                     priceType: item.priceType,
                     discountType: item.discountType,
                     discountValue: item.discountValue,
-                    netTotal: itemGross - itemDiscount
+                    netTotal: itemGross - itemDiscount,
+                    imei1: item.imei1 || '',
+                    imei2: item.imei2 || '',
+                    serialNumber: item.serialNumber || ''
                 };
             }),
             subtotal, total, payments,

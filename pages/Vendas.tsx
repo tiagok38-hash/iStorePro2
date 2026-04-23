@@ -498,9 +498,12 @@ const Vendas: React.FC = () => {
         const lucro = filteredSales.reduce((sum, sale) => {
             if (sale.status === 'Cancelada') return sum;
             const cost = (sale.items || []).reduce((itemSum, item) => {
+                // Prioridade: usar o custo salvo no snapshot da venda (item.costPrice)
+                // Fallback: buscar do estoque atual (productMap)
                 const product = productMap[item.productId];
-                const productCost = (product?.costPrice || 0) + (product?.additionalCostPrice || 0);
-                return itemSum + productCost * item.quantity;
+                const itemCost = (item as any).costPrice ?? product?.costPrice ?? 0;
+                const itemAdditionalCost = (item as any).additionalCostPrice ?? product?.additionalCostPrice ?? 0;
+                return itemSum + (itemCost + itemAdditionalCost) * item.quantity;
             }, 0);
             const revenue = sale.total;
             return sum + (revenue - cost);
@@ -742,7 +745,12 @@ const Vendas: React.FC = () => {
                                         </tr>
                                     </tbody>
                                 ) : currentSales.map(sale => {
-                                    const cost = (sale.items || []).reduce((acc, item) => acc + ((productMap[item.productId]?.costPrice || 0) + (productMap[item.productId]?.additionalCostPrice || 0)) * item.quantity, 0);
+                                    const cost = (sale.items || []).reduce((acc, item) => {
+                                        const product = productMap[item.productId];
+                                        const itemCost = (item as any).costPrice ?? product?.costPrice ?? 0;
+                                        const itemAdditionalCost = (item as any).additionalCostPrice ?? product?.additionalCostPrice ?? 0;
+                                        return acc + (itemCost + itemAdditionalCost) * item.quantity;
+                                    }, 0);
                                     const revenue = sale.total;
                                     const profit = revenue - cost;
                                     const colSpanTotal = permissions?.canViewSaleProfit ? 10 : 9;
@@ -831,8 +839,10 @@ const Vendas: React.FC = () => {
                                                         {displayItems.map((item, idx) => {
                                                             const product = productMap[item.productId];
                                                             const identifiers = [];
-                                                            if (product?.imei1) identifiers.push(`IMEI: ${product.imei1}`);
-                                                            if (product?.serialNumber) identifiers.push(`S/N: ${product.serialNumber}`);
+                                                            const imei = product?.imei1 || (item as any).imei1;
+                                                            const sn = product?.serialNumber || (item as any).serialNumber;
+                                                            if (imei) identifiers.push(`IMEI: ${imei}`);
+                                                            if (sn) identifiers.push(`S/N: ${sn}`);
                                                             if (product?.barcode) identifiers.push(`EAN: ${product.barcode}`);
                                                             if (product?.sku) identifiers.push(`SKU: ${product.sku}`);
 

@@ -34,6 +34,7 @@ export * from './inventoryService.ts';
 export * from './bancoHorasService.ts';
 export * from './osPartsService.ts';
 export * from './customerDeviceService.ts';
+export * from './saleEnrichmentService.ts';
 
 // --- Circular dependency injection ---
 import { setSyncCustomerCreditLimit } from './creditService.ts';

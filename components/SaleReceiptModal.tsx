@@ -144,11 +144,11 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                                 return (
                                     <tr key={item.productId}>
                                         <td className="px-1.5 py-0.5 align-top border border-black">
-                                            <p className="font-semibold leading-tight">{`SKU:${product?.sku || ''} ${product?.model || 'Produto'}`}</p>
+                                            <p className="font-semibold leading-tight">{`SKU:${product?.sku || ''} ${product?.model || item.productName || item.model || 'Produto'}`}</p>
                                             <div className="text-[8px] text-gray-600 leading-tight">
-                                                {product?.imei1 && <span>IMEI1: {product.imei1} </span>}
-                                                {product?.imei2 && <span>IMEI2: {product.imei2} </span>}
-                                                {product?.serialNumber && <span>S/N: {product.serialNumber} </span>}
+                                                {(product?.imei1 || item.imei1) && <span>IMEI1: {product?.imei1 || item.imei1} </span>}
+                                                {(product?.imei2 || item.imei2) && <span>IMEI2: {product?.imei2 || item.imei2} </span>}
+                                                {(product?.serialNumber || item.serialNumber) && <span>S/N: {product?.serialNumber || item.serialNumber} </span>}
                                                 <span>{product?.condition}</span>
                                             </div>
                                             {warrantyExp && (
@@ -298,16 +298,16 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
 
                     return (
                         <div key={item.productId} className="mb-1">
-                            <p className="font-bold">{product?.model || 'Produto desconhecido'}</p>
+                            <p className="font-bold">{product?.model || item.productName || item.model || 'Produto desconhecido'}</p>
                             <div className="flex justify-between text-[10px]">
                                 <span>{item.quantity} x {formatCurrency(item.unitPrice)}</span>
                                 <span>{formatCurrency(item.unitPrice * item.quantity)}</span>
                             </div>
                             <div className="text-[9px] text-gray-700">
-                                {(product?.serialNumber || product?.imei1) && (
+                                {(product?.serialNumber || product?.imei1 || item.serialNumber || item.imei1) && (
                                     <p>
-                                        {product.serialNumber && `S/N: ${product.serialNumber} `}
-                                        {product.imei1 && `IMEI: ${product.imei1}`}
+                                        {(product?.serialNumber || item.serialNumber) && `S/N: ${product?.serialNumber || item.serialNumber} `}
+                                        {(product?.imei1 || item.imei1) && `IMEI: ${product?.imei1 || item.imei1}`}
                                     </p>
                                 )}
                                 {warrantyExp && (

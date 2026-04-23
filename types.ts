@@ -487,6 +487,9 @@ export interface SaleItem {
     model?: string;
     costPrice?: number;
     additionalCostPrice?: number;
+    imei1?: string;
+    imei2?: string;
+    serialNumber?: string;
 }
 
 export type PaymentMethodType = 'Pix' | 'Dinheiro' | 'Crédito' | 'Débito' | 'Aparelho na Troca' | 'Crediário' | string;
