@@ -87,11 +87,11 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                             <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Vendedor</p><p className="text-base font-bold text-gray-900">{salesperson?.name || 'N/A'}</p></div>
                             {(sale.origin === 'PDV' && sale.cashSessionDisplayId) ? (
                                 <>
-                                    <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Cliente</p><p className="text-base font-bold text-gray-900">{customer?.name || 'N/A'}</p></div>
+                                    <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Cliente</p><p className="text-base font-bold text-gray-900">{customer?.name || sale.customerName || 'N/A'}</p></div>
                                     <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Caixa</p><p className="text-base font-bold text-gray-900">#{sale.cashSessionDisplayId}</p></div>
                                 </>
                             ) : (
-                                <div className="col-span-full"><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Cliente</p><p className="text-base font-bold text-gray-900">{customer?.name || 'N/A'}</p></div>
+                                <div className="col-span-full"><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Cliente</p><p className="text-base font-bold text-gray-900">{customer?.name || sale.customerName || 'N/A'}</p></div>
                             )}
                         </div>
 
@@ -118,30 +118,33 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                         {(product || item.productName || item.model) && (
                                                             <>
                                                                 <div className="text-xs text-muted font-normal mt-1 flex flex-wrap items-center gap-x-2">
-                                                                    {(product?.serialNumber || (item as any).serialNumber) && <span>S/N: {product?.serialNumber || (item as any).serialNumber}</span>}
-                                                                    {(product?.imei1 || (item as any).imei1) && (
+                                                                    {(product?.serialNumber || item.serialNumber) && <span>S/N: {product?.serialNumber || item.serialNumber}</span>}
+                                                                    {(product?.barcode || item.barcode) && (
                                                                         <>
-                                                                            {(product?.serialNumber || (item as any).serialNumber) && <span className="text-gray-300">|</span>}
-                                                                            <span>IMEI: {product?.imei1 || (item as any).imei1}</span>
+                                                                            {(product?.serialNumber || item.serialNumber) && <span className="text-gray-300">|</span>}
+                                                                            <span>EAN: {product?.barcode || item.barcode}</span>
                                                                         </>
                                                                     )}
-                                                                    {product?.condition && (
+                                                                    {(product?.imei1 || item.imei1) && (
                                                                         <>
-                                                                            {(product.serialNumber || product.imei1) && <span className="text-gray-300">|</span>}
-                                                                            <span>
-                                                                                Condição: <span className="font-semibold">{product.condition}</span>
-                                                                            </span>
+                                                                            {(product?.serialNumber || item.serialNumber || product?.barcode || item.barcode) && <span className="text-gray-300">|</span>}
+                                                                            <span>IMEI: {product?.imei1 || item.imei1}</span>
                                                                         </>
                                                                     )}
-                                                                    {product?.condition !== 'Novo' && product?.condition !== 'CPO' && typeof product?.batteryHealth === 'number' && (
+                                                                    {(product?.condition || (item as any).condition) && (
                                                                         <>
-                                                                            <span className="text-gray-300">|</span>
+                                                                            {(product?.serialNumber || item.serialNumber || product?.imei1 || item.imei1 || product?.barcode || item.barcode) && <span className="text-gray-300">|</span>}
                                                                             <span>
-                                                                                Bateria: <span className={`font-semibold ${product.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>{product.batteryHealth}%</span>
+                                                                                Condição: <span className="font-semibold">{product?.condition || (item as any).condition}</span>
                                                                             </span>
                                                                         </>
                                                                     )}
                                                                 </div>
+                                                                {(product?.description || item.description) && (
+                                                                    <div className="text-[10px] text-gray-400 mt-1 italic line-clamp-1" title={product?.description || item.description}>
+                                                                        {product?.description || item.description}
+                                                                    </div>
+                                                                )}
                                                                 {product && (product.variations && product.variations.length > 0 || product.supplierId) && (
                                                                     <div className="mt-2 flex flex-wrap gap-1.5 items-center">
                                                                         {product.variations?.map((variation, index) => (

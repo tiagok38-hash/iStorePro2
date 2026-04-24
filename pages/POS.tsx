@@ -127,7 +127,7 @@ const POS: React.FC = () => {
 
             // TIER 2: BACKGROUND DATA (LOADING WHILE USER VIEWS SUMMARY)
             const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value,barcodes';
-            fetchItem('Products', () => getProducts({ select: productSelect }), []).then(setProducts);
+            fetchItem('Products', () => getProducts({ select: productSelect, onlyInStock: true }), []).then(setProducts);
             fetchItem('Customers', () => getCustomers(false), []).then(setCustomers);
             fetchItem('Suppliers', getSuppliers, []).then(setSuppliers);
             fetchItem('ReceiptTerms', getReceiptTerms, []).then(setReceiptTerms);

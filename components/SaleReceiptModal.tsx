@@ -149,8 +149,14 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                                                 {(product?.imei1 || item.imei1) && <span>IMEI1: {product?.imei1 || item.imei1} </span>}
                                                 {(product?.imei2 || item.imei2) && <span>IMEI2: {product?.imei2 || item.imei2} </span>}
                                                 {(product?.serialNumber || item.serialNumber) && <span>S/N: {product?.serialNumber || item.serialNumber} </span>}
-                                                <span>{product?.condition}</span>
+                                                {(product?.barcode || item.barcode) && <span>EAN: {product?.barcode || item.barcode} </span>}
+                                                <span>{product?.condition || (item as any).condition}</span>
                                             </div>
+                                            {(product?.description || item.description) && (
+                                                <p className="text-[7px] text-gray-500 italic leading-tight mt-0.5 line-clamp-1">
+                                                    {product?.description || item.description}
+                                                </p>
+                                            )}
                                             {warrantyExp && (
                                                 <p className="text-[8px] text-gray-700 leading-tight">
                                                     Garantia até {warrantyExp}
@@ -304,11 +310,15 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
                                 <span>{formatCurrency(item.unitPrice * item.quantity)}</span>
                             </div>
                             <div className="text-[9px] text-gray-700">
-                                {(product?.serialNumber || product?.imei1 || item.serialNumber || item.imei1) && (
+                                {(product?.serialNumber || product?.imei1 || product?.barcode || item.serialNumber || item.imei1 || item.barcode) && (
                                     <p>
                                         {(product?.serialNumber || item.serialNumber) && `S/N: ${product?.serialNumber || item.serialNumber} `}
-                                        {(product?.imei1 || item.imei1) && `IMEI: ${product?.imei1 || item.imei1}`}
+                                        {(product?.imei1 || item.imei1) && `IMEI: ${product?.imei1 || item.imei1} `}
+                                        {(product?.barcode || item.barcode) && `EAN: ${product?.barcode || item.barcode}`}
                                     </p>
+                                )}
+                                {(product?.description || item.description) && (
+                                    <p className="italic text-[8px]">{product?.description || item.description}</p>
                                 )}
                                 {warrantyExp && (
                                     <p className="font-semibold italic">Garantia válida até {warrantyExp}</p>

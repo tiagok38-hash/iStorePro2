@@ -13,34 +13,31 @@ import { getProfile, resolvePermissions } from './authService.ts';
 
 export const mapSale = (sale: any): Sale => {
     try {
-        const separatorCSDID = '\n---CSDID---\n';
-        const separatorInternal = '\n---INTERNAL---\n';
-        const separatorCancelReason = '\n---CANCEL_REASON---\n';
+        const extractTag = (text: string, tag: string) => {
+            if (text.includes(tag)) {
+                const parts = text.split(tag);
+                return { remaining: parts[0], value: parts[1] };
+            }
+            return { remaining: text, value: undefined };
+        };
 
-        let external = sale.observations || '';
-        let internal = '';
-        let csdid = undefined;
-        let cancelReason = '';
+        let currentObs = sale.observations || '';
+        
+        const cancelRes = extractTag(currentObs, '\n---CANCEL_REASON---\n');
+        currentObs = cancelRes.remaining;
+        const cancelReason = cancelRes.value || '';
 
-        // Extrair motivo de cancelamento primeiro
-        if (external.includes(separatorCancelReason)) {
-            const parts = external.split(separatorCancelReason);
-            external = parts[0];
-            cancelReason = parts.slice(1).join(separatorCancelReason);
-        }
+        const custName = extractTag(currentObs, '\n---CUSTNAME---\n');
+        currentObs = custName.remaining;
+        let customerNameSnapshot = sale.customer_name || custName.value;
 
-        if (external.includes(separatorCSDID)) {
-            const parts = external.split(separatorCSDID);
-            external = parts[0];
-            const csdidStr = parts[1];
-            csdid = parseInt(csdidStr, 10);
-        }
+        const csdidTag = extractTag(currentObs, '\n---CSDID---\n');
+        currentObs = csdidTag.remaining;
+        const csdid = csdidTag.value ? parseInt(csdidTag.value, 10) : undefined;
 
-        if (external.includes(separatorInternal)) {
-            const parts = external.split(separatorInternal);
-            external = parts[0];
-            internal = parts.slice(1).join(separatorInternal);
-        }
+        const internalTag = extractTag(currentObs, '\n---INTERNAL---\n');
+        currentObs = internalTag.remaining;
+        const internal = internalTag.value || '';
 
         return {
             ...sale,
@@ -49,8 +46,9 @@ export const mapSale = (sale: any): Sale => {
             cashSessionId: sale.cash_session_id,
             warrantyTerm: sale.warranty_term,
             posTerminal: sale.pos_terminal,
-            observations: external,
+            observations: currentObs,
             internalObservations: internal,
+            customerName: customerNameSnapshot,
             cashSessionDisplayId: csdid,
             cancellationReason: cancelReason,
             interestRate: Number(sale.interest_rate || 0),
@@ -295,11 +293,17 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
     if (data.cashSessionDisplayId) {
         dbObservations = `${dbObservations}\n---CSDID---\n${data.cashSessionDisplayId}`;
     }
+    
+    // Snapshot do Nome do Cliente para integridade histórica (SaaS Premium Rule)
+    if (data.customerName) {
+        dbObservations = `${dbObservations}\n---CUSTNAME---\n${data.customerName}`;
+    }
 
     const saleData: any = {
         id: `ID-${nextNum}`,
         date: now.toISOString(),
         customer_id: data.customerId,
+        customer_name: data.customerName, // Tenta salvar na coluna real se existir
         salesperson_id: data.salespersonId,
         items: data.items,
         subtotal: data.subtotal,

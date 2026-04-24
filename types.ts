@@ -490,6 +490,8 @@ export interface SaleItem {
     imei1?: string;
     imei2?: string;
     serialNumber?: string;
+    barcode?: string;
+    description?: string;
 }
 
 export type PaymentMethodType = 'Pix' | 'Dinheiro' | 'Crédito' | 'Débito' | 'Aparelho na Troca' | 'Crediário' | string;
@@ -541,6 +543,7 @@ export interface AmortizationEntry {
 export interface Sale {
     id: string;
     customerId: string;
+    customerName?: string; // Snapshot of name at time of sale
     salespersonId: string;
     items: SaleItem[];
     subtotal: number;

@@ -44,7 +44,7 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
 
             // Robustness: Always limit to a sane amount for general fetch (e.g. 1000 items)
             // If they need more, they should use specific search functions.
-            const { data, error } = await query.order('createdAt', { ascending: false }).limit(1000);
+            const { data, error } = await query.order('createdAt', { ascending: false }).limit(5000);
 
             if (error) throw error;
             return (data || []).map(mapProduct);

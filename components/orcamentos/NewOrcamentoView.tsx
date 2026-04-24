@@ -119,13 +119,15 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
             const searchableText = [
                 p.model || '',
                 p.imei1 || '',
+                p.imei2 || '',
                 p.serialNumber || '',
                 p.brand || '',
                 p.color || '',
                 p.condition || '',
                 p.storage || '',
+                p.sku || '',
                 (p.barcodes || []).join(' '),
-                p.warnings || '' // Include warnings if relevant? Maybe observations?
+                p.warnings || '' 
             ].join(' ').toLowerCase();
 
             return terms.every(term => searchableText.includes(term)) && p.stock > 0;
@@ -136,7 +138,7 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
         const finalResults: Product[] = [];
 
         matches.forEach(p => {
-            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
 
             if (isUnique) {
                 // Unique products (Apple or Non-Apple with IMEI/SN) stay as separate lines
@@ -180,10 +182,12 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
             const matches = products.filter(p =>
                 (p.barcodes || []).some(b => b.toLowerCase() === term) ||
                 (p.imei1 || '').toLowerCase() === term ||
-                (p.serialNumber || '').toLowerCase() === term
+                (p.imei2 || '').toLowerCase() === term ||
+                (p.serialNumber || '').toLowerCase() === term ||
+                (p.sku || '').toLowerCase() === term
             ).filter(p => {
                 // Se for único, não pode estar no carrinho
-                const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
+                const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
                 if (isUnique && cart.some(item => item.id === p.id)) return false;
                 return p.stock > 0;
             });
@@ -421,6 +425,7 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                                         <div className="text-[11px] font-bold text-gray-600 flex flex-col gap-0.5 mt-1">
                                                             {item.serialNumber && <span className="truncate">N/S: <span className="font-mono text-gray-700">{item.serialNumber}</span></span>}
                                                             {item.imei1 && <span className="truncate">IMEI: <span className="font-mono text-gray-700">{item.imei1}</span></span>}
+                                                            {item.imei2 && <span className="truncate">IMEI 2: <span className="font-mono text-gray-700">{item.imei2}</span></span>}
                                                             <div className="flex items-center gap-2 truncate">
                                                                 {item.condition && <span>{item.condition}</span>}
                                                                 {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && item.condition !== 'CPO' && (
@@ -535,6 +540,7 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                                                 <div className="text-[10px] text-muted space-y-0.5 mt-1 capitalize">
                                                     {item.serialNumber && <p>N/S: <span className="font-mono text-gray-600">{item.serialNumber}</span></p>}
                                                     {item.imei1 && <p>IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></p>}
+                                                    {item.imei2 && <p>IMEI 2: <span className="font-mono text-gray-600">{item.imei2}</span></p>}
                                                     <p>
                                                         {item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && item.condition !== 'CPO' && (
                                                             <span className={`font-bold ${item.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>| Bat: {item.batteryHealth}%</span>

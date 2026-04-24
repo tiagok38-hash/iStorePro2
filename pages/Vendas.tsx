@@ -307,9 +307,9 @@ const Vendas: React.FC = () => {
 
             // Stage 3: Background Data (Support Entities)
             // OPTIMIZATION: We exclude heavy JSONB columns for Products in the list view.
-            const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value';
+            const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value,barcodes';
 
-            fetchItem('Products', () => getProducts({ select: productSelect }), []).then(productsData => {
+            fetchItem('Products', () => getProducts({ select: productSelect, onlyInStock: true }), []).then(productsData => {
                 setProducts(productsData);
                 const pMap: Record<string, Product> = {};
                 productsData.forEach((p: Product) => { pMap[p.id] = p; });
@@ -778,7 +778,7 @@ const Vendas: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-5 border-0">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-primary font-black sm:font-bold truncate max-w-[150px] sm:max-w-none text-[13px] sm:text-sm">{customerMap[sale.customerId]?.name || 'N/A'}</span>
+                                                        <span className="text-primary font-black sm:font-bold truncate max-w-[150px] sm:max-w-none text-[13px] sm:text-sm">{customerMap[sale.customerId]?.name || sale.customerName || 'N/A'}</span>
                                                         {customerMap[sale.customerId]?.phone && (
                                                             <a
                                                                 href={getWhatsAppLink(customerMap[sale.customerId]?.phone)}

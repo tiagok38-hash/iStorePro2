@@ -155,7 +155,7 @@ export const useSaleForm = ({
     const balance = useMemo(() => total - totalPaid, [total, totalPaid]);
 
     const handleAddToCart = useCallback((product: Product, priceType: 'sale' | 'cost' | 'wholesale' = 'sale') => {
-        const isUnique = !!(product.serialNumber || product.imei1);
+        const isUnique = !!(product.serialNumber || product.imei1 || product.imei2);
         const existingItem = cart.find(item => item.id === product.id);
         if (isUnique && existingItem) { showToast('Este produto é único e já está no carrinho.', 'warning'); return; }
         setSelectedPriceType(priceType);
@@ -165,7 +165,7 @@ export const useSaleForm = ({
     const confirmAddToCart = useCallback(() => {
         if (!productToConfirm) return;
         const product = productToConfirm;
-        const isUnique = !!(product.serialNumber || product.imei1);
+        const isUnique = !!(product.serialNumber || product.imei1 || product.imei2);
         const existingItem = cart.find(item => item.id === product.id);
 
         const quantityToAdd = isUnique ? 1 : searchQuantity;
@@ -221,7 +221,7 @@ export const useSaleForm = ({
                         if (isNaN(newQty) || newQty < 1) return item;
 
                         // Check uniqueness inside the update to ensure safety, though UI handles it too
-                        if (item.serialNumber || item.imei1) return item;
+                        if (item.serialNumber || item.imei1 || item.imei2) return item;
 
                         if (newQty > item.stock) {
                             showToast(`Estoque insuficiente. Máximo disponível: ${item.stock}`, 'warning');
@@ -440,8 +440,10 @@ export const useSaleForm = ({
             }
         }
 
+        const customer = customers.find(c => c.id === selectedCustomerId);
         const baseSaleData = {
             customerId: selectedCustomerId,
+            customerName: customer?.name || 'Cliente Desconhecido',
             salespersonId: selectedSalespersonId,
             items: cart.map(item => {
                 const itemGross = item.salePrice * item.quantity;
@@ -460,7 +462,9 @@ export const useSaleForm = ({
                     netTotal: itemGross - itemDiscount,
                     imei1: item.imei1 || '',
                     imei2: item.imei2 || '',
-                    serialNumber: item.serialNumber || ''
+                    serialNumber: item.serialNumber || '',
+                    barcode: item.barcode || '',
+                    description: item.description || ''
                 };
             }),
             subtotal, total, payments,

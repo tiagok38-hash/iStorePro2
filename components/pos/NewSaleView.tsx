@@ -8,8 +8,9 @@ import {
 import { formatCurrency, getNextSaleId } from '../../services/mockApi.ts';
 import {
     PlusIcon, MinusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon,
-    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon
+    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon, SpinnerIcon
 } from '../icons.tsx';
+import { searchProducts } from '../../services/productService.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import SearchableDropdown from '../SearchableDropdown.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
@@ -104,6 +105,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         setProductSearch('');
     };
 
+    const [isServerSearching, setIsServerSearching] = React.useState(false);
+
 
     const { productSearchRef } = refs;
 
@@ -114,17 +117,19 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         const cartProductIds = new Set(cart.map(item => item.id));
 
         const matches = products.filter(p => {
-            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
             if (isUnique && cartProductIds.has(p.id)) return false;
 
             const searchableText = [
                 p.model || '',
                 p.imei1 || '',
+                p.imei2 || '',
                 p.serialNumber || '',
                 p.brand || '',
                 p.color || '',
                 p.condition || '',
                 p.storage || '',
+                p.sku || '',
                 (p.barcodes || []).join(' '),
                 p.warnings || '' // Include warnings if relevant? Maybe observations?
             ].join(' ').toLowerCase();
@@ -137,7 +142,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         const finalResults: Product[] = [];
 
         matches.forEach(p => {
-            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
+            const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
 
             if (isUnique) {
                 // Unique products (Apple or Non-Apple with IMEI/SN) stay as separate lines
@@ -181,10 +186,12 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
             const matches = products.filter(p =>
                 (p.barcodes || []).some(b => b.toLowerCase() === term) ||
                 (p.imei1 || '').toLowerCase() === term ||
-                (p.serialNumber || '').toLowerCase() === term
+                (p.imei2 || '').toLowerCase() === term ||
+                (p.serialNumber || '').toLowerCase() === term ||
+                (p.sku || '').toLowerCase() === term
             ).filter(p => {
                 // Se for único, não pode estar no carrinho
-                const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim());
+                const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
                 if (isUnique && cart.some(item => item.id === p.id)) return false;
                 return p.stock > 0;
             });
@@ -200,6 +207,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                 // daremos prioridade ao match exato de IMEI/SN se houver.
                 const exactImeiSnMatch = matches.find(p =>
                     (p.imei1 || '').toLowerCase() === term ||
+                    (p.imei2 || '').toLowerCase() === term ||
                     (p.serialNumber || '').toLowerCase() === term
                 );
 
@@ -211,6 +219,33 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
                 setMatchingUnits(matches);
                 setIsSelectingUnit(true);
+                return;
+            }
+
+            // Fallback: Se não achou localmente e o termo parece um identificador, busca no servidor
+            if (matches.length === 0 && term.length >= 4) {
+                setIsServerSearching(true);
+                searchProducts(term).then(results => {
+                    const validResults = results.filter(p => {
+                        const isUnique = !!((p.serialNumber || '').trim() || (p.imei1 || '').trim() || (p.imei2 || '').trim());
+                        if (isUnique && cart.some(item => item.id === p.id)) return false;
+                        return p.stock > 0;
+                    });
+
+                    if (validResults.length === 1) {
+                        handleAddToCart(validResults[0]);
+                        setProductSearch('');
+                    } else if (validResults.length > 1) {
+                        setMatchingUnits(validResults);
+                        setIsSelectingUnit(true);
+                    } else {
+                        showToast('Produto não encontrado ou sem estoque.', 'warning');
+                    }
+                }).catch(err => {
+                    console.error('Erro na busca remota:', err);
+                }).finally(() => {
+                    setIsServerSearching(false);
+                });
                 return;
             }
 
@@ -328,6 +363,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     <div className="relative">
                                         <input ref={productSearchRef} type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} onKeyDown={handleSearchKeyDown} placeholder="Ex: iPhone 14 Pro..." className={`${inputClasses} pl-9 h-10 sm:h-12`} />
                                         <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+                                        {isServerSearching && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+                                                <SpinnerIcon className="h-5 w-5 text-success animate-spin" />
+                                            </div>
+                                        )}
                                     </div>
                                     {filteredProducts.length > 0 && (
                                         <div className="absolute z-30 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-xl max-h-60 overflow-y-auto overflow-x-hidden">
@@ -362,9 +402,15 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                             <span>IMEI: {p.imei1}</span>
                                                                         </>
                                                                     )}
-                                                                    {p.variations && p.variations.length > 0 && (
+                                                                    {p.imei2 && (
                                                                         <>
                                                                             {(p.condition || p.warranty || p.serialNumber || p.imei1) && <span className="opacity-30">|</span>}
+                                                                            <span>IMEI2: {p.imei2}</span>
+                                                                        </>
+                                                                    )}
+                                                                    {p.variations && p.variations.length > 0 && (
+                                                                        <>
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.imei2) && <span className="opacity-30">|</span>}
                                                                             <span className="italic text-gray-800 font-bold uppercase tracking-tighter">
                                                                                 {p.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
                                                                             </span>
@@ -372,7 +418,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                     )}
                                                                     {p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && p.condition !== 'Novo' && p.condition !== 'CPO' && (
                                                                         <>
-                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length) && <span className="opacity-30">|</span>}
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.imei2 || p.variations?.length) && <span className="opacity-30">|</span>}
                                                                             <span className={`font-bold ${p.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>
                                                                                 Saúde: {p.batteryHealth}%
                                                                             </span>
@@ -380,7 +426,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                     )}
                                                                     {p.supplierId && (
                                                                         <>
-                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length || (p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && p.condition !== 'Novo' && p.condition !== 'CPO')) && <span className="opacity-30">|</span>}
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.imei2 || p.variations?.length || (p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && p.condition !== 'Novo' && p.condition !== 'CPO')) && <span className="opacity-30">|</span>}
                                                                             <span className="text-purple-600 font-bold uppercase tracking-tighter" title="Fornecedor">
                                                                                 {props.suppliers?.find(s => s.id === p.supplierId)?.name || 'Fornec. Desconhecido'}
                                                                             </span>
@@ -388,7 +434,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                                     )}
                                                                     {p.storageLocation && (
                                                                         <>
-                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.variations?.length || p.supplierId || (p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && p.condition !== 'Novo' && p.condition !== 'CPO')) && <span className="opacity-30">|</span>}
+                                                                            {(p.condition || p.warranty || p.serialNumber || p.imei1 || p.imei2 || p.variations?.length || p.supplierId || (p.batteryHealth !== undefined && p.batteryHealth > 0 && (p.brand || '').toLowerCase().includes('apple') && p.condition !== 'Novo' && p.condition !== 'CPO')) && <span className="opacity-30">|</span>}
                                                                             <span className="text-emerald-600 font-bold uppercase tracking-tighter" title="Local de Estoque">
                                                                                 {storageLocations.find(l => l.id === p.storageLocation || l.name === p.storageLocation)?.name || p.storageLocation}
                                                                             </span>
@@ -438,6 +484,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                         <div className="text-[11px] font-bold text-gray-600 flex flex-col gap-0.5 mt-1">
                                                             {item.serialNumber && <span className="truncate">N/S: <span className="font-mono text-gray-700">{item.serialNumber}</span></span>}
                                                             {item.imei1 && <span className="truncate">IMEI: <span className="font-mono text-gray-700">{item.imei1}</span></span>}
+                                                            {item.imei2 && <span className="truncate">IMEI2: <span className="font-mono text-gray-700">{item.imei2}</span></span>}
                                                             <div className="flex items-center gap-2 truncate">
                                                                 {item.condition && <span>{item.condition}</span>}
                                                                 {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && item.condition !== 'CPO' && (
@@ -472,7 +519,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center font-bold text-gray-800">
-                                                    {(item.serialNumber || item.imei1) ? (
+                                                    {(item.serialNumber || item.imei1 || item.imei2) ? (
                                                         item.quantity
                                                     ) : (
                                                         <div className="flex items-center justify-center border rounded-xl bg-white border-gray-300 h-9 w-32 mx-auto overflow-hidden shadow-sm">
@@ -568,6 +615,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                 <div className="text-[10px] text-muted space-y-0.5 mt-1 capitalize">
                                                     {item.serialNumber && <p>N/S: <span className="font-mono text-gray-600">{item.serialNumber}</span></p>}
                                                     {item.imei1 && <p>IMEI: <span className="font-mono text-gray-600">{item.imei1}</span></p>}
+                                                    {item.imei2 && <p>IMEI2: <span className="font-mono text-gray-600">{item.imei2}</span></p>}
                                                     <p>
                                                         {item.condition} {item.batteryHealth !== undefined && item.batteryHealth !== null && item.condition !== 'Novo' && item.condition !== 'CPO' && (
                                                             <span className={`font-bold ${item.batteryHealth < 80 ? 'text-red-500' : 'text-green-500'}`}>| Bat: {item.batteryHealth}%</span>
@@ -604,10 +652,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                             </div>
                                             <div className="text-right">
                                                 <label className="block text-[9px] font-bold text-gray-400 uppercase mb-0.5">
-                                                    {(item.serialNumber || item.imei1) ? `Total (QTD: ${item.quantity})` : 'Quantidade / Total'}
+                                                    {(item.serialNumber || item.imei1 || item.imei2) ? `Total (QTD: ${item.quantity})` : 'Quantidade / Total'}
                                                 </label>
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {!(item.serialNumber || item.imei1) && (
+                                                    {!(item.serialNumber || item.imei1 || item.imei2) && (
                                                         <div className="flex items-center border rounded-xl bg-white border-gray-300 h-8 w-28 overflow-hidden shadow-sm">
                                                             <button
                                                                 onClick={() => handleCartItemUpdate(item.id, 'quantity', Math.max(1, (item.quantity || 1) - 1))}

@@ -716,7 +716,7 @@ const SalesByDayCard: React.FC<{ sales: Sale[]; customers: Customer[]; products:
                                     <div className="flex flex-col gap-1.5">
                                         <p className="text-xs text-primary font-medium truncate max-w-[150px] flex items-center gap-1.5" title={customerMap[sale.customerId]}>
                                             <UserIcon className="h-3.5 w-3.5 text-gray-400" />
-                                            {customerMap[sale.customerId] || 'Cliente'}
+                                            {customerMap[sale.customerId] || sale.customerName || 'Cliente'}
                                         </p>
                                         <p className="text-xs text-muted flex items-center gap-1.5">
                                             <CubeIcon className="h-3.5 w-3.5 text-gray-400" />
