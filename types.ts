@@ -421,6 +421,41 @@ export interface ServiceOrderItem {
     warranty?: string;
 }
 
+// Snapshot imutável do cliente capturado no momento da criação da OS
+export interface CustomerSnapshot {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+    cpf?: string;
+    rg?: string;
+    instagram?: string;
+    address?: {
+        street?: string;
+        number?: string;
+        complement?: string;
+        neighborhood?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+    };
+}
+
+// Snapshot imutável do aparelho capturado no momento da criação da OS
+export interface DeviceSnapshot {
+    id: string;
+    brand?: string;
+    category?: string;
+    model?: string;
+    imei?: string;
+    imei2?: string;
+    serialNumber?: string;
+    color?: string;
+    storage?: string;
+    type?: string;
+    observations?: string;
+}
+
 export interface ServiceOrder {
     id: string;
     displayId: number;
@@ -428,6 +463,7 @@ export interface ServiceOrder {
     customerName: string;
     deviceModel: string;
     imei: string;
+    imei2?: string;
     serialNumber?: string;
     passcode?: string;
     patternLock?: number[];
@@ -462,6 +498,9 @@ export interface ServiceOrder {
     isWarranty?: boolean;
     parentOsId?: string;
     osType?: string;
+    // Snapshots imutáveis gravados no momento da criação da OS
+    customerSnapshot?: CustomerSnapshot;
+    deviceSnapshot?: DeviceSnapshot;
 }
 
 // CartItem interface to be used across components like NewSaleModal.

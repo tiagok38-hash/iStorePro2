@@ -139,11 +139,18 @@ export const mapServiceOrderData = (so: any): ServiceOrder => ({
     isWarranty: so.is_warranty,
     parentOsId: so.parent_os_id,
     osType: so.os_type,
+    imei: so.imei,
+    imei2: so.imei2,
+    color: so.color,
+    // Snapshots imutáveis
+    customerSnapshot: so.customer_snapshot ?? undefined,
+    deviceSnapshot: so.device_snapshot ?? undefined,
     items: (so.items || []).map((item: any) => ({
         ...item,
         description: cleanUUIDs(item.description)
     })),
 });
+
 
 export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
     return fetchWithCache('service_orders', async () => {
@@ -231,14 +238,76 @@ export const getPublicServiceOrderTracking = async (id: string): Promise<{ os: S
 };
 
 export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'updatedAt' | 'displayId'>, userId: string = 'system', userName: string = 'Sistema') => {
-    // Generate sequential unique Display ID
-    const { data: maxRow } = await supabase
+    // Run initial queries concurrently for better performance
+    const maxRowPromise = supabase
         .from('service_orders')
         .select('display_id')
         .order('display_id', { ascending: false })
         .limit(1)
         .maybeSingle();
-    const nextDisplayId = (maxRow?.display_id ?? 0) + 1;
+
+    const customerPromise = data.customerId && UUID_REGEX.test(data.customerId)
+        ? supabase.from('customers')
+            .select('id, name, phone, email, cpf, rg, instagram, cep, street, numero, complemento, bairro, city, state')
+            .eq('id', data.customerId).maybeSingle()
+        : Promise.resolve({ data: null });
+
+    const devicePromise = data.customerDeviceId && UUID_REGEX.test(data.customerDeviceId)
+        ? supabase.from('customer_devices')
+            .select('id, brand, category, model, imei, imei2, serial_number, color, storage, type, observations')
+            .eq('id', data.customerDeviceId).maybeSingle()
+        : Promise.resolve({ data: null });
+
+    const [maxRowRes, custRes, devRes] = await Promise.all([maxRowPromise, customerPromise, devicePromise]);
+
+    const nextDisplayId = (maxRowRes.data?.display_id ?? 0) + 1;
+
+    // ----------------------------------------------------------------
+    // SNAPSHOT: captura dados do cliente no momento da criação da OS
+    // ----------------------------------------------------------------
+    let customerSnapshot: any = null;
+    if (custRes.data) {
+        const cust = custRes.data;
+        customerSnapshot = {
+            id:        cust.id,
+            name:      cust.name,
+            phone:     cust.phone     || null,
+            email:     cust.email     || null,
+            cpf:       cust.cpf       || null,
+            rg:        cust.rg        || null,
+            instagram: cust.instagram || null,
+            address: {
+                zip:          cust.cep          || null,
+                street:       cust.street       || null,
+                number:       cust.numero       || null,
+                complement:   cust.complemento  || null,
+                neighborhood: cust.bairro        || null,
+                city:         cust.city         || null,
+                state:        cust.state        || null,
+            },
+        };
+    }
+
+    // ----------------------------------------------------------------
+    // SNAPSHOT: captura dados do aparelho no momento da criação da OS
+    // ----------------------------------------------------------------
+    let deviceSnapshot: any = null;
+    if (devRes.data) {
+        const dev = devRes.data;
+        deviceSnapshot = {
+            id:           dev.id,
+            brand:        dev.brand        || null,
+            category:     dev.category     || null,
+            model:        dev.model        || null,
+            imei:         dev.imei         || null,
+            imei2:        dev.imei2        || null,
+            serialNumber: dev.serial_number || null,
+            color:        dev.color        || null,
+            storage:      dev.storage      || null,
+            type:         dev.type         || null,
+            observations: dev.observations  || null,
+        };
+    }
 
     const newOrder: any = {
         ...data,
@@ -266,6 +335,12 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         is_warranty: data.isWarranty ?? false,
         parent_os_id: data.parentOsId || null,
         os_type: data.osType || null,
+        imei: data.imei || '',
+        imei2: data.imei2 || '',
+        color: data.color || '',
+        // Snapshots imutáveis
+        customer_snapshot: customerSnapshot,
+        device_snapshot:   deviceSnapshot,
     };
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
@@ -282,7 +357,8 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isQuick', 'phone',
-        'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType'
+        'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType',
+        'customerSnapshot', 'deviceSnapshot',
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -306,6 +382,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
     clearCache(['service_orders']);
     return mapServiceOrderData(created);
 };
+
 
 export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>, userId: string = 'system', userName: string = 'Sistema') => {
     const updatePayload: any = {
@@ -341,6 +418,9 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).parentOsId !== undefined) updatePayload.parent_os_id = (data as any).parentOsId;
     if ((data as any).osType !== undefined) updatePayload.os_type = (data as any).osType;
     if ((data as any).isEdited !== undefined) updatePayload.is_edited = (data as any).isEdited;
+    if (data.imei !== undefined) updatePayload.imei = data.imei;
+    if (data.imei2 !== undefined) updatePayload.imei2 = data.imei2;
+    if (data.color !== undefined) updatePayload.color = data.color;
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
     uuidFields.forEach(field => {

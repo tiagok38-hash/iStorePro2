@@ -138,6 +138,8 @@ const ServiceOrderForm: React.FC = () => {
     const [customerDeviceId, setCustomerDeviceId] = useState('');
     const [deviceModel, setDeviceModel] = useState('');
     const [imei, setImei] = useState('');
+    const [imei2, setImei2] = useState('');
+    const [color, setColor] = useState('');
     const [serialNumber, setSerialNumber] = useState('');
     const [deviceSearch, setDeviceSearch] = useState('');
     const [showDeviceResults, setShowDeviceResults] = useState(false);
@@ -236,6 +238,8 @@ const ServiceOrderForm: React.FC = () => {
                 setOsPhone(originalOs.phone || '');
                 setDeviceModel(originalOs.deviceModel || '');
                 setImei(originalOs.imei || '');
+                setImei2(originalOs.imei2 || '');
+                setColor(originalOs.color || '');
                 setSerialNumber(originalOs.serialNumber || '');
                 setCustomerDeviceId(originalOs.customerDeviceId || '');
                 setPasscode(originalOs.passcode || '');
@@ -360,6 +364,8 @@ const ServiceOrderForm: React.FC = () => {
             setCustomerDeviceId(so.customerDeviceId || '');
             setDeviceModel(cleanDeviceDescription(so.deviceModel));
             setImei(so.imei || '');
+            setImei2(so.imei2 || '');
+            setColor(so.color || '');
             setSerialNumber(so.serialNumber || '');
             setPasscode(so.passcode || '');
             setPatternLock(so.patternLock || []);
@@ -486,6 +492,7 @@ const ServiceOrderForm: React.FC = () => {
         const matchSearch = deviceSearch ? (
             (d.model && d.model.toLowerCase().includes(deviceSearch.toLowerCase())) ||
             (d.imei && d.imei.includes(deviceSearch)) ||
+            (d.imei2 && d.imei2.includes(deviceSearch)) ||
             (d.serialNumber && d.serialNumber.toLowerCase().includes(deviceSearch.toLowerCase())) ||
             (d.brand && d.brand.toLowerCase().includes(deviceSearch.toLowerCase())) ||
             (owner && owner.cpf && owner.cpf.includes(deviceSearch))
@@ -515,6 +522,8 @@ const ServiceOrderForm: React.FC = () => {
         setCustomerDeviceId(device.id);
         setDeviceModel(cleanDeviceDescription(fullLabel || device.model || device.brand));
         setImei(device.imei || '');
+        setImei2(device.imei2 || '');
+        setColor(device.color || '');
         setSerialNumber(device.serialNumber || '');
         setDeviceSearch(fullLabel || device.model || '');
         setShowDeviceResults(false);
@@ -622,6 +631,8 @@ const ServiceOrderForm: React.FC = () => {
             customerName: selectedCustomer?.name || '',
             deviceModel,
             imei,
+            imei2,
+            color,
             serialNumber,
             passcode,
             patternLock,
@@ -661,7 +672,11 @@ const ServiceOrderForm: React.FC = () => {
             return;
         }
         if (imei && imei.length !== 15) {
-            toast.error("O IMEI deve ter exatamente 15 números.");
+            toast.error("O IMEI 1 deve ter exatamente 15 números.");
+            return;
+        }
+        if (imei2 && imei2.length !== 15) {
+            toast.error("O IMEI 2 deve ter exatamente 15 números.");
             return;
         }
         if (!deviceModel) {
@@ -1356,25 +1371,69 @@ const ServiceOrderForm: React.FC = () => {
                                                 </div>
                                             )}
 
-                                            <div className="flex-1 sm:max-w-[320px] flex flex-col gap-0.5">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase">IMEI</label>
+                                            <div className="flex-1 sm:max-w-[200px] flex flex-col gap-0.5">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase">IMEI 1</label>
                                                 <input
                                                     type="text"
-                                                    readOnly
-                                                    placeholder="IMEI"
+                                                    readOnly={!!customerDeviceId}
+                                                    placeholder="IMEI 1"
                                                     value={imei}
-                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm text-gray-500 cursor-not-allowed"
+                                                    onChange={e => setImei(e.target.value)}
+                                                    className={`w-full h-10 px-3 border rounded-xl outline-none text-sm transition-all ${
+                                                        customerDeviceId 
+                                                            ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' 
+                                                            : 'bg-white border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10'
+                                                    }`}
                                                 />
                                             </div>
 
-                                            <div className="flex-1 sm:max-w-[280px] flex flex-col gap-0.5">
+                                            {(imei2 || !customerDeviceId) && (
+                                                <div className="flex-1 sm:max-w-[200px] flex flex-col gap-0.5 animate-in fade-in slide-in-from-left-2">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">IMEI 2</label>
+                                                    <input
+                                                        type="text"
+                                                        readOnly={!!customerDeviceId}
+                                                        placeholder="Opcional"
+                                                        value={imei2}
+                                                        onChange={e => setImei2(e.target.value)}
+                                                        className={`w-full h-10 px-3 border rounded-xl outline-none text-sm transition-all ${
+                                                            customerDeviceId 
+                                                                ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' 
+                                                                : 'bg-white border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10'
+                                                        }`}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 sm:max-w-[200px] flex flex-col gap-0.5">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase">N. Série</label>
                                                 <input
                                                     type="text"
-                                                    readOnly
+                                                    readOnly={!!customerDeviceId}
                                                     placeholder="Opcional"
                                                     value={serialNumber}
-                                                    className="w-full h-10 px-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm text-gray-500 cursor-not-allowed"
+                                                    onChange={e => setSerialNumber(e.target.value)}
+                                                    className={`w-full h-10 px-3 border rounded-xl outline-none text-sm transition-all ${
+                                                        customerDeviceId 
+                                                            ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' 
+                                                            : 'bg-white border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10'
+                                                    }`}
+                                                />
+                                            </div>
+
+                                            <div className="flex-1 sm:max-w-[200px] flex flex-col gap-0.5">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase">Cor</label>
+                                                <input
+                                                    type="text"
+                                                    readOnly={!!customerDeviceId}
+                                                    placeholder="Opcional"
+                                                    value={color}
+                                                    onChange={e => setColor(e.target.value)}
+                                                    className={`w-full h-10 px-3 border rounded-xl outline-none text-sm transition-all ${
+                                                        customerDeviceId 
+                                                            ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed' 
+                                                            : 'bg-white border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/10'
+                                                    }`}
                                                 />
                                             </div>
                                         </div>

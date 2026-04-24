@@ -113,6 +113,16 @@ export const updateCustomerDevice = async (id: string, device: any): Promise<Cus
 };
 
 export const deleteCustomerDevice = async (id: string): Promise<void> => {
+    // Bloquear exclusão se o aparelho tiver OS vinculada
+    const { count: osCount } = await supabase
+        .from('service_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_device_id', id);
+
+    if (osCount && osCount > 0) {
+        throw new Error(`Este aparelho possui ${osCount} Ordem(ns) de Serviço vinculada(s) e não pode ser excluído.`);
+    }
+
     const { error } = await supabase.from('customer_devices').delete().eq('id', id);
     if (error) {
         console.error('Error deleting customer_device:', error);
@@ -120,3 +130,4 @@ export const deleteCustomerDevice = async (id: string): Promise<void> => {
     }
     clearCache(['customer_devices']);
 };
+

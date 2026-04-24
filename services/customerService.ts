@@ -455,6 +455,16 @@ export const deleteCustomer = async (id: string, userId: string = 'system', user
         throw new Error(`Este cliente possui ${productsCount} produto(s) recebido(s) via troca/compra e não pode ser excluído.`);
     }
 
+    // Bloquear exclusão se o cliente tiver OS vinculada
+    const { count: osCount } = await supabase
+        .from('service_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_id', id);
+
+    if (osCount && osCount > 0) {
+        throw new Error(`Este cliente possui ${osCount} Ordem(ns) de Serviço vinculada(s) e não pode ser excluído. Você pode desativar o cadastro ao invés de excluir.`);
+    }
+
     const { error } = await supabase.from('customers').delete().eq('id', id);
     if (error) throw error;
 

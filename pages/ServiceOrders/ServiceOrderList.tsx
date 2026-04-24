@@ -177,6 +177,10 @@ const KanbanCard = React.memo<KanbanCardProps>(({ os, onClick, onDragStart, onDr
         )}
 
         <h4 className="font-bold text-sm text-primary mb-1 whitespace-normal break-words">{cleanDeviceDescription(os.deviceModel)}</h4>
+        <div className="text-[10px] text-gray-400 font-mono mb-2 whitespace-nowrap overflow-hidden text-ellipsis flex flex-wrap gap-x-2">
+            {os.imei && <span>IMEI: {os.imei}</span>}
+            {os.serialNumber && <span>S/N: {os.serialNumber}</span>}
+        </div>
         <p className="text-xs text-secondary mb-0.5 flex items-center gap-1">
             <User size={10} /> {os.customerName}
         </p>
@@ -353,6 +357,7 @@ const ServiceOrderList: React.FC = () => {
                 (os.customerName || '').toLowerCase().includes(searchLower) ||
                 (os.deviceModel || '').toLowerCase().includes(searchLower) ||
                 (os.imei || '').toLowerCase().includes(searchLower) ||
+                (os.imei2 || '').toLowerCase().includes(searchLower) ||
                 (os.serialNumber || '').toLowerCase().includes(searchLower) ||
                 (os.displayId?.toString() || '').includes(searchTerm) ||
                 os.id.includes(searchTerm);
@@ -588,12 +593,17 @@ const ServiceOrderList: React.FC = () => {
                                 (d.customerName || '').toLowerCase().includes(sl) ||
                                 (d.customerCpf || '').includes(searchTerm) ||
                                 (d.model || '').toLowerCase().includes(sl) ||
-                                (d.imei || '').includes(searchTerm)
+                                (d.imei || '').includes(searchTerm) ||
+                                (d.imei2 || '').includes(searchTerm) ||
+                                (d.serialNumber || '').toLowerCase().includes(sl)
                             ).slice(0, 3);
                             const matchedOS = orders.filter(o =>
                                 (o.customerName || '').toLowerCase().includes(sl) ||
                                 (o.displayId?.toString() || '').includes(searchTerm) ||
-                                (o.deviceModel || '').toLowerCase().includes(sl)
+                                (o.deviceModel || '').toLowerCase().includes(sl) ||
+                                (o.imei || '').includes(searchTerm) ||
+                                (o.imei2 || '').includes(searchTerm) ||
+                                (o.serialNumber || '').toLowerCase().includes(sl)
                             ).slice(0, 5);
                             const hasAnything = matchedCustomers.length > 0 || matchedDevices.length > 0 || matchedOS.length > 0;
                             if (!hasAnything) return null;
@@ -627,7 +637,12 @@ const ServiceOrderList: React.FC = () => {
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-bold text-gray-900 truncate">{d.model}</p>
-                                                        <p className="text-[11px] text-gray-400 truncate">{d.customerName} {d.imei ? `• ${d.imei}` : ''}</p>
+                                                        <p className="text-[11px] text-gray-400 truncate">
+                                                            {d.customerName} 
+                                                            {d.imei ? ` • ${d.imei}` : ''} 
+                                                            {d.imei2 ? ` • ${d.imei2}` : ''} 
+                                                            {d.serialNumber ? ` • SN: ${d.serialNumber}` : ''}
+                                                        </p>
                                                     </div>
                                                 </button>
                                             ))}
@@ -647,7 +662,12 @@ const ServiceOrderList: React.FC = () => {
                                                             <p className="text-sm font-bold text-gray-900">OS-{os.displayId}</p>
                                                             <span className="text-[10px] font-bold text-gray-400 truncate">{os.deviceModel}</span>
                                                         </div>
-                                                        <p className="text-[11px] text-gray-400 truncate">{os.customerName}</p>
+                                                        <p className="text-[11px] text-gray-400 truncate">
+                                                            {os.customerName}
+                                                            {os.imei ? ` • ${os.imei}` : ''}
+                                                            {os.imei2 ? ` • ${os.imei2}` : ''}
+                                                            {os.serialNumber ? ` • SN: ${os.serialNumber}` : ''}
+                                                        </p>
                                                     </div>
                                                     <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0 border ${os.status === 'Entregue e Faturado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                                         os.status === 'Cancelada' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'
@@ -821,7 +841,16 @@ const ServiceOrderList: React.FC = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-secondary">{os.customerName}</td>
-                                                    <td className="px-4 py-3 font-medium text-primary max-w-[180px] break-words leading-tight whitespace-normal">{cleanDeviceDescription(os.deviceModel)}</td>
+                                                    <td className="px-4 py-3 font-medium text-primary max-w-[180px] break-words leading-tight whitespace-normal">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span>{cleanDeviceDescription(os.deviceModel)}</span>
+                                                            <div className="text-[10px] text-gray-400 font-mono whitespace-nowrap overflow-hidden text-ellipsis">
+                                                                {os.imei && `IMEI: ${os.imei}`}
+                                                                {os.imei2 && ` | ${os.imei2}`}
+                                                                {os.serialNumber && ` | SN: ${os.serialNumber}`}
+                                                            </div>
+                                                        </div>
+                                                    </td>
                                                     <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
                                                     <td className="px-4 py-3 text-secondary text-sm">{os.responsibleName || '-'}</td>
                                                     <td className="px-4 py-3 text-secondary text-sm font-bold">{os.attendantName || '-'}</td>
@@ -958,6 +987,10 @@ const ServiceOrderList: React.FC = () => {
                                             <div className="flex justify-between items-end">
                                                 <div>
                                                     <h4 className="font-bold text-sm text-primary mb-0.5">{os.deviceModel}</h4>
+                                                    <div className="text-[10px] text-gray-400 font-mono mb-1 truncate">
+                                                        {os.imei && `IMEI: ${os.imei}`}
+                                                        {os.serialNumber && ` • SN: ${os.serialNumber}`}
+                                                    </div>
                                                     <p className="text-xs text-secondary flex items-center gap-1">
                                                         <User size={12} /> {os.customerName}
                                                     </p>
