@@ -510,8 +510,10 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
 
         validSales.forEach(sale => {
             const itemsCost = sale.items.reduce((sum, item) => {
+                const snapshotCost = (item.costPrice !== undefined) ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0)) : undefined;
                 const p = productMap[item.productId];
-                return sum + ((p?.costPrice || 0) + (p?.additionalCostPrice || 0)) * item.quantity;
+                const fallbackCost = ((p?.costPrice || 0) + (p?.additionalCostPrice || 0));
+                return sum + (snapshotCost !== undefined ? snapshotCost : fallbackCost) * item.quantity;
             }, 0);
             const profit = sale.total - itemsCost;
             totalProfit += profit;
@@ -1684,8 +1686,10 @@ const Dashboard: React.FC = () => {
 
         const calculateProfit = (sale: Sale) => {
             const cost = (sale.items || []).reduce((sum, item) => {
+                const snapshotCost = (item.costPrice !== undefined) ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0)) : undefined;
                 const p = productMapData[item.productId];
-                return sum + ((p?.costPrice || 0) + (p?.additionalCostPrice || 0)) * item.quantity;
+                const fallbackCost = ((p?.costPrice || 0) + (p?.additionalCostPrice || 0));
+                return sum + (snapshotCost !== undefined ? snapshotCost : fallbackCost) * item.quantity;
             }, 0);
             return sale.total - cost;
         };
