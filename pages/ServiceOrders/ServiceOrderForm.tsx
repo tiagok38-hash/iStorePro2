@@ -2061,17 +2061,21 @@ const ServiceOrderForm: React.FC = () => {
                 reasonLabel="Motivo do Cancelamento*"
             />
 
-            {/* Modal de Preview de Foto */}
+            {/* Modal de Preview de Foto - Experiência Premium em Tela Cheia */}
             {previewPhoto && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4" onClick={() => setPreviewPhoto(null)}>
-                    <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/95 backdrop-blur-sm p-2 sm:p-8 animate-in fade-in duration-300" onClick={() => setPreviewPhoto(null)}>
+                    <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
                         <button 
-                            className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+                            className="absolute top-4 right-4 z-[1001] bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md transition-all border border-white/10 shadow-xl"
                             onClick={() => setPreviewPhoto(null)}
                         >
-                            <X size={32} />
+                            <X size={24} strokeWidth={3} />
                         </button>
-                        <img src={previewPhoto} alt="Preview" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+                        <img 
+                            src={previewPhoto} 
+                            alt="Preview do Aparelho" 
+                            className="max-w-full max-h-full object-contain rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)] select-none animate-in zoom-in-95 duration-300" 
+                        />
                     </div>
                 </div>
             )}
