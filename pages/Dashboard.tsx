@@ -223,13 +223,20 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
             os.items.forEach(item => {
                 const refId = (item as any).catalogItemId || item.id;
-                if (item.type === 'service') {
-                    const s = serviceMap[refId];
-                    osCost += (s?.cost || 0) * item.quantity;
+                
+                // Prioritize snapshot cost if available
+                if (item.cost !== undefined && item.cost !== null) {
+                    osCost += item.cost * item.quantity;
                 } else {
-                    const p = productMap[refId];
-                    if (p) {
-                        osCost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
+                    // Fallback to current maps
+                    if (item.type === 'service') {
+                        const s = serviceMap[refId];
+                        osCost += (s?.cost || 0) * item.quantity;
+                    } else {
+                        const p = productMap[refId];
+                        if (p) {
+                            osCost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
+                        }
                     }
                 }
             });
