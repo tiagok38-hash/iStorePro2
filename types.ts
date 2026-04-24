@@ -531,6 +531,11 @@ export interface SaleItem {
     serialNumber?: string;
     barcode?: string;
     description?: string;
+    sku?: string;
+    color?: string;
+    storage?: string;
+    condition?: string;
+    batteryHealth?: number;
 }
 
 export type PaymentMethodType = 'Pix' | 'Dinheiro' | 'Crédito' | 'Débito' | 'Aparelho na Troca' | 'Crediário' | string;
@@ -584,6 +589,7 @@ export interface Sale {
     customerId: string;
     customerName?: string; // Snapshot of name at time of sale
     salespersonId: string;
+    salespersonName?: string; // Snapshot of salesperson name
     items: SaleItem[];
     subtotal: number;
     total: number;

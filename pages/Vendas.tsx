@@ -777,7 +777,7 @@ const Vendas: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-5 text-primary hidden sm:table-cell border-0">
                                                     <div className="flex items-center gap-1.5 font-bold">
-                                                        <span>{userMap[sale.salespersonId]?.name?.split(' ')[0] || 'N/A'}</span>
+                                                        <span>{userMap[sale.salespersonId]?.name?.split(' ')[0] || (sale as any).salespersonName?.split(' ')[0] || 'N/A'}</span>
                                                         {userMap[sale.salespersonId]?.active === false && (
                                                             <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-gray-100 text-gray-500 border border-gray-200 uppercase mt-0.5" title="Vendedor Inativo">Inativo</span>
                                                         )}

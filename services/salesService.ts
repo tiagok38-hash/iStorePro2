@@ -39,6 +39,10 @@ export const mapSale = (sale: any): Sale => {
         currentObs = internalTag.remaining;
         const internal = internalTag.value || '';
 
+        const spNameTag = extractTag(currentObs, '\n---SPNAME---\n');
+        currentObs = spNameTag.remaining;
+        const salespersonNameSnapshot = sale.salesperson_name || spNameTag.value || null;
+
         return {
             ...sale,
             customerId: sale.customer_id,
@@ -49,6 +53,7 @@ export const mapSale = (sale: any): Sale => {
             observations: currentObs,
             internalObservations: internal,
             customerName: customerNameSnapshot,
+            salespersonName: salespersonNameSnapshot,
             cashSessionDisplayId: csdid,
             cancellationReason: cancelReason,
             interestRate: Number(sale.interest_rate || 0),
@@ -297,6 +302,10 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
     // Snapshot do Nome do Cliente para integridade histórica (SaaS Premium Rule)
     if (data.customerName) {
         dbObservations = `${dbObservations}\n---CUSTNAME---\n${data.customerName}`;
+    }
+    // Snapshot do Nome do Vendedor para integridade histórica (SaaS Premium Rule)
+    if (data.salespersonName) {
+        dbObservations = `${dbObservations}\n---SPNAME---\n${data.salespersonName}`;
     }
 
     const saleData: any = {
@@ -831,6 +840,14 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
     if (data.cashSessionDisplayId && !dbObservations.includes('---CSDID---')) {
         dbObservations = `${dbObservations}\n---CSDID---\n${data.cashSessionDisplayId}`;
+    }
+
+    // Snapshot do Nome do Cliente e Vendedor para integridade histórica (SaaS Premium Rule)
+    if (data.customerName && !dbObservations.includes('---CUSTNAME---')) {
+        dbObservations = `${dbObservations}\n---CUSTNAME---\n${data.customerName}`;
+    }
+    if (data.salespersonName && !dbObservations.includes('---SPNAME---')) {
+        dbObservations = `${dbObservations}\n---SPNAME---\n${data.salespersonName}`;
     }
 
     const updatePayload: any = {};

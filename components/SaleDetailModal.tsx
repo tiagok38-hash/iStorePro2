@@ -84,7 +84,7 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                         {/* Top Info */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm p-5 bg-surface-secondary rounded-xl border border-gray-100">
                             <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Data</p><p className="text-base font-bold text-gray-900">{formatDateTime(sale.date)}</p></div>
-                            <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Vendedor</p><p className="text-base font-bold text-gray-900">{salesperson?.name || 'N/A'}</p></div>
+                            <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Vendedor</p><p className="text-base font-bold text-gray-900">{salesperson?.name || (sale as any).salespersonName || 'N/A'}</p></div>
                             {(sale.origin === 'PDV' && sale.cashSessionDisplayId) ? (
                                 <>
                                     <div><p className="font-bold text-gray-500 mb-1 uppercase text-xs tracking-wider">Cliente</p><p className="text-base font-bold text-gray-900">{customer?.name || sale.customerName || 'N/A'}</p></div>
@@ -123,6 +123,12 @@ const SaleDetailModal: React.FC<{ sale: Sale; productMap: Record<string, Product
                                                                         <>
                                                                             {(product?.serialNumber || item.serialNumber) && <span className="text-gray-300">|</span>}
                                                                             <span>EAN: {product?.barcode || item.barcode}</span>
+                                                                        </>
+                                                                    )}
+                                                                    {(product?.sku || (item as any).sku) && (
+                                                                        <>
+                                                                            <span className="text-gray-300">|</span>
+                                                                            <span>SKU: {product?.sku || (item as any).sku}</span>
                                                                         </>
                                                                     )}
                                                                     {(product?.imei1 || item.imei1) && (

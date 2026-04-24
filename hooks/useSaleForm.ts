@@ -129,6 +129,13 @@ export const useSaleForm = ({
                         imei1: (item as any).imei1 || product?.imei1 || '',
                         imei2: (item as any).imei2 || product?.imei2 || '',
                         serialNumber: (item as any).serialNumber || product?.serialNumber || '',
+                        barcode: (item as any).barcode || product?.barcode || '',
+                        sku: (item as any).sku || product?.sku || '',
+                        description: (item as any).description || product?.description || '',
+                        color: (item as any).color || product?.color || '',
+                        storage: (item as any).storage ?? product?.storage ?? null,
+                        condition: (item as any).condition || product?.condition || '',
+                        batteryHealth: (item as any).batteryHealth ?? product?.batteryHealth ?? null,
                     } as CartItem;
                 }).filter((item): item is CartItem => item !== null);
                 setCart(reconstructedCart as CartItem[]);
@@ -462,10 +469,12 @@ export const useSaleForm = ({
         }
 
         const customer = customers.find(c => c.id === selectedCustomerId);
+        const salespersonUser = users.find(u => u.id === selectedSalespersonId);
         const baseSaleData = {
             customerId: selectedCustomerId,
             customerName: customer?.name || 'Cliente Desconhecido',
             salespersonId: selectedSalespersonId,
+            salespersonName: salespersonUser?.name || 'Vendedor',
             items: cart.map(item => {
                 const itemGross = item.salePrice * item.quantity;
                 const itemDiscount = item.discountType === 'R$' ? item.discountValue : itemGross * (item.discountValue / 100);
@@ -481,11 +490,17 @@ export const useSaleForm = ({
                     discountType: item.discountType,
                     discountValue: item.discountValue,
                     netTotal: itemGross - itemDiscount,
+                    // Snapshot completo do produto (SaaS Premium)
                     imei1: item.imei1 || '',
                     imei2: item.imei2 || '',
                     serialNumber: item.serialNumber || '',
                     barcode: item.barcode || '',
-                    description: item.description || ''
+                    sku: item.sku || '',
+                    description: item.description || '',
+                    color: item.color || '',
+                    storage: item.storage ?? null,
+                    condition: item.condition || '',
+                    batteryHealth: item.batteryHealth ?? null,
                 };
             }),
             subtotal, total, payments,
