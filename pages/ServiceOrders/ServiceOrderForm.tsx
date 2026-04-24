@@ -60,6 +60,7 @@ import {
 import { getOsReceiptTerms, getOsTypes } from '../../services/parametersService';
 import { generateCommissionsForOS } from '../../services/commissionService.ts';
 import { formatStorageUnit, deduplicateWarranties, cleanUUIDs, cleanDeviceDescription } from '../../utils/formatters.ts';
+import { compressImage } from '../../utils/imageUtils.ts';
 import { WhatsAppIcon } from '../../components/icons';
 import { User, Customer, ServiceOrderItem, ServiceOrderChecklist, PermissionProfile, Service, CustomerDevice, ChecklistItemParameter, CompanyInfo, Brand, Category, ProductModel, Grade, GradeValue, ReceiptTermParameter } from '../../types';
 import CustomerModal from '../../components/CustomerModal';
@@ -542,24 +543,26 @@ const ServiceOrderForm: React.FC = () => {
         setIsCameraOpen(false);
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
             const newPhotos: string[] = [];
-            let processed = 0;
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    if (reader.result) {
-                        newPhotos.push(reader.result as string);
-                    }
-                    processed++;
-                    if (processed === files.length) {
-                        setPhotos(prev => [...prev, ...newPhotos]);
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
+            for (const file of files) {
+                try {
+                    const compressed = await compressImage(file, { maxWidth: 520, maxHeight: 520, quality: 0.6 });
+                    newPhotos.push(compressed);
+                } catch (err) {
+                    console.error('Error compressing uploaded image:', err);
+                    // Fallback to reader if compression fails for some reason
+                    const reader = new FileReader();
+                    const result = await new Promise<string>((resolve) => {
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(file);
+                    });
+                    newPhotos.push(result);
+                }
+            }
+            setPhotos(prev => [...prev, ...newPhotos]);
         }
         e.target.value = '';
     };

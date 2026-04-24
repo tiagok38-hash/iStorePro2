@@ -63,8 +63,8 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, imageUrl,
 
     const handleCrop = () => {
         const canvas = document.createElement('canvas');
-        // Render to target 400px width (lightweight)
-        const targetWidth = 400;
+        // Render to target 520px width (lightweight - increased 30%)
+        const targetWidth = 520;
         const scale = targetWidth / cropWidth;
 
         canvas.width = targetWidth;
