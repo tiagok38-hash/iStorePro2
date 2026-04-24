@@ -309,11 +309,18 @@ const Vendas: React.FC = () => {
             // OPTIMIZATION: We exclude heavy JSONB columns for Products in the list view.
             const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value,barcodes';
 
+            // CRITICAL: productMap must include ALL products (even sold/out-of-stock) for:
+            //   1. Correct profit calculation (costPrice lookup for historical sales)
+            //   2. IMEI/serial number display in sale details
+            // The `products` state (for the new sale form) keeps onlyInStock = true.
+            fetchItem('ProductsAll', () => getProducts({ select: productSelect, onlyInStock: false }), []).then(allProductsData => {
+                const pMap: Record<string, Product> = {};
+                allProductsData.forEach((p: Product) => { pMap[p.id] = p; });
+                setProductMap(pMap);
+            });
+
             fetchItem('Products', () => getProducts({ select: productSelect, onlyInStock: true }), []).then(productsData => {
                 setProducts(productsData);
-                const pMap: Record<string, Product> = {};
-                productsData.forEach((p: Product) => { pMap[p.id] = p; });
-                setProductMap(pMap);
             });
 
             fetchItem('Customers', () => getCustomers(false), []).then(customersData => {

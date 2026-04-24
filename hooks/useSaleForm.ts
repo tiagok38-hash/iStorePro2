@@ -107,8 +107,29 @@ export const useSaleForm = ({
                 setSelectedSalespersonId(saleToEdit.salespersonId);
                 const reconstructedCart = saleToEdit.items.map(item => {
                     const product = products.find(p => p.id === item.productId);
-                    if (!product) return null;
-                    return { ...product, quantity: item.quantity, salePrice: item.unitPrice, discountType: 'R$', discountValue: 0 } as CartItem;
+                    // Preserve snapshot fields from the saved item (costPrice, imei, etc.)
+                    // Fall back to current product data for display fields only
+                    const base = product ? { ...product } : {
+                        id: item.productId,
+                        model: (item as any).productName || (item as any).model || 'Produto Removido',
+                        name: (item as any).productName || (item as any).model || '',
+                        stock: 0,
+                        price: item.unitPrice,
+                    };
+                    return {
+                        ...base,
+                        quantity: item.quantity,
+                        salePrice: item.unitPrice,
+                        discountType: (item as any).discountType || 'R$',
+                        discountValue: (item as any).discountValue || 0,
+                        priceType: (item as any).priceType || 'sale',
+                        // Snapshot fields — always from the saved item
+                        costPrice: (item as any).costPrice ?? (product?.costPrice ?? 0),
+                        additionalCostPrice: (item as any).additionalCostPrice ?? (product?.additionalCostPrice ?? 0),
+                        imei1: (item as any).imei1 || product?.imei1 || '',
+                        imei2: (item as any).imei2 || product?.imei2 || '',
+                        serialNumber: (item as any).serialNumber || product?.serialNumber || '',
+                    } as CartItem;
                 }).filter((item): item is CartItem => item !== null);
                 setCart(reconstructedCart as CartItem[]);
                 setPayments(saleToEdit.payments.map(p => ({ ...p })));
