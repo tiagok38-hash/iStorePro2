@@ -336,8 +336,6 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         parent_os_id: data.parentOsId || null,
         os_type: data.osType || null,
         imei: data.imei || '',
-        imei2: data.imei2 || '',
-        color: data.color || '',
         // Snapshots imutáveis
         customer_snapshot: customerSnapshot,
         device_snapshot:   deviceSnapshot,
@@ -358,7 +356,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isQuick', 'phone',
         'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType',
-        'customerSnapshot', 'deviceSnapshot',
+        'customerSnapshot', 'deviceSnapshot', 'color', 'imei2'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -419,8 +417,6 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
     if ((data as any).osType !== undefined) updatePayload.os_type = (data as any).osType;
     if ((data as any).isEdited !== undefined) updatePayload.is_edited = (data as any).isEdited;
     if (data.imei !== undefined) updatePayload.imei = data.imei;
-    if (data.imei2 !== undefined) updatePayload.imei2 = data.imei2;
-    if (data.color !== undefined) updatePayload.color = data.color;
 
     const uuidFields = ['customer_id', 'responsible_id', 'attendant_id', 'customer_device_id'];
     uuidFields.forEach(field => {
@@ -436,7 +432,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType'
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType', 'color', 'imei2'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 
