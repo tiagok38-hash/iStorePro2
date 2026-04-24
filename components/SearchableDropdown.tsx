@@ -32,9 +32,13 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({ options, value,
         if (term.length === 0) {
             return options;
         }
-        return options.filter(option =>
-            (option.label || '').toLowerCase().includes(term.toLowerCase())
-        );
+        
+        const normalizedTerm = term.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        
+        return options.filter(option => {
+            const normalizedLabel = (option.label || '').normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            return normalizedLabel.includes(normalizedTerm);
+        });
     }, [options, searchTerm]);
 
     useEffect(() => {

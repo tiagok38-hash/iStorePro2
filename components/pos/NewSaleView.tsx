@@ -62,6 +62,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     const [matchingUnits, setMatchingUnits] = React.useState<Product[]>([]);
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
     const [customerToEdit, setCustomerToEdit] = React.useState<Customer | null>(null);
+    const [isSavingCustomer, setIsSavingCustomer] = React.useState(false);
     const [isCreditModalOpen, setIsCreditModalOpen] = React.useState(false);
     const [creditWarning, setCreditWarning] = React.useState<{ isOpen: boolean, customerName: string, creditLimit: number, creditUsed: number, purchaseAmount: number } | null>(null);
     const [variationModalConfig, setVariationModalConfig] = React.useState<{ isOpen: boolean, method: string, variations: string[] } | null>(null);
@@ -1028,43 +1029,47 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     onSave={async (entityData, entityType, personType) => {
                         try {
                             const customerPayload: any = {
-                                name: entityData.name,
-                                email: entityData.email,
-                                phone: entityData.phone,
-                                address: entityData.address,
-                                avatarUrl: entityData.avatarUrl,
-                                credit_limit: entityData.credit_limit,
-                                credit_used: entityData.credit_used,
-                                allow_credit: entityData.allow_credit
+                                ...entityData
                             };
-                            if (personType === 'Pessoa Física') { customerPayload.cpf = entityData.cpf; customerPayload.rg = entityData.rg; customerPayload.birthDate = entityData.birthDate; }
+                            if (personType === 'Pessoa Física') { 
+                                customerPayload.cpf = entityData.cpf; 
+                                customerPayload.rg = entityData.rg; 
+                                customerPayload.birthDate = entityData.birthDate; 
+                            }
 
                             // Check if we are in "Edit Mode"
+                            setIsSavingCustomer(true);
                             if (customerToEdit) {
                                 if (props.onUpdateCustomer) {
                                     await props.onUpdateCustomer({ ...customerPayload, id: customerToEdit.id });
                                     showToast('Cliente atualizado com sucesso!', 'success');
+                                    setIsCustomerModalOpen(false);
+                                    setCustomerToEdit(null);
                                 } else {
                                     console.warn('onUpdateCustomer prop missing in NewSaleView');
                                 }
                             } else {
                                 // Create Mode
                                 const nc = await onAddNewCustomer(customerPayload);
-                                if (nc) setSelectedCustomerId(nc.id);
-                                showToast('Cliente cadastrado com sucesso!', 'success');
+                                if (nc) {
+                                    setSelectedCustomerId(nc.id);
+                                    showToast('Cliente cadastrado com sucesso!', 'success');
+                                    setIsCustomerModalOpen(false);
+                                    setCustomerToEdit(null);
+                                }
                             }
-
-                            setIsCustomerModalOpen(false);
-                            setCustomerToEdit(null);
                         } catch (error: any) {
                             console.error('NewSaleView: Error saving customer:', error);
                             // Show the specific error message from the API (e.g., "Já existe um cliente...")
                             // Fallback to generic error only if message is missing
                             showToast(error.message || 'Erro ao salvar cliente.', 'error');
+                        } finally {
+                            setIsSavingCustomer(false);
                         }
                     }}
                     entity={customerToEdit || undefined} // Explicitly pass undefined if null
                     initialType="Cliente"
+                    isSaving={isSavingCustomer}
                 />
             )}
 

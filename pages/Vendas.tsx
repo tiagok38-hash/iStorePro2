@@ -527,10 +527,11 @@ const Vendas: React.FC = () => {
             const newCustomer = await addCustomer(customerData);
             setCustomers(prev => [...prev, newCustomer]);
             setCustomerMap(prev => ({ ...prev, [newCustomer.id]: newCustomer }));
-            showToast('Cliente adicionado com sucesso!', 'success');
+            // We removed the success toast from here because NewSaleView shows it when nc is returned.
+            // Actually, we can keep it here, but NewSaleView also shows it. Better to remove it from NewSaleView.
             return newCustomer;
-        } catch (error) {
-            showToast('Erro ao salvar novo cliente.', 'error');
+        } catch (error: any) {
+            showToast(error.message || 'Erro ao salvar novo cliente.', 'error');
             return null;
         }
     }, [showToast]);
