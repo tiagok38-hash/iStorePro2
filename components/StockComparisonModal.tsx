@@ -21,6 +21,20 @@ interface GroupedProduct {
     identifiers: string[];
 }
 
+const getConditionStyleHTML = (condition: string) => {
+    const lower = (condition || '').toLowerCase();
+    if (lower === 'novo') return 'background: #d1fae5; color: #047857;';
+    if (lower.includes('semi')) return 'background: #fef3c7; color: #b45309;';
+    return 'background: #e0e7ff; color: #4338ca;';
+};
+
+const getConditionClassUI = (condition: string) => {
+    const lower = (condition || '').toLowerCase();
+    if (lower === 'novo') return 'bg-emerald-100 text-emerald-700';
+    if (lower.includes('semi')) return 'bg-amber-100 text-amber-700';
+    return 'bg-blue-100 text-blue-700';
+};
+
 const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, locations, onClose }) => {
     const [locationA, setLocationA] = useState<string>(locations[0]?.name || '');
     const [locationB, setLocationB] = useState<string>(locations[1]?.name || locations[0]?.name || '');
@@ -85,7 +99,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                 <div class="brand">${item.brand}</div>
                                 <div class="model">${item.model}</div>
                                 <div class="details">
-                                    <span class="badge badge-condition">${item.condition}</span>
+                                    <span class="badge" style="${getConditionStyleHTML(item.condition)}">${item.condition}</span>
                                     ${item.storage ? `<span class="badge badge-variant">${formatStorageUnit(item.storage)}</span>` : ''}
                                     ${item.color ? `<span class="badge badge-variant">${item.color}</span>` : ''}
                                 </div>
@@ -109,7 +123,7 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                 <div class="brand">${item.brand}</div>
                                 <div class="model">${item.model}</div>
                                 <div class="details">
-                                    <span class="badge badge-condition">${item.condition}</span>
+                                    <span class="badge" style="${getConditionStyleHTML(item.condition)}">${item.condition}</span>
                                     ${item.storage ? `<span class="badge badge-variant">${formatStorageUnit(item.storage)}</span>` : ''}
                                     ${item.color ? `<span class="badge badge-variant">${item.color}</span>` : ''}
                                 </div>
@@ -147,10 +161,16 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                 const matchesLocation = p.storageLocation === locationName && p.stock > 0;
 
                 let matchesType = true;
+                const isApple = (p.brand || '').toLowerCase().includes('apple') || 
+                                (p.model || '').toLowerCase().includes('iphone') || 
+                                (p.model || '').toLowerCase().includes('ipad') || 
+                                (p.model || '').toLowerCase().includes('macbook') || 
+                                (p.model || '').toLowerCase().includes('apple watch');
+
                 if (typeFilter === 'Apple') {
-                    matchesType = (p.brand || '').toLowerCase().includes('apple');
+                    matchesType = isApple;
                 } else if (typeFilter === 'Variados') {
-                    matchesType = !(p.brand || '').toLowerCase().includes('apple');
+                    matchesType = !isApple;
                 }
 
                 return matchesLocation && matchesType;
@@ -263,22 +283,21 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
         return diff;
     }, [stockA, stockB]);
 
+    const matchSearchTerm = (item: GroupedProduct, searchStr: string) => {
+        const fullString = `${item.model} ${item.brand} ${item.condition} ${item.storage} ${item.color} ${item.identifiers.join(' ')}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        return fullString.includes(searchStr);
+    };
+
     const filteredDiffA = useMemo(() => {
         if (!searchTerm) return diffAtoB;
-        const lowSearch = searchTerm.toLowerCase();
-        return diffAtoB.filter(item =>
-            item.model.toLowerCase().includes(lowSearch) ||
-            item.brand.toLowerCase().includes(lowSearch)
-        );
+        const lowSearch = searchTerm.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        return diffAtoB.filter(item => matchSearchTerm(item, lowSearch));
     }, [diffAtoB, searchTerm]);
 
     const filteredDiffB = useMemo(() => {
         if (!searchTerm) return diffBtoA;
-        const lowSearch = searchTerm.toLowerCase();
-        return diffBtoA.filter(item =>
-            item.model.toLowerCase().includes(lowSearch) ||
-            item.brand.toLowerCase().includes(lowSearch)
-        );
+        const lowSearch = searchTerm.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        return diffBtoA.filter(item => matchSearchTerm(item, lowSearch));
     }, [diffBtoA, searchTerm]);
 
     return (
@@ -418,7 +437,9 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                             <div>
                                                 <h4 className="font-black text-gray-900 leading-tight uppercase tracking-tighter">{item.brand} {item.model}</h4>
                                                 <div className="flex items-center gap-x-2 gap-y-1 mt-1 flex-wrap">
-                                                    <span className="text-[10px] font-black text-success uppercase whitespace-nowrap">{item.condition}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase whitespace-nowrap ${getConditionClassUI(item.condition)}`}>
+                                                        {item.condition}
+                                                    </span>
                                                     {item.storage && !item.model.toLowerCase().includes(item.storage.toLowerCase().replace('gb', '').trim()) && (
                                                         <span className="text-[10px] font-black text-muted uppercase whitespace-nowrap">
                                                             {formatStorageUnit(item.storage)}
@@ -471,7 +492,9 @@ const StockComparisonModal: React.FC<StockComparisonModalProps> = ({ products, l
                                             <div>
                                                 <h4 className="font-black text-gray-900 leading-tight uppercase tracking-tighter">{item.brand} {item.model}</h4>
                                                 <div className="flex items-center gap-x-2 gap-y-1 mt-1 flex-wrap">
-                                                    <span className="text-[10px] font-black text-success uppercase whitespace-nowrap">{item.condition}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase whitespace-nowrap ${getConditionClassUI(item.condition)}`}>
+                                                        {item.condition}
+                                                    </span>
                                                     {item.storage && !item.model.toLowerCase().includes(item.storage.toLowerCase().replace('gb', '').trim()) && (
                                                         <span className="text-[10px] font-black text-muted uppercase whitespace-nowrap">
                                                             {formatStorageUnit(item.storage)}
