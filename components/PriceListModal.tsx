@@ -277,9 +277,9 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 const s = formatStorageUnit(p.storage).toLowerCase();
                 const col = (p.color || '').trim().toLowerCase(); // Color is part of key
                 const brand = (p.brand || '').trim().toLowerCase(); // Include brand for non-Apple safety
-                // BUGFIX: include storageLocation in the key so products from different
-                // locations are NEVER merged, guaranteeing the location filter works correctly.
-                const loc = (p.storageLocation || '').trim().toLowerCase();
+                // BUGFIX: include storageLocation in the key ONLY if showStockLocation is true.
+                // Otherwise, identical products from different locations will not group.
+                const loc = showStockLocation ? (p.storageLocation || '').trim().toLowerCase() : '';
 
                 // For Non-Apple, model is the main identifier usually.
                 // Key needs to be specific enough to group "identical" items
@@ -419,7 +419,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                         showWholesale ? p.wholesalePrice : '',
                         showSale ? p.price : ''
                     ].join('_');
-                    const key = `${cleanModel}|${formatStorageUnit(p.storage)}|${p.condition}|${priceKey}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
+                    const key = `${cleanModel}|${formatStorageUnit(p.storage)}|${p.condition}|${priceKey}|${showBatteryHealth ? (p.batteryHealth || '') : ''}|${showStockLocation ? (p.storageLocation || '') : ''}`;
 
                     if (!colorGroups[key]) {
                         colorGroups[key] = { product: p, colors: new Set(), cleanModel, allIdentifiers: [] };
@@ -476,7 +476,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                 showWholesale ? sg.wholesalePrice : '',
                                 showSale ? sg.price : ''
                             ].join('_');
-                            const k = `${cModel}|${formatStorageUnit(sg.storage)}|${sg.condition}|${sgPriceKey}|${sg.batteryHealth || ''}|${sg.storageLocation || ''}`;
+                            const k = `${cModel}|${formatStorageUnit(sg.storage)}|${sg.condition}|${sgPriceKey}|${showBatteryHealth ? (sg.batteryHealth || '') : ''}|${showStockLocation ? (sg.storageLocation || '') : ''}`;
 
                             // Re-construct key for p to compare
                             const pPriceKey = [
@@ -484,7 +484,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                 showWholesale ? p.wholesalePrice : '',
                                 showSale ? p.price : ''
                             ].join('_');
-                            const pKey = `${cleanModel}|${formatStorageUnit(p.storage)}|${p.condition}|${pPriceKey}|${p.batteryHealth || ''}|${p.storageLocation || ''}`;
+                            const pKey = `${cleanModel}|${formatStorageUnit(p.storage)}|${p.condition}|${pPriceKey}|${showBatteryHealth ? (p.batteryHealth || '') : ''}|${showStockLocation ? (p.storageLocation || '') : ''}`;
                             return k === pKey;
                         }).reduce((sum, item) => sum + item.stock, 0);
 
