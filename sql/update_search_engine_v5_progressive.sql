@@ -192,11 +192,12 @@ BEGIN
             
             -- PROGRESSIVE MATCHING AND STRICT CONTROLS
             AND (
-                -- 1. Progressive Prefix Token Match
-                -- The model strictly matches what the user typed progressively from left to right.
-                cp.progressive_desc LIKE v_search || '%'
-                OR
-                cp.progressive_desc LIKE '%' || v_search || '%'
+                -- 1. Token-based Out-of-Order Match
+                -- All tokens from the search query must exist somewhere in the computed product description.
+                (
+                    SELECT bool_and(cp.progressive_desc LIKE '%' || token || '%')
+                    FROM unnest(v_search_tokens) AS token
+                )
 
                 -- 2. Strict Numeric Match (e.g. typing "iphone 17" strictly eliminates "iphone 11", "iphone 16")
                 AND (

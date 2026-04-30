@@ -66,7 +66,16 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
     useEffect(() => {
         setIsSearching(true);
         const timer = setTimeout(() => {
-            const terms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+            // Normalização aprimorada: remove acentos, normaliza unidades de medida e remove caracteres especiais
+            const normalize = (str: string) => str.normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\b(\d+)\s*(gb|tb)\b/gi, '$1')
+                .replace(/[^a-z0-9\s]/gi, ' ')
+                .toLowerCase()
+                .trim();
+
+            const normalizedSearchTerm = normalize(searchTerm);
+            const terms = normalizedSearchTerm.split(/\s+/).filter(t => t.length > 1 || /^\d+$/.test(t));
 
             if (terms.length === 0) {
                 setSearchedProducts([]);
@@ -80,27 +89,16 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
             const missingModifiers = modifiers.filter(m => !terms.includes(m));
 
             const results = allProducts.filter(p => {
-                const description = `${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`.toLowerCase();
+                const description = normalize(`${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`);
+                const descriptionNoSpaces = description.replace(/\s+/g, '');
 
                 // 1. Basic check: all terms must be present
-                let searchMatch = terms.length === 0 ? true : terms.every(term => description.includes(term));
+                let searchMatch = terms.length === 0 ? true : terms.every(term => 
+                    description.includes(term) || descriptionNoSpaces.includes(term.replace(/\s+/g, ''))
+                );
 
-                // 2. Strict numeric check: if user typed "16", we don't want "15" or "17" 
-                // This handles cases where "16" might be a substring of something else, but here we want it to be a specific identifier.
-                if (searchMatch && terms.length > 0) {
-                    for (const term of terms) {
-                        // If the term is numeric (like 14, 15, 16)
-                        if (/^\d+$/.test(term)) {
-                            // Check if this specific number exists as a whole word/token in the description
-                            // We use a regex with word boundaries \b
-                            const strictNumericRegex = new RegExp(`\\b${term}\\b`);
-                            if (!strictNumericRegex.test(description)) {
-                                searchMatch = false;
-                                break;
-                            }
-                        }
-                    }
-                }
+                // Removida a verificação numérica estrita que causava falsos negativos (ex: '10' não batendo em '10th')
+                // A correspondência básica do .includes(term) acima já é suficiente e mais flexível.
 
                 const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
                 const stockMatch = p.stock > 0;
@@ -108,7 +106,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                 // 3. Strict modifier check: if product model has 'pro', 'max', 'plus' or 'mini', 
                 // the search terms MUST also include it.
                 if (searchMatch) {
-                    const modelStr = `${p.model || ''}`.toLowerCase();
+                    const modelStr = `${p.model || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
                     for (const mod of missingModifiers) {
                         const regex = new RegExp(`\\b${mod}\\b`);
                         if (regex.test(modelStr)) {
@@ -278,6 +276,8 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                                                                 {u.price !== undefined && <span className="text-green-600 font-bold whitespace-nowrap">V: {formatCurrency(u.price)}</span>}
                                                                 {u.wholesalePrice !== undefined && <span className="text-orange-600 font-bold whitespace-nowrap">A: {formatCurrency(u.wholesalePrice)}</span>}
                                                                 {u.costPrice !== undefined && <span className="text-gray-500 whitespace-nowrap">C: {formatCurrency(u.costPrice)}</span>}
+                                                                {u.commission_enabled !== undefined && <span className="text-violet-600 font-bold whitespace-nowrap">Comissão: {u.commission_enabled ? 'Ativa' : 'Desat.'}</span>}
+                                                                {u.commission_value !== undefined && <span className="text-violet-500 whitespace-nowrap">Valor: {u.commission_value}</span>}
                                                             </div>
                                                         </div>
                                                     ))}

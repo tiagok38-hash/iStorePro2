@@ -118,3 +118,12 @@ export const checkCreditLimit = (
 
     return { allowed: true, available };
 };
+
+/**
+ * Verifica se um método de pagamento é Crediário (com ou sem acento)
+ */
+export const isCreditMethod = (method: string): boolean => {
+    if (!method) return false;
+    const m = method.toLowerCase();
+    return m === 'crediario' || m === 'crediário';
+};

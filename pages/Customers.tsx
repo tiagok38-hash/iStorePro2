@@ -413,8 +413,8 @@ const CustomersAndSuppliers: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const fetchData = useCallback(async (retryCount = 0) => {
-        setLoading(true);
+    const fetchData = useCallback(async (silent = false, retryCount = 0) => {
+        if (!silent) setLoading(true);
         try {
             const [customersData, productsData, suppliersData, purchasesData, usersData] = await Promise.all([
                 getCustomers(false), getProducts(), getSuppliers(), getPurchaseOrders(), getUsers()
@@ -439,18 +439,36 @@ const CustomersAndSuppliers: React.FC = () => {
 
             // Auto-retry once after short delay (handles reconnection issues after idle)
             if (retryCount < 1) {
-                setTimeout(() => fetchData(retryCount + 1), 2000);
+                setTimeout(() => fetchData(silent, retryCount + 1), 2000);
                 return;
             }
 
-            showToast('Erro ao carregar dados.', 'error');
+            if (!silent) showToast('Erro ao carregar dados.', 'error');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [showToast]);
 
     useEffect(() => {
         fetchData();
+
+        // Recarrega silenciosamente quando outra parte do sistema invalida o cache
+        // (ex: atualização de limite de crédito feita no PDV via crediário)
+        const handleReload = () => fetchData(true);
+        window.addEventListener('app-reloadData', handleReload);
+
+        const channel = new BroadcastChannel('app_cache_sync');
+        channel.onmessage = (event) => {
+            if (document.visibilityState !== 'visible') return;
+            if (event.data?.type === 'CLEAR_CACHE') {
+                fetchData(true);
+            }
+        };
+
+        return () => {
+            window.removeEventListener('app-reloadData', handleReload);
+            channel.close();
+        };
     }, [fetchData]);
 
     const availableTabs = useMemo(() => {
@@ -471,8 +489,21 @@ const CustomersAndSuppliers: React.FC = () => {
         }
     }, [availableTabs, activeTab]);
 
-    const handleOpenModal = (entity: Partial<Customer & Supplier> | null = null) => {
-        setEditingEntity(entity);
+    const handleOpenModal = async (entity: Partial<Customer & Supplier> | null = null) => {
+        if (entity?.id) {
+            // Busca dados frescos do banco (sem cache) para garantir que
+            // credit_limit, credit_used e allow_credit estejam atualizados.
+            // Isso evita que o modal mostre dados antigos quando o limite
+            // foi alterado externamente (ex: via crediário no PDV).
+            try {
+                const fresh = await getCustomerById(entity.id);
+                setEditingEntity(fresh || entity);
+            } catch {
+                setEditingEntity(entity); // fallback para o dado em memória
+            }
+        } else {
+            setEditingEntity(entity);
+        }
         setIsModalOpen(true);
     };
 

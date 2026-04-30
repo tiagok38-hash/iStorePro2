@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Customer } from '../types.ts';
-import { formatCurrency, getSales, syncCustomerCreditLimit } from '../services/mockApi.ts';
+import { formatCurrency, getSales, syncCustomerCreditLimit, updateCustomer } from '../services/mockApi.ts';
 import { TrendingUp, TrendingDown, ShieldCheck, History, RefreshCcw } from 'lucide-react';
+import { isCreditMethod } from '../utils/creditUtils.ts';
 
 interface CustomerFinanceTabProps {
     customer: Customer;
@@ -31,6 +32,16 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
         }
     };
 
+    // ─── Sincroniza estados internos quando o prop customer muda ──────────────
+    // CRITICAL FIX: useState() só inicializa o valor UMA VEZ no mount.
+    // Se o limite foi atualizado externamente (ex: via crediário no PDV),
+    // esse useEffect garante que os estados reflitam o valor atual do banco.
+    useEffect(() => {
+        setCreditLimit(customer.credit_limit || 0);
+        setAllowCredit(customer.allow_credit || false);
+        setCreditUsed(customer.credit_used || 0);
+    }, [customer.credit_limit, customer.allow_credit, customer.credit_used]);
+
     useEffect(() => {
         // Sync on mount
         handleSync();
@@ -38,7 +49,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
         getSales().then(sales => {
             const customerSales = sales.filter(s =>
                 s.customerId === customer.id &&
-                s.payments.some(p => (p.method === 'Crediário' || p.method === 'Crediario')) &&
+                s.payments.some(p => isCreditMethod(p.method)) &&
                 s.status !== 'Cancelada'
             );
             setPendingSales(customerSales);
@@ -49,6 +60,11 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
         const newValue = !allowCredit;
         setAllowCredit(newValue);
         onUpdate({ allow_credit: newValue });
+
+        // Auto-save permission to backend directly
+        updateCustomer({ id: customer.id, allow_credit: newValue }).catch(err => {
+            console.error('Failed to auto-save allow_credit:', err);
+        });
     };
 
     const handleOpenAdjustment = (type: 'increase' | 'decrease') => {
@@ -62,7 +78,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
         const val = parseFloat(adjustmentValue.replace(/\./g, '').replace(',', '.'));
         if (isNaN(val) || val <= 0) return;
 
-        let newLimit = creditLimit;
+        let newLimit = Number(creditLimit || 0);
         if (adjustmentType === 'increase') {
             newLimit += val;
         } else {
@@ -73,7 +89,10 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
         onUpdate({ credit_limit: newLimit });
         setIsAdjustmentModalOpen(false);
 
-        // Here we would also save to credit_limit_history via API
+        // Auto-save to backend directly to prevent lost changes
+        updateCustomer({ id: customer.id, credit_limit: newLimit }).catch(err => {
+            console.error('Failed to auto-save credit limit:', err);
+        });
     };
 
     const creditAvailable = Math.max(0, creditLimit - creditUsed);
@@ -132,8 +151,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
             </div>
 
             {/* 2. Display de Limite */}
-            {allowCredit && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Limit Card */}
                     <div className="col-span-1 md:col-span-2 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
                         <div className="flex justify-between items-start mb-4">
@@ -187,19 +205,21 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                     </div>
 
                     {/* Status Card */}
-                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 flex flex-col justify-center items-center text-center">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-2">
+                    <div className={`${allowCredit ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-red-50 border-red-100 text-red-600'} border rounded-2xl p-5 flex flex-col justify-center items-center text-center`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${allowCredit ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
                             <ShieldCheck size={20} />
                         </div>
-                        <p className="text-xs font-bold text-blue-800 uppercase mb-1">Status do Cŕedito</p>
-                        <p className="text-sm text-blue-600 leading-tight">Cliente com crédito ativo e {creditAvailable >= 0 ? 'limite disponível' : 'limite excedido'}.</p>
+                        <p className={`text-xs font-bold uppercase mb-1 ${allowCredit ? 'text-blue-800' : 'text-red-800'}`}>Status do Crédito</p>
+                        <p className="text-sm leading-tight">
+                            {allowCredit 
+                                ? `Cliente com crédito ativo e ${creditAvailable >= 0 ? 'limite disponível' : 'limite excedido'}.`
+                                : `Crédito bloqueado para este cliente.`}
+                        </p>
                     </div>
                 </div>
-            )}
 
             {/* 3. Tabela de Histórico (Simples) */}
-            {allowCredit && (
-                <div>
+            <div>
                     <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <History size={16} /> Vendas em Aberto (Impactam o Limite)
                     </h3>
@@ -239,7 +259,6 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                         )}
                     </div>
                 </div>
-            )}
 
             {/* Adjustment Modal */}
             {isAdjustmentModalOpen && (

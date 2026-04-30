@@ -1062,11 +1062,9 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 }
 
                 if (totalAdded > 0) {
-                    const { data: cust } = await supabase.from('customers').select('credit_used').eq('id', updated.customer_id).single();
-                    if (cust) {
-                        await supabase.from('customers').update({ credit_used: (cust.credit_used || 0) + totalAdded }).eq('id', updated.customer_id);
-                        await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito atualizado via finalização de venda #${updated.display_id}`, userId, userName);
-                    }
+                    await supabase.from('sales').update({ current_debt_balance: totalAdded }).eq('id', updated.id);
+                    await syncCustomerCreditLimit(updated.customer_id);
+                    await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito atualizado via finalização de venda #${updated.display_id}`, userId, userName);
                 }
             } catch (e) { console.error('[updateSale] Error creating installments:', e); }
         }
@@ -1084,11 +1082,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                     const oldCreditTotal = oldCreditPayments.reduce((s: number, p: any) => s + (p.value || 0), 0);
                     if (oldCreditTotal > 0 && originalSale?.customer_id) {
                         await supabase.from('credit_installments').delete().eq('sale_id', updated.id);
-                        const { data: custOld } = await supabase.from('customers').select('credit_used').eq('id', originalSale.customer_id).single();
-                        if (custOld) {
-                            const newUsed = Math.max(0, (custOld.credit_used || 0) - oldCreditTotal);
-                            await supabase.from('customers').update({ credit_used: newUsed }).eq('id', originalSale.customer_id);
-                        }
+                        // We will recalculate the customer credit_used at the end via syncCustomerCreditLimit
                     }
 
                     if (newCreditPayments.length > 0 && updated.customer_id) {
@@ -1130,12 +1124,17 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                         }
 
                         if (totalAdded > 0) {
-                            const { data: custNew } = await supabase.from('customers').select('credit_used').eq('id', updated.customer_id).single();
-                            if (custNew) {
-                                await supabase.from('customers').update({ credit_used: (custNew.credit_used || 0) + totalAdded }).eq('id', updated.customer_id);
-                                await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito re-aplicado em edição de venda #${updated.display_id}`, userId, userName);
-                            }
+                            await supabase.from('sales').update({ current_debt_balance: totalAdded }).eq('id', updated.id);
+                            await syncCustomerCreditLimit(updated.customer_id);
+                            await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito re-aplicado em edição de venda #${updated.display_id}`, userId, userName);
+                        } else {
+                            await supabase.from('sales').update({ current_debt_balance: 0 }).eq('id', updated.id);
+                            await syncCustomerCreditLimit(updated.customer_id);
                         }
+                    } else if (originalSale?.customer_id && oldCreditTotal > 0) {
+                        // All credit payments were removed
+                        await supabase.from('sales').update({ current_debt_balance: 0 }).eq('id', updated.id);
+                        await syncCustomerCreditLimit(originalSale.customer_id);
                     }
                 } catch (err) {
                     console.error('[updateSale] Error reconciling credit installments during edit:', err);

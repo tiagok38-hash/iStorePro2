@@ -48,7 +48,7 @@ export const getBulkUpdateLogs = async (): Promise<AuditLog[]> => {
         return fetchWithRetry(async () => {
             const { data, error } = await supabase.from('audit_logs')
                 .select('*')
-                .in('action', ['BULK_UPDATE_PRICE', 'BULK_UPDATE_LOCATION'])
+                .in('action', [AuditActionType.BULK_PRICE_UPDATE, 'BULK_UPDATE_LOCATION'])
                 .order('timestamp', { ascending: false })
                 .limit(200);
             if (error) throw error;

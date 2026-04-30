@@ -5,7 +5,7 @@ import {
     Brand, Category, ProductModel, Grade, GradeValue,
     Supplier, ReceiptTermParameter, PaymentMethodParameter, StorageLocationParameter
 } from '../../types.ts';
-import { formatCurrency, getNextSaleId } from '../../services/mockApi.ts';
+import { formatCurrency } from '../../services/mockApi.ts';
 import {
     PlusIcon, MinusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon,
     TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon, SpinnerIcon
@@ -21,7 +21,6 @@ import ProductModal from '../ProductModal.tsx';
 import CardPaymentModal from '../CardPaymentModal.tsx';
 import NewCreditModal from '../modals/NewCreditModal.tsx';
 import CreditLimitWarning from '../modals/CreditLimitWarning.tsx';
-import { checkCreditLimit } from '../../utils/creditUtils.ts';
 
 
 import { useSaleForm } from '../../hooks/useSaleForm.ts';
@@ -110,6 +109,16 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
 
     const { productSearchRef } = refs;
+
+    // Sincroniza customerToEdit se a lista de customers mudar (ex: após atualização de limite)
+    React.useEffect(() => {
+        if (customerToEdit) {
+            const fresh = customers.find(c => c.id === customerToEdit.id);
+            if (fresh && JSON.stringify(fresh) !== JSON.stringify(customerToEdit)) {
+                setCustomerToEdit(fresh);
+            }
+        }
+    }, [customers, customerToEdit]);
 
     const filteredProducts = useMemo(() => {
         const terms = productSearch.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
@@ -1098,10 +1107,12 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     const c = customers.find(cust => cust.id === selectedCustomerId);
                     return c ? (c.credit_limit || 0) - (c.credit_used || 0) : 0;
                 })()}
+                customerLimit={customers.find(cust => cust.id === selectedCustomerId)?.credit_limit || 0}
+                customerUsed={customers.find(cust => cust.id === selectedCustomerId)?.credit_used || 0}
                 customerId={selectedCustomerId}
-                onUpdateLimit={(newLimit) => {
+                onUpdateLimit={async (newLimit) => {
                     if (selectedCustomerId && props.onUpdateCustomer) {
-                        props.onUpdateCustomer({ id: selectedCustomerId, credit_limit: newLimit });
+                        await props.onUpdateCustomer({ id: selectedCustomerId, credit_limit: newLimit, allow_credit: true });
                     }
                 }}
                 onConfirm={(details) => {

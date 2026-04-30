@@ -100,18 +100,21 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
     } = params;
 
     return fetchWithRetry(async () => {
+        // Normalize query: remove accents and remove 'gb' or 'tb' from the end of numbers
+        const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/\b(\d+)\s*(gb|tb)\b/gi, '$1').trim();
+
         // Strict Enforcement for iPhones: Fetch all, sort locally, slice.
-        const isIphoneSearch = query.trim().toLowerCase().includes('iphone');
+        const isIphoneSearch = normalizedQuery.toLowerCase().includes('iphone');
         const fetchLimit = isIphoneSearch ? 2000 : limit;
         const fetchOffset = isIphoneSearch ? 0 : offset;
 
         const { data, error } = await supabase.rpc('search_products', {
-            p_query: query,
+            p_query: normalizedQuery,
             p_stock_filter: stockFilter,
             p_condition_filter: conditionFilter,
             p_location_filter: locationFilter,
             p_type_filter: typeFilter,
-            p_sort_order: query.trim() ? sortOrder : (sortOrder === 'relevance' ? 'newest' : sortOrder),
+            p_sort_order: normalizedQuery ? sortOrder : (sortOrder === 'relevance' ? 'newest' : sortOrder),
             p_limit: fetchLimit,
             p_offset: fetchOffset
         });
@@ -120,7 +123,7 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
         let totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
 
         // Fallback for fast identifier searching (IMEI, SN, SKU) >= 4 digits
-        const cleanQuery = query.trim();
+        const cleanQuery = normalizedQuery;
         if (cleanQuery.length >= 4 && !cleanQuery.includes(' ')) {
             try {
                 let identifierQuery = supabase

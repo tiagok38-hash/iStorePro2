@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient.ts';
 import { Customer, TradeInEntry, AuditActionType, AuditEntityType } from '../types.ts';
 import { fetchWithCache, fetchWithRetry, clearCache } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';
+import { isCreditMethod } from '../utils/creditUtils.ts';
 
 // --- CUSTOMERS ---
 // --- MAPPING HELPERS ---
@@ -16,6 +17,9 @@ const mapCustomer = (c: any) => ({
     instagram: c.instagram,
     contact2: c.contact2,
     active: c.active ?? true,
+    credit_limit: toNum(c.credit_limit),
+    credit_used: toNum(c.credit_used),
+    allow_credit: c.allow_credit ?? true,
     address: {
         zip: c.cep || '',
         street: c.street || '',
@@ -29,6 +33,8 @@ const mapCustomer = (c: any) => ({
 
 // Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
 const CUSTOMER_COLUMNS = 'id, name, email, phone, contact2, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url, active, credit_limit, credit_used, allow_credit';
+
+const toNum = (val: any) => (val === null || val === undefined) ? 0 : Number(val);
 
 // Helper to ensure date format is YYYY-MM-DD
 const ensureISODate = (dateStr: string | undefined | null): string | null => {
@@ -290,7 +296,7 @@ export const syncCustomerCreditLimit = async (customerId: string) => {
 
         for (const sale of (sales || [])) {
             const payments = Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? JSON.parse(sale.payments) : []);
-            const hasCredit = payments.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario');
+            const hasCredit = payments.some((p: any) => isCreditMethod(p.method));
             if (!hasCredit) continue;
 
             let debt = Number(sale.current_debt_balance || 0);
@@ -314,6 +320,9 @@ export const syncCustomerCreditLimit = async (customerId: string) => {
 
         await supabase.from('customers').update({ credit_used: totalUsed }).eq('id', customerId);
 
+        // CLEAR CACHE so the next fetch gets the updated credit_used
+        clearCache(['customers']);
+
         return totalUsed;
     } catch (err) {
         console.error('[syncCustomerCreditLimit] Error:', err);
@@ -336,9 +345,9 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     if (data.customTag !== undefined) payload.custom_tag = data.customTag || null;
     if (data.instagram !== undefined) payload.instagram = data.instagram || null;
     if (data.active !== undefined) payload.active = data.active;
-    if (data.credit_limit !== undefined) payload.credit_limit = data.credit_limit;
+    if (data.credit_limit !== undefined) payload.credit_limit = toNum(data.credit_limit);
     if (data.allow_credit !== undefined) payload.allow_credit = data.allow_credit;
-    if (data.credit_used !== undefined) payload.credit_used = data.credit_used;
+    if (data.credit_used !== undefined) payload.credit_used = toNum(data.credit_used);
 
     if (data.address) {
         if (data.address.zip !== undefined) payload.cep = data.address.zip;

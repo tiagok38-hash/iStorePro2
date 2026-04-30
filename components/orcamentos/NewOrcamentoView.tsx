@@ -958,6 +958,8 @@ export const NewOrcamentoViewInner: React.FC<NewOrcamentoViewProps> = (props) =>
                     const c = customers.find(cust => cust.id === selectedCustomerId);
                     return c ? (c.credit_limit || 0) - (c.credit_used || 0) : 0;
                 })()}
+                customerLimit={customers.find(cust => cust.id === selectedCustomerId)?.credit_limit || 0}
+                customerUsed={customers.find(cust => cust.id === selectedCustomerId)?.credit_used || 0}
                 customerId={selectedCustomerId}
                 onUpdateLimit={(newLimit) => {
                     if (selectedCustomerId && props.onUpdateCustomer) {

@@ -4,22 +4,26 @@ import { formatCurrency, getCreditSettings, updateCustomer } from '../../service
 import CustomDatePicker from '../CustomDatePicker.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
 import { calculateInstallmentDates } from '../../utils/creditUtils.ts';
+import { useToast } from '../../contexts/ToastContext.tsx';
 
 interface NewCreditModalProps {
     isOpen: boolean;
     onClose: () => void;
     totalAmount: number;
     availableLimit: number;
+    customerLimit?: number;
+    customerUsed?: number;
     customerId?: string;
     onConfirm: (details: any) => void;
-    onUpdateLimit?: (newLimit: number) => void;
+    onUpdateLimit?: (newLimit: number) => void | Promise<void>;
 }
 
-const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalAmount, availableLimit, customerId, onConfirm, onUpdateLimit }) => {
+const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalAmount, availableLimit, customerLimit, customerUsed, customerId, onConfirm, onUpdateLimit }) => {
     const [entryAmount, setEntryAmount] = useState(0);
     const [financedAmount, setFinancedAmount] = useState(totalAmount);
     const [installments, setInstallments] = useState(1);
     const [frequency, setFrequency] = useState<'mensal' | 'quinzenal'>('mensal');
+    const { showToast } = useToast();
     
     const getDefaultDate = (freq: 'mensal' | 'quinzenal') => {
         const d = new Date();
@@ -38,11 +42,19 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
 
     const [isEditingLimit, setIsEditingLimit] = useState(false);
     const [editedLimit, setEditedLimit] = useState(0);
-    const [currentLimit, setCurrentLimit] = useState(availableLimit);
+    const [localTotalLimit, setLocalTotalLimit] = useState(customerLimit !== undefined ? customerLimit : availableLimit);
 
     useEffect(() => {
-        setCurrentLimit(availableLimit);
-    }, [availableLimit]);
+        if (customerLimit !== undefined) {
+            setLocalTotalLimit(Number(customerLimit));
+        } else {
+            setLocalTotalLimit(Number(availableLimit));
+        }
+    }, [customerLimit, availableLimit]);
+
+    const actualAvailableLimit = customerLimit !== undefined && customerUsed !== undefined 
+        ? localTotalLimit - customerUsed 
+        : localTotalLimit;
 
     useEffect(() => {
         if (isOpen) {
@@ -75,7 +87,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
         : financedAmount;
 
     const installmentValue = installments > 0 ? totalWithInterest / installments : 0;
-    const limitExceeded = totalWithInterest > currentLimit;
+    const limitExceeded = totalWithInterest > actualAvailableLimit;
 
     const previewInstallments = useMemo(() => {
         const dates = calculateInstallmentDates(firstDueDate, installments, frequency);
@@ -86,8 +98,27 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
         }));
     }, [firstDueDate, installments, frequency, installmentValue]);
 
-    const handleConfirm = () => {
-        if (installments < 1 || limitExceeded) return;
+    const handleConfirm = async () => {
+        let currentLimitExceeded = limitExceeded;
+
+        if (isEditingLimit) {
+            const limitToSave = Number(editedLimit);
+            setLocalTotalLimit(limitToSave);
+            try {
+                if (onUpdateLimit) await onUpdateLimit(limitToSave);
+                else if (customerId) await updateCustomer({ id: customerId, credit_limit: limitToSave });
+                showToast('Limite de crédito atualizado com sucesso!', 'success');
+            } catch (err) {
+                console.error('Failed to auto-save limit:', err);
+                showToast('Erro ao atualizar limite de crédito.', 'error');
+            }
+            setIsEditingLimit(false);
+
+            const newActualAvailableLimit = editedLimit - customerUsed;
+            currentLimitExceeded = totalWithInterest > newActualAvailableLimit;
+        }
+
+        if (installments < 1 || currentLimitExceeded) return;
 
         onConfirm({
             entryAmount,
@@ -122,44 +153,53 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                             <div className="text-[19px] font-black text-gray-900">{formatCurrency(totalAmount)}</div>
                         </div>
                         <div className="text-right">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Limite Disponível</label>
-                            <div className="flex items-center justify-end gap-2">
-                                {isEditingLimit ? (
-                                    <div className="flex items-center gap-1 animate-scale-in">
-                                        <div style={{ width: '112px' }}>
-                                            <CurrencyInput
-                                                value={editedLimit}
-                                                onChange={setEditedLimit}
-                                                className="w-full h-8 text-sm font-bold border-indigo-300 focus:ring-indigo-200"
-                                                placeholder="Novo Limite"
-                                            />
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Limite do Cliente</label>
+                            <div className="flex flex-col items-end gap-1">
+                                <div className="flex items-center justify-end gap-2">
+                                    {isEditingLimit ? (
+                                        <div className="flex items-center gap-1 animate-scale-in">
+                                            <div style={{ width: '112px' }}>
+                                                <CurrencyInput
+                                                    value={editedLimit}
+                                                    onChange={setEditedLimit}
+                                                    className="w-full h-8 text-sm font-bold border-indigo-300 focus:ring-indigo-200"
+                                                    placeholder="Limite Total"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={async (e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setIsEditingLimit(false);
+                                                    setLocalTotalLimit(editedLimit);
+                                                    try {
+                                                        if (onUpdateLimit) await onUpdateLimit(editedLimit);
+                                                        else if (customerId) await updateCustomer({ id: customerId, credit_limit: editedLimit });
+                                                    } catch (err) {
+                                                        console.error('Failed to update limit:', err);
+                                                    }
+                                                }}
+                                                className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all shadow-md active:scale-95"
+                                            >
+                                                <CheckIcon className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => setIsEditingLimit(false)} className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors">
+                                                <XIcon className="w-4 h-4" />
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setIsEditingLimit(false);
-                                                setCurrentLimit(editedLimit);
-                                                if (onUpdateLimit) onUpdateLimit(editedLimit);
-                                                else if (customerId) updateCustomer({ id: customerId, credit_limit: editedLimit });
-                                            }}
-                                            className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all shadow-md active:scale-95"
-                                        >
-                                            <CheckIcon className="w-4 h-4" />
-                                        </button>
-                                        <button onClick={() => setIsEditingLimit(false)} className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors">
-                                            <XIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setEditedLimit(currentLimit); setIsEditingLimit(true); }}>
-                                        <div className={`text-sm font-bold transition-colors ${limitExceeded ? 'text-red-500' : 'text-emerald-500'}`}>
-                                            {formatCurrency(currentLimit)}
+                                    ) : (
+                                        <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setEditedLimit(localTotalLimit); setIsEditingLimit(true); }} title="Editar Limite Total">
+                                            <div className="text-xs font-bold text-gray-500 transition-colors">
+                                                Total: {formatCurrency(localTotalLimit)}
+                                            </div>
+                                            <Edit2Icon className="w-3 h-3 text-gray-400 group-hover:text-indigo-500 transition-colors" />
                                         </div>
-                                        <Edit2Icon className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+                                <div className={`text-sm font-bold transition-colors ${limitExceeded ? 'text-red-500' : 'text-emerald-500'}`} title="Limite Disponível">
+                                    Disp: {formatCurrency(actualAvailableLimit)}
+                                </div>
                             </div>
                         </div>
                     </div>
