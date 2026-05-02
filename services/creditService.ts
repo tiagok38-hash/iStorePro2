@@ -351,6 +351,20 @@ export const deleteInstallment = async (id: string, userId?: string, userName?: 
 
     if (error) throw error;
 
+    if (current.sale_id) {
+        const { data: sale } = await supabase
+            .from('sales')
+            .select('current_debt_balance')
+            .eq('id', current.sale_id)
+            .single();
+
+        if (sale) {
+            const amountToSubtract = Math.max(0, Number(current.amount) - Number(current.amount_paid));
+            const newDebtBalance = Math.max(0, Number(sale.current_debt_balance || 0) - amountToSubtract);
+            await supabase.from('sales').update({ current_debt_balance: newDebtBalance }).eq('id', current.sale_id);
+        }
+    }
+
     if (current.customer_id && _syncCustomerCreditLimit) {
         const newTotalUsed = await _syncCustomerCreditLimit(current.customer_id);
         await addAuditLog(
