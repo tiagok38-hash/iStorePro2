@@ -2,16 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     ClockIcon, ErrorIcon as AlertCircleIcon, CalendarDaysIcon as CalendarIcon, SearchIcon, WhatsAppIcon,
     FilterIcon, CheckIcon as CheckCircleIcon, Cog6ToothIcon as SettingsIcon,
-    ChevronDownIcon
+    ChevronDownIcon, TrashIcon
 } from './icons';
 import {
     CreditInstallment, Customer
 } from '../types.ts';
 import {
-    getCreditInstallments, formatCurrency, getCustomers, updateCreditSettings, getCreditSettings, updateInstallmentPaymentMethod
+    getCreditInstallments, formatCurrency, getCustomers, updateCreditSettings, getCreditSettings, updateInstallmentPaymentMethod, deleteInstallment
 } from '../services/mockApi.ts';
 import InstallmentPaymentModal from './modals/InstallmentPaymentModal.tsx';
 import CreditSettingsModal from './modals/CreditSettingsModal.tsx';
+import ConfirmationModal from './ConfirmationModal.tsx';
 import StatusBadge from './StatusBadge.tsx';
 import { CarnetPrintButton } from './print/CarnetPrintButton';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -31,6 +32,8 @@ const CreditDashboard: React.FC = () => {
     const [stats, setStats] = useState({ toReceive: 0, overdue: 0, receivedToday: 0 });
     const [editMethodInstallment, setEditMethodInstallment] = useState<CreditInstallment | null>(null);
     const [submittingMethod, setSubmittingMethod] = useState(false);
+    const [installmentToDelete, setInstallmentToDelete] = useState<CreditInstallment | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -173,6 +176,22 @@ const CreditDashboard: React.FC = () => {
         }
 
         openWhatsApp((inst as any).customerPhone, message);
+    };
+
+    const confirmDeleteInstallment = async () => {
+        if (!installmentToDelete) return;
+        setIsDeleting(true);
+        try {
+            await deleteInstallment(installmentToDelete.id, user?.id, user?.name);
+            showToast('Parcela excluída com sucesso!', 'success');
+            setInstallments(prev => prev.filter(i => i.id !== installmentToDelete.id));
+        } catch (error) {
+            console.error('Error deleting installment:', error);
+            showToast('Erro ao excluir parcela.', 'error');
+        } finally {
+            setIsDeleting(false);
+            setInstallmentToDelete(null);
+        }
     };
 
     if (loading) return <div className="p-10 text-center text-gray-500">Carregando carteira de crediário...</div>;
@@ -401,6 +420,14 @@ const CreditDashboard: React.FC = () => {
                                                                         className="h-8 px-3 border border-gray-300 text-gray-700 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-gray-100 transition-all flex items-center justify-center gap-2 shadow-sm"
                                                                     />
                                                                 </div>
+
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setInstallmentToDelete(inst); }}
+                                                                    className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-100 flex items-center justify-center"
+                                                                    title="Excluir Parcela"
+                                                                >
+                                                                    <TrashIcon size={14} />
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -430,6 +457,16 @@ const CreditDashboard: React.FC = () => {
                     setIsSettingsOpen(false);
                     fetchData(); // Reload settings
                 }}
+            />
+
+            <ConfirmationModal
+                isOpen={!!installmentToDelete}
+                onClose={() => setInstallmentToDelete(null)}
+                onConfirm={confirmDeleteInstallment}
+                title="Excluir Parcela"
+                message="Tem certeza que deseja excluir esta parcela? Esta ação não pode ser desfeita e o limite do cliente será recalculado."
+                variant="danger"
+                isSaving={isDeleting}
             />
 
             {editMethodInstallment && (

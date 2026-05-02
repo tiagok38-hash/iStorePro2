@@ -334,3 +334,35 @@ export const updateInstallmentPaymentMethod = async (id: string, newMethod: stri
     if (error) throw error;
     clearCache(['credit_installments']);
 };
+
+export const deleteInstallment = async (id: string, userId?: string, userName?: string): Promise<void> => {
+    const { data: current, error: fetchError } = await supabase
+        .from('credit_installments')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !current) throw fetchError || new Error("Parcela não encontrada");
+
+    const { error } = await supabase
+        .from('credit_installments')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+
+    if (current.customer_id && _syncCustomerCreditLimit) {
+        const newTotalUsed = await _syncCustomerCreditLimit(current.customer_id);
+        await addAuditLog(
+            AuditActionType.DELETE,
+            AuditEntityType.CUSTOMER,
+            current.customer_id,
+            `Parcela Excluída: Removida parcela de ${formatCurrency(Number(current.amount))} | Novo saldo devedor: ${formatCurrency(newTotalUsed)}`,
+            userId,
+            userName
+        );
+    }
+
+    clearCache(['credit_installments']);
+};
+
