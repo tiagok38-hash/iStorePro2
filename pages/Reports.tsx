@@ -133,18 +133,23 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             totalRevenueForProfit += sale.total;
 
             let saleCost = 0;
-            const saleSubtotal = sale.subtotal || 1;
 
             sale.items.forEach(item => {
                 const product = productMap[item.productId];
-                const itemCost = ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
+                // Prioridade: snapshot salvo na venda (item.costPrice). Fallback: custo atual do produto
+                const snapshotCost = (item.costPrice !== undefined)
+                    ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
+                    : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
+                const itemCost = snapshotCost * item.quantity;
                 const itemGrossRevenue = item.unitPrice * item.quantity;
 
-                // Calculate item net revenue
+                // Receita líquida: usa netTotal (com desconto) ou gross como fallback
                 const itemNetRevenue = item.netTotal ?? itemGrossRevenue;
                 const itemProfit = itemNetRevenue - itemCost;
 
-                if ((product?.brand || '').toLowerCase().includes('apple')) {
+                // Determina a marca pelo snapshot ou produto atual
+                const brand = (item as any).brand || product?.brand || '';
+                if (brand.toLowerCase().includes('apple')) {
                     appleStats.faturamento += itemNetRevenue;
                     appleStats.lucro += itemProfit;
                 } else {
@@ -184,9 +189,13 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             if (!acc[day]) {
                 acc[day] = { faturamento: 0, lucro: 0, vendas: 0 };
             }
+            // Usa snapshot de custo do item (igual ao Dashboard/Vendas)
             const saleCost = sale.items.reduce((cost, item) => {
                 const product = productMap[item.productId];
-                return cost + ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
+                const snapshotCost = (item.costPrice !== undefined)
+                    ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
+                    : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
+                return cost + snapshotCost * item.quantity;
             }, 0);
             const revenue = sale.total;
 
@@ -463,7 +472,10 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                             {displayedSales.map(sale => {
                                 const saleCost = sale.items.reduce((cost, item) => {
                                     const product = productMap[item.productId];
-                                    return cost + ((product?.costPrice || 0) + (product?.additionalCostPrice || 0)) * item.quantity;
+                                    const snapshotCost = (item.costPrice !== undefined)
+                                        ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
+                                        : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
+                                    return cost + snapshotCost * item.quantity;
                                 }, 0);
                                 const revenue = sale.total;
                                 const profit = revenue - saleCost;
