@@ -52,6 +52,56 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
     });
 };
 
+/**
+ * Busca TODOS os produtos em estoque (stock > 0) com paginação automática.
+ * 
+ * MOTIVO: O PostgREST (API do Supabase) tem um limite máximo de ~1000 linhas por
+ * request REST, mesmo quando .limit(5000) é especificado no cliente. Produtos mais
+ * antigos (com posição > 1000 na ordenação por createdAt DESC) ficavam invisíveis
+ * para o relatório de estoque. Esta função garante que TODOS os produtos em estoque
+ * sejam retornados, independente do volume histórico de cadastros.
+ * 
+ * Otimização: filtra stock > 0 direto no banco, reduzindo drasticamente o volume
+ * de dados transferidos e eliminando o risco de truncamento.
+ */
+export const getProductsInStock = async (): Promise<Product[]> => {
+    const cacheKey = 'products_in_stock_full';
+    return fetchWithCache(cacheKey, async () => {
+        return fetchWithRetry(async () => {
+            const PAGE_SIZE = 500;
+            let allProducts: Product[] = [];
+            let page = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                const from = page * PAGE_SIZE;
+                const to = from + PAGE_SIZE - 1;
+
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .gt('stock', 0)
+                    .order('createdAt', { ascending: false })
+                    .range(from, to);
+
+                if (error) throw error;
+
+                const batch = (data || []).map(mapProduct);
+                allProducts = [...allProducts, ...batch];
+
+                // Se retornou menos que PAGE_SIZE, chegamos ao fim
+                hasMore = batch.length === PAGE_SIZE;
+                page++;
+
+                // Segurança: evitar loop infinito em caso de dados corrompidos
+                if (page > 20) break;
+            }
+
+            return allProducts;
+        });
+    }, 2 * 60 * 1000); // Cache de 2 minutos (mais curto para dados de estoque)
+};
+
 // Specialized Search for high-volume data
 export const searchProducts = async (term: string): Promise<Product[]> => {
     if (!term || term.length < 2) return [];

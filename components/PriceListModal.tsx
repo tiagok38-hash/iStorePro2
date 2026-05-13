@@ -1,20 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Product, Category, Brand, ProductModel, ProductConditionParameter, StorageLocationParameter } from '../types.ts';
-import { getCategories, getBrands, getProductModels, getProductConditions, getStorageLocations, formatCurrency } from '../services/mockApi.ts';
+import { getCategories, getBrands, getProductModels, getProductConditions, getStorageLocations, formatCurrency, getProductsInStock } from '../services/mockApi.ts';
 import { formatStorageUnit } from '../utils/formatters.ts';
-import { CloseIcon, AppleIcon, SmartphoneIcon, DocumentTextIcon, CheckIcon, ChevronRightIcon, ChevronLeftIcon } from './icons.tsx';
+import { CloseIcon, AppleIcon, SmartphoneIcon, DocumentTextIcon, CheckIcon, ChevronRightIcon, ChevronLeftIcon, SpinnerIcon } from './icons.tsx';
 
 interface PriceListModalProps {
     isOpen: boolean;
     onClose: () => void;
-    products: Product[];
+    products?: Product[]; // Agora opcional: o modal busca seus próprios dados completos via paginação
     hideSummary?: boolean;
 }
 
-const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, products, hideSummary = false }) => {
+const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, products: productsProp, hideSummary = false }) => {
     const [step, setStep] = useState<'type' | 'filters'>('type');
     const [selectedType, setSelectedType] = useState<'apple' | 'other' | null>(null);
+
+    // --- DADOS INTERNOS COM PAGINAÇÃO COMPLETA ---
+    // O modal busca seus próprios dados para garantir que TODOS os produtos
+    // em estoque sejam incluídos, independente do limite do PostgREST (~1000 linhas).
+    const [internalProducts, setInternalProducts] = useState<Product[]>(productsProp || []);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
     // Metadata
     const [categories, setCategories] = useState<Category[]>([]);
@@ -54,6 +60,29 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
         };
     }, [isOpen]);
 
+    // Busca TODOS os produtos em estoque com paginação completa
+    // IMPORTANTE: Não usar o prop `products` diretamente pois ele é limitado
+    // a ~1000 linhas pelo PostgREST. Esta busca paginada garante 100% dos itens.
+    useEffect(() => {
+        if (!isOpen) return;
+        const fetchAllInStock = async () => {
+            setIsLoadingProducts(true);
+            try {
+                const all = await getProductsInStock();
+                setInternalProducts(all);
+            } catch (error) {
+                console.error('[PriceListModal] Falha ao buscar produtos em estoque:', error);
+                // Fallback: usar produtos passados pelo pai (pode estar incompleto)
+                if (productsProp && productsProp.length > 0) {
+                    setInternalProducts(productsProp);
+                }
+            } finally {
+                setIsLoadingProducts(false);
+            }
+        };
+        fetchAllInStock();
+    }, [isOpen]);
+
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
@@ -77,7 +106,8 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
     }, []);
 
     const availableProducts = useMemo(() => {
-        return products
+        // Usa internalProducts (buscado com paginação completa) - já filtrado por stock > 0 no banco
+        return internalProducts
             .filter(p => p.stock > 0)
             .map(p => {
                 const cat = categories.find(c => c.id === p.category);
@@ -99,7 +129,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
 
                 return product;
             });
-    }, [products, categories]);
+    }, [internalProducts, categories]);
 
     const appleProducts = useMemo(() => {
         return availableProducts.filter(p => (p.brand || '').toLowerCase().includes('apple'));
@@ -824,7 +854,16 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                         </div>
                         <div>
                             <h2 className="text-lg sm:text-xl font-black text-gray-800 tracking-tight">Gerar Lista de Preços</h2>
-                            <p className="text-xs text-muted font-medium uppercase tracking-widest">Baseado no estoque atual</p>
+                            {isLoadingProducts ? (
+                                <p className="text-xs text-indigo-500 font-bold flex items-center gap-1.5 animate-pulse">
+                                    <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></span>
+                                    Carregando estoque completo...
+                                </p>
+                            ) : (
+                                <p className="text-xs text-muted font-medium uppercase tracking-widest">
+                                    {internalProducts.filter(p => p.stock > 0).length} produtos em estoque
+                                </p>
+                            )}
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -1176,9 +1215,13 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                                 <span className="text-[10px] text-muted font-bold uppercase">
                                     {!hasActiveFilters ? 'Total em Estoque' : 'Resumo'}
                                 </span>
-                                <span className="text-base font-black text-indigo-600">
-                                    {totalUnits} {totalUnits === 1 ? 'produto' : 'produtos'}
-                                </span>
+                                {isLoadingProducts ? (
+                                    <span className="text-xs font-bold text-indigo-400 animate-pulse">Carregando...</span>
+                                ) : (
+                                    <span className="text-base font-black text-indigo-600">
+                                        {totalUnits} {totalUnits === 1 ? 'produto' : 'produtos'}
+                                    </span>
+                                )}
                             </>
                         )}
                     </div>
@@ -1191,11 +1234,15 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                         </button>
                         <button
                             onClick={handleGenerate}
-                            disabled={step === 'type' || filteredForStep.length === 0}
+                            disabled={step === 'type' || filteredForStep.length === 0 || isLoadingProducts}
                             className="h-12 px-6 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap disabled:opacity-50 disabled:shadow-none"
                         >
-                            <DocumentTextIcon className="h-6 w-6" />
-                            Gerar Relatório
+                            {isLoadingProducts ? (
+                                <SpinnerIcon size={20} className="text-white/70" />
+                            ) : (
+                                <DocumentTextIcon className="h-6 w-6" />
+                            )}
+                            {isLoadingProducts ? 'Carregando...' : 'Gerar Relatório'}
                         </button>
                     </div>
                 </div>
