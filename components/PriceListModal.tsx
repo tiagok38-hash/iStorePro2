@@ -113,6 +113,11 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 const cat = categories.find(c => c.id === p.category);
                 let product = cat ? { ...p, category: cat.name } : { ...p };
 
+                // BUGFIX: Ensure costPrice represents the total cost (including additional costs from repairs/parts)
+                const baseCost = Number(product.costPrice || 0);
+                const additionalCost = Number(product.additionalCostPrice || 0);
+                product.costPrice = product.totalCostPrice ?? (baseCost + additionalCost);
+
                 // Polyfill storage if missing but present in model name
                 if (!product.storage && product.model) {
                     const storageMatch = product.model.match(/(\d+)\s*(GB|TB)/i);

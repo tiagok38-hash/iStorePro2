@@ -343,6 +343,7 @@ export interface Product {
     wholesalePrice?: number; // Preço de Atacado (ATC)
     costPrice?: number;
     additionalCostPrice?: number;
+    totalCostPrice?: number;
     markup?: number;
     stock: number;
     minimumStock?: number;
