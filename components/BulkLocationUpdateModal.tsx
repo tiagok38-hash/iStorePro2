@@ -131,34 +131,78 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
             return;
         }
         setIsSearching(true);
-        const lowerSearchTerm = currentTerm.toLowerCase().trim();
+        
+        const normalize = (str: string) => str.normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\b(\d+)\s*(gb|tb)\b/gi, '$1')
+            .replace(/[^a-z0-9\s]/gi, ' ')
+            .toLowerCase()
+            .trim();
+
+        const normalizedSearchTerm = normalize(currentTerm);
+        const terms = normalizedSearchTerm.split(/\s+/).filter(t => t.length > 1 || /^\d+$/.test(t));
+        const searchPhrase = terms.join(' ');
 
         // Find purchase order IDs that match the locator search term
         const matchingPurchaseOrderIds = new Set(
             purchases
-                .filter(po => (po.locatorId || '').toLowerCase().includes(lowerSearchTerm))
+                .filter(po => normalize(po.locatorId || '').includes(normalizedSearchTerm))
                 .map(po => po.id)
         );
+
+        const modifiers = ['pro', 'max', 'plus', 'mini'];
+        const missingModifiers = modifiers.filter(m => !terms.includes(m));
 
         const results = allProducts.filter(p => {
             if (p.stock <= 0) return false;
             // Skip if already selected
             if (selectedProducts.some(sp => sp.id === p.id)) return false;
 
-            const description = `${p.brand || ''} ${p.model || ''} ${p.color || ''}`.toLowerCase();
-            const descMatch = description.includes(lowerSearchTerm);
+            const description = normalize(`${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`);
+            const descriptionNoSpaces = description.replace(/\s+/g, '');
 
             const locatorMatch = p.purchaseOrderId && matchingPurchaseOrderIds.has(p.purchaseOrderId);
-            const skuMatch = (p.sku || '').toLowerCase().includes(lowerSearchTerm);
-            const imeiMatch = (p.imei1 || '').toLowerCase().includes(lowerSearchTerm) ||
-                (p.imei2 || '').toLowerCase().includes(lowerSearchTerm);
-            const serialMatch = (p.serialNumber || '').toLowerCase().includes(lowerSearchTerm);
 
-            // Barcode/EAN match
-            const eanMatch = (p.barcodes || []).some(b => b.toLowerCase().includes(lowerSearchTerm));
+            let searchMatch = terms.length === 0 ? true : terms.every(term => 
+                description.includes(term) || descriptionNoSpaces.includes(term.replace(/\s+/g, ''))
+            );
 
-            return descMatch || locatorMatch || skuMatch || imeiMatch || serialMatch || eanMatch;
+            if (searchMatch) {
+                const modelStr = `${p.model || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                for (const mod of missingModifiers) {
+                    const regex = new RegExp(`\\b${mod}\\b`);
+                    if (regex.test(modelStr)) {
+                        searchMatch = false;
+                        break;
+                    }
+                }
+            }
+
+            return searchMatch || locatorMatch;
         });
+
+        // Sort by relevance
+        if (terms.length > 1) {
+            results.sort((a, b) => {
+                const modelA = String(a.model || '').toLowerCase();
+                const modelB = String(b.model || '').toLowerCase();
+                const phraseInA = modelA.includes(searchPhrase) ? 200 : 0;
+                const phraseInB = modelB.includes(searchPhrase) ? 200 : 0;
+
+                let scoreA = phraseInA;
+                let scoreB = phraseInB;
+
+                terms.forEach(term => {
+                    const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                    if (regex.test(modelA)) scoreA += 50;
+                    else if (modelA.includes(term)) scoreA += 5;
+                    if (regex.test(modelB)) scoreB += 50;
+                    else if (modelB.includes(term)) scoreB += 5;
+                });
+
+                return scoreB - scoreA;
+            });
+        }
 
         // Limit to top 20 results for performance
         setSearchResults(results.slice(0, 20));
@@ -193,15 +237,21 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
 
         // Immediate exact match logic (Scanner behavior)
         if (trimmedValue.length >= 6) {
+            const normalizedInput = trimmedValue.toLowerCase().replace(/[^a-z0-9]/g, '');
             const matches = allProducts.filter(p => {
                 if (p.stock <= 0) return false;
                 if (selectedProducts.some(sp => sp.id === p.id)) return false;
 
+                const normImei1 = p.imei1 ? p.imei1.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+                const normImei2 = p.imei2 ? p.imei2.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+                const normSn = p.serialNumber ? p.serialNumber.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+                const normBarcodes = (p.barcodes || []).map(b => b.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
                 return (
-                    (p.imei1 && p.imei1.toLowerCase() === trimmedValue.toLowerCase()) ||
-                    (p.imei2 && p.imei2.toLowerCase() === trimmedValue.toLowerCase()) ||
-                    (p.serialNumber && p.serialNumber.toLowerCase() === trimmedValue.toLowerCase()) ||
-                    (p.barcodes && p.barcodes.some(b => b.toLowerCase() === trimmedValue.toLowerCase()))
+                    (normImei1 && normImei1 === normalizedInput) ||
+                    (normImei2 && normImei2 === normalizedInput) ||
+                    (normSn && normSn === normalizedInput) ||
+                    (normBarcodes.some(b => b && b === normalizedInput))
                 );
             });
 
