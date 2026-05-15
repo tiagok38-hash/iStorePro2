@@ -14,19 +14,21 @@ export { formatCurrency, formatPhone } from '../utils/formatters.ts';
 
 export const mapProduct = (p: any): Product => ({
     ...p,
-    supplierId: p.supplier_id || p.supplierId,
-    storageLocation: p.storage_location || p.storageLocation,
-    costPrice: p.cost_price || p.costPrice,
-    totalCostPrice: (Number(p.cost_price || 0) + Number(p.additional_cost_price || 0)),
-    wholesalePrice: p.wholesale_price || p.wholesalePrice,
-    batteryHealth: p.battery_health || p.batteryHealth,
-    serialNumber: p.serial_number || p.serialNumber,
-    additionalCostPrice: p.additional_cost_price || p.additionalCostPrice,
+    supplierId: p.supplier_id ?? p.supplierId,
+    storageLocation: p.storage_location ?? p.storageLocation,
+    // Usa ?? (nullish coalescing) para suportar tanto snake_case (API externa) quanto
+    // camelCase (colunas nativas do banco). Preserva corretamente custo = R$ 0,00.
+    costPrice: p.cost_price != null ? Number(p.cost_price) : (p.costPrice ?? 0),
+    totalCostPrice: (Number(p.cost_price ?? p.costPrice ?? 0) + Number(p.additional_cost_price ?? p.additionalCostPrice ?? 0)),
+    wholesalePrice: p.wholesale_price != null ? Number(p.wholesale_price) : (p.wholesalePrice ?? 0),
+    batteryHealth: p.battery_health ?? p.batteryHealth,
+    serialNumber: p.serial_number ?? p.serialNumber,
+    additionalCostPrice: p.additional_cost_price != null ? Number(p.additional_cost_price) : (p.additionalCostPrice ?? 0),
     stockHistory: p.stock_history || p.stockHistory || [],
     priceHistory: p.price_history || p.priceHistory || [],
     createdAt: p.created_at || p.createdAt,
     updatedAt: p.updated_at || p.updatedAt,
-    minimumStock: p.minimum_stock || p.minimumStock,
+    minimumStock: p.minimum_stock ?? p.minimumStock,
     createdBy: p.created_by || p.createdBy,
     createdByName: p.created_by_name || p.createdByName,
 });

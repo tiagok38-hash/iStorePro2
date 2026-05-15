@@ -113,10 +113,11 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                 const cat = categories.find(c => c.id === p.category);
                 let product = cat ? { ...p, category: cat.name } : { ...p };
 
-                // BUGFIX: Ensure costPrice represents the total cost (including additional costs from repairs/parts)
-                const baseCost = Number(product.costPrice || 0);
-                const additionalCost = Number(product.additionalCostPrice || 0);
-                product.costPrice = product.totalCostPrice ?? (baseCost + additionalCost);
+                // Custo total = custo base + custo adicional (ex: peças de reparo).
+                // Ambos já foram normalizados pelo mapProduct (suporte a snake_case e camelCase).
+                const baseCost = Number(product.costPrice ?? 0);
+                const additionalCost = Number(product.additionalCostPrice ?? 0);
+                product.costPrice = baseCost + additionalCost;
 
                 // Polyfill storage if missing but present in model name
                 if (!product.storage && product.model) {
@@ -541,9 +542,9 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                     htmlPreview += htmlLine + '\n';
 
                     const prices: string[] = [];
-                    if (showCost && p.costPrice) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
-                    if (showWholesale && p.wholesalePrice) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
-                    if (showSale && p.price) prices.push(`Venda: ${formatCurrency(p.price)}`);
+                    if (showCost && p.costPrice != null) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
+                    if (showWholesale && p.wholesalePrice != null) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
+                    if (showSale && p.price != null) prices.push(`Venda: ${formatCurrency(p.price)}`);
 
                     if (prices.length > 0) {
                         const priceLine = `  💰 ${prices.join(' | ')}\n`;
@@ -604,9 +605,9 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                     htmlPreview += htmlLine + '\n';
 
                     const prices: string[] = [];
-                    if (showCost && p.costPrice) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
-                    if (showWholesale && p.wholesalePrice) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
-                    if (showSale && p.price) prices.push(`Venda: ${formatCurrency(p.price)}`);
+                    if (showCost && p.costPrice != null) prices.push(`Custo: ${formatCurrency(p.costPrice)}`);
+                    if (showWholesale && p.wholesalePrice != null) prices.push(`Atacado: ${formatCurrency(p.wholesalePrice)}`);
+                    if (showSale && p.price != null) prices.push(`Venda: ${formatCurrency(p.price)}`);
 
                     if (prices.length > 0) {
                         const priceLine = `  💰 ${prices.join(' | ')}\n`;
