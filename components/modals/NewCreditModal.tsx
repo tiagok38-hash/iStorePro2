@@ -14,11 +14,12 @@ interface NewCreditModalProps {
     customerLimit?: number;
     customerUsed?: number;
     customerId?: string;
+    isLoadingCustomer?: boolean;
     onConfirm: (details: any) => void;
     onUpdateLimit?: (newLimit: number) => void | Promise<void>;
 }
 
-const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalAmount, availableLimit, customerLimit, customerUsed, customerId, onConfirm, onUpdateLimit }) => {
+const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalAmount, availableLimit, customerLimit, customerUsed, customerId, isLoadingCustomer = false, onConfirm, onUpdateLimit }) => {
     const [entryAmount, setEntryAmount] = useState(0);
     const [financedAmount, setFinancedAmount] = useState(totalAmount);
     const [installments, setInstallments] = useState(1);
@@ -99,10 +100,12 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
 
     const installmentValue = installments > 0 ? totalWithInterest / installments : 0;
 
-    // Limite excedido: só verifica se o limite está configurado (> 0)
-    const limitExceeded = hasLimitConfigured && totalWithInterest > actualAvailableLimit;
-    // Sem limite configurado: exibe aviso diferente mas não bloqueia
-    const noLimitConfigured = !hasLimitConfigured;
+
+    // Limite excedido: só verifica se o limite está configurado (> 0) e dados já foram carregados
+    const limitExceeded = !isLoadingCustomer && hasLimitConfigured && totalWithInterest > actualAvailableLimit;
+    // Sem limite configurado: exibe aviso diferente mas não bloqueia (suprimir durante loading)
+    const noLimitConfigured = !isLoadingCustomer && !hasLimitConfigured;
+
 
     const previewInstallments = useMemo(() => {
         const dates = calculateInstallmentDates(firstDueDate, installments, frequency);
@@ -155,10 +158,10 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
 
     return (
         <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in py-6">
-            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col md:flex-row animate-scale-in my-auto overflow-hidden">
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col md:flex-row animate-scale-in my-auto">
                 
                 {/* ─── Painel Esquerdo ─── */}
-                <div className="p-6 md:p-8 flex-1 space-y-6 min-w-0">
+                <div className="p-6 md:p-8 flex-1 space-y-6 min-w-0 bg-white rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none">
                     {/* Cabeçalho */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 text-indigo-600">
@@ -184,9 +187,9 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                         </div>
 
                         {/* Limite do cliente */}
-                        <div className={`rounded-2xl p-4 border ${limitExceeded ? 'bg-red-50 border-red-200' : noLimitConfigured ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-100'}`}>
-                            <div className="flex items-center justify-between mb-1">
-                                <p className={`text-[10px] font-black uppercase tracking-widest ${limitExceeded ? 'text-red-400' : noLimitConfigured ? 'text-amber-500' : 'text-emerald-500'}`}>
+                        <div className={`rounded-2xl p-4 border ${limitExceeded ? 'bg-red-50 border-red-200' : noLimitConfigured ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}>
+                            <div className="flex items-center justify-between mb-3">
+                                <p className={`text-[10px] font-black uppercase tracking-widest ${limitExceeded ? 'text-red-500' : noLimitConfigured ? 'text-amber-500' : 'text-gray-400'}`}>
                                     Limite do Cliente
                                 </p>
                                 {/* Botão editar limite */}
@@ -236,21 +239,75 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                                         placeholder="Novo limite total"
                                     />
                                 </div>
-                            ) : (
-                                <div className="space-y-1 mt-1">
-                                    <div className="flex items-baseline gap-2">
-                                        <p className={`text-xl font-black ${limitExceeded ? 'text-red-700' : noLimitConfigured ? 'text-amber-700' : 'text-emerald-700'}`}>
-                                            {noLimitConfigured ? 'Não configurado' : formatCurrency(actualAvailableLimit)}
-                                        </p>
-                                        {!noLimitConfigured && (
-                                            <span className="text-[10px] text-gray-400 font-bold">disponível</span>
-                                        )}
+                            ) : isLoadingCustomer ? (
+                                /* Skeleton enquanto busca dados frescos do banco */
+                                <div className="space-y-3 animate-pulse">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-gray-100 rounded-xl h-12" />
+                                        <div className="bg-gray-100 rounded-xl h-12" />
                                     </div>
-                                    {!noLimitConfigured && (
-                                        <p className="text-[10px] text-gray-400 font-medium">
-                                            Total: {formatCurrency(localTotalLimit)} · Utilizado: {formatCurrency(customerUsed || 0)}
-                                        </p>
+                                    <div className="flex justify-between items-center">
+                                        <div className="h-3 bg-gray-100 rounded w-16" />
+                                        <div className="h-3 bg-gray-100 rounded w-20" />
+                                    </div>
+                                    <div className="h-2 bg-gray-100 rounded-full" />
+                                </div>
+                            ) : noLimitConfigured ? (
+                                /* Sem limite configurado, mas exibimos a dívida se existir */
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <p className="text-xl font-black text-amber-700">Não configurado</p>
+                                    </div>
+                                    {(customerUsed || 0) > 0 && (
+                                        <div className="flex items-center justify-between border-t border-amber-100 pt-2">
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Dívida Atual</span>
+                                            <span className="text-sm font-black text-red-600">{formatCurrency(customerUsed || 0)}</span>
+                                        </div>
                                     )}
+                                </div>
+                            ) : (
+                                /* Limite configurado: exibe total, utilizado e disponível com barra */
+                                <div className="space-y-3">
+                                    {/* Linha 1: Total e Disponível em destaque */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Total</p>
+                                            <p className="text-sm font-black text-gray-800 leading-none">{formatCurrency(localTotalLimit)}</p>
+                                        </div>
+                                        <div className={`rounded-xl px-3 py-2 border ${limitExceeded ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-100'}`}>
+                                            <p className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${limitExceeded ? 'text-red-400' : 'text-emerald-500'}`}>Disponível</p>
+                                            <p className={`text-sm font-black leading-none ${limitExceeded ? 'text-red-700' : 'text-emerald-700'}`}>{formatCurrency(actualAvailableLimit)}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Linha 2: Utilizado */}
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Utilizado</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[11px] font-black ${limitExceeded ? 'text-red-600' : 'text-gray-700'}`}>
+                                                {formatCurrency(customerUsed || 0)}
+                                            </span>
+                                            {localTotalLimit > 0 && (
+                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${limitExceeded ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {(((customerUsed || 0) / localTotalLimit) * 100).toFixed(0)}%
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Barra de progresso */}
+                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${
+                                                limitExceeded
+                                                    ? 'bg-red-500'
+                                                    : (customerUsed || 0) / localTotalLimit > 0.8
+                                                        ? 'bg-amber-400'
+                                                        : 'bg-emerald-500'
+                                            }`}
+                                            style={{ width: `${Math.min(100, ((customerUsed || 0) / localTotalLimit) * 100)}%` }}
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -366,7 +423,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                 </div>
 
                 {/* ─── Painel Direito: Resumo ─── */}
-                <div className="bg-gray-50 p-6 md:p-8 md:w-80 lg:w-96 flex flex-col border-t md:border-t-0 md:border-l border-gray-200">
+                <div className="bg-gray-50 p-6 md:p-8 md:w-80 lg:w-96 flex flex-col border-t md:border-t-0 md:border-l border-gray-200 rounded-b-3xl md:rounded-r-3xl md:rounded-bl-none">
                     <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">Resumo do Parcelamento</h3>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1 space-y-2 mb-4 max-h-[220px] md:max-h-[320px]">

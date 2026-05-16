@@ -11,6 +11,7 @@ import {
     TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon, SpinnerIcon
 } from '../icons.tsx';
 import { searchProducts } from '../../services/productService.ts';
+import { getCustomerById, updateCustomer } from '../../services/customerService.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import SearchableDropdown from '../SearchableDropdown.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
@@ -63,6 +64,23 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     const [customerToEdit, setCustomerToEdit] = React.useState<Customer | null>(null);
     const [isSavingCustomer, setIsSavingCustomer] = React.useState(false);
     const [isCreditModalOpen, setIsCreditModalOpen] = React.useState(false);
+    const [freshCustomer, setFreshCustomer] = React.useState<Customer | null>(null);
+    const [isFetchingCustomer, setIsFetchingCustomer] = React.useState(false);
+
+    // Busca dados FRESCOS do cliente do banco ao abrir modal de crediário
+    const openCreditModal = React.useCallback(async (customerId: string) => {
+        setIsCreditModalOpen(true);
+        setFreshCustomer(null);
+        setIsFetchingCustomer(true);
+        try {
+            const fresh = await getCustomerById(customerId);
+            if (fresh) setFreshCustomer(fresh);
+        } catch (err) {
+            console.error('[openCreditModal] Error fetching fresh customer:', err);
+        } finally {
+            setIsFetchingCustomer(false);
+        }
+    }, []);
     const [creditWarning, setCreditWarning] = React.useState<{ isOpen: boolean, customerName: string, creditLimit: number, creditUsed: number, purchaseAmount: number } | null>(null);
     const [variationModalConfig, setVariationModalConfig] = React.useState<{ isOpen: boolean, method: string, variations: string[] } | null>(null);
 
@@ -762,7 +780,8 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                                             alert('Selecione um cliente para prosseguir.');
                                                             return;
                                                         }
-                                                        setIsCreditModalOpen(true);
+                                                        // Abre modal e busca dados frescos do banco (sem cache)
+                                                        openCreditModal(selectedCustomerId!);
 
                                                     } else {
                                                         const methodParam = paymentMethods.find(p => p.name === label);
@@ -1101,18 +1120,31 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
             <NewCreditModal
                 isOpen={isCreditModalOpen}
-                onClose={() => setIsCreditModalOpen(false)}
-                totalAmount={balance} // Pass balance as the amount to finance
-                availableLimit={(() => {
-                    const c = customers.find(cust => cust.id === selectedCustomerId);
-                    return c ? (c.credit_limit || 0) - (c.credit_used || 0) : 0;
+                onClose={() => { setIsCreditModalOpen(false); setFreshCustomer(null); }}
+                totalAmount={balance}
+                {...(() => {
+                    // Prioridade: dados frescos do banco > cache local
+                    const c = freshCustomer ?? customers.find(cust => cust.id === selectedCustomerId);
+                    return {
+                        availableLimit: c ? Math.max(0, (c.credit_limit || 0) - (c.credit_used || 0)) : 0,
+                        customerLimit: c?.credit_limit ?? 0,
+                        customerUsed: c?.credit_used ?? 0,
+                    };
                 })()}
-                customerLimit={customers.find(cust => cust.id === selectedCustomerId)?.credit_limit || 0}
-                customerUsed={customers.find(cust => cust.id === selectedCustomerId)?.credit_used || 0}
                 customerId={selectedCustomerId}
+                isLoadingCustomer={isFetchingCustomer}
                 onUpdateLimit={async (newLimit) => {
-                    if (selectedCustomerId && props.onUpdateCustomer) {
-                        await props.onUpdateCustomer({ id: selectedCustomerId, credit_limit: newLimit, allow_credit: true });
+                    if (selectedCustomerId) {
+                        try {
+                            const updated = await updateCustomer({ id: selectedCustomerId, credit_limit: newLimit, allow_credit: true });
+                            setFreshCustomer(updated);
+                            // Notifica o parent caso haja a prop
+                            if (props.onUpdateCustomer) {
+                                await props.onUpdateCustomer(updated);
+                            }
+                        } catch (err: any) {
+                            showToast(err.message || 'Erro ao atualizar limite.', 'error');
+                        }
                     }
                 }}
                 onConfirm={(details) => {

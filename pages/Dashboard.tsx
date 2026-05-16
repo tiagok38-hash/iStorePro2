@@ -1552,11 +1552,30 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
     );
 });
 
+const DashboardSkeletonCard = () => (
+    <div className="card-premium p-5 flex flex-col h-full animate-pulse">
+        <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gray-100" />
+            <div className="flex-1 space-y-2">
+                <div className="h-3 bg-gray-100 rounded-full w-24" />
+                <div className="h-6 bg-gray-100 rounded-full w-32" />
+            </div>
+        </div>
+        <div className="flex-1 bg-gray-50 rounded-2xl" style={{ minHeight: '80px' }} />
+        <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+            <div className="h-14 bg-gray-100 rounded-2xl" />
+            <div className="h-14 bg-gray-100 rounded-2xl" />
+        </div>
+    </div>
+);
+
 const Dashboard: React.FC = () => {
     const { user, permissions } = useUser();
     const navigate = useNavigate();
     const canViewDashboard = permissions?.canAccessDashboard;
     const [loading, setLoading] = useState(true);
+    const [salesLoading, setSalesLoading] = useState(true);
+    const [ordersLoading, setOrdersLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -1590,6 +1609,8 @@ const Dashboard: React.FC = () => {
 
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
         if (!silent) setLoading(true);
+        if (!silent) setSalesLoading(true);
+        if (!silent) setOrdersLoading(true);
         if (!silent) setError(null);
 
         // Helper: Fetches data, logs errors, but returns fallback instead of throwing
@@ -1603,7 +1624,7 @@ const Dashboard: React.FC = () => {
         };
 
         try {
-            // TIER 1: CRITICAL KPI DATA (SALES & PRODUCTS)
+            // TIER 1: CRITICAL KPI DATA — todos os dados dos cards principais em paralelo
             // ROBUSTNESS: Only fetch last 365 days of sales for dashboard to keep it fast
             const oneYearAgo = new Date();
             oneYearAgo.setDate(oneYearAgo.getDate() - 365);
@@ -1613,21 +1634,35 @@ const Dashboard: React.FC = () => {
             // for the dashboard view to save massive bandwidth and memory.
             const productSelect = 'id,sku,brand,category,model,price,costPrice,additionalCostPrice,stock,minimumStock,createdAt,origin,supplierId,serialNumber,imei1,imei2,color,storage,condition';
 
-            const [salesData, productsData] = await Promise.all([
+            // Fetch crítico paralelo: Sales + Products em paralelo, ServiceOrders + Services em paralelo separado
+            const salesProductsPromise = Promise.all([
                 fetchItem('Sales', () => getSales(undefined, undefined, startDate), []),
                 fetchItem('Products', () => getProducts({ select: productSelect }), []),
             ]);
 
+            const ordersServicesPromise = Promise.all([
+                fetchItem('ServiceOrders', () => getServiceOrders(), []),
+                fetchItem('Services', () => getServices(), []),
+            ]);
+
+            // Resolve Sales+Products primeiro para liberar o loader principal
+            const [salesData, productsData] = await salesProductsPromise;
             setSales(salesData);
             setProducts(productsData);
+            if (!silent) setSalesLoading(false);
 
             // Once priority data is ready, clear global loader to show main KPIs
             if (!silent) setLoading(false);
 
+            // Resolve ServiceOrders+Services (já em flight, só aguarda)
+            ordersServicesPromise.then(([ordersData, servicesData]) => {
+                setServiceOrders(ordersData);
+                setServices(servicesData);
+                setOrdersLoading(false);
+            }).catch(() => setOrdersLoading(false));
+
             // TIER 2: BACKGROUND DATA (SECONDARY METRICS)
             fetchItem('Customers', () => getCustomers(false), []).then(setCustomers);
-            fetchItem('ServiceOrders', () => getServiceOrders(), []).then(setServiceOrders);
-            fetchItem('Services', () => getServices(), []).then(setServices);
             fetchItem('Suppliers', () => getSuppliers(), []).then(setSuppliers);
             fetchItem('ActiveMethods', getPaymentMethods, []).then(setPaymentMethods);
             fetchItem('CreditInstallments', getCreditInstallments, []).then(setInstallments);
@@ -1898,14 +1933,18 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr">
-                <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
-                <ServiceOrderProfitCard
-                    serviceOrders={serviceOrders}
-                    services={services}
-                    products={products}
-                    isPrivacyMode={isPrivacyMode}
-                    to="/service-orders/financial"
-                />
+                {salesLoading ? <DashboardSkeletonCard /> : (
+                    <ProfitCard sales={sales} products={products} isPrivacyMode={isPrivacyMode} to="/vendas" permissions={permissions} onDenied={handlePermissionDenied} />
+                )}
+                {ordersLoading ? <DashboardSkeletonCard /> : (
+                    <ServiceOrderProfitCard
+                        serviceOrders={serviceOrders}
+                        services={services}
+                        products={products}
+                        isPrivacyMode={isPrivacyMode}
+                        to="/service-orders/financial"
+                    />
+                )}
                 <ProtectedLink to="/products" className="block h-full md:col-span-2" permissions={permissions} onDenied={handlePermissionDenied}>
                     <StockStatsCard products={products} isPrivacyMode={isPrivacyMode} />
                 </ProtectedLink>
