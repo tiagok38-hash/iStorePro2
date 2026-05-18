@@ -351,10 +351,11 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
         if (!debouncedSearch) return [];
         const term = debouncedSearch.toLowerCase();
         return products.filter(p =>
-            p.model.toLowerCase().includes(term) ||
-            p.sku?.toLowerCase().includes(term) ||
-            p.serialNumber?.toLowerCase().includes(term) ||
-            p.imei1?.toLowerCase().includes(term)
+            (p.model || '').toLowerCase().includes(term) ||
+            (p.sku || '').toLowerCase().includes(term) ||
+            (p.serialNumber || '').toLowerCase().includes(term) ||
+            (p.imei1 || '').toLowerCase().includes(term) ||
+            (p.imei2 || '').toLowerCase().includes(term)
         ).slice(0, 5); // Max 5 results
     }, [debouncedSearch, products]);
 
@@ -386,9 +387,10 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
         }
 
         if (movementType === 'saida' || movementType === 'transfer_out') {
-            if (quantity > selectedProduct.stock) {
-                showToast(`Estoque principal insuficiente. Disponível: ${selectedProduct.stock}`, 'warning');
-                return;
+            const currentStock = Number(selectedProduct.stock) || 0;
+            if (quantity > currentStock) {
+                // Remove hard block to allow transferring any product, just warn in UI later if needed,
+                // but proceed with the transfer.
             }
         }
 
@@ -687,11 +689,11 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
                                         <input
                                             type="number"
                                             min={1}
-                                            max={(movementType === 'saida' || movementType === 'transfer_out') ? selectedProduct.stock : 9999}
+                                            max={9999}
                                             value={quantity}
                                             onChange={e => {
                                                 const val = Math.max(1, Number(e.target.value));
-                                                setQuantity((movementType === 'saida' || movementType === 'transfer_out') ? Math.min(selectedProduct.stock, val) : val);
+                                                setQuantity(val);
                                             }}
                                             className="w-full h-10 px-3 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-orange-300/50 focus:border-orange-300 outline-none transition-all"
                                         />

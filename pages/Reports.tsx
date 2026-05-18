@@ -90,6 +90,9 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     });
     const [endDate, setEndDate] = useState(toDateValue());
     const [sellerFilter, setSellerFilter] = useState('todos');
+    const [productSearchTerm, setProductSearchTerm] = useState('');
+    const [productSortBy, setProductSortBy] = useState<'faturamento' | 'quantidade'>('faturamento');
+    const [productConditionFilter, setProductConditionFilter] = useState('todos');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(15);
 
@@ -230,16 +233,71 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     }, [filteredSales]);
 
     const topSellingProducts = useMemo(() => {
-        const productSales = filteredSales.flatMap(s => s.items).reduce<Record<string, { name: string; revenue: number }>>((acc, item) => {
-            if (!acc[item.productId]) {
-                // Truncate long names for better chart display if needed, but keeping full here
-                acc[item.productId] = { name: productMap[item.productId]?.model || 'Desconhecido', revenue: 0 };
+        const productSales = filteredSales.flatMap(s => s.items).reduce<Record<string, { name: string; revenue: number; profit: number; quantity: number; condition: string }>>((acc, item) => {
+            const product = productMap[item.productId];
+            // Fallbacks for name logic using snapshot data if product was deleted
+            let baseName = product?.model || item.productName || item.model || 'Produto Removido';
+            
+            const storage = product?.storage || item.storage;
+            const color = product?.color || item.color;
+            
+            if (storage && !baseName.includes(storage.toString())) baseName += ` ${storage}`;
+            if (color && !baseName.includes(color)) baseName += ` ${color}`;
+            
+            const condition = product?.condition || item.condition || 'Não informada';
+            const uniqueKey = `${baseName.trim()}_${condition}`;
+
+            if (!acc[uniqueKey]) {
+                acc[uniqueKey] = { name: baseName.trim(), revenue: 0, profit: 0, quantity: 0, condition };
             }
-            acc[item.productId].revenue += item.quantity * item.unitPrice;
+
+            const itemRevenue = item.netTotal ?? (item.quantity * item.unitPrice);
+            const snapshotCost = (item.costPrice !== undefined)
+                ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
+                : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
+            const itemCost = snapshotCost * item.quantity;
+            const itemProfit = itemRevenue - itemCost;
+
+            acc[uniqueKey].revenue += itemRevenue;
+            acc[uniqueKey].profit += itemProfit;
+            acc[uniqueKey].quantity += item.quantity;
+
             return acc;
         }, {});
-        return Object.values(productSales).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 10);
+        return Object.values(productSales);
     }, [filteredSales, productMap]);
+
+    const availableConditions = useMemo(() => {
+        const conditions = new Set<string>();
+        topSellingProducts.forEach(p => {
+            if (p.condition && p.condition !== 'Não informada') {
+                conditions.add(p.condition);
+            }
+        });
+        return Array.from(conditions).sort();
+    }, [topSellingProducts]);
+
+    const filteredTopSellingProducts = useMemo(() => {
+        let list = topSellingProducts;
+        
+        if (productConditionFilter !== 'todos') {
+            list = list.filter(p => p.condition === productConditionFilter);
+        }
+        
+        if (productSearchTerm) {
+            const term = productSearchTerm.toLowerCase();
+            list = list.filter(p => p.name.toLowerCase().includes(term));
+        }
+        
+        list = list.sort((a, b) => {
+            if (productSortBy === 'quantidade') {
+                return b.quantity - a.quantity;
+            }
+            return b.revenue - a.revenue;
+        });
+
+        return list.slice(0, productSearchTerm ? 50 : 10); // Show top 10 by default, or up to 50 if searching
+    }, [topSellingProducts, productSearchTerm, productConditionFilter, productSortBy]);
 
     const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
     const displayedSales = useMemo(() => {
@@ -401,34 +459,69 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 </div>
 
                 <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
-                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
-                        <span className="w-2 h-8 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></span>
-                        Top 10 Produtos
-                    </h3>
-                    <div className="space-y-4 mt-2">
-                        {(() => {
-                            const maxRevenue = Math.max(...topSellingProducts.map(p => p.revenue), 1);
-                            return topSellingProducts.map((product, index) => (
-                                <div key={index} className="flex items-center gap-3 group">
-                                    <div className="w-[180px] shrink-0">
-                                        <p className="text-[11px] font-bold text-gray-900 leading-tight group-hover:text-primary transition-colors">
-                                            {product.name}
-                                        </p>
-                                    </div>
-                                    <div className="flex-1 flex items-center gap-3">
-                                        <div className="relative flex-1 h-6 bg-gray-50 rounded-lg overflow-hidden border border-gray-100/50">
-                                            <div
-                                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-purple-600 rounded-r-md shadow-sm group-hover:from-purple-600 group-hover:to-purple-700 transition-all duration-500"
-                                                style={{ width: `${(product.revenue / maxRevenue) * 100}%` }}
-                                            ></div>
-                                        </div>
-                                        <span className="text-xs font-black text-gray-900 shrink-0 min-w-[90px] text-right">
-                                            {formatCurrency(product.revenue)}
-                                        </span>
-                                    </div>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                        <h3 className="font-black text-gray-900 flex items-center gap-3 text-lg uppercase tracking-tight shrink-0 leading-tight">
+                            <span className="w-2 h-10 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></span>
+                            <div>
+                                Produtos<br/>Vendidos
+                            </div>
+                        </h3>
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                            <div className="relative w-full sm:w-64 shrink-0">
+                                <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar produto..."
+                                    value={productSearchTerm}
+                                    onChange={e => setProductSearchTerm(e.target.value)}
+                                    className="pl-9 pr-4 py-2 border rounded-xl bg-gray-50 border-gray-100 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all outline-none text-xs font-bold w-full"
+                                />
+                            </div>
+                            <select
+                                value={productConditionFilter}
+                                onChange={e => setProductConditionFilter(e.target.value)}
+                                className="w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                            >
+                                <option value="todos">Todas as Condições</option>
+                                {availableConditions.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                                <option value="Não informada">Não informada</option>
+                            </select>
+                            <select
+                                value={productSortBy}
+                                onChange={e => setProductSortBy(e.target.value as any)}
+                                className="w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                            >
+                                <option value="faturamento">Por Faturamento</option>
+                                <option value="quantidade">Por Quantidade</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
+                        {filteredTopSellingProducts.length > 0 ? filteredTopSellingProducts.map((product, index) => (
+                            <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-gray-100/50 transition-all border border-transparent hover:border-gray-200 gap-3">
+                                <div>
+                                    <p className="text-sm font-black text-gray-900 leading-tight uppercase tracking-tight">
+                                        {product.name}
+                                        {product.condition && product.condition !== 'Não informada' && (
+                                            <span className="ml-2 text-[10px] font-bold text-gray-400 bg-gray-200/50 px-2 py-0.5 rounded-full">{product.condition}</span>
+                                        )}
+                                    </p>
+                                    <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 text-[10px] font-bold uppercase tracking-widest">
+                                        {product.quantity} unidades vendidas
+                                    </span>
                                 </div>
-                            ));
-                        })()}
+                                <div className="text-left sm:text-right">
+                                    <p className="text-base font-black text-primary tracking-tight">{formatCurrency(product.revenue)}</p>
+                                    <p className="text-[11px] font-bold text-emerald-600 mt-0.5 uppercase tracking-tighter">
+                                        Lucro: {formatCurrency(product.profit)}
+                                    </p>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="p-4 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">Nenhum produto encontrado.</div>
+                        )}
                     </div>
                 </div>
             </div>

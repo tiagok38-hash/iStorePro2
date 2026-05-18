@@ -129,8 +129,8 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
 
     // 5. Product Type (Apple vs Non-Apple) & Category
     const typeStats = useMemo(() => {
-        const apple = { name: 'Apple', revenue: 0, count: 0 };
-        const other = { name: 'Não Apple', revenue: 0, count: 0 };
+        const apple = { name: 'Apple', revenue: 0, count: 0, cost: 0, profit: 0 };
+        const other = { name: 'Não Apple', revenue: 0, count: 0, cost: 0, profit: 0 };
         const categories: Record<string, { revenue: number, cost: number, count: number }> = {};
 
         filteredSales.forEach(s => {
@@ -144,11 +144,14 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                 // Let's approximate revenue as unitPrice * quantity.
 
                 const isApple = (p.brand || '').toLowerCase().includes('apple');
+                const cost = ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
                 if (isApple) {
                     apple.revenue += lineTotal;
+                    apple.cost += cost;
                     apple.count += item.quantity;
                 } else {
                     other.revenue += lineTotal;
+                    other.cost += cost;
                     other.count += item.quantity;
                 }
 
@@ -164,6 +167,9 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
         // It's hard to attribute global discount to specific items without pro-rating.
         // For "Type" reports, gross revenue is often acceptable to see volume.
 
+        apple.profit = apple.revenue - apple.cost;
+        other.profit = other.revenue - other.cost;
+
         const categoryList = Object.entries(categories)
             .filter(([name]) => {
                 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(name);
@@ -172,6 +178,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             .map(([name, data]) => ({
                 name,
                 revenue: data.revenue,
+                profit: data.revenue - data.cost,
                 count: data.count,
                 margin: data.revenue > 0 ? ((data.revenue - data.cost) / data.revenue) * 100 : 0
             })).sort((a, b) => b.revenue - a.revenue);
@@ -193,16 +200,26 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
 
     // 7. Salesperson Ranking
     const sellerStats = useMemo(() => {
-        const stats: Record<string, { id: string, name: string, sales: number, count: number }> = {};
+        const stats: Record<string, { id: string, name: string, sales: number, count: number, profit: number }> = {};
 
         filteredSales.forEach(s => {
             const sid = s.salespersonId || 'unknown';
             if (!stats[sid]) {
                 const u = users.find(u => u.id === sid);
-                stats[sid] = { id: sid, name: u ? u.name : 'Desconhecido', sales: 0, count: 0 };
+                stats[sid] = { id: sid, name: u ? u.name : 'Desconhecido', sales: 0, count: 0, profit: 0 };
             }
             stats[sid].sales += s.total;
             stats[sid].count += 1;
+            
+            let saleCost = 0;
+            s.items.forEach(item => {
+                const p = productMap[item.productId];
+                if (p) {
+                    const cost = (p.costPrice || 0) + (p.additionalCostPrice || 0);
+                    saleCost += cost * item.quantity;
+                }
+            });
+            stats[sid].profit += (s.total - saleCost);
         });
 
         return Object.values(stats)
@@ -406,7 +423,8 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                 </div>
                                 <div className="text-right">
                                     <p className="font-black text-emerald-500 text-base tracking-tight">{formatCurrency(s.sales)}</p>
-                                    <div className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 group-hover:text-orange-600 transition-colors uppercase tracking-widest">
+                                    <p className="text-[11px] font-bold text-emerald-600 mt-0.5 tracking-tighter">Lucro: {formatCurrency(s.profit)}</p>
+                                    <div className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 group-hover:text-orange-600 transition-colors uppercase tracking-widest mt-0.5">
                                         {s.percent.toFixed(1)}% <span className="opacity-50">do total</span>
                                     </div>
                                 </div>
@@ -439,7 +457,10 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                                 </p>
                                             </div>
                                         </div>
-                                        <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.apple.revenue)}</p>
+                                        <div className="text-right">
+                                            <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.apple.revenue)}</p>
+                                            <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mt-1">Lucro: {formatCurrency(typeStats.apple.profit)}</p>
+                                        </div>
                                     </div>
                                     <div className="p-6 bg-gray-50/50 rounded-2xl flex justify-between items-center border border-gray-50 group hover:bg-gray-100 hover:border-gray-200 transition-all">
                                         <div>
@@ -452,7 +473,10 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                                 </p>
                                             </div>
                                         </div>
-                                        <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.other.revenue)}</p>
+                                        <div className="text-right">
+                                            <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.other.revenue)}</p>
+                                            <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mt-1">Lucro: {formatCurrency(typeStats.other.profit)}</p>
+                                        </div>
                                     </div>
                                 </>
                             );
@@ -476,7 +500,10 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                 </div>
                                 <div className="text-right">
                                     <span className="font-black text-gray-900 text-sm tracking-tight block">{formatCurrency(cat.revenue)}</span>
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{cat.count} unidades</span>
+                                    <div className="flex flex-col items-end mt-1">
+                                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">Lucro: {formatCurrency(cat.profit)}</span>
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{cat.count} unidades</span>
+                                    </div>
                                 </div>
                             </div>
                         ))}
