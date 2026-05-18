@@ -9,6 +9,7 @@ import PriceListModal from '../components/PriceListModal.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 import SalesReports from '../components/SalesReports.tsx';
 import AveragePriceReport from '../components/AveragePriceReport.tsx';
+import { getItemCostSnapshot } from '../utils/financialUtils.ts';
 
 const PremiumKpiCard: React.FC<{
     title: string;
@@ -116,8 +117,8 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
             const dateMatch = saleDate >= start && saleDate <= end;
             const sellerMatch = sellerFilter === 'todos' || sale.salespersonId === sellerFilter;
-            // Alinhar com Financeiro: Considerar apenas "Finalizada"
-            const statusMatch = sale.status === 'Finalizada';
+            // Alinhar com Relatórios de Vendas: tudo exceto Cancelada
+            const statusMatch = sale.status !== 'Cancelada';
 
             return dateMatch && sellerMatch && statusMatch;
         });
@@ -139,19 +140,16 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
             sale.items.forEach(item => {
                 const product = productMap[item.productId];
-                // Prioridade: snapshot salvo na venda (item.costPrice). Fallback: custo atual do produto
-                const snapshotCost = (item.costPrice !== undefined)
-                    ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
-                    : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
-                const itemCost = snapshotCost * item.quantity;
+                // Snapshot do custo na época da venda (correto para histórico financeiro)
+                const itemCost = getItemCostSnapshot(item, product) * item.quantity;
                 const itemGrossRevenue = item.unitPrice * item.quantity;
 
-                // Receita líquida: usa netTotal (com desconto) ou gross como fallback
-                const itemNetRevenue = item.netTotal ?? itemGrossRevenue;
+                // Receita: usa unitPrice * qty
+                const itemNetRevenue = itemGrossRevenue;
                 const itemProfit = itemNetRevenue - itemCost;
 
-                // Determina a marca pelo snapshot ou produto atual
-                const brand = (item as any).brand || product?.brand || '';
+                // Determina a marca
+                const brand = product?.brand || (item as any).brand || '';
                 if (brand.toLowerCase().includes('apple')) {
                     appleStats.faturamento += itemNetRevenue;
                     appleStats.lucro += itemProfit;
@@ -192,13 +190,10 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             if (!acc[day]) {
                 acc[day] = { faturamento: 0, lucro: 0, vendas: 0 };
             }
-            // Usa snapshot de custo do item (igual ao Dashboard/Vendas)
+            // Snapshot do custo na época da venda
             const saleCost = sale.items.reduce((cost, item) => {
                 const product = productMap[item.productId];
-                const snapshotCost = (item.costPrice !== undefined)
-                    ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
-                    : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
-                return cost + snapshotCost * item.quantity;
+                return cost + getItemCostSnapshot(item, product) * item.quantity;
             }, 0);
             const revenue = sale.total;
 
@@ -251,11 +246,9 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 acc[uniqueKey] = { name: baseName.trim(), revenue: 0, profit: 0, quantity: 0, condition };
             }
 
-            const itemRevenue = item.netTotal ?? (item.quantity * item.unitPrice);
-            const snapshotCost = (item.costPrice !== undefined)
-                ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
-                : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
-            const itemCost = snapshotCost * item.quantity;
+            const itemRevenue = item.quantity * item.unitPrice;
+            // Snapshot do custo na época da venda
+            const itemCost = getItemCostSnapshot(item, product) * item.quantity;
             const itemProfit = itemRevenue - itemCost;
 
             acc[uniqueKey].revenue += itemRevenue;
@@ -298,6 +291,11 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
         return list.slice(0, productSearchTerm ? 50 : 10); // Show top 10 by default, or up to 50 if searching
     }, [topSellingProducts, productSearchTerm, productConditionFilter, productSortBy]);
+
+    // Faturamento total de TODOS os produtos do período (usado como denominador do % de participação)
+    const totalAllProductsRevenue = useMemo(() => {
+        return topSellingProducts.reduce((sum, p) => sum + p.revenue, 0);
+    }, [topSellingProducts]);
 
     const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
     const displayedSales = useMemo(() => {
@@ -499,27 +497,40 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                         </div>
                     </div>
                     <div className="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
-                        {filteredTopSellingProducts.length > 0 ? filteredTopSellingProducts.map((product, index) => (
-                            <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-gray-100/50 transition-all border border-transparent hover:border-gray-200 gap-3">
-                                <div>
-                                    <p className="text-sm font-black text-gray-900 leading-tight uppercase tracking-tight">
-                                        {product.name}
-                                        {product.condition && product.condition !== 'Não informada' && (
-                                            <span className="ml-2 text-[10px] font-bold text-gray-400 bg-gray-200/50 px-2 py-0.5 rounded-full">{product.condition}</span>
-                                        )}
-                                    </p>
-                                    <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 text-[10px] font-bold uppercase tracking-widest">
-                                        {product.quantity} unidades vendidas
-                                    </span>
-                                </div>
-                                <div className="text-left sm:text-right">
-                                    <p className="text-base font-black text-primary tracking-tight">{formatCurrency(product.revenue)}</p>
-                                    <p className="text-[11px] font-bold text-emerald-600 mt-0.5 uppercase tracking-tighter">
-                                        Lucro: {formatCurrency(product.profit)}
-                                    </p>
-                                </div>
-                            </div>
-                        )) : (
+                        {filteredTopSellingProducts.length > 0 ? (() => {
+                            return filteredTopSellingProducts.map((product, index) => {
+                                const revenueShare = totalAllProductsRevenue > 0 ? (product.revenue / totalAllProductsRevenue) * 100 : 0;
+                                const profitMargin = product.revenue > 0 ? (product.profit / product.revenue) * 100 : 0;
+                                const isLoss = product.profit < 0;
+                                return (
+                                    <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-gray-100/50 transition-all border border-transparent hover:border-gray-200 gap-3">
+                                        <div>
+                                            <p className="text-sm font-black text-gray-900 leading-tight uppercase tracking-tight">
+                                                {product.name}
+                                                {product.condition && product.condition !== 'Não informada' && (
+                                                    <span className="ml-2 text-[10px] font-bold text-gray-400 bg-gray-200/50 px-2 py-0.5 rounded-full">{product.condition}</span>
+                                                )}
+                                            </p>
+                                            <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 text-[10px] font-bold uppercase tracking-widest">
+                                                {product.quantity} unidades vendidas
+                                            </span>
+                                        </div>
+                                        <div className="text-left sm:text-right">
+                                            <div className="flex items-baseline justify-end gap-2">
+                                                <p className="text-base font-black text-primary tracking-tight">{formatCurrency(product.revenue)}</p>
+                                                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-md">{revenueShare.toFixed(1)}%</span>
+                                            </div>
+                                            <p className={`text-[11px] font-bold mt-0.5 uppercase tracking-tighter ${isLoss ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                Lucro: {formatCurrency(product.profit)}
+                                            </p>
+                                            <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-tighter ${isLoss ? 'text-red-400' : 'text-gray-400'}`}>
+                                                Margem: {profitMargin.toFixed(1)}%
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            });
+                        })() : (
                             <div className="p-4 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">Nenhum produto encontrado.</div>
                         )}
                     </div>
@@ -565,10 +576,8 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                             {displayedSales.map(sale => {
                                 const saleCost = sale.items.reduce((cost, item) => {
                                     const product = productMap[item.productId];
-                                    const snapshotCost = (item.costPrice !== undefined)
-                                        ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0))
-                                        : ((product?.costPrice || 0) + (product?.additionalCostPrice || 0));
-                                    return cost + snapshotCost * item.quantity;
+                                    // Snapshot do custo na época da venda
+                                    return cost + getItemCostSnapshot(item, product) * item.quantity;
                                 }, 0);
                                 const revenue = sale.total;
                                 const profit = revenue - saleCost;

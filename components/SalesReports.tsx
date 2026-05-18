@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import CustomDatePicker from './CustomDatePicker';
 import { DocumentArrowUpIcon, SearchIcon } from './icons';
+import { getItemCostSnapshot } from '../utils/financialUtils.ts';
 
 interface SalesReportsProps {
     sales: Sale[];
@@ -94,10 +95,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             s.items.forEach(item => {
                 totalItems += item.quantity;
                 const p = productMap[item.productId];
-                if (p) {
-                    const cost = (p.costPrice || 0) + (p.additionalCostPrice || 0);
-                    totalCost += cost * item.quantity;
-                }
+                totalCost += getItemCostSnapshot(item, p) * item.quantity;
             });
         });
 
@@ -136,30 +134,26 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
         filteredSales.forEach(s => {
             s.items.forEach(item => {
                 const p = productMap[item.productId];
-                if (!p) return;
+                const itemCost = getItemCostSnapshot(item, p) * item.quantity;
+                const lineTotal = item.unitPrice * item.quantity;
 
-                const lineTotal = item.unitPrice * item.quantity; // Gross line revenue
-                // We need to distribute discount? For simplicity use lineTotal, or pro-rate.
-                // Simpler: use unitPrice as "sold price" (it usually is net of item discount if system supports it, but here discount is on sale). 
-                // Let's approximate revenue as unitPrice * quantity.
-
-                const isApple = (p.brand || '').toLowerCase().includes('apple');
-                const cost = ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
+                const brand = p?.brand || (item as any).brand || '';
+                const isApple = brand.toLowerCase().includes('apple');
                 if (isApple) {
                     apple.revenue += lineTotal;
-                    apple.cost += cost;
+                    apple.cost += itemCost;
                     apple.count += item.quantity;
                 } else {
                     other.revenue += lineTotal;
-                    other.cost += cost;
+                    other.cost += itemCost;
                     other.count += item.quantity;
                 }
 
-                const cat = p.category || 'Sem Categoria';
+                const cat = p?.category || 'Sem Categoria';
                 if (!categories[cat]) categories[cat] = { revenue: 0, cost: 0, count: 0 };
                 categories[cat].revenue += lineTotal;
                 categories[cat].count += item.quantity;
-                categories[cat].cost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
+                categories[cat].cost += itemCost;
             });
         });
 
@@ -214,10 +208,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             let saleCost = 0;
             s.items.forEach(item => {
                 const p = productMap[item.productId];
-                if (p) {
-                    const cost = (p.costPrice || 0) + (p.additionalCostPrice || 0);
-                    saleCost += cost * item.quantity;
-                }
+                saleCost += getItemCostSnapshot(item, p) * item.quantity;
             });
             stats[sid].profit += (s.total - saleCost);
         });

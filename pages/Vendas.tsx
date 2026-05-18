@@ -15,6 +15,7 @@ import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 import { getWhatsAppLink } from '../utils/whatsappUtils.ts';
+import { getItemCostSnapshot } from '../utils/financialUtils.ts';
 
 import { lazyWithRetry } from '../utils/lazyWithRetry.ts';
 
@@ -505,12 +506,9 @@ const Vendas: React.FC = () => {
         const lucro = filteredSales.reduce((sum, sale) => {
             if (sale.status === 'Cancelada') return sum;
             const cost = (sale.items || []).reduce((itemSum, item) => {
-                // Prioridade: usar o custo salvo no snapshot da venda (item.costPrice)
-                // Fallback: buscar do estoque atual (productMap)
+                // Snapshot do custo na época da venda (correto para histórico financeiro)
                 const product = productMap[item.productId];
-                const itemCost = (item as any).costPrice ?? product?.costPrice ?? 0;
-                const itemAdditionalCost = (item as any).additionalCostPrice ?? product?.additionalCostPrice ?? 0;
-                return itemSum + (itemCost + itemAdditionalCost) * item.quantity;
+                return itemSum + getItemCostSnapshot(item, product) * item.quantity;
             }, 0);
             const revenue = sale.total;
             return sum + (revenue - cost);
@@ -755,9 +753,8 @@ const Vendas: React.FC = () => {
                                 ) : currentSales.map(sale => {
                                     const cost = (sale.items || []).reduce((acc, item) => {
                                         const product = productMap[item.productId];
-                                        const itemCost = (item as any).costPrice ?? product?.costPrice ?? 0;
-                                        const itemAdditionalCost = (item as any).additionalCostPrice ?? product?.additionalCostPrice ?? 0;
-                                        return acc + (itemCost + itemAdditionalCost) * item.quantity;
+                                        // Snapshot do custo na época da venda
+                                        return acc + getItemCostSnapshot(item, product) * item.quantity;
                                     }, 0);
                                     const revenue = sale.total;
                                     const profit = revenue - cost;
