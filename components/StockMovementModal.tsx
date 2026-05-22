@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Product, InventoryMovement, MovementReason, User, Branch } from '../types.ts';
 import { getInventoryMovements, createInventoryMovement } from '../services/inventoryService.ts';
 import { getBranches, createBranch, transferStockToBranch, transferStockFromBranchToMain, getBranchInventory } from '../services/branchService.ts';
+import { searchProductsRPC } from '../services/mockApi.ts';
 import { toDateValue } from '../utils/dateUtils.ts';
 import {
     SearchIcon, CloseIcon, XCircleIcon, ClockIcon,
@@ -278,6 +279,9 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const [serverSearchResults, setServerSearchResults] = useState<Product[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const searchAbort = useRef<AbortController | null>(null);
 
     // --- Movement form ---
     const [movementType, setMovementType] = useState<'entrada' | 'saida' | 'transfer_out' | 'transfer_in'>('saida');
@@ -349,14 +353,45 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
 
     const filteredProducts = useMemo(() => {
         if (!debouncedSearch) return [];
-        const term = debouncedSearch.toLowerCase();
-        return products.filter(p =>
-            (p.model || '').toLowerCase().includes(term) ||
-            (p.sku || '').toLowerCase().includes(term) ||
-            (p.serialNumber || '').toLowerCase().includes(term) ||
-            (p.imei1 || '').toLowerCase().includes(term) ||
-            (p.imei2 || '').toLowerCase().includes(term)
-        ).slice(0, 5); // Max 5 results
+        return serverSearchResults;
+    }, [debouncedSearch, serverSearchResults]);
+
+    useEffect(() => {
+        if (!debouncedSearch.trim()) {
+            setServerSearchResults([]);
+            return;
+        }
+
+        if (searchAbort.current) searchAbort.current.abort();
+        const abortController = new AbortController();
+        searchAbort.current = abortController;
+
+        setIsSearching(true);
+        searchProductsRPC({
+            query: debouncedSearch.trim(),
+            stockFilter: 'all',
+            limit: 10
+        }).then(result => {
+            if (abortController.signal.aborted) return;
+            setServerSearchResults(result.products);
+        }).catch(err => {
+            if (abortController.signal.aborted) return;
+            console.error('Search failed', err);
+            // fallback client side search on the loaded products
+            const term = debouncedSearch.toLowerCase();
+            const localResults = products.filter(p =>
+                (p.model || '').toLowerCase().includes(term) ||
+                (p.sku || '').toLowerCase().includes(term) ||
+                (p.serialNumber || '').toLowerCase().includes(term) ||
+                (p.imei1 || '').toLowerCase().includes(term) ||
+                (p.imei2 || '').toLowerCase().includes(term)
+            ).slice(0, 10);
+            setServerSearchResults(localResults);
+        }).finally(() => {
+            if (!abortController.signal.aborted) setIsSearching(false);
+        });
+
+        return () => { abortController.abort(); };
     }, [debouncedSearch, products]);
 
     const handleSelectProduct = (product: Product) => {
@@ -573,7 +608,14 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
                             </div>
 
                             {/* Search Results */}
-                            {searchTerm && filteredProducts.length > 0 && !selectedProduct && (
+                            {searchTerm && isSearching && !selectedProduct && (
+                                <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center text-gray-500 shadow-sm flex flex-col items-center justify-center">
+                                    <SpinnerIcon className="h-6 w-6 animate-spin text-orange-400 mb-2" />
+                                    <p className="text-xs font-bold uppercase tracking-widest">Buscando...</p>
+                                </div>
+                            )}
+
+                            {searchTerm && !isSearching && filteredProducts.length > 0 && !selectedProduct && (
                                 <div className="bg-white border text-left border-gray-100 rounded-2xl shadow-lg shadow-gray-200/20 overflow-hidden animate-in fade-in slide-in-from-top-2">
                                     {filteredProducts.map(p => (
                                         <button
@@ -593,7 +635,7 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
                                 </div>
                             )}
 
-                            {searchTerm && filteredProducts.length === 0 && !selectedProduct && (
+                            {searchTerm && !isSearching && filteredProducts.length === 0 && !selectedProduct && (
                                 <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center text-gray-500 text-xs shadow-sm">
                                     Nenhum produto encontrado.
                                 </div>
