@@ -70,9 +70,14 @@ export const withTimeout = <T>(promise: Promise<T> | any, timeoutMs: number = DE
     ]);
 };
 
-export const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
+export const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 2, delay = 1000): Promise<T> => {
     try {
-        return await fetcher();
+        // Envolve a requisição com withTimeout para evitar carregamento infinito caso a internet caia silenciosamente
+        return await withTimeout(
+            fetcher(),
+            15000,
+            'A conexão está instável ou a internet caiu. Verifique sua rede e tente novamente.'
+        );
     } catch (error: any) {
         if (error?.name === 'AbortError') {
             throw error;
@@ -83,7 +88,9 @@ export const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 3, 
         const isNetworkError =
             error?.message?.includes('aborted') ||
             error?.message?.includes('Failed to fetch') ||
-            error?.message?.includes('NetworkError');
+            error?.message?.includes('NetworkError') ||
+            error?.message?.includes('conexão está instável') ||
+            error?.message?.includes('internet');
 
         if (isNetworkError) {
             await new Promise(resolve => setTimeout(resolve, delay));
