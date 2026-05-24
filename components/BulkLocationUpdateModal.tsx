@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { Product, StorageLocationParameter, PurchaseOrder, AuditLog, Supplier } from '../types.ts';
 import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, MapPinIcon, CheckIcon, ClockIcon, ChevronLeftIcon, PlusIcon, CubeIcon } from './icons.tsx';
 import { getStorageLocations, getAuditLogs, getProducts } from '../services/mockApi.ts';
+import { parseSearchTerms, getProductSearchDescription, matchesSearchTerms, sortProductsByRelevance } from '../utils/searchUtils.ts';
 
 interface BulkLocationUpdateModalProps {
     allProducts: Product[];
@@ -132,80 +133,37 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
         }
         setIsSearching(true);
         
-        const normalize = (str: string) => str.normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\b(\d+)\s*(gb|tb)\b/gi, '$1')
-            .replace(/[^a-z0-9\s]/gi, ' ')
-            .toLowerCase()
-            .trim();
-
-        const normalizedSearchTerm = normalize(currentTerm);
-        const terms = normalizedSearchTerm.split(/\s+/).filter(t => t.length > 1 || /^\d+$/.test(t));
-        const searchPhrase = terms.join(' ');
+        const { normalizedSearchTerm, terms, searchPhrase, missingModifiers } = parseSearchTerms(currentTerm);
 
         // Find purchase order IDs that match the locator search term
         const matchingPurchaseOrderIds = new Set(
             purchases
-                .filter(po => normalize(po.locatorId || '').includes(normalizedSearchTerm))
+                .filter(po => {
+                    const poSearchText = po.locatorId ? po.locatorId.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase() : '';
+                    return poSearchText.includes(normalizedSearchTerm);
+                })
                 .map(po => po.id)
         );
-
-        const modifiers = ['pro', 'max', 'plus', 'mini'];
-        const missingModifiers = modifiers.filter(m => !terms.includes(m));
 
         const results = allProducts.filter(p => {
             if (p.stock <= 0) return false;
             // Skip if already selected
             if (selectedProducts.some(sp => sp.id === p.id)) return false;
 
-            const description = normalize(`${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`);
+            const locatorMatch = p.purchaseOrderId && matchingPurchaseOrderIds.has(p.purchaseOrderId);
+            if (locatorMatch) return true;
+
+            const description = getProductSearchDescription(p);
             const descriptionNoSpaces = description.replace(/\s+/g, '');
 
-            const locatorMatch = p.purchaseOrderId && matchingPurchaseOrderIds.has(p.purchaseOrderId);
-
-            let searchMatch = terms.length === 0 ? true : terms.every(term => 
-                description.includes(term) || descriptionNoSpaces.includes(term.replace(/\s+/g, ''))
-            );
-
-            if (searchMatch) {
-                const modelStr = `${p.model || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                for (const mod of missingModifiers) {
-                    const regex = new RegExp(`\\b${mod}\\b`);
-                    if (regex.test(modelStr)) {
-                        searchMatch = false;
-                        break;
-                    }
-                }
-            }
-
-            return searchMatch || locatorMatch;
+            return matchesSearchTerms(p, terms, missingModifiers, description, descriptionNoSpaces);
         });
 
         // Sort by relevance
-        if (terms.length > 1) {
-            results.sort((a, b) => {
-                const modelA = String(a.model || '').toLowerCase();
-                const modelB = String(b.model || '').toLowerCase();
-                const phraseInA = modelA.includes(searchPhrase) ? 200 : 0;
-                const phraseInB = modelB.includes(searchPhrase) ? 200 : 0;
-
-                let scoreA = phraseInA;
-                let scoreB = phraseInB;
-
-                terms.forEach(term => {
-                    const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-                    if (regex.test(modelA)) scoreA += 50;
-                    else if (modelA.includes(term)) scoreA += 5;
-                    if (regex.test(modelB)) scoreB += 50;
-                    else if (modelB.includes(term)) scoreB += 5;
-                });
-
-                return scoreB - scoreA;
-            });
-        }
+        const sortedResults = sortProductsByRelevance(results, searchPhrase, terms);
 
         // Limit to top 20 results for performance
-        setSearchResults(results.slice(0, 20));
+        setSearchResults(sortedResults.slice(0, 20));
         setIsSearching(false);
     };
 

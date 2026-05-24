@@ -384,7 +384,9 @@ const StockMovementModal: React.FC<StockMovementModalProps> = ({
                 (p.sku || '').toLowerCase().includes(term) ||
                 (p.serialNumber || '').toLowerCase().includes(term) ||
                 (p.imei1 || '').toLowerCase().includes(term) ||
-                (p.imei2 || '').toLowerCase().includes(term)
+                (p.imei2 || '').toLowerCase().includes(term) ||
+                (p.name || '').toLowerCase().includes(term) ||
+                (p.category || '').toLowerCase().includes(term)
             ).slice(0, 10);
             setServerSearchResults(localResults);
         }).finally(() => {

@@ -5,6 +5,7 @@ import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, ClockIcon } from './icons
 import { formatCurrency, getBulkUpdateLogs } from '../services/mockApi.ts';
 import CurrencyInput from './CurrencyInput.tsx';
 import { AuditLog } from '../types.ts';
+import { parseSearchTerms, getProductSearchDescription, matchesSearchTerms, sortProductsByRelevance } from '../utils/searchUtils.ts';
 
 interface BulkPriceUpdateModalProps {
     allProducts: Product[];
@@ -65,17 +66,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
 
     useEffect(() => {
         setIsSearching(true);
-        const timer = setTimeout(() => {
-            // Normalização aprimorada: remove acentos, normaliza unidades de medida e remove caracteres especiais
-            const normalize = (str: string) => str.normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/\b(\d+)\s*(gb|tb)\b/gi, '$1')
-                .replace(/[^a-z0-9\s]/gi, ' ')
-                .toLowerCase()
-                .trim();
-
-            const normalizedSearchTerm = normalize(searchTerm);
-            const terms = normalizedSearchTerm.split(/\s+/).filter(t => t.length > 1 || /^\d+$/.test(t));
+        const timer = setTimeout(() => {            const { terms, searchPhrase, missingModifiers } = parseSearchTerms(searchTerm);
 
             if (terms.length === 0) {
                 setSearchedProducts([]);
@@ -83,66 +74,22 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                 return;
             }
 
-            const searchPhrase = terms.join(' ');
-
-            const modifiers = ['pro', 'max', 'plus', 'mini'];
-            const missingModifiers = modifiers.filter(m => !terms.includes(m));
-
             const results = allProducts.filter(p => {
-                const description = normalize(`${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`);
-                const descriptionNoSpaces = description.replace(/\s+/g, '');
-
-                // 1. Basic check: all terms must be present
-                let searchMatch = terms.length === 0 ? true : terms.every(term => 
-                    description.includes(term) || descriptionNoSpaces.includes(term.replace(/\s+/g, ''))
-                );
-
-                // Removida a verificação numérica estrita que causava falsos negativos (ex: '10' não batendo em '10th')
-                // A correspondência básica do .includes(term) acima já é suficiente e mais flexível.
-
                 const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
                 const stockMatch = p.stock > 0;
+                
+                if (!conditionMatch || !stockMatch) return false;
 
-                // 3. Strict modifier check: if product model has 'pro', 'max', 'plus' or 'mini', 
-                // the search terms MUST also include it.
-                if (searchMatch) {
-                    const modelStr = `${p.model || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                    for (const mod of missingModifiers) {
-                        const regex = new RegExp(`\\b${mod}\\b`);
-                        if (regex.test(modelStr)) {
-                            searchMatch = false;
-                            break;
-                        }
-                    }
-                }
+                const description = getProductSearchDescription(p);
+                const descriptionNoSpaces = description.replace(/\s+/g, '');
 
-                return searchMatch && conditionMatch && stockMatch;
+                return matchesSearchTerms(p, terms, missingModifiers, description, descriptionNoSpaces);
             });
 
-            // Sort by relevance: phrase match first, then word-boundary match
-            if (terms.length > 1) {
-                results.sort((a, b) => {
-                    const modelA = String(a.model || '').toLowerCase();
-                    const modelB = String(b.model || '').toLowerCase();
-                    const phraseInA = modelA.includes(searchPhrase) ? 200 : 0;
-                    const phraseInB = modelB.includes(searchPhrase) ? 200 : 0;
+            // Sort by relevance
+            const sortedResults = sortProductsByRelevance(results, searchPhrase, terms);
 
-                    let scoreA = phraseInA;
-                    let scoreB = phraseInB;
-
-                    terms.forEach(term => {
-                        const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-                        if (regex.test(modelA)) scoreA += 50;
-                        else if (modelA.includes(term)) scoreA += 5;
-                        if (regex.test(modelB)) scoreB += 50;
-                        else if (modelB.includes(term)) scoreB += 5;
-                    });
-
-                    return scoreB - scoreA;
-                });
-            }
-
-            setSearchedProducts(results);
+            setSearchedProducts(sortedResults);
             setIsSearching(false);
         }, 400);
 
@@ -211,8 +158,8 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         {showHistory ? 'Histórico de Atualizações' : 'Atualização em Massa'}
                         {!showHistory && (
-                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-xl border border-indigo-100">
-                                Encontrados: {searchedProducts.length}
+                            <span className="text-sm font-black text-white bg-indigo-600 px-3 py-1 rounded-xl shadow-sm">
+                                {searchedProducts.length} {searchedProducts.length === 1 ? 'PRODUTO' : 'PRODUTOS'}
                             </span>
                         )}
                     </h2>
@@ -348,9 +295,24 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                         </div>
 
                         {/* Product List - Scrollable */}
-                        <div className="flex-1 overflow-y-auto min-h-0 text-muted">
+                        <div className="flex-1 overflow-y-auto min-h-0 text-muted relative">
                             {searchedProducts.length > 0 ? (
                                 <div className="divide-y divide-gray-100">
+                                    <div className="sticky top-0 z-10 bg-indigo-50/95 backdrop-blur-md border-b border-indigo-200 px-4 py-3 flex items-center justify-between shadow-sm">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-white font-black text-sm shadow-md">
+                                                {searchedProducts.length}
+                                            </div>
+                                            <span className="text-indigo-900 font-extrabold text-sm tracking-wide">
+                                                {searchedProducts.length === 1 ? 'PRODUTO ENCONTRADO' : 'PRODUTOS ENCONTRADOS'}
+                                            </span>
+                                        </div>
+                                        {searchTerm.trim().length > 0 && (
+                                            <span className="text-[10px] text-indigo-700 bg-indigo-100/80 px-2.5 py-1.5 rounded-lg font-bold uppercase tracking-wider border border-indigo-200 max-w-[150px] sm:max-w-xs truncate" title={searchTerm}>
+                                                "{searchTerm}"
+                                            </span>
+                                        )}
+                                    </div>
                                     {searchedProducts.map(product => {
                                         const isApple = product.brand?.toLowerCase() === 'apple' || ['iphone', 'ipad', 'macbook', 'apple watch', 'airpods'].includes(product.category?.toLowerCase() || '');
                                         const displayBrand = isApple ? '' : (product.brand || '');

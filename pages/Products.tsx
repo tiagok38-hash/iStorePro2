@@ -679,7 +679,8 @@ const Products: React.FC = () => {
                     )
                 ));
 
-            const purchaseDate = p.purchaseDate.split('T')[0];
+            const d = new Date(p.purchaseDate);
+            const purchaseDate = isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             const dateMatch = purchaseDate >= startDate && purchaseDate <= endDate;
 
             return searchMatch && statusMatch && dateMatch;
@@ -886,7 +887,8 @@ const Products: React.FC = () => {
 
     const comprasKpi = useMemo(() => {
         const dateFiltered = purchases.filter(p => {
-            const purchaseDate = p.purchaseDate.split('T')[0];
+            const d = new Date(p.purchaseDate);
+            const purchaseDate = isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             return purchaseDate >= startDate && purchaseDate <= endDate;
         });
         return {
