@@ -65,7 +65,7 @@ const PendingItemsTable: React.FC<{ items: PurchaseItem[] }> = ({ items }) => (
     </table>
 );
 
-const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) => (
+const LaunchedProductsTable: React.FC<{ products: Product[], purchase: PurchaseOrder }> = ({ products, purchase }) => (
     <>
         <table className="w-full text-[11px] md:text-sm">
             <thead className="text-left text-[10px] text-muted bg-gray-50 uppercase font-black tracking-widest">
@@ -81,7 +81,24 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
             </thead>
             <tbody>
                 {products.map(product => {
-                    const finalUnitCost = (product.costPrice || 0) + (product.additionalCostPrice || 0);
+                    // Obter os valores originais da época da compra
+                    const originalPurchaseItem = purchase.items.find(i => i.id === product.purchaseItemId);
+                    const costPrice = originalPurchaseItem ? originalPurchaseItem.unitCost : (product.costPrice || 0);
+                    const additionalCostPrice = originalPurchaseItem ? originalPurchaseItem.additionalUnitCost : (product.additionalCostPrice || 0);
+                    const finalUnitCost = costPrice + additionalCostPrice;
+
+                    const originalSalePrice = (() => {
+                        const saleHistories = (product.priceHistory || []).filter(h => h.priceType === 'sale').sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                        if (saleHistories.length > 0) return saleHistories[0].oldPrice;
+                        return product.price;
+                    })();
+
+                    const originalWholesalePrice = (() => {
+                        const wsHistories = (product.priceHistory || []).filter(h => h.priceType === 'wholesale').sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                        if (wsHistories.length > 0) return wsHistories[0].oldPrice;
+                        return product.wholesalePrice || 0;
+                    })();
+
                     const variationsText = product.variations?.map(v => `${v.valueName}`).join(', ');
 
                     return (
@@ -125,11 +142,11 @@ const LaunchedProductsTable: React.FC<{ products: Product[] }> = ({ products }) 
                                 </div>
                             </td>
                             <td className="px-2 py-1.5 text-center align-top font-bold text-gray-400">1</td>
-                            <td className="px-2 py-1.5 text-right align-top text-gray-500">{formatCurrency(product.costPrice)}</td>
-                            <td className="px-2 py-1.5 text-right align-top text-gray-400">{formatCurrency(product.additionalCostPrice)}</td>
+                            <td className="px-2 py-1.5 text-right align-top text-gray-500">{formatCurrency(costPrice)}</td>
+                            <td className="px-2 py-1.5 text-right align-top text-gray-400">{formatCurrency(additionalCostPrice)}</td>
                             <td className="px-2 py-1.5 text-right font-black text-gray-700 align-top">{formatCurrency(finalUnitCost)}</td>
-                            <td className="px-2 py-1.5 text-right align-top font-bold text-orange-500">{product.wholesalePrice ? formatCurrency(product.wholesalePrice) : '-'}</td>
-                            <td className="px-3 py-1.5 text-right font-black text-primary align-top">{formatCurrency(product.price)}</td>
+                            <td className="px-2 py-1.5 text-right align-top font-bold text-orange-500">{originalWholesalePrice ? formatCurrency(originalWholesalePrice) : '-'}</td>
+                            <td className="px-3 py-1.5 text-right font-black text-primary align-top">{formatCurrency(originalSalePrice)}</td>
                         </tr>
                     );
                 })}
@@ -174,7 +191,7 @@ const PurchaseOrderDetailModal: React.FC<{ purchase: PurchaseOrder; onClose: () 
 
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {(purchase.stockStatus === 'Lançado' || purchase.stockStatus === 'Parcialmente Lançado') && associatedProducts.length > 0 ? (
-                        <LaunchedProductsTable products={associatedProducts} />
+                        <LaunchedProductsTable products={associatedProducts} purchase={purchase} />
                     ) : (
                         purchase.items.length > 0 ? (
                             <PendingItemsTable items={purchase.items} />

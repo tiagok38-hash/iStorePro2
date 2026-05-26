@@ -159,6 +159,15 @@ export const getTodaysSales = async (): Promise<TodaySale[]> => {
 
 // --- SALES ---
 
+// Helper to determine if a product is a unique device (cannot have stock > 1)
+const isUniqueProduct = (product: any): boolean => {
+    const categoryStr = String(product.category || '');
+    return Boolean(
+        product.imei1 || 
+        (product.serialNumber && ['iPhone', 'iPad', 'Mac', 'Apple Watch', 'Android', 'Smartphone', 'Celular'].some(c => categoryStr.includes(c)))
+    );
+};
+
 const adjustProductStock = async (
     productId: string,
     adjustment: number, // positive to add, negative to deduct
@@ -176,8 +185,13 @@ const adjustProductStock = async (
     }
 
     const currentStock = Number(product.stock || 0);
-    const newStock = Math.max(0, currentStock + adjustment);
+    let newStock = Math.max(0, currentStock + adjustment);
     const isReturning = adjustment > 0;
+
+    // RULE: Cap stock at 1 for unique items (devices) returning to stock
+    if (isReturning && isUniqueProduct(product) && newStock > 1) {
+        newStock = 1;
+    }
 
     const stockHistoryEntry = {
         id: crypto.randomUUID(),
@@ -684,51 +698,65 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         }
     }
 
-    // Generate Credit Installments if (Crediário)
     if (saleData.status === 'Finalizada') {
-        const creditPayment = data.payments?.find((p: any) =>
+        const creditPayments = data.payments?.filter((p: any) =>
             (['Crediário', 'Crediario'].includes(p.method)) && p.creditDetails
-        );
+        ) || [];
 
-        if (creditPayment && creditPayment.creditDetails) {
+        if (creditPayments.length > 0) {
             try {
-                const { creditDetails } = creditPayment;
-                const interestRate = Number(creditDetails.interestRate || 0);
-                const totalInstallments = Number(creditDetails.totalInstallments || 1);
-                // Use financedAmount if available, otherwise fallback to totalAmount (legacy/fallback)
-                const productValue = Number(creditDetails.financedAmount ?? creditDetails.totalAmount ?? 0);
+                let totalFinancedSum = 0;
+                let installmentAmountSum = 0;
+                let maxInterestRate = 0;
+                const combinedAmortizationTable: any[] = [];
+                const allInstallmentsPayload: CreditInstallment[] = [];
 
-                // Regra 2: Cálculo do valor total financiado (Juros Simples)
-                const { totalFinanced, installmentAmount } = calculateFinancedAmount(productValue, interestRate, totalInstallments);
+                for (const creditPayment of creditPayments) {
+                    const { creditDetails } = creditPayment;
+                    const interestRate = Number(creditDetails.interestRate || 0);
+                    const totalInstallments = Number(creditDetails.totalInstallments || 1);
+                    const productValue = Number(creditDetails.financedAmount ?? creditDetails.totalAmount ?? 0);
 
-                // Gerar Tabela de Amortização (para persistir no sale)
-                const amortizationTable = generateAmortizationTable(totalFinanced, installmentAmount, totalInstallments, interestRate);
+                    if (interestRate > maxInterestRate) maxInterestRate = interestRate;
 
-                const installmentsPayload: CreditInstallment[] = amortizationTable.map((entry: any) => ({
-                    id: crypto.randomUUID(),
-                    saleId: newSale.id,
-                    customerId: newSale.customer_id,
-                    installmentNumber: entry.number,
-                    totalInstallments: totalInstallments,
-                    dueDate: creditDetails.installmentsPreview[entry.number - 1]?.date || getNowISO(),
-                    amount: entry.installmentAmount,
-                    status: 'pending',
-                    amountPaid: 0,
-                    interestApplied: entry.interest,
-                    amortizationValue: entry.amortization,
-                    remainingBalance: entry.remainingBalance,
-                    penaltyApplied: 0
-                }));
+                    // Regra 2: Cálculo do valor total financiado (Juros Simples)
+                    const { totalFinanced, installmentAmount } = calculateFinancedAmount(productValue, interestRate, totalInstallments);
 
-                await addCreditInstallments(installmentsPayload);
+                    totalFinancedSum += totalFinanced;
+                    installmentAmountSum += installmentAmount;
 
-                // Update sale with amortization info and initial debt balance
+                    // Gerar Tabela de Amortização (para persistir no sale)
+                    const amortizationTable = generateAmortizationTable(totalFinanced, installmentAmount, totalInstallments, interestRate);
+                    combinedAmortizationTable.push({ paymentValue: productValue, table: amortizationTable });
+
+                    const installmentsPayload: CreditInstallment[] = amortizationTable.map((entry: any) => ({
+                        id: crypto.randomUUID(),
+                        saleId: newSale.id,
+                        customerId: newSale.customer_id,
+                        installmentNumber: entry.number,
+                        totalInstallments: totalInstallments,
+                        dueDate: creditDetails.installmentsPreview?.[entry.number - 1]?.date || getNowISO(),
+                        amount: entry.installmentAmount,
+                        status: 'pending',
+                        amountPaid: 0,
+                        interestApplied: entry.interest,
+                        amortizationValue: entry.amortization,
+                        remainingBalance: entry.remainingBalance,
+                        penaltyApplied: 0
+                    }));
+
+                    allInstallmentsPayload.push(...installmentsPayload);
+                }
+
+                await addCreditInstallments(allInstallmentsPayload);
+
+                // Update sale with combined amortization info and initial debt balance
                 await supabase.from('sales').update({
-                    interest_rate: interestRate,
-                    total_financed: totalFinanced,
-                    installment_amount: installmentAmount,
-                    current_debt_balance: totalFinanced,
-                    amortization_table: amortizationTable
+                    interest_rate: maxInterestRate,
+                    total_financed: totalFinancedSum,
+                    installment_amount: installmentAmountSum,
+                    current_debt_balance: totalFinancedSum,
+                    amortization_table: combinedAmortizationTable
                 }).eq('id', newSale.id);
 
                 if (newSale.customer_id) {
@@ -738,7 +766,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                         AuditActionType.UPDATE,
                         AuditEntityType.CUSTOMER,
                         newSale.customer_id,
-                        `Aprovação de Crediário: Financiado ${formatCurrency(totalFinanced)} | Novo Saldo Devedor: ${formatCurrency(totalUsed)}`,
+                        `Aprovação de Crediário: Financiado ${formatCurrency(totalFinancedSum)} | Novo Saldo Devedor: ${formatCurrency(totalUsed)}`,
                         userId,
                         userName
                     );
@@ -748,7 +776,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 console.error('Failed to create credit installments or update limit:', err);
                 throw new Error(`Erro no Crediário: ${err.message || 'Falha desconhecida'}`);
             }
-        } else if (data.payments?.some((p: any) => p.method === 'Crediário' || p.method === 'Crediario')) {
+        } else if (data.payments?.some((p: any) => ['Crediário', 'Crediario'].includes(p.method))) {
             throw new Error('Falha: Pagamento Crediário selecionado, mas os detalhes das parcelas estão ausentes.');
         }
     }
@@ -1582,7 +1610,12 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
             const { data: product } = await supabase.from('products').select('*').eq('id', item.productId).single();
             if (product) {
                 const currentStock = Number(product.stock);
-                const newStock = currentStock + item.quantity;
+                let newStock = currentStock + item.quantity;
+
+                // RULE: Cap stock at 1 for unique items (devices) returning to stock
+                if (isUniqueProduct(product) && newStock > 1) {
+                    newStock = 1;
+                }
 
                 await addAuditLog(
                     AuditActionType.SALE_CANCEL,
