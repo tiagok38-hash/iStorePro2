@@ -282,53 +282,37 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
     return mapCustomer(newCustomer);
 };
 
-export const syncCustomerCreditLimit = async (customerId: string) => {
+export const syncCustomerCreditLimit = async (customerId: string): Promise<number> => {
     try {
-        const { data: sales, error: salesError } = await supabase
-            .from('sales')
-            .select('id, current_debt_balance, payments')
+        // Fonte única de verdade: soma as parcelas em aberto de credit_installments.
+        // Essa é exatamente a mesma fonte que a página de Crediários exibe,
+        // eliminando qualquer divergência entre as duas telas.
+        const { data: openInstallments, error } = await supabase
+            .from('credit_installments')
+            .select('amount, amount_paid')
             .eq('customer_id', customerId)
-            .in('status', ['Finalizada', 'Editada']);
+            .in('status', ['pending', 'partial', 'overdue']);
 
-        if (salesError) throw salesError;
+        if (error) throw error;
 
-        let totalUsed = 0;
+        const totalUsed = (openInstallments ?? []).reduce(
+            (sum, inst) => sum + Math.max(0, Number(inst.amount) - Number(inst.amount_paid)),
+            0
+        );
 
-        for (const sale of (sales || [])) {
-            const payments = Array.isArray(sale.payments) ? sale.payments : (typeof sale.payments === 'string' ? JSON.parse(sale.payments) : []);
-            const hasCredit = payments.some((p: any) => isCreditMethod(p.method));
-            if (!hasCredit) continue;
+        await supabase
+            .from('customers')
+            .update({ credit_used: totalUsed })
+            .eq('id', customerId);
 
-            let debt = Number(sale.current_debt_balance || 0);
-
-            if (debt <= 0) {
-                const { data: installments } = await supabase
-                    .from('credit_installments')
-                    .select('amount, amount_paid')
-                    .eq('sale_id', sale.id)
-                    .in('status', ['pending', 'partial', 'overdue']);
-
-                debt = (installments || []).reduce((sum, inst) => sum + (Number(inst.amount) - Number(inst.amount_paid)), 0);
-
-                if (debt > 0) {
-                    await supabase.from('sales').update({ current_debt_balance: debt }).eq('id', sale.id);
-                }
-            }
-
-            totalUsed += debt;
-        }
-
-        await supabase.from('customers').update({ credit_used: totalUsed }).eq('id', customerId);
-
-        // CLEAR CACHE so the next fetch gets the updated credit_used
         clearCache(['customers']);
-
         return totalUsed;
     } catch (err) {
         console.error('[syncCustomerCreditLimit] Error:', err);
         return 0;
     }
 };
+
 
 export const updateCustomer = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
     const payload: any = {};

@@ -1290,37 +1290,26 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 console.error('[updateSale] Error deleting credit installments:', deleteError);
             }
 
-            // 2. Restore customer credit limit
-            const creditUsedToRevert = oldCreditPayments.reduce((s: number, p: any) => s + (p.value || 0), 0);
+            // 2. Recalcular credit_used a partir das parcelas remanescentes (fonte única de verdade)
+            // syncCustomerCreditLimit agora lê diretamente de credit_installments,
+            // então após deletar as parcelas desta venda, o saldo é recalculado corretamente.
+            try {
+                const newCreditUsed = await syncCustomerCreditLimit(originalSale.customer_id);
 
-            if (creditUsedToRevert > 0) {
-                const { data: customerData } = await supabase
-                    .from('customers')
-                    .select('credit_used, name')
-                    .eq('id', originalSale.customer_id)
-                    .single();
-
-                if (customerData) {
-                    const currentUsed = customerData.credit_used || 0;
-                    const newCreditUsed = Math.max(0, currentUsed - creditUsedToRevert);
-
-                    await supabase
-                        .from('customers')
-                        .update({ credit_used: newCreditUsed })
-                        .eq('id', originalSale.customer_id);
-
-                    await addAuditLog(
-                        AuditActionType.UPDATE,
-                        AuditEntityType.CUSTOMER,
-                        originalSale.customer_id,
-                        `Limite restaurado (Venda ${newStatus}): +${formatCurrency(creditUsedToRevert)}`,
-                        userId,
-                        userName
-                    );
-                }
+                await addAuditLog(
+                    AuditActionType.UPDATE,
+                    AuditEntityType.CUSTOMER,
+                    originalSale.customer_id,
+                    `Limite recalculado (Venda ${newStatus}): Novo saldo devedor ${formatCurrency(newCreditUsed)}`,
+                    userId,
+                    userName
+                );
+            } catch (syncErr) {
+                console.error('[updateSale] Erro ao sincronizar credit_used após cancelamento:', syncErr);
             }
         }
     }
+
 
     // If sale was Finalizada/Editada and now is Pendente (Estorno), we need to RETURN stock
     if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && newStatus === 'Pendente') {
