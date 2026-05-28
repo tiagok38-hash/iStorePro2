@@ -152,7 +152,7 @@ const ServiceOrderFinancial: React.FC = () => {
         return filteredItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [orders, expenses, searchTerm, filterType, filterStatus, filterStartDate, filterEndDate]);
 
-    const { totalPartsServiceCost, totalExpenses, totalRevenue, balance, netProfit } = useMemo(() => {
+    const { totalPartsServiceCost, totalExpenses, totalRevenue, balance, netProfit, projectedMonthlyNetProfit } = useMemo(() => {
         const technicalRevenueOrders = orders.filter(os => os.status === 'Entregue e Faturado' || os.status === 'Concluído');
 
         const partsCost = technicalRevenueOrders.reduce((acc, os) => {
@@ -164,12 +164,28 @@ const ServiceOrderFinancial: React.FC = () => {
         const bal = revTotal - expTotal;
         const profit = bal - partsCost;
 
+        // --- Projeção: média diária do mês atual ---
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const daysPassedInMonth = now.getDate();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+        const monthlyOSList = technicalRevenueOrders.filter(os => {
+            const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
+            return date >= monthStart && date <= monthEnd;
+        });
+        const monthlyOSProfit = monthlyOSList.reduce((acc, os) => acc + calculateOSProfit(os), 0);
+        const dailyAvg = daysPassedInMonth > 0 ? monthlyOSProfit / daysPassedInMonth : 0;
+        const projectedMonthlyNetProfit = dailyAvg * daysInMonth;
+
         return {
             totalPartsServiceCost: partsCost,
             totalExpenses: expTotal,
             totalRevenue: revTotal,
             balance: bal,
-            netProfit: profit
+            netProfit: profit,
+            projectedMonthlyNetProfit
         };
     }, [orders, expenses]);
 
@@ -267,6 +283,9 @@ const ServiceOrderFinancial: React.FC = () => {
                             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Lucro Líquido</p>
                             <h3 className="text-2xl font-black text-gray-800 tracking-tight mt-0.5">{formatCurrency(netProfit)}</h3>
                             <p className="text-xs text-gray-400 mt-0.5">Descontando peças/serviços</p>
+                            <p className={`text-xs font-bold mt-1 ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`} title="Projeção baseada na média diária do mês atual">
+                                ↗ Proj. mês: {formatCurrency(projectedMonthlyNetProfit)}
+                            </p>
                         </div>
                     </div>
                 )}

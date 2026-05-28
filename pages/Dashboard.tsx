@@ -8,6 +8,7 @@ import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDoll
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
+import { calculateOSProfit } from '../utils/formatters.ts';
 
 // --- Permission Guard ---
 const getPermissionForRoute = (to: string, permissions: PermissionSet | null): boolean => {
@@ -171,92 +172,95 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
 
     const metrics = useMemo(() => {
         const now = new Date();
-        let startDate = new Date();
-        let endDate = new Date();
+        let startDate: Date;
+        let endDate: Date;
 
         switch (period) {
             case 'today':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                 break;
             case 'yesterday':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
-                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
                 break;
             case 'day_before':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 0, 0, 0);
-                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 23, 59, 59);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 23, 59, 59);
                 break;
             case 'week':
-                startDate = new Date(now);
-                startDate.setDate(now.getDate() - 7);
-                startDate.setHours(0, 0, 0, 0);
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                 break;
             case 'month':
-                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-                startDate.setHours(0, 0, 0, 0);
-                break;
+            default:
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
         }
 
-        const validOS = serviceOrders.filter(os => {
-            const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
-            const isFinished = ['Entregue e Faturado', 'Concluído'].includes(os.status as string);
-            return date >= startDate && date <= endDate && isFinished && os.status !== 'Cancelado';
-        });
+        // Projeção baseada na média diária do mês atual
+        const monthStart        = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        const monthEnd          = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        const daysPassedInMonth = now.getDate();
+        const daysInMonth       = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+        const isFinishedOS = (os: ServiceOrder) =>
+            os.status === 'Entregue e Faturado' || os.status === 'Concluído';
+
+        const monthlyProfit = serviceOrders
+            .filter(os => isFinishedOS(os) && new Date(os.exitDate || os.updatedAt || os.createdAt) >= monthStart
+                       && new Date(os.exitDate || os.updatedAt || os.createdAt) <= monthEnd)
+            .reduce((sum, os) => sum + calculateOSProfit(os), 0);
+
+        const dailyAvg = daysPassedInMonth > 0 ? monthlyProfit / daysPassedInMonth : 0;
+        const projectionDaysMap: Record<string, number> = { today: 1, yesterday: 1, day_before: 1, week: 7, month: daysInMonth };
+        const projectedProfit = dailyAvg * (projectionDaysMap[period] ?? 1);
+
+        const validOS = serviceOrders.filter(os =>
+            isFinishedOS(os)
+            && new Date(os.exitDate || os.updatedAt || os.createdAt) >= startDate
+            && new Date(os.exitDate || os.updatedAt || os.createdAt) <= endDate
+        );
 
         const serviceMap = services.reduce((acc, s) => { acc[s.id] = s; return acc; }, {} as Record<string, Service>);
         const productMap = products.reduce((acc, p) => { acc[p.id] = p; return acc; }, {} as Record<string, Product>);
 
-        // Generate Labels for chart
         const labels = getChartLabels(period, startDate, endDate);
         const profitByPoint: Record<string, number> = {};
-        labels.forEach(l => profitByPoint[l] = 0);
-
-        const getKey = (date: Date) => getChartKey(date, period);
+        labels.forEach(l => { profitByPoint[l] = 0; });
 
         let totalRevenue = 0;
-        let totalCost = 0;
+        let totalCost    = 0;
 
         validOS.forEach(os => {
-            const osRevenue = (os.total || (os.subtotal - os.discount));
+            const osRevenue = os.total || (os.subtotal - os.discount);
             let osCost = 0;
 
             os.items.forEach(item => {
                 const refId = (item as any).catalogItemId || item.id;
-                
-                // Prioritize snapshot cost if available
-                if (item.cost !== undefined && item.cost !== null) {
+                if (item.cost != null) {
                     osCost += item.cost * item.quantity;
+                } else if (item.type === 'service') {
+                    osCost += (serviceMap[refId]?.cost || 0) * item.quantity;
                 } else {
-                    // Fallback to current maps
-                    if (item.type === 'service') {
-                        const s = serviceMap[refId];
-                        osCost += (s?.cost || 0) * item.quantity;
-                    } else {
-                        const p = productMap[refId];
-                        if (p) {
-                            osCost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
-                        }
-                    }
+                    const p = productMap[refId];
+                    if (p) osCost += ((p.costPrice || 0) + (p.additionalCostPrice || 0)) * item.quantity;
                 }
             });
 
-            const osProfit = osRevenue - osCost;
             totalRevenue += osRevenue;
-            totalCost += osCost;
+            totalCost    += osCost;
 
-            const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
-            const key = getKey(date);
-            if (profitByPoint[key] !== undefined) profitByPoint[key] += osProfit;
+            const key = getChartKey(new Date(os.exitDate || os.updatedAt || os.createdAt), period);
+            if (profitByPoint[key] !== undefined) profitByPoint[key] += osRevenue - osCost;
         });
-
-        const chartData = labels.map(l => ({ name: l, value: profitByPoint[l] }));
 
         return {
             profit: totalRevenue - totalCost,
             revenue: totalRevenue,
             count: validOS.length,
-            chartData
+            chartData: labels.map(l => ({ name: l, value: profitByPoint[l] })),
+            projectedProfit,
         };
     }, [serviceOrders, services, products, period]);
 
@@ -274,6 +278,9 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro em OS</h3>
                         <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight mt-0.5 whitespace-nowrap ${metrics.profit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
                             {isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}
+                        </p>
+                        <p className={`text-xs font-bold mt-0.5 whitespace-nowrap ${metrics.profit < 0 ? 'text-red-400' : 'text-emerald-600'}`} title="Projeção baseada na média diária do mês atual">
+                            {isPrivacyMode ? '' : `↗ Proj.: ${formatCurrency(metrics.projectedProfit)}`}
                         </p>
                     </div>
                 </div>
@@ -471,67 +478,88 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
         navigate(to);
     };
 
-    const { totalProfit, totalRevenue, chartData } = useMemo(() => {
+    const { totalProfit, totalRevenue, chartData, projectedProfit } = useMemo(() => {
         const now = new Date();
-        let startDate = new Date();
-        let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        let startDate: Date;
+        let endDate: Date;
 
         switch (period) {
-            case 'day': startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0); break;
             case 'yesterday':
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-                endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
                 break;
-            case 'week':
+            case 'week': {
                 const day = now.getDay();
                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day, 0, 0, 0, 0);
-                endDate.setDate(startDate.getDate() + 6);
+                endDate   = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 6, 23, 59, 59, 999);
                 break;
-            case 'month': startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-                endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            }
+            case 'month':
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+                endDate   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
                 break;
-            case 'year': startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-                endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+            case 'year':
+                startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+                endDate   = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
                 break;
+            case 'day':
+            default:
+                startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         }
 
-        const productMap = products.reduce((acc, p) => {
-            acc[p.id] = p;
-            return acc;
-        }, {} as Record<string, Product>);
-        const validSales = sales.filter(s => {
-            if (s.status === 'Cancelada') return false;
-            const d = new Date(s.date);
-            return d >= startDate && d <= endDate;
-        });
+        const productMap = products.reduce((acc, p) => { acc[p.id] = p; return acc; }, {} as Record<string, Product>);
 
-        let totalProfit = 0;
-        let totalRevenue = 0;
+        const getSaleCost = (sale: Sale) =>
+            sale.items.reduce((sum, item) => {
+                const snapshotCost = item.costPrice != null
+                    ? (item.costPrice + ((item as any).additionalCostPrice || 0))
+                    : undefined;
+                const p = productMap[item.productId];
+                const fallback = (p?.costPrice || 0) + (p?.additionalCostPrice || 0);
+                return sum + (snapshotCost ?? fallback) * item.quantity;
+            }, 0);
 
-        // Generate Labels
+        // Projeção baseada na média diária do mês atual
+        const monthStart        = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const monthEnd          = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const daysPassedInMonth = now.getDate();
+        const daysInMonth       = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+        const monthlyProfit = sales
+            .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= monthStart && new Date(s.date) <= monthEnd)
+            .reduce((sum, sale) => sum + sale.total - getSaleCost(sale), 0);
+
+        const dailyAvg = daysPassedInMonth > 0 ? monthlyProfit / daysPassedInMonth : 0;
+        const projectionDaysMap: Record<string, number> = { day: 1, yesterday: 1, week: 7, month: daysInMonth, year: 365 };
+        const projectedProfit = dailyAvg * (projectionDaysMap[period] ?? 1);
+
+        const validSales = sales.filter(s =>
+            s.status !== 'Cancelada' && new Date(s.date) >= startDate && new Date(s.date) <= endDate
+        );
+
         const labels = getChartLabels(period, startDate, endDate);
         const profitByPoint: Record<string, number> = {};
-        labels.forEach(l => profitByPoint[l] = 0);
+        labels.forEach(l => { profitByPoint[l] = 0; });
 
-        const getKey = (date: Date) => getChartKey(date, period);
+        let totalProfit  = 0;
+        let totalRevenue = 0;
 
         validSales.forEach(sale => {
-            const itemsCost = sale.items.reduce((sum, item) => {
-                const snapshotCost = (item.costPrice !== undefined) ? ((item.costPrice || 0) + ((item as any).additionalCostPrice || 0)) : undefined;
-                const p = productMap[item.productId];
-                const fallbackCost = ((p?.costPrice || 0) + (p?.additionalCostPrice || 0));
-                return sum + (snapshotCost !== undefined ? snapshotCost : fallbackCost) * item.quantity;
-            }, 0);
-            const profit = sale.total - itemsCost;
-            totalProfit += profit;
+            const cost   = getSaleCost(sale);
+            const profit = sale.total - cost;
+            totalProfit  += profit;
             totalRevenue += sale.total;
-
-            const key = getKey(new Date(sale.date));
+            const key = getChartKey(new Date(sale.date), period);
             if (profitByPoint[key] !== undefined) profitByPoint[key] += profit;
         });
 
-        const chartData = labels.map(l => ({ name: l, value: profitByPoint[l] }));
-        return { totalProfit, totalRevenue, chartData };
+        return {
+            totalProfit,
+            totalRevenue,
+            chartData: labels.map(l => ({ name: l, value: profitByPoint[l] })),
+            projectedProfit,
+        };
     }, [sales, products, period]);
 
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
@@ -550,6 +578,9 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro Estimado</h3>
                         <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight mt-0.5 whitespace-nowrap ${totalProfit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
                             {isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}
+                        </p>
+                        <p className={`text-xs font-bold mt-0.5 whitespace-nowrap ${totalProfit < 0 ? 'text-red-400' : 'text-emerald-600'}`} title="Projeção baseada na média diária do mês atual">
+                            {isPrivacyMode ? '' : `↗ Proj.: ${formatCurrency(projectedProfit)}`}
                         </p>
                     </div>
                 </div>

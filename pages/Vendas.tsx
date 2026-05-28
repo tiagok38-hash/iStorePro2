@@ -51,10 +51,15 @@ const getStartDateForPeriod = (period: 'hoje' | '7dias' | '15dias' | 'Mes'): str
 
 // --- Sub-components ---
 
-const KpiCard: React.FC<{ title: string; value: string; bgColor: string; textColor?: string }> = React.memo(({ title, value, bgColor, textColor = 'text-primary' }) => (
+const KpiCard: React.FC<{ title: string; value: string; bgColor: string; textColor?: string; projection?: string }> = React.memo(({ title, value, bgColor, textColor = 'text-primary', projection }) => (
     <div className={`p-2.5 sm:p-4 rounded-3xl ${bgColor} ${textColor} flex flex-col justify-center min-h-[64px] sm:min-h-[auto]`}>
         <h3 className="text-[10px] sm:text-sm font-bold uppercase tracking-wider opacity-70 leading-tight">{title}</h3>
         <p className="text-base sm:text-2xl font-black mt-0.5 sm:mt-1 truncate">{value}</p>
+        {projection && (
+            <p className="text-xs font-bold opacity-80 mt-0.5 truncate" title="Projeção baseada na média diária do mês atual">
+                ↗ Proj.: {projection}
+            </p>
+        )}
     </div>
 ));
 
@@ -495,8 +500,21 @@ const Vendas: React.FC = () => {
                 .filter(p => p.permissions.canCreateSale)
                 .map(p => p.id)
         );
-        return users.filter(u => sellerProfileIds.has(u.permissionProfileId));
-    }, [users, permissionProfiles]);
+        const usersWithSalesInView = new Set(sales.map(s => s.salespersonId));
+
+        const relevantUsers = users.filter(u => 
+            (sellerProfileIds.has(u.permissionProfileId) && u.active !== false) || 
+            usersWithSalesInView.has(u.id)
+        );
+
+        return relevantUsers.sort((a, b) => {
+            const aActive = a.active !== false;
+            const bActive = b.active !== false;
+            if (aActive && !bActive) return -1;
+            if (!aActive && bActive) return 1;
+            return a.name.localeCompare(b.name);
+        });
+    }, [users, permissionProfiles, sales]);
 
     const kpi = useMemo(() => {
         const activeSales = filteredSales.filter(s => s.status !== 'Cancelada');
@@ -517,8 +535,37 @@ const Vendas: React.FC = () => {
             if (sale.status === 'Cancelada') return sum;
             return sum + (sale.payments || []).reduce((acc, p) => acc + (p.fees || 0), 0);
         }, 0);
-        return { faturamento, lucro, taxas, ticketMedio };
-    }, [filteredSales, productMap]);
+
+        // Projeção baseada na média diária do mês atual
+        const now = new Date();
+        const monthStart        = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const monthEnd          = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const daysPassedInMonth = now.getDate();
+        const daysInMonth       = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+        const monthlyProfit = sales
+            .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= monthStart && new Date(s.date) <= monthEnd)
+            .reduce((sum, sale) => {
+                const cost = (sale.items || []).reduce((itemSum, item) => {
+                    const product = productMap[item.productId];
+                    return itemSum + getItemCostSnapshot(item, product) * item.quantity;
+                }, 0);
+                return sum + sale.total - cost;
+            }, 0);
+
+        const dailyAvg = daysPassedInMonth > 0 ? monthlyProfit / daysPassedInMonth : 0;
+
+        const periodDaysMap: Record<string, number> = {
+            hoje: 1, '7dias': 7, '15dias': 15, Mes: daysInMonth, personalizado: (() => {
+                const s = new Date(startDate + 'T00:00:00');
+                const e = new Date(endDate + 'T00:00:00');
+                return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+            })()
+        };
+        const lucroProjection = dailyAvg * (periodDaysMap[activePeriod] ?? 1);
+
+        return { faturamento, lucro, taxas, ticketMedio, lucroProjection };
+    }, [filteredSales, productMap, sales, activePeriod, startDate, endDate]);
 
     const handleAddNewCustomer = useCallback(async (customerData: Omit<Customer, 'id' | 'createdAt'>): Promise<Customer | null> => {
         try {
@@ -624,6 +671,7 @@ const Vendas: React.FC = () => {
                                 value={formatCurrency(kpi.lucro)}
                                 bgColor={kpi.lucro >= 0 ? "bg-green-100" : "bg-red-100"}
                                 textColor={kpi.lucro >= 0 ? "text-green-700" : "text-red-700"}
+                                projection={formatCurrency(kpi.lucroProjection)}
                             />
                         )}
                     </div>

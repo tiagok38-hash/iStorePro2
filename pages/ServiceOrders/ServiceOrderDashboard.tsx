@@ -280,8 +280,38 @@ const ServiceOrderDashboard: React.FC = () => {
             despesas += Math.abs(d.despesas); // Keep absolute for totals display
             lucro += d.lucro;
         });
-        return { receita, despesas, lucro };
-    }, [periodFlowData]);
+
+        // Projeção baseada na média diária do mês atual
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const daysPassedInMonth = now.getDate();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+        const monthlyOSProfit = orders
+            .filter(os => {
+                const date = new Date(os.exitDate || os.updatedAt || os.createdAt);
+                const isFinished = os.status === 'Entregue e Faturado' || os.status === 'Concluído';
+                return date >= monthStart && date <= monthEnd && isFinished;
+            })
+            .reduce((sum, os) => sum + calculateOSProfit(os), 0);
+
+        const dailyAvgOS = daysPassedInMonth > 0 ? monthlyOSProfit / daysPassedInMonth : 0;
+
+        const periodDaysMap: Record<string, number> = {
+            today: 1, yesterday: 1, week: 7, month: daysInMonth, custom: (() => {
+                if (customStartDate && customEndDate) {
+                    const s = new Date(customStartDate + 'T00:00:00');
+                    const e = new Date(customEndDate + 'T00:00:00');
+                    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+                }
+                return 1;
+            })()
+        };
+        const projectedLucro = dailyAvgOS * (periodDaysMap[periodFilter] ?? 1);
+
+        return { receita, despesas, lucro, projectedLucro };
+    }, [periodFlowData, orders, periodFilter, customStartDate, customEndDate]);
 
     const activeWarranties = useMemo(() => {
         const today = new Date();
@@ -504,6 +534,9 @@ const ServiceOrderDashboard: React.FC = () => {
                                     <span className={`text-sm ${periodTotals.lucro >= 0 ? "text-emerald-600" : "text-red-600"} font-black`}>
                                         {formatCurrency(periodTotals.lucro)} {periodTotals.lucro >= 0 ? "Lucro" : "Prejuízo"}
                                     </span>
+                                    <p className={`text-xs font-bold mt-0.5 ${periodTotals.lucro >= 0 ? 'text-emerald-600' : 'text-red-500'}`} title="Projeção baseada na média diária do mês atual">
+                                        ↗ Proj.: {formatCurrency(periodTotals.projectedLucro)}
+                                    </p>
                                 </div>
                             </div>
                         </div>
