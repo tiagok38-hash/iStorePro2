@@ -1867,7 +1867,7 @@ const Dashboard: React.FC = () => {
 
         const recentSoldItems: SoldItemInfo[] = sortedSales
             .flatMap(sale => sale.items.map(item => ({
-                productName: productMap[item.productId] || 'Desconhecido',
+                productName: productMap[item.productId] || item.productName || item.model || 'Desconhecido',
                 quantity: item.quantity,
                 saleDate: sale.date,
                 saleId: sale.id,

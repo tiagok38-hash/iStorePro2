@@ -294,7 +294,15 @@ const Vendas: React.FC = () => {
                 const canSeeAllSales = permissions?.canViewAllSales || permissions?.canManageUsers || permissions?.canManagePermissions || permissions?.canViewAudit;
                 const userIdToFilter = canSeeAllSales ? undefined : user?.id;
 
-                salesData = await getSales(userIdToFilter, undefined, startDate, endDate);
+                let fetchStartDate = startDate;
+                const now = new Date();
+                const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                
+                if (endDate >= currentMonthStart && startDate > currentMonthStart) {
+                    fetchStartDate = currentMonthStart;
+                }
+
+                salesData = await getSales(userIdToFilter, undefined, fetchStartDate, endDate);
             } catch (err) {
                 console.error('Vendas: Failed to fetch sales:', err);
                 throw new Error('Falha ao carregar lista de vendas.');
