@@ -33,6 +33,7 @@ const NAV_ITEMS: NavItemDefinition[] = [
         subItems: [
             { name: 'Vendas', to: '/vendas', permissionKey: 'canAccessVendas' },
             { name: 'Orçamentos', to: '/orcamentos', permissionKey: 'canAccessOrcamentos' },
+            { name: 'Avaliação (Trade-In)', to: '/avaliacao', permissionKey: 'canAccessOrcamentos' },
             { name: 'PDV (Frente de Caixa)', to: '/pos', permissionKey: 'canAccessPOS', target: '_blank' },
             { name: 'Catálogo', to: '/catalog', permissionKey: 'canAccessCatalog' },
         ]

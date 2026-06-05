@@ -1133,3 +1133,88 @@ export interface CommissionAuditLog {
     user_name?: string;
     created_at: string;
 }
+
+// ============================================================
+// MÓDULO: Avaliação Trade-In
+// ============================================================
+
+export interface AvaliacaoSettings {
+    id?: string;
+    companyId: string;
+    isActive: boolean;
+    welcomeMessage?: string;
+    logoUrl?: string;
+    whatsapp?: string;
+    collectContact: boolean;
+    floorValue: number;
+    validityDays?: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface AvaliacaoDevice {
+    id: string;
+    companyId: string;
+    brand: string;
+    model: string;
+    storageOptions: string[];
+    colorOptions: string[];
+    baseValues: Record<string, number>;
+    isActive: boolean;
+    displayOrder: number;
+    createdAt?: string;
+}
+
+export interface AvaliacaoCondition {
+    id: string;
+    companyId: string;
+    label: string;
+    description?: string;
+    deductionType: 'percentage' | 'fixed';
+    deductionValue: number;
+    icon?: string;
+    displayOrder: number;
+    isActive: boolean;
+}
+
+export interface AvaliacaoPart {
+    id: string;
+    companyId: string;
+    label: string;
+    deductionType: 'percentage' | 'fixed';
+    deductionValue: number;
+    isActive: boolean;
+    displayOrder: number;
+    requiresPhoto?: boolean;
+    requiresNote?: boolean;
+}
+
+export type AvaliacaoLeadStatus = 'new' | 'contacted' | 'converted' | 'rejected';
+
+export interface AvaliacaoLeadDeduction {
+    label: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    amount: number;
+}
+
+export interface AvaliacaoLead {
+    id: string;
+    companyId: string;
+    deviceBrand: string;
+    deviceModel: string;
+    deviceStorage?: string;
+    deviceColor?: string;
+    conditionLabel: string;
+    partsSelected: { id: string; label: string; deductionType: string; deductionValue: number; amount: number }[];
+    baseValue: number;
+    deductions: AvaliacaoLeadDeduction[];
+    finalValue: number;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    status: AvaliacaoLeadStatus;
+    notes?: string;
+    createdAt: string;
+    updatedAt?: string;
+}

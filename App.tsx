@@ -68,6 +68,10 @@ const CatalogStats = lazyWithRetry(() => import('./pages/Catalog/CatalogStats.ts
 const CatalogPublic = lazyWithRetry(() => import('./pages/Catalog/CatalogPublic.tsx'), 'CatalogPublic');
 const Financeiro = lazyWithRetry(() => import('./pages/Financeiro.tsx'), 'Financeiro');
 const PublicOSTracking = lazyWithRetry(() => import('./pages/ServiceOrders/PublicOSTracking.tsx'), 'PublicOSTracking');
+const AvaliacaoLayout = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoLayout.tsx'), 'AvaliacaoLayout');
+const AvaliacaoConfig = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoConfig.tsx'), 'AvaliacaoConfig');
+const AvaliacaoLeads = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoLeads.tsx'), 'AvaliacaoLeads');
+const AvaliacaoPublic = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoPublic.tsx'), 'AvaliacaoPublic');
 
 const GlobalChat = () => {
     const { isChatOpen, closeChat } = useChat();
@@ -183,10 +187,22 @@ const App: React.FC = () => {
                                                 <Route path="settings" element={<CatalogSettings />} />
                                             </Route>
                                         </Route>
+
+                                        {/* Avaliação Trade-In Module (Immersive) */}
+                                        <Route element={<ProtectedRoute permissionKey="canAccessOrcamentos" />}>
+                                            <Route path="/avaliacao" element={<AvaliacaoLayout />}>
+                                                <Route index element={<AvaliacaoConfig />} />
+                                                <Route path="config" element={<AvaliacaoConfig />} />
+                                                <Route path="leads" element={<AvaliacaoLeads />} />
+                                            </Route>
+                                        </Route>
                                     </Route>
 
                                     {/* Public Catalog (No Auth Required) */}
                                     <Route path="/catalogo/:slug" element={<CatalogPublic />} />
+
+                                    {/* Public Avaliação Trade-In (No Auth Required) */}
+                                    <Route path="/avaliacao/:slug" element={<AvaliacaoPublic />} />
 
                                     {/* Public OS Tracking (No Auth Required) */}
                                     <Route path="/os/track/:token" element={<PublicOSTracking />} />
