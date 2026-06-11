@@ -70,16 +70,27 @@ export const withTimeout = <T>(promise: Promise<T> | any, timeoutMs: number = DE
     ]);
 };
 
-export const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 2, delay = 1000): Promise<T> => {
+export const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 2, delay = 1000, timeoutMs = 15000): Promise<T> => {
     try {
         // Envolve a requisição com withTimeout para evitar carregamento infinito caso a internet caia silenciosamente
         return await withTimeout(
             fetcher(),
-            15000,
+            timeoutMs,
             'A conexão está instável ou a internet caiu. Verifique sua rede e tente novamente.'
         );
     } catch (error: any) {
         if (error?.name === 'AbortError') {
+            throw error;
+        }
+
+        // Não fazer retry em erros de permissão/autenticação — não adianta tentar de novo
+        const isPermissionError =
+            error?.status === 400 ||
+            error?.status === 401 ||
+            error?.status === 403 ||
+            error?.code === '42501' || // insufficient_privilege
+            error?.code === 'PGRST301'; // JWT expired
+        if (isPermissionError) {
             throw error;
         }
 
@@ -94,7 +105,7 @@ export const fetchWithRetry = async <T>(fetcher: () => Promise<T>, retries = 2, 
 
         if (isNetworkError) {
             await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(fetcher, retries - 1, delay * 2);
+            return fetchWithRetry(fetcher, retries - 1, delay * 2, timeoutMs);
         }
         throw error;
     }

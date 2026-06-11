@@ -31,8 +31,12 @@ const mapCustomer = (c: any) => ({
     }
 });
 
-// Mapped fields list. Including avatar_url despite size concerns as it is required for functionality.
-const CUSTOMER_COLUMNS = 'id, name, email, phone, contact2, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, avatar_url, active, credit_limit, credit_used, allow_credit';
+// Colunas padrão SEM avatar_url para evitar payload gigante (607 clientes com foto = ~13MB por query!).
+// A remoção do avatar_url reduz o payload de ~13MB para ~200KB, eliminando o timeout.
+const CUSTOMER_COLUMNS = 'id, name, email, phone, contact2, cpf, rg, birth_date, createdAt, is_blocked, custom_tag, instagram, cep, street, numero, complemento, bairro, city, state, active, credit_limit, credit_used, allow_credit';
+
+// Colunas com avatar — usar APENAS ao buscar um único cliente (ex: tela de perfil).
+const CUSTOMER_COLUMNS_WITH_AVATAR = CUSTOMER_COLUMNS + ', avatar_url';
 
 const toNum = (val: any) => (val === null || val === undefined) ? 0 : Number(val);
 
@@ -52,22 +56,23 @@ const ensureISODate = (dateStr: string | undefined | null): string | null => {
 export const getCustomers = async (onlyActive: boolean = true): Promise<Customer[]> => {
     const cacheKey = onlyActive ? 'customers_active' : 'customers_all';
     return fetchWithCache(cacheKey, async () => {
+        // FIX: avatar_url removido de CUSTOMER_COLUMNS para evitar payload de ~13MB.
+        // Isso elimina o timeout de 15s que impedia os clientes de aparecerem no modal de venda.
         return fetchWithRetry(async () => {
-            // Exclude avatar_url to prevent large payloads from crashing the app
             let query = supabase
                 .from('customers')
                 .select(CUSTOMER_COLUMNS)
                 .order('name', { ascending: true })
-                .limit(3000); // Robustness limit
+                .limit(3000);
 
             if (onlyActive) {
                 query = query.eq('active', true);
             }
 
             let { data, error } = await query;
+
             if (error && (error.code === '42703' || error.code === 'PGRST204') && error.message?.includes('contact2')) {
-                // Retry sem a nova coluna contact2 caso o banco ainda não tenha sido atualizado
-                console.warn("Retrying getCustomers sem a coluna contact2...");
+                console.warn('Retrying getCustomers sem a coluna contact2...');
                 const fallbackColumns = CUSTOMER_COLUMNS.replace(', contact2', '');
                 let fallbackQuery = supabase
                     .from('customers')
@@ -75,7 +80,6 @@ export const getCustomers = async (onlyActive: boolean = true): Promise<Customer
                     .order('name', { ascending: true })
                     .limit(3000);
                 if (onlyActive) fallbackQuery = fallbackQuery.eq('active', true);
-                
                 const retryResult = await fallbackQuery;
                 data = retryResult.data as any;
                 error = retryResult.error;
@@ -86,9 +90,8 @@ export const getCustomers = async (onlyActive: boolean = true): Promise<Customer
                 throw error;
             }
             return data;
-        }).then(data => {
-            return (data || []).map(mapCustomer);
-        });
+        }, 2, 1000, 30000) // timeout aumentado para 30s na listagem completa
+        .then(data => (data || []).map(mapCustomer));
     });
 };
 
@@ -97,20 +100,22 @@ export const searchCustomers = async (term: string): Promise<Customer[]> => {
     return fetchWithRetry(async () => {
         let query = supabase
             .from('customers')
-            .select(CUSTOMER_COLUMNS)
-            .eq('active', true) // Search only active customers
-            .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%`)
+            .select(CUSTOMER_COLUMNS) // sem avatar_url para manter a resposta leve
+            .eq('active', true)
+            .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%,email.ilike.%${term}%`)
+            .order('name', { ascending: true })
             .limit(50);
-            
+
         let { data, error } = await query;
         if (error && (error.code === '42703' || error.code === 'PGRST204') && error.message?.includes('contact2')) {
-            console.warn("Retrying searchCustomers sem a coluna contact2...");
+            console.warn('Retrying searchCustomers sem a coluna contact2...');
             const fallbackColumns = CUSTOMER_COLUMNS.replace(', contact2', '');
             const retryResult = await supabase
                 .from('customers')
                 .select(fallbackColumns)
                 .eq('active', true)
-                .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%`)
+                .or(`name.ilike.%${term}%,cpf.ilike.%${term}%,phone.ilike.%${term}%,email.ilike.%${term}%`)
+                .order('name', { ascending: true })
                 .limit(50);
             data = retryResult.data as any;
             error = retryResult.error;
@@ -120,9 +125,14 @@ export const searchCustomers = async (term: string): Promise<Customer[]> => {
     });
 };
 
-// Fetch single customer directly from DB without cache (for fresh data like tradeInHistory)
+// Fetch single customer directly from DB without cache (for fresh data like tradeInHistory).
+// Usa CUSTOMER_COLUMNS_WITH_AVATAR pois busca apenas 1 registro — sem risco de payload grande.
 export const getCustomerById = async (id: string): Promise<Customer | null> => {
-    const { data, error } = await supabase.from('customers').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+        .from('customers')
+        .select(CUSTOMER_COLUMNS_WITH_AVATAR)
+        .eq('id', id)
+        .single();
     if (error) {
         console.error('Error fetching customer by ID:', error);
         return null;

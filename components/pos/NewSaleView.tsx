@@ -358,12 +358,22 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                             <div className="md:col-span-7 flex flex-col justify-end">
                                 <label className={labelClasses}>Cliente Selecionado*</label>
                                 <div className="flex items-stretch gap-2 h-10 sm:h-12">
+                                    {customers.length === 0 && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => window.dispatchEvent(new CustomEvent('app-reloadData'))}
+                                            className="w-10 sm:w-12 h-full bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border border-red-200 shadow-sm flex-shrink-0"
+                                            title="Falha de rede. Clique para tentar carregar os clientes novamente."
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                        </button>
+                                    )}
                                     <div className="flex-grow h-full text-xs sm:text-sm">
                                         <SearchableDropdown
                                             options={customers.filter(c => c.active !== false || c.id === selectedCustomerId).map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` | ${c.phone}` : ''}` }))}
                                             value={selectedCustomerId}
                                             onChange={setSelectedCustomerId}
-                                            placeholder="Busque pelo nome..."
+                                            placeholder={customers.length === 0 ? "Falha de rede. Clique no botão ao lado." : "Busque pelo nome..."}
                                             className={!selectedCustomerId ? "bg-red-50 border-red-300 ring-2 ring-red-100 placeholder:text-red-400" : ""}
                                         />
                                     </div>

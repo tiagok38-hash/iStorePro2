@@ -1502,16 +1502,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
     clearCache(['sales', 'products', 'cash_sessions']);
 
-    return {
-        ...updated,
-        customerId: updated.customer_id,
-        salespersonId: updated.salesperson_id,
-        posTerminal: updated.pos_terminal,
-        warrantyTerm: updated.warranty_term,
-        cashSessionId: updated.cash_session_id,
-        leadOrigin: updated.lead_origin,
-        date: updated.date
-    };
+    return mapSale(updated);
 };
 
 export const cancelSale = async (id: string, reason: string, userId: string = 'system', userName: string = 'Sistema') => {
@@ -1767,11 +1758,7 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
 
     // Return with info about trade-in products that were already sold
     return {
-        ...updatedSale,
-        customerId: updatedSale.customer_id,
-        salespersonId: updatedSale.salesperson_id,
-        cashSessionId: updatedSale.cash_session_id,
-        warrantyTerm: updatedSale.warranty_term,
+        ...mapSale(updatedSale),
         tradeInAlreadySold: tradeInAlreadySoldProducts.length > 0 ? tradeInAlreadySoldProducts : undefined
     };
 };
