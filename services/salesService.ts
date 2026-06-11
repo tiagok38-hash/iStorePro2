@@ -2,7 +2,7 @@ import { getProducts, updateProductStock } from './productService.ts';
 import { syncCustomerCreditLimit } from './customerService.ts';
 import { addCreditInstallments } from './creditService.ts';
 import { supabase } from '../supabaseClient.ts';
-import { AuditActionType, AuditEntityType, Payment, CreditInstallment } from '../types.ts';
+import { AuditActionType, AuditEntityType, Payment, CreditInstallment, Sale, TodaySale } from '../types.ts';
 import { getNowISO } from '../utils/dateUtils.ts';
 import { sendSaleNotification } from './telegramService.ts';
 import { calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
@@ -103,27 +103,24 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
                 query = query.eq('cash_session_id', cashSessionId);
             }
             if (startDate) {
-                // If it's a simple YYYY-MM-DD, treat as start of day
-                const start = startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`;
+                // Fuso horário do Brasil (-03:00). Tratar YYYY-MM-DD como início do dia local.
+                const start = startDate.includes('T') ? startDate : `${startDate}T00:00:00-03:00`;
                 query = query.gte('date', start);
             }
             if (endDate) {
-                // Timezone Robustness: Brazil is UTC-3, so 21:00 Jan 28 (Local) is 00:00 Jan 29 (UTC).
-                // When the user filters for Jan 28, we MUST include early morning Jan 29 in UTC.
-                // We add a 24-hour buffer to endDate to ensure all timezone overlaps are covered.
+                // Fuso horário do Brasil (-03:00). Tratar YYYY-MM-DD como final do dia local.
                 if (!endDate.includes('T')) {
-                    const endObj = new Date(`${endDate}T23:59:59.999Z`);
-                    endObj.setDate(endObj.getDate() + 1); // Buffer 24h
-                    query = query.lte('date', endObj.toISOString());
+                    query = query.lte('date', `${endDate}T23:59:59-03:00`);
                 } else {
                     query = query.lte('date', endDate);
                 }
             }
             query = query.neq('status', 'Rascunho');
 
-            // ROBUSTNESS: Always limit to last 1000 sales to prevent memory overflows.
-            // For historical data beyond this, specialized reports should be used.
-            query = query.order('date', { ascending: false }).limit(1000);
+            // LIMIT DINÂMICO: Usa 5000 se houver filtro de data (para suportar relatórios anuais), 
+            // ou 2000 como fallback de segurança geral (antes era 1000 e cortava o histórico).
+            const limitVal = (startDate || endDate) ? 5000 : 2000;
+            query = query.order('date', { ascending: false }).limit(limitVal);
 
             const { data, error } = await query;
             if (error) {

@@ -1656,10 +1656,15 @@ const Dashboard: React.FC = () => {
 
         try {
             // TIER 1: CRITICAL KPI DATA — todos os dados dos cards principais em paralelo
-            // ROBUSTNESS: Only fetch last 365 days of sales for dashboard to keep it fast
-            const oneYearAgo = new Date();
-            oneYearAgo.setDate(oneYearAgo.getDate() - 365);
-            const startDate = oneYearAgo.toISOString().split('T')[0];
+            // Puxa vendas desde o primeiro dia do ano atual para garantir que os gráficos anuais não percam dados
+            // Se estivermos em janeiro, puxa 365 dias atrás para o dashboard ter histórico nos primeiros dias do ano.
+            const now = new Date();
+            let startDateStr = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+            if (now.getMonth() === 0) { // Janeiro
+                const oneYearAgo = new Date();
+                oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+                startDateStr = oneYearAgo.toISOString().split('T')[0];
+            }
 
             // OPTIMIZATION: We exclude heavy JSONB columns like 'stockHistory', 'priceHistory', 'checklist', 'observations'
             // for the dashboard view to save massive bandwidth and memory.
@@ -1667,7 +1672,7 @@ const Dashboard: React.FC = () => {
 
             // Fetch crítico paralelo: Sales + Products em paralelo, ServiceOrders + Services em paralelo separado
             const salesProductsPromise = Promise.all([
-                fetchItem('Sales', () => getSales(undefined, undefined, startDate), []),
+                fetchItem('Sales', () => getSales(undefined, undefined, startDateStr), []),
                 fetchItem('Products', () => getProducts({ select: productSelect }), []),
             ]);
 
