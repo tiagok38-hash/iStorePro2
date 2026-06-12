@@ -76,7 +76,7 @@ export const mapSale = (sale: any): Sale => {
 };
 
 export const getSales = async (currentUserId?: string, cashSessionId?: string, startDate?: string, endDate?: string): Promise<Sale[]> => {
-    const cacheKey = `sales_${currentUserId || 'all'}_${cashSessionId || 'all'}_${startDate || 'none'}_${endDate || 'none'}`;
+    const cacheKey = `sales_${currentUserId || 'all'}_${cashSessionId || 'all'}_${startDate || 'none'}_${endDate || 'none'}_v4`;
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('sales').select('*');
@@ -117,16 +117,36 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
             }
             query = query.neq('status', 'Rascunho');
 
-            // LIMIT DINÂMICO: Usa 5000 se houver filtro de data (para suportar relatórios anuais), 
-            // ou 2000 como fallback de segurança geral (antes era 1000 e cortava o histórico).
-            const limitVal = (startDate || endDate) ? 5000 : 2000;
-            query = query.order('date', { ascending: false }).limit(limitVal);
+            // LIMIT DINÂMICO E PAGINAÇÃO (Bypass Supabase max-rows 1000):
+            // O PostgREST no Supabase normalmente trava o retorno máximo em 1000 registros por padrão.
+            // Para clientes SaaS Premium, puxamos em lotes de 1000 usando .range() até acabar ou bater 10000.
+            const pageSize = 1000;
+            const maxRecords = 15000;
+            let allData: any[] = [];
+            let from = 0;
+            let hasMore = true;
 
-            const { data, error } = await query;
-            if (error) {
-                console.error('Error fetching sales:', error);
-                throw error;
+            query = query.order('date', { ascending: false });
+
+            while (hasMore && allData.length < maxRecords) {
+                const to = from + pageSize - 1;
+                const { data, error } = await query.range(from, to);
+
+                if (error) {
+                    console.error('Error fetching sales:', error);
+                    throw error;
+                }
+
+                if (data && data.length > 0) {
+                    allData = [...allData, ...data];
+                    from += pageSize;
+                    hasMore = data.length === pageSize;
+                } else {
+                    hasMore = false;
+                }
             }
+
+            const data = allData;
             return data;
         }).then(data => {
 

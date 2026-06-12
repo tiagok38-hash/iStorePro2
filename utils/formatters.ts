@@ -83,13 +83,24 @@ export const cleanDeviceDescription = (text: string | null | undefined): string 
     return text.replace(/^Apple\s+/i, '').trim();
 };
 
-/** Calcula o lucro de uma Ordem de Serviço */
 export const calculateOSProfit = (os: any) => {
     if (!os) return 0;
     const items = os.items || [];
+    
+    // Calcula a receita real (faturada) da OS
+    const revenue = os.total !== undefined ? os.total : ((os.subtotal || 0) - (os.discount || 0));
+    
+    // Calcula o custo real das peças/serviços
     const totalCost = items.reduce((acc: number, item: any) => {
-        const cost = typeof item.cost === 'string' ? parseFloat(item.cost) : (item.cost || 0);
+        let cost = 0;
+        if (item.cost !== undefined && item.cost !== null) {
+            cost = typeof item.cost === 'string' ? parseFloat(item.cost) : item.cost;
+        } else if (item.costPrice !== undefined) {
+            cost = (typeof item.costPrice === 'string' ? parseFloat(item.costPrice) : item.costPrice) + 
+                   (typeof item.additionalCostPrice === 'string' ? parseFloat(item.additionalCostPrice) : (item.additionalCostPrice || 0));
+        }
         return acc + (cost * (item.quantity || 1));
     }, 0);
-    return (os.total || 0) - totalCost;
+    
+    return revenue - totalCost;
 };
