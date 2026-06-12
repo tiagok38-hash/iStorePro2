@@ -152,14 +152,24 @@ export const mapServiceOrderData = (so: any): ServiceOrder => ({
 });
 
 
-export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
-    return fetchWithCache('service_orders', async () => {
+export const getServiceOrders = async (startDate?: string, options?: { select?: string }): Promise<ServiceOrder[]> => {
+    const cacheKey = 'service_orders' + (startDate ? `_${startDate}` : '') + (options?.select ? `_${options.select.replace(/[^a-zA-Z0-9]/g, '_')}` : '');
+    return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('service_orders')
-                .select('*')
+                .select(options?.select || '*')
                 .order('created_at', { ascending: false });
 
+            if (startDate) {
+                // Fetch recent OR open (not concluded/delivered/canceled)
+                query = query.or(`status.not.in.(Concluído,Entregue,Cancelado),created_at.gte.${startDate}`);
+            }
+            
+            // Limit to prevent massive payloads and browser freeze
+            query = query.limit(2000);
+
+            const { data, error } = await query;
             if (error) throw error;
             return (data || []).map(mapServiceOrderData);
         });

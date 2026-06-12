@@ -9,9 +9,10 @@ interface CustomDatePickerProps {
     label?: string;
     className?: string;
     title?: string;
+    disabled?: boolean;
 }
 
-const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, max, label, className, title }) => {
+const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, max, label, className, title, disabled }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [viewDate, setViewDate] = useState(() => {
         if (value) {
@@ -87,11 +88,16 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
             {label && <label className="text-[10px] font-black uppercase tracking-wider text-muted mb-1 block pl-1">{label}</label>}
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-3 border rounded-xl bg-white border-gray-200 text-sm font-medium text-gray-700 hover:border-primary/50 transition-colors w-full h-[48px] shadow-sm ${className || ''}`}
-                title={title}
+                disabled={disabled}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                className={`flex items-center gap-2 px-3 border rounded-xl text-sm font-medium w-full h-[48px] shadow-sm transition-colors ${
+                    disabled 
+                        ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed opacity-80' 
+                        : 'bg-white border-gray-200 text-gray-700 hover:border-primary/50'
+                } ${className || ''}`}
+                title={disabled ? 'Restrito a administradores' : title}
             >
-                <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
+                <CalendarDaysIcon className={`w-4 h-4 ${disabled ? 'text-gray-400' : 'text-primary'}`} />
                 <span className="truncate">
                     {value ? new Date(value + 'T12:00:00').toLocaleDateString('pt-BR') : 'Selecionar'}
                 </span>

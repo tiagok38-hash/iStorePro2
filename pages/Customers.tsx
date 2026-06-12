@@ -909,7 +909,7 @@ const CustomersAndSuppliers: React.FC = () => {
                     <>
                         {/* Mobile View: Ultra Compact Strip Cards */}
                         <div className="md:hidden space-y-2">
-                            {filteredCustomers.map(customer => (
+                            {filteredCustomers.slice(0, 100).map(customer => (
                                 <div key={customer.id} className="bg-white/60 backdrop-blur-sm p-3 rounded-3xl border border-white/40 shadow-sm relative overflow-hidden">
                                     <div className="flex items-start gap-3">
                                         {/* Avatar Left */}
@@ -1003,7 +1003,7 @@ const CustomersAndSuppliers: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredCustomers.map(customer => (
+                                    {filteredCustomers.slice(0, 100).map(customer => (
                                         <tr key={customer.id} className="bg-surface border-b border-border hover:bg-surface-secondary">
                                             <td className="px-6 py-4 font-medium text-primary">
                                                 <div className="flex items-center gap-3">

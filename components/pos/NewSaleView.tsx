@@ -22,6 +22,7 @@ import ProductModal from '../ProductModal.tsx';
 import CardPaymentModal from '../CardPaymentModal.tsx';
 import NewCreditModal from '../modals/NewCreditModal.tsx';
 import CreditLimitWarning from '../modals/CreditLimitWarning.tsx';
+import { useUser } from '../../contexts/UserContext.tsx';
 
 
 import { useSaleForm } from '../../hooks/useSaleForm.ts';
@@ -58,6 +59,9 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
         grades, gradeValues, receiptTerms, paymentMethods, onAddNewCustomer,
         storageLocations = []
     } = props;
+
+    const { user } = useUser();
+    const isAdmin = user?.permissionProfileId === 'profile-admin';
 
     const [matchingUnits, setMatchingUnits] = React.useState<Product[]>([]);
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
@@ -353,6 +357,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     onChange={setSaleDate}
                                     max={toDateValue()}
                                     className="w-full"
+                                    disabled={!isAdmin}
                                 />
                             </div>
                             <div className="md:col-span-7 flex flex-col justify-end">

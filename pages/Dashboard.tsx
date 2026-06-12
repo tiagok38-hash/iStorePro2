@@ -1676,8 +1676,9 @@ const Dashboard: React.FC = () => {
                 fetchItem('Products', () => getProducts({ select: productSelect }), []),
             ]);
 
+            const serviceOrderSelect = 'id,display_id,customer_name,device_model,created_at,updated_at,exit_date,status,total,subtotal,discount,items';
             const ordersServicesPromise = Promise.all([
-                fetchItem('ServiceOrders', () => getServiceOrders(), []),
+                fetchItem('ServiceOrders', () => getServiceOrders(startDateStr, { select: serviceOrderSelect }), []),
                 fetchItem('Services', () => getServices(), []),
             ]);
 

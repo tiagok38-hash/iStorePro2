@@ -504,6 +504,7 @@ export const useSaleForm = ({
                 };
             }),
             subtotal, total, payments,
+            date: saleDate + 'T12:00:00.000Z', // Data retroativa ou de hoje
             posTerminal: saleToEdit?.posTerminal || 'Caixa 1',
             status: isPending ? 'Pendente' : (saleToEdit ? 'Editada' : 'Finalizada'),
             origin: saleToEdit?.origin || (openCashSessionId ? 'PDV' : 'Balcão'), warrantyTerm, observations, internalObservations,

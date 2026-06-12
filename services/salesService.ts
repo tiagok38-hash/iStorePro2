@@ -341,7 +341,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
 
     const saleData: any = {
         id: `ID-${nextNum}`,
-        date: now.toISOString(),
+        date: data.date || now.toISOString(),
         customer_id: data.customerId,
         customer_name: data.customerName, // Tenta salvar na coluna real se existir
         salesperson_id: data.salespersonId,
@@ -909,6 +909,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     if (data.customerId) updatePayload.customer_id = data.customerId;
     if (data.salespersonId) updatePayload.salesperson_id = data.salespersonId;
     if (finalStatus) updatePayload.status = finalStatus;
+    if (data.date) updatePayload.date = data.date;
     if (data.posTerminal) updatePayload.pos_terminal = data.posTerminal;
     if (data.warrantyTerm) updatePayload.warranty_term = data.warrantyTerm;
     if (data.cashSessionId) updatePayload.cash_session_id = data.cashSessionId;
