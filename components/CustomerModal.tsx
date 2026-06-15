@@ -139,7 +139,10 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
 
         if (name.includes('.')) {
             const [parent, child] = name.split('.');
-            setFormData(prev => ({ ...prev, [parent]: { ...(prev as any)[parent], [child]: value } }));
+            setFormData(prev => {
+                const parentObj = (prev as any)[parent] || {};
+                return { ...prev, [parent]: { ...parentObj, [child]: value } };
+            });
         } else {
             let formattedValue = value;
             if (name === 'cpf') formattedValue = formatCPF(value);
@@ -395,7 +398,21 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ entity, initialType, onCl
                                             <input name="zip" value={formData.address?.zip || ''} onChange={handleCepChange} className={`${inputClasses} ${errors.zip ? 'border-red-500' : ''}`} maxLength={8} />
                                             <p className="text-red-600 text-[10px] mt-0.5 min-h-[15px]">{errors.zip}</p>
                                         </div>
-                                        <button type="button" className="px-3 h-9 bg-green-500 text-white rounded-xl text-xs flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm"><SearchIcon className="h-4 w-4" /></button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const cep = formData.address?.zip?.replace(/\D/g, '') || '';
+                                                if (cep.length === 8) {
+                                                    handleCepChange({ target: { value: cep } } as any);
+                                                } else {
+                                                    showToast('Digite um CEP com 8 dígitos antes de buscar.', 'warning');
+                                                }
+                                            }}
+                                            className="px-3 h-9 bg-green-500 text-white rounded-xl text-xs flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm"
+                                            title="Buscar CEP"
+                                        >
+                                            <SearchIcon className="h-4 w-4" />
+                                        </button>
                                         <button type="button" onClick={handleClearAddress} className="px-3 h-9 bg-gray-200 text-gray-700 rounded-xl text-xs flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm"><TrashIcon className="h-4 w-4" /></button>
                                     </div>
                                 </div>

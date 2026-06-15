@@ -67,6 +67,9 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
     const [isSelectingUnit, setIsSelectingUnit] = React.useState(false);
     const [customerToEdit, setCustomerToEdit] = React.useState<Customer | null>(null);
     const [isSavingCustomer, setIsSavingCustomer] = React.useState(false);
+    // Estado local de clientes: atualizado imediatamente quando um novo cliente é criado,
+    // sem depender do re-render das props vindas do componente pai.
+    const [localCustomers, setLocalCustomers] = React.useState<Customer[]>(customers);
     const [isCreditModalOpen, setIsCreditModalOpen] = React.useState(false);
     const [freshCustomer, setFreshCustomer] = React.useState<Customer | null>(null);
     const [isFetchingCustomer, setIsFetchingCustomer] = React.useState(false);
@@ -132,15 +135,25 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
 
     const { productSearchRef } = refs;
 
-    // Sincroniza customerToEdit se a lista de customers mudar (ex: após atualização de limite)
+    // Sincroniza localCustomers quando a prop customers mudar (ex: carregamento inicial, refresh)
+    React.useEffect(() => {
+        setLocalCustomers(prev => {
+            // Mescla: mantém clientes adicionados localmente que ainda não estão nas props
+            const propIds = new Set(customers.map(c => c.id));
+            const localOnly = prev.filter(c => !propIds.has(c.id));
+            return [...customers, ...localOnly];
+        });
+    }, [customers]);
+
+    // Sincroniza customerToEdit se a lista de clientes mudar (ex: após atualização de limite)
     React.useEffect(() => {
         if (customerToEdit) {
-            const fresh = customers.find(c => c.id === customerToEdit.id);
+            const fresh = localCustomers.find(c => c.id === customerToEdit.id);
             if (fresh && JSON.stringify(fresh) !== JSON.stringify(customerToEdit)) {
                 setCustomerToEdit(fresh);
             }
         }
-    }, [customers, customerToEdit]);
+    }, [localCustomers, customerToEdit]);
 
     const filteredProducts = useMemo(() => {
         const terms = productSearch.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
@@ -363,7 +376,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                             <div className="md:col-span-7 flex flex-col justify-end">
                                 <label className={labelClasses}>Cliente Selecionado*</label>
                                 <div className="flex items-stretch gap-2 h-10 sm:h-12">
-                                    {customers.length === 0 && (
+                                    {localCustomers.length === 0 && (
                                         <button 
                                             type="button" 
                                             onClick={() => window.dispatchEvent(new CustomEvent('app-reloadData'))}
@@ -375,10 +388,10 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                     )}
                                     <div className="flex-grow h-full text-xs sm:text-sm">
                                         <SearchableDropdown
-                                            options={customers.filter(c => c.active !== false || c.id === selectedCustomerId).map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` | ${c.phone}` : ''}` }))}
+                                            options={localCustomers.filter(c => c.active !== false || c.id === selectedCustomerId).map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` | ${c.phone}` : ''}` }))}
                                             value={selectedCustomerId}
                                             onChange={setSelectedCustomerId}
-                                            placeholder={customers.length === 0 ? "Falha de rede. Clique no botão ao lado." : "Busque pelo nome..."}
+                                            placeholder={localCustomers.length === 0 ? "Falha de rede. Clique no botão ao lado." : "Busque pelo nome..."}
                                             className={!selectedCustomerId ? "bg-red-50 border-red-300 ring-2 ring-red-100 placeholder:text-red-400" : ""}
                                         />
                                     </div>
@@ -1095,6 +1108,11 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                                 // Create Mode
                                 const nc = await onAddNewCustomer(customerPayload);
                                 if (nc) {
+                                    // Adiciona imediatamente ao estado local para aparecer no dropdown
+                                    setLocalCustomers(prev => {
+                                        if (prev.some(c => c.id === nc.id)) return prev;
+                                        return [...prev, nc];
+                                    });
                                     setSelectedCustomerId(nc.id);
                                     showToast('Cliente cadastrado com sucesso!', 'success');
                                     setIsCustomerModalOpen(false);
