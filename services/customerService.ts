@@ -192,12 +192,13 @@ export const addCustomer = async (data: any, userId: string = 'system', userName
         phone: data.phone
     };
 
-    if (data.email !== undefined) payload.email = data.email;
-    if (data.contact2 !== undefined) payload.contact2 = data.contact2;
-    if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl;
-    if (data.cpf !== undefined) payload.cpf = data.cpf;
-    if (data.rg !== undefined) payload.rg = data.rg;
-    if (data.birthDate !== undefined) payload.birth_date = data.birthDate;
+    if (data.email !== undefined) payload.email = data.email || null;
+    if (data.contact2 !== undefined) payload.contact2 = data.contact2 || null;
+    if (data.avatarUrl !== undefined) payload.avatar_url = data.avatarUrl || null;
+    // Normaliza string vazia para null para evitar falso positivo de duplicata (query .eq('cpf', '') retornaria outros com cpf='')
+    if (data.cpf !== undefined) payload.cpf = data.cpf?.trim().replace(/\D/g, '') ? data.cpf.trim() : null;
+    if (data.rg !== undefined) payload.rg = data.rg?.trim() || null;
+    if (data.birthDate !== undefined) payload.birth_date = data.birthDate || null;
     if (data.isBlocked !== undefined) payload.is_blocked = data.isBlocked;
     if (data.customTag !== undefined) payload.custom_tag = data.customTag;
     if (data.instagram !== undefined) payload.instagram = data.instagram;
