@@ -13,6 +13,20 @@ import {
 import { useUser } from '../contexts/UserContext.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';
 
+/**
+ * Retorna o timestamp correto para gravar a venda:
+ * - Venda no dia atual → horário real exato (new Date())
+ * - Venda retroativa (admin escolheu data passada) → data escolhida + hora local atual
+ * Garante timezone-awareness sem hardcode de offset UTC.
+ */
+const buildSaleTimestamp = (saleDate: string): string => {
+    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD no timezone local
+    if (saleDate === todayStr) return new Date().toISOString();
+    const now = new Date();
+    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    return `${saleDate}T${localNow.toISOString().split('T')[1]}`;
+};
+
 interface UseSaleFormProps {
     customers: Customer[];
     users: User[];
@@ -504,23 +518,8 @@ export const useSaleForm = ({
                 };
             }),
             subtotal, total, payments,
-            // Timestamp da venda:
-            // - Se a data selecionada for hoje: usa o horário real exato do momento da venda.
-            // - Se for retroativa (admin escolheu data passada): usa a data escolhida + horário
-            //   atual do dia no timezone local, para manter coerência temporal sem hardcode UTC.
-            date: (() => {
-                const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD no timezone local
-                if (saleDate === todayStr) {
-                    // Venda normal: horário real agora
-                    return new Date().toISOString();
-                }
-                // Venda retroativa: data escolhida + hora atual no offset local
-                const now = new Date();
-                const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
-                const localNow = new Date(now.getTime() - tzOffsetMs);
-                const timeStr = localNow.toISOString().split('T')[1]; // HH:mm:ss.mssZ
-                return `${saleDate}T${timeStr}`;
-            })(),
+            // Usa horário real da venda: hoje = now() exato; retroativa = data escolhida + hora local atual.
+            date: buildSaleTimestamp(saleDate),
             posTerminal: saleToEdit?.posTerminal || 'Caixa 1',
             status: isPending ? 'Pendente' : (saleToEdit ? 'Editada' : 'Finalizada'),
             origin: saleToEdit?.origin || (openCashSessionId ? 'PDV' : 'Balcão'), warrantyTerm, observations, internalObservations,

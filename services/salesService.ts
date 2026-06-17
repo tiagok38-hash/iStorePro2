@@ -30,11 +30,11 @@ export const mapSale = (sale: any): Sale => {
 
         const rawObs = sale.observations || '';
 
-        const cancelReason    = extractTagValue(rawObs, '\n---CANCEL_REASON---\n') || '';
+        const cancelReason = extractTagValue(rawObs, '\n---CANCEL_REASON---\n') || '';
         const customerNameTag = extractTagValue(rawObs, '\n---CUSTNAME---\n');
-        const csdidRaw        = extractTagValue(rawObs, '\n---CSDID---\n');
-        const internal        = extractTagValue(rawObs, '\n---INTERNAL---\n') || '';
-        const spNameTag       = extractTagValue(rawObs, '\n---SPNAME---\n');
+        const csdidRaw = extractTagValue(rawObs, '\n---CSDID---\n');
+        const internal = extractTagValue(rawObs, '\n---INTERNAL---\n') || '';
+        const spNameTag = extractTagValue(rawObs, '\n---SPNAME---\n');
 
         const customerNameSnapshot = sale.customer_name || customerNameTag || undefined;
         const salespersonNameSnapshot = sale.salesperson_name || spNameTag || null;
