@@ -504,7 +504,23 @@ export const useSaleForm = ({
                 };
             }),
             subtotal, total, payments,
-            date: saleDate + 'T12:00:00.000Z', // Data retroativa ou de hoje
+            // Timestamp da venda:
+            // - Se a data selecionada for hoje: usa o horário real exato do momento da venda.
+            // - Se for retroativa (admin escolheu data passada): usa a data escolhida + horário
+            //   atual do dia no timezone local, para manter coerência temporal sem hardcode UTC.
+            date: (() => {
+                const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD no timezone local
+                if (saleDate === todayStr) {
+                    // Venda normal: horário real agora
+                    return new Date().toISOString();
+                }
+                // Venda retroativa: data escolhida + hora atual no offset local
+                const now = new Date();
+                const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+                const localNow = new Date(now.getTime() - tzOffsetMs);
+                const timeStr = localNow.toISOString().split('T')[1]; // HH:mm:ss.mssZ
+                return `${saleDate}T${timeStr}`;
+            })(),
             posTerminal: saleToEdit?.posTerminal || 'Caixa 1',
             status: isPending ? 'Pendente' : (saleToEdit ? 'Editada' : 'Finalizada'),
             origin: saleToEdit?.origin || (openCashSessionId ? 'PDV' : 'Balcão'), warrantyTerm, observations, internalObservations,

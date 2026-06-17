@@ -13,35 +13,34 @@ import { getProfile, resolvePermissions } from './authService.ts';
 
 export const mapSale = (sale: any): Sale => {
     try {
-        const extractTag = (text: string, tag: string) => {
-            if (text.includes(tag)) {
-                const parts = text.split(tag);
-                return { remaining: parts[0], value: parts[1] };
-            }
-            return { remaining: text, value: undefined };
+        // Extrai o valor de uma tag do texto completo (independente de ordem das tags)
+        const extractTagValue = (text: string, tag: string): string | undefined => {
+            const idx = text.indexOf(tag);
+            if (idx === -1) return undefined;
+            const afterTag = text.slice(idx + tag.length);
+            // O valor vai até a próxima tag ou até o fim
+            const nextTagIdx = afterTag.search(/\n---[A-Z_]+---\n/);
+            return nextTagIdx === -1 ? afterTag : afterTag.slice(0, nextTagIdx);
         };
 
-        let currentObs = sale.observations || '';
-        
-        const cancelRes = extractTag(currentObs, '\n---CANCEL_REASON---\n');
-        currentObs = cancelRes.remaining;
-        const cancelReason = cancelRes.value || '';
+        // Remove todas as tags e seus valores do texto para obter as observations limpas
+        const stripAllTags = (text: string): string => {
+            return text.replace(/\n---[A-Z_]+---\n[^]*?(?=\n---[A-Z_]+---\n|$)/g, '').trim();
+        };
 
-        const custName = extractTag(currentObs, '\n---CUSTNAME---\n');
-        currentObs = custName.remaining;
-        let customerNameSnapshot = sale.customer_name || custName.value;
+        const rawObs = sale.observations || '';
 
-        const csdidTag = extractTag(currentObs, '\n---CSDID---\n');
-        currentObs = csdidTag.remaining;
-        const csdid = csdidTag.value ? parseInt(csdidTag.value, 10) : undefined;
+        const cancelReason    = extractTagValue(rawObs, '\n---CANCEL_REASON---\n') || '';
+        const customerNameTag = extractTagValue(rawObs, '\n---CUSTNAME---\n');
+        const csdidRaw        = extractTagValue(rawObs, '\n---CSDID---\n');
+        const internal        = extractTagValue(rawObs, '\n---INTERNAL---\n') || '';
+        const spNameTag       = extractTagValue(rawObs, '\n---SPNAME---\n');
 
-        const internalTag = extractTag(currentObs, '\n---INTERNAL---\n');
-        currentObs = internalTag.remaining;
-        const internal = internalTag.value || '';
+        const customerNameSnapshot = sale.customer_name || customerNameTag || undefined;
+        const salespersonNameSnapshot = sale.salesperson_name || spNameTag || null;
+        const csdid = csdidRaw ? parseInt(csdidRaw, 10) : undefined;
 
-        const spNameTag = extractTag(currentObs, '\n---SPNAME---\n');
-        currentObs = spNameTag.remaining;
-        const salespersonNameSnapshot = sale.salesperson_name || spNameTag.value || null;
+        const cleanObs = stripAllTags(rawObs);
 
         return {
             ...sale,
@@ -50,7 +49,7 @@ export const mapSale = (sale: any): Sale => {
             cashSessionId: sale.cash_session_id,
             warrantyTerm: sale.warranty_term,
             posTerminal: sale.pos_terminal,
-            observations: currentObs,
+            observations: cleanObs,
             internalObservations: internal,
             customerName: customerNameSnapshot,
             salespersonName: salespersonNameSnapshot,
