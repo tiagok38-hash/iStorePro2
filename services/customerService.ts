@@ -56,41 +56,61 @@ const ensureISODate = (dateStr: string | undefined | null): string | null => {
 export const getCustomers = async (onlyActive: boolean = true): Promise<Customer[]> => {
     const cacheKey = onlyActive ? 'customers_active' : 'customers_all';
     return fetchWithCache(cacheKey, async () => {
-        // FIX: avatar_url removido de CUSTOMER_COLUMNS para evitar payload de ~13MB.
-        // Isso elimina o timeout de 15s que impedia os clientes de aparecerem no modal de venda.
         return fetchWithRetry(async () => {
-            let query = supabase
-                .from('customers')
-                .select(CUSTOMER_COLUMNS)
-                .order('name', { ascending: true })
-                .limit(3000);
+            // Paginação para contornar o limite de 1000 registros do PostgREST.
+            // Sem isso, clientes com nomes no final do alfabeto (U, V, W, X...) ficam invisíveis.
+            const pageSize = 1000;
+            let allData: any[] = [];
+            let from = 0;
+            let hasMore = true;
+            let lastError: any = null;
 
-            if (onlyActive) {
-                query = query.eq('active', true);
-            }
-
-            let { data, error } = await query;
-
-            if (error && (error.code === '42703' || error.code === 'PGRST204') && error.message?.includes('contact2')) {
-                console.warn('Retrying getCustomers sem a coluna contact2...');
-                const fallbackColumns = CUSTOMER_COLUMNS.replace(', contact2', '');
-                let fallbackQuery = supabase
+            while (hasMore) {
+                let query = supabase
                     .from('customers')
-                    .select(fallbackColumns)
+                    .select(CUSTOMER_COLUMNS)
                     .order('name', { ascending: true })
-                    .limit(3000);
-                if (onlyActive) fallbackQuery = fallbackQuery.eq('active', true);
-                const retryResult = await fallbackQuery;
-                data = retryResult.data as any;
-                error = retryResult.error;
+                    .range(from, from + pageSize - 1);
+
+                if (onlyActive) query = query.eq('active', true);
+
+                let { data, error } = await query;
+
+                if (error && (error.code === '42703' || error.code === 'PGRST204') && error.message?.includes('contact2')) {
+                    console.warn('Retrying getCustomers sem a coluna contact2...');
+                    const fallbackColumns = CUSTOMER_COLUMNS.replace(', contact2', '');
+                    let fallbackQuery = supabase
+                        .from('customers')
+                        .select(fallbackColumns)
+                        .order('name', { ascending: true })
+                        .range(from, from + pageSize - 1);
+                    if (onlyActive) fallbackQuery = fallbackQuery.eq('active', true);
+                    const retryResult = await fallbackQuery;
+                    data = retryResult.data as any;
+                    error = retryResult.error;
+                }
+
+                if (error) {
+                    lastError = error;
+                    break;
+                }
+
+                if (data && data.length > 0) {
+                    allData = [...allData, ...data];
+                    from += pageSize;
+                    hasMore = data.length === pageSize;
+                } else {
+                    hasMore = false;
+                }
             }
 
-            if (error) {
-                console.error('mockApi: Error fetching customers:', error);
-                throw error;
+            if (lastError && allData.length === 0) {
+                console.error('mockApi: Error fetching customers:', lastError);
+                throw lastError;
             }
-            return data;
-        }, 2, 1000, 30000) // timeout aumentado para 30s na listagem completa
+
+            return allData;
+        }, 2, 1000, 30000)
         .then(data => (data || []).map(mapCustomer));
     });
 };
