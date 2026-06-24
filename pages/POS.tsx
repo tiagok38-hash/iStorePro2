@@ -188,7 +188,6 @@ const POS: React.FC = () => {
     }, [fetchData, user?.id]);
 
     const augmentedSessions = useMemo(() => {
-        // PERFORMANCE FIX: Group sales by session ID first to avoid O(N*M) complexity
         const salesBySession: Record<string, Sale[]> = {};
         sales.forEach(sale => {
             if (sale.cashSessionId) {
@@ -201,15 +200,12 @@ const POS: React.FC = () => {
             const sessionSales = (salesBySession[session.id] || []).filter(s => s.status !== 'Cancelada');
             const totalSales = sessionSales.reduce((acc, sale) => acc + (sale.total || 0), 0);
 
-            const cashFromSales = sessionSales.reduce((acc, sale) => {
-                const cash = (sale.payments || []).filter(p => p.method === 'Dinheiro').reduce((sum, p) => sum + (p.value || 0), 0);
-                return acc + cash;
-            }, 0);
-
+            // cashInRegister: fonte de verdade é o banco de dados.
+            // salesService.ts atualiza cash_in_register a cada venda, sangria e suprimento.
+            // Recalcular aqui causaria duplicação do valor de dinheiro.
             return {
                 ...session,
                 transactionsValue: totalSales,
-                cashInRegister: (session.cashInRegister || 0) + cashFromSales
             };
         });
     }, [sessions, sales]);

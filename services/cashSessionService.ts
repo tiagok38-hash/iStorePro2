@@ -5,8 +5,7 @@ import { getTodayDateString, getNowISO, formatDateTimeBR } from '../utils/dateUt
 import { formatCurrency } from '../utils/formatters.ts';
 import { fetchWithCache, fetchWithRetry, clearCache } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';
-import { getProfile } from './authService.ts';
-import { resolvePermissions } from './authService.ts';
+import { getProfile, resolvePermissions } from './authService.ts';
 
 // --- CASH SESSIONS ---
 
@@ -136,7 +135,6 @@ export const addCashSession = async (data: any, odId: string = 'system', userNam
         open_time: getNowISO(),
         status: 'aberto'
     };
-
 
     const { data: newSession, error } = await supabase.from('cash_sessions').insert([session]).select().single();
     if (error) {
@@ -302,8 +300,7 @@ export const addCashMovement = async (sid: string, mov: any, odId: string = 'sys
     const updatedMovements = [...movements, newMovement];
 
     const totalAmount = Number(mov.amount);
-    // Use snake_case column names
-    const currentCash = session.cash_in_register || session.cashInRegister || 0;
+    const currentCash = Number(session.cash_in_register || 0);
     const currentWithdrawals = session.withdrawals || 0;
     const currentDeposits = session.deposits || 0;
 

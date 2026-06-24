@@ -1,6 +1,5 @@
 
 // --- Shared infrastructure (imported from dedicated modules) ---
-import { fetchWithCache, clearCache, getAllCacheKeys, fetchWithRetry, withTimeout, CACHE_TTL, METADATA_TTL } from './cacheUtils.ts';
 export { clearCache } from './cacheUtils.ts';
 
 // --- Formatters ---
@@ -8,7 +7,7 @@ import { formatCurrency, formatPhone } from '../utils/formatters.ts';
 export { formatCurrency, formatPhone };
 
 // --- Auth, Users, Permissions ---
-import { resolvePermissions, login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile, sendPasswordResetEmail, updatePassword, resendConfirmationEmail } from './authService.ts';
+import { login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile, sendPasswordResetEmail, updatePassword, resendConfirmationEmail } from './authService.ts';
 export { login, logout, getProfile, getUsers, addUser, updateUser, deleteUser, registerAdmin, checkAdminExists, getPermissionProfiles, addPermissionProfile, updatePermissionProfile, deletePermissionProfile, sendPasswordResetEmail, updatePassword, resendConfirmationEmail };
 
 // --- Audit ---

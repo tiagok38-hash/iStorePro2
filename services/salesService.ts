@@ -1,8 +1,7 @@
-import { getProducts, updateProductStock } from './productService.ts';
 import { syncCustomerCreditLimit } from './customerService.ts';
 import { addCreditInstallments } from './creditService.ts';
 import { supabase } from '../supabaseClient.ts';
-import { AuditActionType, AuditEntityType, Payment, CreditInstallment, Sale, TodaySale } from '../types.ts';
+import { AuditActionType, AuditEntityType, Payment, CreditInstallment, Sale } from '../types.ts';
 import { getNowISO } from '../utils/dateUtils.ts';
 import { sendSaleNotification } from './telegramService.ts';
 import { calculateFinancedAmount, generateAmortizationTable } from '../utils/creditUtils.ts';
@@ -145,10 +144,8 @@ export const getSales = async (currentUserId?: string, cashSessionId?: string, s
                 }
             }
 
-            const data = allData;
-            return data;
+            return allData;
         }).then(data => {
-
             return (data || []).map(mapSale);
         });
     });
@@ -167,10 +164,6 @@ export const getProductSalesHistory = async (productId: string): Promise<Sale[]>
         throw error;
     }
     return (data || []).map(mapSale);
-};
-
-export const getTodaysSales = async (): Promise<TodaySale[]> => {
-    return [];
 };
 
 // --- SALES ---
@@ -282,16 +275,12 @@ export const getNextSaleId = async (userId: string = 'system'): Promise<string> 
 
 export const cancelSaleReservation = async (id: string) => {
     if (!id || !id.startsWith('ID-')) return;
-    // Deleta o rascunho para liberar o ID se for o último, ou marcar como cancelado
-    // Para manter a simplicidade e atender o pedido, vamos apenas remover se for status Rascunho
     await supabase.from('sales').delete().eq('id', id).eq('status', 'Rascunho');
 };
 
 export const addSale = async (data: any, userId: string = 'system', userName: string = 'Sistema') => {
     const now = new Date();
 
-    // Get all IDs to find the max and ensure uniqueness efficiently
-    // Improved ID generation: Fetch only the most recent IDs to avoid timeouts and RLS truncation issues
     const { data: recentIds, error: fetchError } = await supabase
         .from('sales')
         .select('id')
@@ -299,7 +288,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         .limit(50);
 
     if (fetchError) {
-        console.warn('mockApi: Error fetching recent IDs, falling back to sequential check. error:', fetchError);
+        // Não bloquear a venda em caso de falha na busca de IDs recentes
     }
 
     let nextNum = 1;
@@ -702,7 +691,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
             if (netCashImpact !== 0 && newSale.cash_session_id) {
                 const { data: session } = await supabase.from('cash_sessions').select('*').eq('id', newSale.cash_session_id).single();
                 if (session) {
-                    const currentCash = session.cash_in_register || session.cashInRegister || 0;
+                    const currentCash = Number(session.cash_in_register || 0);
 
                     await supabase.from('cash_sessions').update({
                         cash_in_register: currentCash + netCashImpact
