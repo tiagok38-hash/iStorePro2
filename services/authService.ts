@@ -60,7 +60,7 @@ export const login = async (email: string, password_param: string): Promise<User
             id: authData.user.id,
             email: authData.user.email || '',
             name: authData.user.user_metadata?.name || 'Usuário',
-            permissionProfileId: 'profile-admin',
+            permissionProfileId: '',
             phone: '',
             createdAt: authData.user.created_at
         } as User;
@@ -128,9 +128,16 @@ export const getProfile = async (userId: string): Promise<User | null> => {
 };
 
 export const getUsers = async (): Promise<User[]> => {
-    return fetchWithCache('users', async () => {
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+    const cacheKey = `users_${userCompanyId || 'all'}`;
+    
+    return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
-            const res = await supabase.from('users').select('*');
+            let query = supabase.from('users').select('*');
+            if (userCompanyId) {
+                query = query.eq('company_id', userCompanyId);
+            }
+            const res = await query;
             if (res.error) throw res.error;
             return res.data || [];
         });
@@ -310,10 +317,17 @@ export const registerAdmin = async (name: string, email: string, password_param:
 };
 
 export const checkAdminExists = async (): Promise<boolean> => {
-    const { count, error } = await supabase
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+    let query = supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
         .eq('permissionProfileId', 'profile-admin');
+        
+    if (userCompanyId) {
+        query = query.eq('company_id', userCompanyId);
+    }
+    
+    const { count, error } = await query;
 
     if (error) return false;
     return (count || 0) > 0;
@@ -349,9 +363,16 @@ export const resendConfirmationEmail = async (email: string) => {
 // --- PERMISSIONS ---
 
 export const getPermissionProfiles = async (): Promise<PermissionProfile[]> => {
-    return fetchWithCache('permission_profiles', async () => {
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+    const cacheKey = `permission_profiles_${userCompanyId || 'all'}`;
+    
+    return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
-            const { data, error } = await supabase.from('permissions_profiles').select('*');
+            let query = supabase.from('permissions_profiles').select('*');
+            if (userCompanyId) {
+                query = query.eq('company_id', userCompanyId);
+            }
+            const { data, error } = await query;
             if (error) throw error;
             return data || [];
         });

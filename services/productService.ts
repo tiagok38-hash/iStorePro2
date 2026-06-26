@@ -34,7 +34,8 @@ export const mapProduct = (p: any): Product => ({
 });
 
 export const getProducts = async (filters: { model?: string, categoryId?: string, brandId?: string, onlyInStock?: boolean, select?: string } = {}): Promise<Product[]> => {
-    const cacheKey = `products_${JSON.stringify(filters)}`;
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+    const cacheKey = `products_${userCompanyId || 'all'}_${JSON.stringify(filters)}`;
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('products').select(filters.select || '*');
@@ -67,7 +68,8 @@ export const getProducts = async (filters: { model?: string, categoryId?: string
  * de dados transferidos e eliminando o risco de truncamento.
  */
 export const getProductsInStock = async (): Promise<Product[]> => {
-    const cacheKey = 'products_in_stock_full';
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+    const cacheKey = `products_in_stock_full_${userCompanyId || 'all'}`;
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             const PAGE_SIZE = 500;

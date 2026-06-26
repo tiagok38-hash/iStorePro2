@@ -10,7 +10,10 @@ import { getProfile, resolvePermissions } from './authService.ts';
 // --- CASH SESSIONS ---
 
 export const getCashSessions = async (currentUserId?: string): Promise<CashSession[]> => {
-    return fetchWithCache(`cash_sessions_${currentUserId || 'all'}`, async () => {
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+    const cacheKey = `cash_sessions_${userCompanyId || 'all'}_${currentUserId || 'all'}`;
+    
+    return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase.from('cash_sessions').select('*').order('open_time', { ascending: false }).limit(400);
 
@@ -123,8 +126,11 @@ export const addCashSession = async (data: any, odId: string = 'system', userNam
         throw new Error(`O usuário já possui um caixa ${status} para a data de hoje (${formatDateTimeBR(existing.open_time)}). Não é permitido abrir múltiplos caixas no mesmo dia.`);
     }
 
+    const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
+
     // Use snake_case column names (Supabase default)
     const session = {
+        company_id: userCompanyId,
         user_id: data.userId,
         display_id: nextDisplayId,
         opening_balance: data.openingBalance || 0,

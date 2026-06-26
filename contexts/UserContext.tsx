@@ -238,7 +238,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             id: currentSession.user.id,
             email: currentSession.user.email || '',
             name: currentSession.user.user_metadata?.name || 'Usuário',
-            permissionProfileId: 'profile-admin',
+            permissionProfileId: '',
             phone: '',
             createdAt: currentSession.user.created_at
           } as User;
