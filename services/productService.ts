@@ -751,7 +751,7 @@ export const updateProduct = async (data: any, userId?: string, userName?: strin
     const updated = (updatedRows && updatedRows.length > 0) ? updatedRows[0] : { ...existingProduct, ...updatePayload };
 
     if (!updatedRows || updatedRows.length === 0) {
-        console.warn('mockApi: Product updated successfully but returned no data (likely RLS). Using local payload.');
+        console.warn('[productService] Product updated successfully but returned no data (likely RLS). Using local payload.');
     }
     clearCache(['products']);
     return updated;

@@ -105,7 +105,7 @@ export const getCustomers = async (onlyActive: boolean = true): Promise<Customer
             }
 
             if (lastError && allData.length === 0) {
-                console.error('mockApi: Error fetching customers:', lastError);
+                console.error('[customerService] Error fetching customers:', lastError);
                 throw lastError;
             }
 
@@ -411,7 +411,7 @@ export const updateCustomer = async (data: any, userId: string = 'system', userN
     try {
         result = await Promise.race([updatePromise, timeoutPromise]);
     } catch (err: any) {
-        console.error("mockApi: Exception during update race:", err);
+        console.error("[customerService] Exception during update race:", err);
         throw err;
     }
 

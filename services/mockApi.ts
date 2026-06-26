@@ -2,7 +2,7 @@
 // --- Shared infrastructure (imported from dedicated modules) ---
 export { clearCache } from './cacheUtils.ts';
 
-// --- Formatters ---
+// --- Formatters (re-exportados aqui para manter compatibilidade com imports existentes nos componentes) ---
 import { formatCurrency, formatPhone } from '../utils/formatters.ts';
 export { formatCurrency, formatPhone };
 

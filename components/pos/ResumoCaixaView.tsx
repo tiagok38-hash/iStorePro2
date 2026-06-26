@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useUser } from '../../contexts/UserContext.tsx';
-import { CashSession, Sale, Product, Customer, User } from '../../types.ts';
+import { CashSession, Sale, Customer, User } from '../../types.ts';
 import { formatCurrency } from '../../services/mockApi.ts';
 import {
     CashRegisterIcon, CheckIcon, ShoppingCartPlusIcon, MinusIcon, PlusIcon,

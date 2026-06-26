@@ -936,7 +936,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
 
     const { data: updatedRows, error } = await supabase.from('sales').update(updatePayload).eq('id', data.id).select();
     if (error) {
-        console.error('mockApi: Error updating sale:', error);
+        console.error('[salesService] Error updating sale:', error);
         throw error;
     }
 
@@ -944,7 +944,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     const updated = (updatedRows && updatedRows.length > 0) ? updatedRows[0] : { id: data.id, ...updatePayload };
 
     if (!updatedRows || updatedRows.length === 0) {
-        console.warn('mockApi: Sale updated successfully but returned no data (likely RLS). Using local payload.');
+        console.warn('[salesService] Sale updated successfully but returned no data (likely RLS). Using local payload.');
     }
 
     const saleDisplayId = updated.display_id || data.id;
