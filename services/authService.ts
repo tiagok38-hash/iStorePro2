@@ -116,15 +116,20 @@ export const logout = async (userId?: string, userName?: string) => {
     clearCache(getAllCacheKeys());
 };
 
+const PROFILE_CACHE_TTL = 3 * 60 * 1000; // 3 minutos
+
 export const getProfile = async (userId: string): Promise<User | null> => {
-    return fetchWithRetry(async () => {
-        const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
-        if (error) {
-            console.error('authService: getProfile error:', error);
-            return null;
-        }
-        return data as User;
-    });
+    // Cache curto para evitar query ao banco em cada operação de caixa/permissão
+    return fetchWithCache(`profile_${userId}`, async () => {
+        return fetchWithRetry(async () => {
+            const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+            if (error) {
+                console.error('authService: getProfile error:', error);
+                return null;
+            }
+            return data as User;
+        });
+    }, PROFILE_CACHE_TTL);
 };
 
 export const getUsers = async (): Promise<User[]> => {

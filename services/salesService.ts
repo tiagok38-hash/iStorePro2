@@ -426,24 +426,23 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
             )
         ];
 
-        for (const item of data.items) {
-            const product = allProducts.find(p => p.id === item.productId);
-            if (product) {
-                const quantityToDeduct = Number(item.quantity);
-                await adjustProductStock(
-                    item.productId,
-                    -quantityToDeduct,
-                    newSale.id,
-                    'Venda',
-                    customerName,
-                    paymentMethods,
-                    userName,
-                    userId
-                );
-            }
-        }
-        // Wait for all audit logs to complete (they were started in background)
-        await Promise.allSettled(auditLogs).catch(err => console.warn('mockApi: Audit logs partial failure', err));
+        // Parallelizar ajuste de estoque para todos os itens simultaneamente (evita N+1 queries)
+        const stockUpdatePromises = data.items
+            .filter((item: any) => allProducts.find((p: any) => p.id === item.productId))
+            .map((item: any) => adjustProductStock(
+                item.productId,
+                -Number(item.quantity),
+                newSale.id,
+                'Venda',
+                customerName,
+                paymentMethods,
+                userName,
+                userId
+            ));
+
+        // Wait for all stock updates AND audit logs to complete
+        await Promise.allSettled([...stockUpdatePromises, ...auditLogs])
+            .catch(err => console.warn('[addSale] Stock/audit partial failure:', err));
     }
 
     // COMMISSION GENERATION: Generate commissions for finalized or pending sales
@@ -569,55 +568,15 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
             const productDescriptions: string[] = [];
 
             if (data.items && Array.isArray(data.items)) {
-                // Fetch full product details for all items
-                const productIds = data.items.map((item: any) => item.productId).filter(Boolean);
-                const { data: productDetails } = await supabase
-                    .from('products')
-                    .select('id, model, category, brand')
-                    .in('id', productIds);
-
-                // Fetch category and brand names
-                const categoryIds = (productDetails || []).map(p => p.category).filter(Boolean);
-                const brandIds = (productDetails || []).map(p => p.brand).filter(Boolean);
-
-                const [categoriesResult, brandsResult] = await Promise.all([
-                    categoryIds.length > 0 ? supabase.from('categories').select('id, name').in('id', categoryIds) : { data: [] },
-                    brandIds.length > 0 ? supabase.from('brands').select('id, name').in('id', brandIds) : { data: [] }
-                ]);
-
-                const categoryMap = new Map();
-                (categoriesResult.data || []).forEach((c: any) => categoryMap.set(c.id, c.name));
-
-                const brandMap = new Map();
-                (brandsResult.data || []).forEach((b: any) => brandMap.set(b.id, b.name));
-
-                const productMap = new Map();
-                (productDetails || []).forEach((p: any) => productMap.set(p.id, p));
-
+                // Calcular lucro e descrições usando dados já disponíveis nos items (sem queries extras)
                 for (const item of data.items) {
                     const itemNetRevenue = item.netTotal ?? ((item.unitPrice || 0) * (item.quantity || 1));
                     const itemProfit = itemNetRevenue - ((item.costPrice || 0) * (item.quantity || 1));
                     totalProfit += itemProfit;
 
-                    // Build product description: Category Name + Brand Name + Model
-                    const product = productMap.get(item.productId);
-                    if (product) {
-                        const parts = [];
-                        const categoryName = categoryMap.get(product.category);
-                        const brandName = brandMap.get(product.brand);
-
-                        if (categoryName) parts.push(categoryName);
-                        if (brandName) parts.push(brandName);
-                        if (product.model) parts.push(product.model);
-
-                        if (parts.length > 0) {
-                            productDescriptions.push(parts.join(' '));
-                        } else {
-                            productDescriptions.push(item.productName || item.model || 'Produto');
-                        }
-                    } else if (item.productName || item.model) {
-                        productDescriptions.push(item.productName || item.model);
-                    }
+                    // Usar nome já disponível no item — evita 3 queries extras (products, categories, brands)
+                    const description = item.productName || item.model || 'Produto';
+                    if (description) productDescriptions.push(description);
                 }
             }
 
@@ -1592,9 +1551,21 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
 
     if (sale.items && Array.isArray(sale.items)) {
         const now = getNowISO();
-        for (const item of sale.items) {
-            const { data: product } = await supabase.from('products').select('*').eq('id', item.productId).single();
-            if (product) {
+        const itemProductIds = sale.items.map((i: any) => i.productId).filter(Boolean);
+
+        // Buscar todos os produtos do cancelamento em UMA única query (evita N+1)
+        const { data: cancelProducts } = await supabase
+            .from('products')
+            .select('*')
+            .in('id', itemProductIds);
+
+        const cancelProductMap = new Map((cancelProducts || []).map((p: any) => [p.id, p]));
+
+        // Parallelizar atualizações de estoque e audit logs
+        const cancelStockPromises = sale.items
+            .filter((item: any) => cancelProductMap.has(item.productId))
+            .map(async (item: any) => {
+                const product = cancelProductMap.get(item.productId);
                 const currentStock = Number(product.stock);
                 let newStock = currentStock + item.quantity;
 
@@ -1603,16 +1574,6 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                     newStock = 1;
                 }
 
-                await addAuditLog(
-                    AuditActionType.SALE_CANCEL,
-                    AuditEntityType.PRODUCT,
-                    item.productId,
-                    `Venda #${sale.id} Cancelada. Motivo: ${reason}. Estoque retornado: +${item.quantity}`,
-                    userId,
-                    userName
-                );
-
-                // Add to stockHistory column
                 const existingStockHistory = product.stockHistory || [];
                 const newStockEntry = {
                     id: crypto.randomUUID(),
@@ -1626,12 +1587,24 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                     details: `Motivo: ${reason}`
                 };
 
-                await supabase.from('products').update({
-                    stock: newStock,
-                    stockHistory: [...existingStockHistory, newStockEntry]
-                }).eq('id', item.productId);
-            }
-        }
+                return Promise.all([
+                    supabase.from('products').update({
+                        stock: newStock,
+                        stockHistory: [...existingStockHistory, newStockEntry]
+                    }).eq('id', item.productId),
+                    addAuditLog(
+                        AuditActionType.SALE_CANCEL,
+                        AuditEntityType.PRODUCT,
+                        item.productId,
+                        `Venda #${sale.id} Cancelada. Motivo: ${reason}. Estoque retornado: +${item.quantity}`,
+                        userId,
+                        userName
+                    )
+                ]);
+            });
+
+        await Promise.allSettled(cancelStockPromises)
+            .catch(err => console.warn('[cancelSale] Stock restoration partial failure:', err));
     }
 
     // COMMISSION CANCELLATION: Cancel pending commissions for this sale
@@ -1770,7 +1743,16 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
 };
 
 export const getCustomerSales = async (customerId: string): Promise<Sale[]> => {
-    // Optimization: Reuse the cached 'sales' list instead of a specific DB query
-    const allSales = await getSales();
-    return allSales.filter(s => s.customerId === customerId);
+    // Query direta no banco filtrada por customer — evita trazer todas as vendas para o JS
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase
+            .from('sales')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('date', { ascending: false })
+            .limit(200);
+
+        if (error) throw error;
+        return (data || []).map(mapSale);
+    });
 };
