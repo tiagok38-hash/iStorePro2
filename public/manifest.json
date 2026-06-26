@@ -1,0 +1,42 @@
+{
+  "name": "iStorePro - Gerenciador de Vendas",
+  "short_name": "iStorePro",
+  "description": "Sistema premium de gestão de vendas, estoque e PDV para lojas de eletrônicos.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F6F5FB",
+  "theme_color": "#7B61FF",
+  "lang": "pt-BR",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-custom.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "PDV",
+      "short_name": "PDV",
+      "description": "Abrir ponto de venda",
+      "url": "/pos",
+      "icons": [{ "src": "/favicon-custom.png", "sizes": "64x64" }]
+    },
+    {
+      "name": "Estoque",
+      "short_name": "Estoque",
+      "description": "Ver estoque de produtos",
+      "url": "/products",
+      "icons": [{ "src": "/favicon-custom.png", "sizes": "64x64" }]
+    }
+  ]
+}

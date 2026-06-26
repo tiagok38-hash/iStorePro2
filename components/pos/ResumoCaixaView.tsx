@@ -408,16 +408,22 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                 </div>
             </div>
 
-            {/* Modal de Visualização de Movimentações (Manteve Original, mas densificado) */}
+            {/* Modal de Visualização de Movimentações */}
             {viewMovementsType && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
-                    <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-scale-in">
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in"
+                    onClick={() => setViewMovementsType(null)}
+                >
+                    <div
+                        className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-scale-in"
+                        onClick={e => e.stopPropagation()}
+                    >
                         <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
                             <h3 className="font-black text-gray-800 flex items-center gap-2 uppercase tracking-tight text-sm">
                                 <CashIcon className={`h-5 w-5 ${viewMovementsType === 'sangria' ? 'text-red-500' : 'text-green-600'}`} />
                                 {viewMovementsType === 'sangria' ? 'Sangrias' : 'Suprimentos'}
                             </h3>
-                            <button onClick={() => setViewMovementsType(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XCircleIcon className="h-6 w-6 text-gray-400" /></button>
+                            <button onClick={() => setViewMovementsType(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"><XCircleIcon className="h-6 w-6 text-gray-400" /></button>
                         </div>
                         <div className="max-h-[70vh] md:max-h-[60vh] overflow-y-auto">
                             <div className="divide-y divide-gray-100">
@@ -454,8 +460,14 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
 
             {/* Cancel Confirmation Modal */}
             {cancelConfirmSale && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in"
+                    onClick={() => { setCancelConfirmSale(null); setCancelReason(''); }}
+                >
+                    <div
+                        className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in"
+                        onClick={e => e.stopPropagation()}
+                    >
                         <div className="p-6">
                             <div className="text-center mb-6">
                                 <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
@@ -475,7 +487,6 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                     placeholder="Ex: Cliente desistiu, erro de lançamento, troca de produto..."
                                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-none text-gray-700 placeholder-gray-400"
                                     rows={3}
-                                    autoFocus
                                 />
                             </div>
                         </div>
@@ -483,14 +494,14 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                             <button
                                 onClick={() => { setCancelConfirmSale(null); setCancelReason(''); }}
                                 disabled={isCancelling}
-                                className="flex-1 py-4 text-gray-500 font-bold hover:bg-gray-50 transition-colors border-r border-gray-100 text-sm uppercase tracking-wide"
+                                className="flex-1 min-h-[52px] text-gray-500 font-bold hover:bg-gray-50 active:bg-gray-100 transition-colors border-r border-gray-100 text-sm uppercase tracking-wide"
                             >
                                 Voltar
                             </button>
                             <button
                                 onClick={handleCancelSale}
                                 disabled={isCancelling || !cancelReason.trim()}
-                                className="flex-1 py-4 text-red-500 font-black hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-wide flex items-center justify-center gap-2"
+                                className="flex-1 min-h-[52px] text-red-500 font-black hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-wide flex items-center justify-center gap-2"
                             >
                                 {isCancelling ? 'Cancelando...' : 'Confirmar Cancelamento'}
                             </button>
@@ -501,8 +512,14 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
 
             {/* Reopen Reason Modal */}
             {showReopenModal && targetSession && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in"
+                    onClick={() => { setShowReopenModal(false); setReopenReasonLocal(''); }}
+                >
+                    <div
+                        className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in"
+                        onClick={e => e.stopPropagation()}
+                    >
                         <div className="p-6">
                             <div className="text-center mb-6">
                                 <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
@@ -522,14 +539,13 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                     placeholder="Ex: Necessidade de lançar venda adicional, correção de erro..."
                                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none text-gray-700 placeholder-gray-400"
                                     rows={3}
-                                    autoFocus
                                 />
                             </div>
                         </div>
                         <div className="flex border-t border-gray-100">
                             <button
                                 onClick={() => { setShowReopenModal(false); setReopenReasonLocal(''); }}
-                                className="flex-1 py-4 text-gray-500 font-bold hover:bg-gray-50 transition-colors border-r border-gray-100 text-sm uppercase tracking-wide"
+                                className="flex-1 min-h-[52px] text-gray-500 font-bold hover:bg-gray-50 active:bg-gray-100 transition-colors border-r border-gray-100 text-sm uppercase tracking-wide"
                             >
                                 Cancelar
                             </button>
@@ -540,7 +556,7 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                     setReopenReasonLocal('');
                                 }}
                                 disabled={!reopenReasonLocal.trim()}
-                                className="flex-1 py-4 text-blue-500 font-black hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-wide flex items-center justify-center gap-2"
+                                className="flex-1 min-h-[52px] text-blue-500 font-black hover:bg-blue-50 active:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm uppercase tracking-wide flex items-center justify-center gap-2"
                             >
                                 Confirmar Reabertura
                             </button>

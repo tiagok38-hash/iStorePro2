@@ -12,7 +12,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="iStore" />
   <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="/manifest.json" />
   <title>iStore - Gerenciador de Vendas e Estoque</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -92,7 +93,15 @@
       background-image:
         radial-gradient(circle at 15% 50%, rgba(123, 97, 255, 0.08), transparent 25%),
         radial-gradient(circle at 85% 30%, rgba(138, 123, 217, 0.08), transparent 25%);
-      background-attachment: fixed;
+      /* scroll evita jank em iOS/Safari com background-attachment: fixed */
+      background-attachment: scroll;
+    }
+
+    /* Em telas maiores, fixed é seguro e dá o efeito parallax */
+    @media (min-width: 1024px) {
+      body {
+        background-attachment: fixed;
+      }
     }
 
     /* Glassmorphism Utilities */
@@ -126,8 +135,15 @@
     }
 
     .glass-card:hover {
-      transform: translateY(-2px);
       box-shadow: 0 15px 35px rgba(123, 97, 255, 0.12);
+    }
+
+    /* Em dispositivos touch, desabilitar o translateY do hover
+       (o estado :hover persiste após o toque em iOS, causando layout shift) */
+    @media (hover: none) {
+      .glass-card:hover {
+        transform: none;
+      }
     }
 
     .card-premium {
@@ -209,8 +225,8 @@
       border-radius: 8px;
       /* rounded-lg - Standard radius */
       color: rgb(var(--color-primary));
-      font-size: 0.875rem;
-      /* text-sm */
+      /* 16px evita zoom automático em iOS ao focar em inputs */
+      font-size: 1rem;
       outline: none;
     }
 
