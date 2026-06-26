@@ -274,7 +274,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       clearTimeout(loadingTimeout);
       if (isMountedRef.current) setLoading(false);
     }
-  }, [user, session, updateUserAndPermissions, reloadCriticalData, loading]);
+  }, [user, session, updateUserAndPermissions, reloadCriticalData]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -339,24 +339,24 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = async (email: string, password_param: string) => {
+  const login = useCallback(async (email: string, password_param: string) => {
     const userData = await apiLogin(email, password_param);
     if (userData) {
       const { data: { session: newSession } } = await supabase.auth.getSession();
       await updateUserAndPermissions(userData, newSession);
       await reloadCriticalData(userData.id);
     }
-  };
+  }, [updateUserAndPermissions, reloadCriticalData]);
 
-  const register = async (name: string, email: string, password_param: string) => {
+  const register = useCallback(async (name: string, email: string, password_param: string) => {
     const userData = await apiRegisterAdmin(name, email, password_param);
     if (userData) {
       const { data: { session: newSession } } = await supabase.auth.getSession();
       await updateUserAndPermissions(userData, newSession);
     }
-  };
+  }, [updateUserAndPermissions]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     const currentId = user?.id;
     const currentName = user?.name;
     await updateUserAndPermissions(null);
@@ -366,14 +366,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setOpenCashSession(null);
     // Limpeza completa de cache sensível ao usuário
     clearCache(['products', 'sales', 'users', 'cash_sessions', 'company_info', 'permissions_profiles']);
-  };
+  }, [user?.id, user?.name, updateUserAndPermissions]);
 
-  const refreshPermissions = async () => { if (user) await checkSession(true); };
+  const refreshPermissions = useCallback(async () => { if (user) await checkSession(true); }, [user, checkSession]);
 
   const contextValue = React.useMemo(() => ({
     user, isAuthenticated, loading, permissions, isOnline, session, openCashSession,
     login, logout, register, refreshPermissions, checkSession
-  }), [user, isAuthenticated, loading, permissions, isOnline, session, openCashSession, checkSession, updateUserAndPermissions, reloadCriticalData]);
+  }), [user, isAuthenticated, loading, permissions, isOnline, session, openCashSession, login, logout, register, refreshPermissions, checkSession]);
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };

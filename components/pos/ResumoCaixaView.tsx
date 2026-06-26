@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useUser } from '../../contexts/UserContext.tsx';
 import { CashSession, Sale, Product, Customer, User } from '../../types.ts';
 import { formatCurrency } from '../../services/mockApi.ts';
@@ -28,7 +28,7 @@ interface ResumoCaixaViewProps {
     users: User[];
 }
 
-export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
+const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
     viewSession, currentUserOpenSession, sessionSales, customers,
     handleNewSession, setActiveView, handleOpenCashMovement,
     handleCloseSession, handleReopenSession, handleEditSale,
@@ -67,25 +67,44 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
         }
     };
 
-    // Calcular totais por método de pagamento
-    const totalsByMethod: Record<string, number> = {};
-    (sessionSales || []).forEach(s => {
-        if (s.status === 'Cancelada') return;
-        (s.payments || []).forEach(p => {
-            totalsByMethod[p.method] = (totalsByMethod[p.method] || 0) + (p.value || 0);
+    // Calcular totais por método de pagamento — memoizado para não recalcular a cada render
+    const totalsByMethod = useMemo<Record<string, number>>(() => {
+        const totals: Record<string, number> = {};
+        (sessionSales || []).forEach(s => {
+            if (s.status === 'Cancelada') return;
+            (s.payments || []).forEach(p => {
+                totals[p.method] = (totals[p.method] || 0) + (p.value || 0);
+            });
         });
-    });
+        return totals;
+    }, [sessionSales]);
 
-    // Somar todas as variações de "Dinheiro" (case insensitive)
-    let cashSales = 0;
-    Object.entries(totalsByMethod).forEach(([method, value]) => {
-        if (method.trim().toLowerCase() === 'dinheiro') {
-            cashSales += Number(value || 0);
+    // Somar todas as variações de "Dinheiro" (case insensitive) — memoizado
+    const cashSales = useMemo(() =>
+        Object.entries(totalsByMethod).reduce((acc, [method, value]) =>
+            method.trim().toLowerCase() === 'dinheiro' ? acc + Number(value || 0) : acc
+        , 0)
+    , [totalsByMethod]);
+
+    // Dinheiro em caixa — usa campo do banco como fonte de verdade (já corrigido anteriormente)
+    const calculatedCashInRegister = useMemo(() =>
+        Number(targetSession?.openingBalance || 0) + cashSales + Number(targetSession?.deposits || 0) - Number(targetSession?.withdrawals || 0)
+    , [targetSession, cashSales]);
+
+    // Permissão de cancelamento — calculada UMA vez para o usuário atual, não por linha do map
+    const isAdmin = useMemo(() => user?.permissionProfileId === 'profile-admin', [user?.permissionProfileId]);
+    const isSessionOpen = useMemo(() => viewSession?.status === 'aberto', [viewSession?.status]);
+
+    // Handler memoizado para cancelar venda
+    const handleCancelConfirm = useCallback((saleId: string, salespersonId: string) => {
+        const isOwner = salespersonId === user?.id;
+        const canCancel = isAdmin || (isSessionOpen && isOwner);
+        if (canCancel) {
+            setCancelConfirmSale(saleId);
+        } else {
+            showToast('Você não tem permissão para cancelar esta venda.', 'error');
         }
-    });
-
-    // CORREÇÃO: Usar 'deposits' ao invés de 'supply' conforme renderizado na UI
-    const calculatedCashInRegister = Number(targetSession?.openingBalance || 0) + cashSales + Number(targetSession?.deposits || 0) - Number(targetSession?.withdrawals || 0);
+    }, [isAdmin, isSessionOpen, user?.id, showToast]);
 
     if (!targetSession) {
         return (
@@ -302,23 +321,18 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                                 )}
                                                 <button onClick={() => handleViewClick(sale)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"><EyeIcon className="h-4 w-4" /></button>
                                                 <button onClick={() => handlePrintClick(sale)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><PrinterIcon className="h-4 w-4" /></button>
-                                                {sale.status !== 'Cancelada' && (
-                                                    (() => {
-                                                        const isAdmin = user?.permissionProfileId === 'profile-admin';
-                                                        const isOwner = sale.salespersonId === user?.id;
-                                                        const canCancel = isAdmin || (viewSession?.status === 'aberto' && isOwner);
-
-                                                        return (
-                                                            <button
-                                                                onClick={() => canCancel ? setCancelConfirmSale(sale.id) : showToast('Você não tem permissão para cancelar esta venda.', 'error')}
-                                                                className={`p-1.5 rounded-lg ${canCancel ? 'text-red-500 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}`}
-                                                                disabled={!canCancel}
-                                                            >
-                                                                <XCircleIcon className="h-4 w-4" />
-                                                            </button>
-                                                        );
-                                                    })()
-                                                )}
+                                                {sale.status !== 'Cancelada' && (() => {
+                                                    const canCancel = isAdmin || (isSessionOpen && sale.salespersonId === user?.id);
+                                                    return (
+                                                        <button
+                                                            onClick={() => handleCancelConfirm(sale.id, sale.salespersonId)}
+                                                            className={`p-1.5 rounded-lg ${canCancel ? 'text-red-500 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}`}
+                                                            disabled={!canCancel}
+                                                        >
+                                                            <XCircleIcon className="h-4 w-4" />
+                                                        </button>
+                                                    );
+                                                })()}
                                             </div>
                                         </td>
                                     </tr>
@@ -369,24 +383,19 @@ export const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                         <button onClick={() => handleViewClick(sale)} className="p-1.5 bg-gray-50 text-gray-500 rounded-lg border border-gray-100"><EyeIcon className="h-3.5 w-3.5" /></button>
                                         <button onClick={() => handlePrintClick(sale)} className="p-1.5 bg-blue-50 text-blue-500 rounded-lg border border-blue-100"><PrinterIcon className="h-3.5 w-3.5" /></button>
 
-                                        {/* Cancel Button */}
-                                        {sale.status !== 'Cancelada' && (
-                                            (() => {
-                                                const isAdmin = user?.permissionProfileId === 'profile-admin';
-                                                const isOwner = sale.salespersonId === user?.id;
-                                                const canCancel = isAdmin || (viewSession?.status === 'aberto' && isOwner);
-
-                                                return (
-                                                    <button
-                                                        onClick={() => canCancel ? setCancelConfirmSale(sale.id) : showToast('Você não tem permissão para cancelar esta venda.', 'error')}
-                                                        className={`p-1.5 rounded-lg border ${canCancel ? 'bg-gray-50 text-red-500 border-gray-100 hover:bg-red-50' : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'}`}
-                                                        disabled={!canCancel}
-                                                    >
-                                                        <XCircleIcon className="h-3.5 w-3.5" />
-                                                    </button>
-                                                );
-                                            })()
-                                        )}
+                                        {/* Cancel Button — usa handler memoizado */}
+                                        {sale.status !== 'Cancelada' && (() => {
+                                            const canCancel = isAdmin || (isSessionOpen && sale.salespersonId === user?.id);
+                                            return (
+                                                <button
+                                                    onClick={() => handleCancelConfirm(sale.id, sale.salespersonId)}
+                                                    className={`p-1.5 rounded-lg border ${canCancel ? 'bg-gray-50 text-red-500 border-gray-100 hover:bg-red-50' : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'}`}
+                                                    disabled={!canCancel}
+                                                >
+                                                    <XCircleIcon className="h-3.5 w-3.5" />
+                                                </button>
+                                            );
+                                        })()}
 
                                         {viewSession?.status === 'aberto' && (
                                             <button onClick={() => sale.status === 'Cancelada' ? showToast('Venda cancelada não pode ser editada.', 'error') : handleEditSale(sale)} className={`p-1.5 rounded-lg border ${sale.status === 'Cancelada' ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed' : 'bg-gray-50 text-blue-500 border-gray-100'}`}><EditIcon className="h-3.5 w-3.5" /></button>
