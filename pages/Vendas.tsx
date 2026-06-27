@@ -261,43 +261,44 @@ const Vendas: React.FC = () => {
         };
 
         try {
-            // Stage 1: Auxiliary Metadata (Fast, Light) - Resilient
-            const [
-                profilesData, brandsData, categoriesData, modelsData,
-                gradesData, gradeValuesData, receiptTermsData, paymentMethodsData
-            ] = await Promise.all([
+            // Stage 1a: Metadados críticos (4 requests máx simultâneas)
+            // Roteadores domésticos tipicamente suportam 6-10 conexões TCP/host.
+            // Dividir em grupos de 4 evita esgotar a tabela NAT e causar ERR_INTERNET_DISCONNECTED.
+            const [profilesData, brandsData, categoriesData, modelsData] = await Promise.all([
                 fetchItem('Permissions', getPermissionProfiles, []),
                 fetchItem('Brands', getBrands, []),
                 fetchItem('Categories', getCategories, []),
-                fetchItem('Models', getProductModels, []),
-                fetchItem('Grades', getGrades, []),
-                fetchItem('GradeValues', getGradeValues, []),
-                fetchItem('ReceiptTerms', getReceiptTerms, []),
-                fetchItem('PaymentMethods', getPaymentMethods, [])
+                fetchItem('Models', getProductModels, [])
             ]);
 
             setPermissionProfiles(profilesData);
             setBrands(brandsData);
             setCategories(categoriesData);
             setProductModels(modelsData);
+
+            // Stage 1b: Restante dos metadados (4 requests)
+            const [gradesData, gradeValuesData, receiptTermsData, paymentMethodsData] = await Promise.all([
+                fetchItem('Grades', getGrades, []),
+                fetchItem('GradeValues', getGradeValues, []),
+                fetchItem('ReceiptTerms', getReceiptTerms, []),
+                fetchItem('PaymentMethods', getPaymentMethods, [])
+            ]);
+
             setGrades(gradesData || []);
             setGradeValues(gradeValuesData);
             setReceiptTerms(receiptTermsData);
             setPaymentMethods((paymentMethodsData || []).filter((m: any) => m.name && !m.name.toLowerCase().includes('pagseguro')));
 
-            // Stage 2: Core Data (Sales)
-            // Sales is CRITICAL and should respect permission to see all or only own sales
+            // Stage 2: Vendas (crítico — exibido imediatamente)
             let salesData: Sale[] = [];
             try {
-                // IMPORTANT: Admins or users with management permissions should see ALL sales.
-                // Sellers should only see their own sales unless they have canViewAllSales.
                 const canSeeAllSales = permissions?.canViewAllSales || permissions?.canManageUsers || permissions?.canManagePermissions || permissions?.canViewAudit;
                 const userIdToFilter = canSeeAllSales ? undefined : user?.id;
 
                 let fetchStartDate = startDate;
                 const now = new Date();
                 const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-                
+
                 if (endDate >= currentMonthStart && startDate > currentMonthStart) {
                     fetchStartDate = currentMonthStart;
                 }
@@ -308,7 +309,6 @@ const Vendas: React.FC = () => {
                 throw new Error('Falha ao carregar lista de vendas.');
             }
 
-            // API already sorts by created_at DESC, but we keep this for extra safety with display dates
             const sortedSales = [...salesData].sort((a, b) => {
                 const dateA = a.date ? new Date(a.date).getTime() : 0;
                 const dateB = b.date ? new Date(b.date).getTime() : 0;
@@ -316,41 +316,37 @@ const Vendas: React.FC = () => {
             });
             setSales(sortedSales);
 
-            // Once Sales & Metadata are ready, clear initial loading spinner
+            // Loading principal liberado — usuário já vê as vendas
             if (!silent) setLoading(false);
 
-            // Stage 3: Background Data (Support Entities)
-            // OPTIMIZATION: We exclude heavy JSONB columns for Products in the list view.
+            // Stage 3: Dados de suporte em background (2 requests por vez para não sobrecarregar)
             const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value,barcodes';
 
-            // CRITICAL: productMap must include ALL products (even sold/out-of-stock) for:
-            //   1. Correct profit calculation (costPrice lookup for historical sales)
-            //   2. IMEI/serial number display in sale details
-            // The `products` state (for the new sale form) keeps onlyInStock = true.
-            fetchItem('ProductsAll', () => getProducts({ select: productSelect, onlyInStock: false }), []).then(allProductsData => {
-                const pMap: Record<string, Product> = {};
-                allProductsData.forEach((p: Product) => { pMap[p.id] = p; });
-                setProductMap(pMap);
-            });
+            // Grupo A: os dois fetchs de produtos (mais pesados) primeiro
+            const [allProductsData, productsData] = await Promise.all([
+                fetchItem('ProductsAll', () => getProducts({ select: productSelect, onlyInStock: false }), []),
+                fetchItem('Products', () => getProducts({ select: productSelect, onlyInStock: true }), [])
+            ]);
+            const pMap: Record<string, Product> = {};
+            allProductsData.forEach((p: Product) => { pMap[p.id] = p; });
+            setProductMap(pMap);
+            setProducts(productsData);
 
-            fetchItem('Products', () => getProducts({ select: productSelect, onlyInStock: true }), []).then(productsData => {
-                setProducts(productsData);
-            });
+            // Grupo B: clientes e usuários
+            const [customersData, usersData] = await Promise.all([
+                fetchItem('Customers', () => getCustomers(false), []),
+                fetchItem('Users', getUsers, [])
+            ]);
+            const cMap: Record<string, Customer> = {};
+            customersData.forEach((c: Customer) => { cMap[c.id] = c; });
+            setCustomers(customersData);
+            setCustomerMap(cMap);
+            setUsers(usersData);
+            const uMap: Record<string, User> = {};
+            usersData.forEach((u: User) => { uMap[u.id] = u; });
+            setUserMap(uMap);
 
-            fetchItem('Customers', () => getCustomers(false), []).then(customersData => {
-                setCustomers(customersData);
-                const cMap: Record<string, Customer> = {};
-                customersData.forEach((c: Customer) => { cMap[c.id] = c; });
-                setCustomerMap(cMap);
-            });
-
-            fetchItem('Users', getUsers, []).then(usersData => {
-                setUsers(usersData);
-                const uMap: Record<string, User> = {};
-                usersData.forEach((u: User) => { uMap[u.id] = u; });
-                setUserMap(uMap);
-            });
-
+            // Grupo C: fornecedores (menor prioridade)
             fetchItem('Suppliers', getSuppliers, []).then(setSuppliers);
 
         } catch (error: any) {
@@ -360,7 +356,6 @@ const Vendas: React.FC = () => {
             } else {
                 console.error('Vendas: Error fetching data:', error);
 
-                // Auto-retry once after short delay (handles reconnection issues after idle)
                 if (retryCount < 1) {
                     setTimeout(() => fetchData(silent, retryCount + 1), 2000);
                     return;
