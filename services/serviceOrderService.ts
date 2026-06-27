@@ -153,7 +153,19 @@ export const mapServiceOrderData = (so: any): ServiceOrder => ({
 
 
 export const getServiceOrders = async (startDate?: string, options?: { select?: string }): Promise<ServiceOrder[]> => {
-    const cacheKey = 'service_orders' + (startDate ? `_${startDate}` : '') + (options?.select ? `_${options.select.replace(/[^a-zA-Z0-9]/g, '_')}` : '');
+    // Busca o company_id para isolar o cache por tenant
+    const { data: companyId } = await supabase.rpc('get_my_company_id');
+
+    // Janela padrão: últimos 90 dias (sempre inclui OS abertas independente da data)
+    const DEFAULT_WINDOW_DAYS = 90;
+    const effectiveStartDate = startDate ?? (() => {
+        const d = new Date();
+        d.setDate(d.getDate() - DEFAULT_WINDOW_DAYS);
+        return d.toISOString().split('T')[0];
+    })();
+
+    const cacheKey = `service_orders_${companyId || 'anon'}_${effectiveStartDate}` + (options?.select ? `_${options.select.replace(/[^a-zA-Z0-9]/g, '_')}` : '');
+
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
             let query = supabase
@@ -161,13 +173,11 @@ export const getServiceOrders = async (startDate?: string, options?: { select?: 
                 .select(options?.select || '*')
                 .order('created_at', { ascending: false });
 
-            if (startDate) {
-                // Fetch recent OR open (not concluded/delivered/canceled)
-                query = query.or(`status.not.in.(Concluído,Entregue,Cancelado),created_at.gte.${startDate}`);
-            }
-            
-            // Limit to prevent massive payloads and browser freeze
-            query = query.limit(2000);
+            // Sempre aplica filtro: OS dos últimos N dias OU que ainda estão abertas
+            query = query.or(`status.not.in.(Concluído,Entregue e Faturado,Cancelada),created_at.gte.${effectiveStartDate}`);
+
+            // Limite seguro para evitar payload massivo
+            query = query.limit(500);
 
             const { data, error } = await query;
             if (error) throw error;

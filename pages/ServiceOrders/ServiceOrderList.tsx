@@ -305,8 +305,11 @@ const ServiceOrderList: React.FC = () => {
     const loadOrders = async () => {
         setIsLoading(true);
         try {
+            // Passa startDate para o backend apenas quando o filtro é 'todos' (histórico)
+            // Filtros dentro dos 90 dias usam o cache padrão
+            const backendStartDate = periodFilter === 'all' ? undefined : startDate || undefined;
             const [ordersData, typesData] = await Promise.all([
-                getServiceOrders(),
+                getServiceOrders(backendStartDate),
                 import('../../services/parametersService').then(m => m.getOsTypes())
             ]);
             setOrders(ordersData || []);
