@@ -193,6 +193,7 @@ const Vendas: React.FC = () => {
     const [activePeriod, setActivePeriod] = useState<'hoje' | '7dias' | '15dias' | 'Mes' | 'personalizado'>('hoje');
     const [sellerFilter, setSellerFilter] = useState('todos');
     const [statusFilter, setStatusFilter] = useState('todos');
+    const [paymentFilter, setPaymentFilter] = useState('todos');
     const [customerSearch, setCustomerSearch] = useState('');
     const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState('');
 
@@ -423,6 +424,7 @@ const Vendas: React.FC = () => {
         handlePeriodChange('Mes');
         setSellerFilter('todos');
         setStatusFilter('todos');
+        setPaymentFilter('todos');
         setCustomerSearch('');
     }, [handlePeriodChange]);
 
@@ -476,16 +478,20 @@ const Vendas: React.FC = () => {
                 statusMatch = statusMatch && sale.status !== 'Cancelada';
             }
 
+            const paymentMatch = paymentFilter === 'todos' || (sale.payments || []).some(
+                p => p.method === paymentFilter
+            );
+
             if (sale.status === 'Rascunho') return false;
 
-            return dateMatch && sellerMatch && statusMatch && customerMatch;
+            return dateMatch && sellerMatch && statusMatch && customerMatch && paymentMatch;
         });
-    }, [sales, startDate, endDate, sellerFilter, statusFilter, debouncedCustomerSearch, customerMap]);
+    }, [sales, startDate, endDate, sellerFilter, statusFilter, paymentFilter, debouncedCustomerSearch, customerMap]);
 
     // Reset page number when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [startDate, endDate, sellerFilter, statusFilter, customerSearch]);
+    }, [startDate, endDate, sellerFilter, statusFilter, paymentFilter, customerSearch]);
 
     // Pagination Logic
     const pageCount = Math.ceil(filteredSales.length / SALES_PER_PAGE);
@@ -569,6 +575,23 @@ const Vendas: React.FC = () => {
 
         return { faturamento, lucro, taxas, ticketMedio, lucroProjection };
     }, [filteredSales, productMap, sales, activePeriod, startDate, endDate]);
+
+    // KPIs por forma de pagamento (apenas vendas ativas no período filtrado)
+    const paymentKpis = useMemo(() => {
+        const totals: Record<string, number> = {};
+        filteredSales
+            .filter(s => s.status !== 'Cancelada')
+            .forEach(sale => {
+                (sale.payments || []).forEach(p => {
+                    if (!p.method) return;
+                    totals[p.method] = (totals[p.method] || 0) + (p.amount || 0);
+                });
+            });
+        // Ordenar do maior para o menor valor
+        return Object.entries(totals)
+            .sort((a, b) => b[1] - a[1])
+            .map(([method, total]) => ({ method, total }));
+    }, [filteredSales]);
 
     const handleAddNewCustomer = useCallback(async (customerData: Omit<Customer, 'id' | 'createdAt'>): Promise<Customer | null> => {
         try {
@@ -664,20 +687,52 @@ const Vendas: React.FC = () => {
 
             <div className="space-y-4">
                 {permissions?.canViewSalesKPIs && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                        <KpiCard title="Faturamento" value={formatCurrency(kpi.faturamento)} bgColor="bg-blue-100" />
-                        <KpiCard title="Ticket Médio" value={formatCurrency(kpi.ticketMedio)} bgColor="bg-purple-100" />
-                        <KpiCard title="Taxas" value={formatCurrency(kpi.taxas)} bgColor="bg-red-100" />
-                        {permissions?.canViewSaleProfit && (
-                            <KpiCard
-                                title="Lucro"
-                                value={formatCurrency(kpi.lucro)}
-                                bgColor={kpi.lucro >= 0 ? "bg-green-100" : "bg-red-100"}
-                                textColor={kpi.lucro >= 0 ? "text-green-700" : "text-red-700"}
-                                projection={formatCurrency(kpi.lucroProjection)}
-                            />
+                    <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-4">
+                            <KpiCard title="Faturamento" value={formatCurrency(kpi.faturamento)} bgColor="bg-blue-100" />
+                            <KpiCard title="Ticket Médio" value={formatCurrency(kpi.ticketMedio)} bgColor="bg-purple-100" />
+                            <KpiCard title="Taxas" value={formatCurrency(kpi.taxas)} bgColor="bg-red-100" />
+                            {permissions?.canViewSaleProfit && (
+                                <KpiCard
+                                    title="Lucro"
+                                    value={formatCurrency(kpi.lucro)}
+                                    bgColor={kpi.lucro >= 0 ? "bg-green-100" : "bg-red-100"}
+                                    textColor={kpi.lucro >= 0 ? "text-green-700" : "text-red-700"}
+                                    projection={formatCurrency(kpi.lucroProjection)}
+                                />
+                            )}
+                        </div>
+                        {paymentKpis.length > 0 && (
+                            <div className="mb-4 sm:mb-5">
+                                <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2 ml-0.5">Por forma de pagamento</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {paymentKpis.map(({ method, total }) => (
+                                        <button
+                                            key={method}
+                                            onClick={() => setPaymentFilter(prev => prev === method ? 'todos' : method)}
+                                            title={`Clique para filtrar por ${method}`}
+                                            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border text-left transition-all duration-200 active:scale-95 ${
+                                                paymentFilter === method
+                                                    ? 'bg-accent text-white border-accent shadow-lg shadow-accent/25 ring-2 ring-accent/20'
+                                                    : 'bg-surface border-border hover:border-accent/40 hover:bg-accent/5'
+                                            }`}
+                                        >
+                                            <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${paymentFilter === method ? 'text-white/80' : 'text-muted'}`}>{method}</span>
+                                            <span className={`font-black text-sm whitespace-nowrap ${paymentFilter === method ? 'text-white' : 'text-accent'}`}>{formatCurrency(total)}</span>
+                                        </button>
+                                    ))}
+                                    {paymentFilter !== 'todos' && (
+                                        <button
+                                            onClick={() => setPaymentFilter('todos')}
+                                            className="flex items-center gap-1 px-3 py-2 rounded-2xl border border-dashed border-red-200 text-xs font-bold text-red-400 hover:text-red-600 hover:border-red-400 transition-all active:scale-95"
+                                        >
+                                            × Limpar
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         )}
-                    </div>
+                    </>
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex flex-wrap items-end gap-3 sm:gap-4">
@@ -741,6 +796,20 @@ const Vendas: React.FC = () => {
                             <option value="Editada">Editada</option>
                             <option value="Crediário">Crediário</option>
                             <option value="PDV">PDV</option>
+                        </select>
+                        <select
+                            value={paymentFilter}
+                            onChange={e => setPaymentFilter(e.target.value)}
+                            className={`flex-1 sm:flex-none px-3 py-1.5 border rounded-xl h-9 sm:h-10 text-xs sm:text-sm min-w-[140px] transition-colors ${
+                                paymentFilter !== 'todos'
+                                    ? 'bg-accent text-white border-accent font-bold'
+                                    : 'bg-surface border-border'
+                            }`}
+                        >
+                            <option value="todos">Forma de Pgto</option>
+                            {paymentMethods.map((pm: any) => (
+                                <option key={pm.id || pm.name} value={pm.name}>{pm.name}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="relative w-full sm:w-96">
