@@ -152,6 +152,19 @@ export const mapServiceOrderData = (so: any): ServiceOrder => ({
 });
 
 
+export const getServiceOrdersByCustomer = async (customerId: string): Promise<ServiceOrder[]> => {
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase
+            .from('service_orders')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(mapServiceOrder);
+    });
+};
+
 export const getServiceOrders = async (startDate?: string, options?: { select?: string }): Promise<ServiceOrder[]> => {
     // Busca o company_id para isolar o cache por tenant
     const { data: companyId } = await supabase.rpc('get_my_company_id');

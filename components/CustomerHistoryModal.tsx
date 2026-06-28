@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from './Modal';
-import { getServiceOrders, getCustomerDevices } from '../services/mockApi';
+import { getServiceOrdersByCustomer } from '../services/serviceOrderService.ts';
+import { getDevicesByCustomer } from '../services/customerDeviceService.ts';
 import { ServiceOrder, CustomerDevice, Customer } from '../types';
 import { 
     HistoryIcon, 
@@ -34,14 +35,14 @@ const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({ customer, o
         const loadHistory = async () => {
             setIsLoading(true);
             try {
-                const [allOS, allDevices] = await Promise.all([
-                    getServiceOrders(),
-                    getCustomerDevices()
+                // Item 5: Buscando apenas os registros específicos deste cliente direto no backend
+                const [customerOS, customerDevices] = await Promise.all([
+                    getServiceOrdersByCustomer(customer.id),
+                    getDevicesByCustomer(customer.id)
                 ]);
 
-                // Filter by customer ID
-                setServiceOrders(allOS.filter(os => os.customerId === customer.id));
-                setDevices(allDevices.filter(d => d.customerId === customer.id));
+                setServiceOrders(customerOS);
+                setDevices(customerDevices);
             } catch (error) {
                 console.error("Error loading customer history:", error);
             } finally {

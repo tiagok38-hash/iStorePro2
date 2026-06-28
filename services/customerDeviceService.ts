@@ -44,6 +44,14 @@ export const getCustomerDevices = async (): Promise<CustomerDevice[]> => {
     });
 };
 
+export const getDevicesByCustomer = async (customerId: string): Promise<CustomerDevice[]> => {
+    return fetchWithRetry(async () => {
+        const { data, error } = await supabase.from('customer_devices').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []).map(mapCustomerDevice);
+    });
+};
+
 export const addCustomerDevice = async (device: any): Promise<CustomerDevice> => {
     const { data: userCompanyId } = await supabase.rpc('get_my_company_id');
     const id = device.id || crypto.randomUUID();
