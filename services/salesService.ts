@@ -746,8 +746,12 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
         }
     }
 
-
-    clearCache(['sales', 'products', 'cash_sessions', 'customers']);
+    const cacheToClear = ['sales', 'products'];
+    if (newSale.cash_session_id) cacheToClear.push('cash_sessions');
+    if (data.payments?.some((p: any) => ['Crediário', 'Crediario'].includes(p.method))) {
+        cacheToClear.push('customers');
+    }
+    clearCache(cacheToClear);
     return mappedSale;
 };
 
@@ -1465,8 +1469,12 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
     } catch (commErr) {
         console.warn('[updateSale] Commission recalculation failed (non-blocking):', commErr);
     }
-
-    clearCache(['sales', 'products', 'cash_sessions']);
+    const cacheToClear = ['sales', 'products'];
+    if (updated.cash_session_id) cacheToClear.push('cash_sessions');
+    if (updated.payments?.some((p: any) => ['Crediário', 'Crediario'].includes(p.method))) {
+        cacheToClear.push('customers');
+    }
+    clearCache(cacheToClear);
 
     return mapSale(updated);
 };
@@ -1735,8 +1743,12 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
             console.error('Error reverting credit and cleaning installments on cancellation:', err);
         }
     }
-
-    clearCache(['sales', 'products', 'customers']);
+    const cacheToClear = ['sales', 'products'];
+    if (sale.cash_session_id) cacheToClear.push('cash_sessions');
+    if (sale.payments?.some((p: any) => ['Crediário', 'Crediario'].includes(p.method))) {
+        cacheToClear.push('customers');
+    }
+    clearCache(cacheToClear);
 
     // Return with info about trade-in products that were already sold
     return {
