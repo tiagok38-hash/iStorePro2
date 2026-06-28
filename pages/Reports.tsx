@@ -464,8 +464,8 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                                 Produtos<br/>Vendidos
                             </div>
                         </h3>
-                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                            <div className="relative w-full sm:w-64 shrink-0">
+                        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto sm:justify-end">
+                            <div className="relative w-full sm:w-auto shrink-0 flex-1 sm:flex-none sm:min-w-[200px]">
                                 <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                                 <input
                                     type="text"
@@ -478,7 +478,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                             <select
                                 value={productConditionFilter}
                                 onChange={e => setProductConditionFilter(e.target.value)}
-                                className="w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                                className="flex-1 sm:flex-none w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
                             >
                                 <option value="todos">Todas as Condições</option>
                                 {availableConditions.map(c => (
@@ -489,7 +489,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                             <select
                                 value={productSortBy}
                                 onChange={e => setProductSortBy(e.target.value as any)}
-                                className="w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                                className="flex-1 sm:flex-none w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
                             >
                                 <option value="faturamento">Por Faturamento</option>
                                 <option value="quantidade">Por Quantidade</option>
