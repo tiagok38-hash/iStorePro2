@@ -982,23 +982,17 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
             open[name] = 0;
         });
 
+        let globalOpenCrediario = creditInstallments
+            .filter(inst => inst.status !== 'paid' && inst.status !== 'Cancelada')
+            .reduce((sum, inst) => sum + Math.max(0, inst.amount - inst.amountPaid), 0);
+            
+        open['Crediário'] = globalOpenCrediario;
+
         filteredSales.forEach(sale => {
             sale.payments.forEach(payment => {
                 const methodKey = normalizeName(payment.method);
                 if (totals[methodKey] === undefined) totals[methodKey] = 0;
                 totals[methodKey] += payment.value;
-
-                if (methodKey === 'Crediário') {
-                    const saleInstallments = creditInstallments.filter(i => i.saleId === sale.id);
-                    if (saleInstallments.length > 0) {
-                        const pendingSum = saleInstallments.reduce((sum, inst) => sum + (inst.amount - inst.amountPaid), 0);
-                        if (open[methodKey] === undefined) open[methodKey] = 0;
-                        open[methodKey] += pendingSum;
-                    } else {
-                        if (open[methodKey] === undefined) open[methodKey] = 0;
-                        open[methodKey] += payment.value;
-                    }
-                }
             });
         });
 
@@ -1733,7 +1727,7 @@ const Dashboard: React.FC = () => {
             if (document.visibilityState !== 'visible') return;
             if (event.data && event.data.type === 'CLEAR_CACHE') {
                 const keys = event.data.keys || event.data.prefixes;
-                if (keys && Array.isArray(keys) && keys.some((k: string) => ['sales', 'products', 'customers'].some(type => k.includes(type)))) {
+                if (keys && Array.isArray(keys) && keys.some((k: string) => ['sales', 'products', 'customers', 'credit_installments'].some(type => k.includes(type)))) {
                     fetchData(true);
                 }
             }
