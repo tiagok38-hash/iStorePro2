@@ -17,23 +17,27 @@ import {
     Supplier, PermissionProfile, Brand, Category, ProductModel, Grade,
     GradeValue, PaymentMethodParameter, StorageLocationParameter
 } from '../types.ts';
-import PosAlertModal from '../components/PosAlertModal.tsx';
+import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
-import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
-import SaleDetailModal from '../components/SaleDetailModal.tsx';
-import StockSearchModal from '../components/StockSearchModal.tsx';
-import CardPaymentModal from '../components/CardPaymentModal.tsx';
-import { PosSettingsView } from '../components/PosSettingsView.tsx';
-import CashMovementModal from '../components/CashMovementModal.tsx';
-import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
 
-// Sub-components
+// Lazy load components (Item 3 da Análise de Otimizações)
+const PosAlertModal = React.lazy(() => import('../components/PosAlertModal.tsx'));
+const SaleReceiptModal = React.lazy(() => import('../components/SaleReceiptModal.tsx'));
+const SaleDetailModal = React.lazy(() => import('../components/SaleDetailModal.tsx'));
+const StockSearchModal = React.lazy(() => import('../components/StockSearchModal.tsx'));
+const CardPaymentModal = React.lazy(() => import('../components/CardPaymentModal.tsx'));
+const CashMovementModal = React.lazy(() => import('../components/CashMovementModal.tsx'));
+
+// Sub-components pesados
+const NewSaleView = React.lazy(() => import('../components/pos/NewSaleView.tsx'));
+
+// Sub-components leves (carregamento síncrono mantido para não piscar a interface)
 import PosHeader from '../components/pos/PosHeader.tsx';
 import PosSidebar from '../components/pos/PosSidebar.tsx';
 import CaixasView from '../components/pos/CaixasView.tsx';
-import NewSaleView from '../components/pos/NewSaleView.tsx';
 import ResumoCaixaView from '../components/pos/ResumoCaixaView.tsx';
+import { PosSettingsView } from '../components/PosSettingsView.tsx';
 
 type PosView = 'caixas' | 'pdv' | 'estoque' | 'resumo' | 'config';
 
@@ -484,7 +488,8 @@ const POS: React.FC = () => {
                     )}
                     {activeView === 'pdv' && (
                         workingSession ? (
-                            <NewSaleView
+                            <React.Suspense fallback={<div className="p-8"><SuspenseFallback /></div>}>
+                                <NewSaleView
                                 onCancel={() => { setActiveView('resumo'); setSaleToEdit(null); }}
                                 onSaleSaved={handleSaleSaved}
                                 customers={customers} paymentMethods={paymentMethods}
@@ -515,6 +520,7 @@ const POS: React.FC = () => {
                                 }}
                                 saleToEdit={saleToEdit}
                             />
+                            </React.Suspense>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
                                 <ArchiveBoxIcon className="h-16 w-16 text-gray-300" />
@@ -573,24 +579,23 @@ const POS: React.FC = () => {
                         />
                     )}
                     {activeView === 'config' && <PosSettingsView customers={customers} receiptTerms={receiptTerms} onUpdateReceiptFormat={setReceiptFormat} />}
+                    <React.Suspense fallback={<SuspenseFallback />}>
+                        <PosAlertModal isOpen={isAlertModalOpen} onClose={() => setIsAlertModalOpen(false)} title={alertModalProps.title} message={alertModalProps.message} type={alertModalProps.type as any} />
+                        {isStockSearchModalOpen && <StockSearchModal isOpen={isStockSearchModalOpen} onClose={() => setIsStockSearchModalOpen(false)} products={products} />}
+                        {isCardSimulatorOpen && (
+                            <CardPaymentModal
+                                isOpen={isCardSimulatorOpen}
+                                onClose={() => setIsCardSimulatorOpen(false)}
+                                onConfirm={() => {}}
+                                amountDue={0}
+                                isSimulator={true}
+                            />
+                        )}
+                        <CashMovementModal isOpen={isCashMovementModalOpen} onClose={() => setIsCashMovementModalOpen(false)} onConfirm={handleConfirmCashMovement} type={cashMovementType} />
+                        {detailSale && <SaleDetailModal sale={detailSale} productMap={productMap} customers={customers} users={users} suppliers={suppliers} onClose={() => setDetailSale(null)} />}
+                        {receiptSale && <SaleReceiptModal sale={receiptSale} productMap={productMap} customers={customers} users={users} onClose={() => setReceiptSale(null)} initialFormat={receiptFormat} />}
+                    </React.Suspense>
                 </main>
-
-                {isStockSearchModalOpen && <StockSearchModal products={products} onClose={() => setIsStockSearchModalOpen(false)} />}
-                {isCardSimulatorOpen && (
-                    <CardPaymentModal
-                        isOpen={isCardSimulatorOpen}
-                        onClose={() => setIsCardSimulatorOpen(false)}
-                        onConfirm={() => setIsCardSimulatorOpen(false)}
-                        amountDue={0}
-                        isSimulator={true}
-                    />
-                )}
-                <CashMovementModal isOpen={isCashMovementModalOpen} onClose={() => setIsCashMovementModalOpen(false)} onConfirm={handleConfirmCashMovement} type={cashMovementType} />
-
-
-
-                {detailSale && <SaleDetailModal sale={detailSale} productMap={productMap} customers={customers} users={users} suppliers={suppliers} onClose={() => setDetailSale(null)} />}
-                {receiptSale && <SaleReceiptModal sale={receiptSale} productMap={productMap} customers={customers} users={users} onClose={() => setReceiptSale(null)} initialFormat={receiptFormat} />}
 
                 {isOpeningSessionModalOpen && (
                     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
