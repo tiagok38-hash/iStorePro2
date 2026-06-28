@@ -584,7 +584,7 @@ const Vendas: React.FC = () => {
             .forEach(sale => {
                 (sale.payments || []).forEach(p => {
                     if (!p.method) return;
-                    totals[p.method] = (totals[p.method] || 0) + (p.amount || 0);
+                    totals[p.method] = (totals[p.method] || 0) + (p.value || 0);
                 });
             });
         // Ordenar do maior para o menor valor
