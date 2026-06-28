@@ -486,12 +486,12 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
             p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
         );
 
-        for (const tradeInPayment of tradeInPayments) {
+        const tradeInPromises = tradeInPayments.map(async (tradeInPayment: any) => {
             const productId = tradeInPayment.tradeInDetails.productId;
 
             if (!productId || productId.startsWith('temp-trade-')) {
                 console.error('[addSale] Skipped trade-in stock update due to invalid ID:', productId);
-                continue;
+                return; // equivale a continue no for
             }
 
             // Retry logic to ensure stock update persists
@@ -537,7 +537,6 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                         console.error(`[addSale] Attempt ${attempts}: Error updating stock:`, updateError);
                         await new Promise(r => setTimeout(r, 1000));
                     } else {
-
                         await addAuditLog(
                             AuditActionType.STOCK_ADJUST,
                             AuditEntityType.PRODUCT,
@@ -557,7 +556,9 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
             if (!success) {
                 console.error('[addSale] FAILED to update trade-in stock after multiple attempts:', productId);
             }
-        }
+        });
+
+        await Promise.allSettled(tradeInPromises);
     }
 
     // TELEGRAM NOTIFICATION: Send notification for finalized sales
@@ -1623,7 +1624,7 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
             p.method === 'Aparelho na Troca' && p.tradeInDetails?.productId
         );
 
-        for (const tradeInPayment of tradeInPayments) {
+        const tradeInPromises = tradeInPayments.map(async (tradeInPayment: any) => {
             const productId = tradeInPayment.tradeInDetails.productId;
             const { data: tradeInProduct } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
 
@@ -1678,7 +1679,9 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                     );
                 }
             }
-        }
+        });
+
+        await Promise.allSettled(tradeInPromises);
     }
 
     // CREDIT REVERT: Guarantee cleaning up installments linked to this sale
