@@ -66,7 +66,7 @@ const ServiceOrderDevices: React.FC = () => {
                     technicalReport: so.technicalReport,
                     attendant: so.attendantName || 'Não informado',
                     technician: so.responsibleName || 'Não informado',
-                    photos: [] as string[]
+                    photos: so.photos || []
                 }));
                 // Sort history by date descending
                 history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

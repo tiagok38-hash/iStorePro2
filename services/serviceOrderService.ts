@@ -160,8 +160,7 @@ export const getServiceOrdersByCustomer = async (customerId: string): Promise<Se
             .eq('customer_id', customerId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        return (data || []).map(mapServiceOrder);
+        return (data || []).map(mapServiceOrderData);
     });
 };
 
@@ -387,9 +386,9 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         'patternLock', 'defectDescription', 'technicalReport',
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
-        'attendantObservations', 'customerDeviceId', 'isQuick', 'phone',
+        'attendantObservations', 'customerDeviceId', 'isQuick',
         'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType',
-        'customerSnapshot', 'deviceSnapshot', 'color', 'imei2'
+        'customerSnapshot', 'deviceSnapshot'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -465,7 +464,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'phone', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType', 'color', 'imei2'
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 
