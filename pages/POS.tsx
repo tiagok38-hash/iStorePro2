@@ -21,8 +21,6 @@ import { toDateValue, getNowISO } from '../utils/dateUtils.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 
-// Lazy load components (Item 3 da Análise de Otimizações)
-const PosAlertModal = React.lazy(() => import('../components/PosAlertModal.tsx'));
 const SaleReceiptModal = React.lazy(() => import('../components/SaleReceiptModal.tsx'));
 const SaleDetailModal = React.lazy(() => import('../components/SaleDetailModal.tsx'));
 const StockSearchModal = React.lazy(() => import('../components/StockSearchModal.tsx'));
@@ -580,7 +578,6 @@ const POS: React.FC = () => {
                     )}
                     {activeView === 'config' && <PosSettingsView customers={customers} receiptTerms={receiptTerms} onUpdateReceiptFormat={setReceiptFormat} />}
                     <React.Suspense fallback={<SuspenseFallback />}>
-                        <PosAlertModal isOpen={isAlertModalOpen} onClose={() => setIsAlertModalOpen(false)} title={alertModalProps.title} message={alertModalProps.message} type={alertModalProps.type as any} />
                         {isStockSearchModalOpen && <StockSearchModal isOpen={isStockSearchModalOpen} onClose={() => setIsStockSearchModalOpen(false)} products={products} />}
                         {isCardSimulatorOpen && (
                             <CardPaymentModal
