@@ -48,6 +48,14 @@ const getStartDateForPeriod = (period: 'hoje' | '7dias' | '15dias' | 'Mes'): str
     }
 };
 
+const normalizePaymentMethod = (str: string): string => {
+    if (!str) return '';
+    let s = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+de\s+/g, ' ').trim();
+    if (s === 'credito') return 'cartao credito';
+    if (s === 'debito') return 'cartao debito';
+    return s;
+};
+
 
 // --- Sub-components ---
 
@@ -479,7 +487,7 @@ const Vendas: React.FC = () => {
             }
 
             const paymentMatch = paymentFilter === 'todos' || (sale.payments || []).some(
-                p => p.method === paymentFilter
+                p => p.method && normalizePaymentMethod(p.method) === normalizePaymentMethod(paymentFilter)
             );
 
             if (sale.status === 'Rascunho') return false;
@@ -579,19 +587,26 @@ const Vendas: React.FC = () => {
     // KPIs por forma de pagamento (apenas vendas ativas no período filtrado)
     const paymentKpis = useMemo(() => {
         const totals: Record<string, number> = {};
+
         filteredSales
             .filter(s => s.status !== 'Cancelada')
             .forEach(sale => {
                 (sale.payments || []).forEach(p => {
                     if (!p.method) return;
-                    totals[p.method] = (totals[p.method] || 0) + (p.value || 0);
+                    let canonicalMethod = p.method;
+                    const normalizedPMethod = normalizePaymentMethod(p.method);
+                    const matchedMethod = paymentMethods.find((pm: any) => pm.name && normalizePaymentMethod(pm.name) === normalizedPMethod);
+                    if (matchedMethod) {
+                        canonicalMethod = matchedMethod.name;
+                    }
+                    totals[canonicalMethod] = (totals[canonicalMethod] || 0) + (p.value || 0);
                 });
             });
         // Ordenar do maior para o menor valor
         return Object.entries(totals)
             .sort((a, b) => b[1] - a[1])
             .map(([method, total]) => ({ method, total }));
-    }, [filteredSales]);
+    }, [filteredSales, paymentMethods]);
 
     const handleAddNewCustomer = useCallback(async (customerData: Omit<Customer, 'id' | 'createdAt'>): Promise<Customer | null> => {
         try {
@@ -800,11 +815,7 @@ const Vendas: React.FC = () => {
                         <select
                             value={paymentFilter}
                             onChange={e => setPaymentFilter(e.target.value)}
-                            className={`flex-1 sm:flex-none px-3 py-1.5 border rounded-xl h-9 sm:h-10 text-xs sm:text-sm min-w-[140px] transition-colors ${
-                                paymentFilter !== 'todos'
-                                    ? 'bg-accent text-white border-accent font-bold'
-                                    : 'bg-surface border-border'
-                            }`}
+                            className="flex-1 sm:flex-none px-3 py-1.5 border rounded-xl bg-surface border-border h-9 sm:h-10 text-xs sm:text-sm min-w-[140px] transition-colors"
                         >
                             <option value="todos">Forma de Pgto</option>
                             {paymentMethods.map((pm: any) => (
