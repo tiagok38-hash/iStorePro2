@@ -388,7 +388,7 @@ export const addServiceOrder = async (data: Omit<ServiceOrder, 'id' | 'createdAt
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId', 'isQuick',
         'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType',
-        'customerSnapshot', 'deviceSnapshot'
+        'customerSnapshot', 'deviceSnapshot', 'color', 'imei2'
     ];
     camelCaseKeys.forEach(key => delete newOrder[key]);
 
@@ -464,7 +464,7 @@ export const updateServiceOrder = async (id: string, data: Partial<ServiceOrder>
         'responsibleId', 'responsibleName', 'attendantId', 'attendantName',
         'entryDate', 'exitDate', 'estimatedDate',
         'attendantObservations', 'customerDeviceId',
-        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType'
+        'createdAt', 'updatedAt', 'displayId', 'isQuick', 'cancellationReason', 'isEdited', 'receiptTermId', 'isWarranty', 'parentOsId', 'osType', 'color', 'imei2'
     ];
     camelCaseKeys.forEach(key => delete updatePayload[key]);
 

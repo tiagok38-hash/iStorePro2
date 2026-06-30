@@ -1,0 +1,5 @@
+# Regras de Segurança do Banco de Dados e Payloads (Trava do Sistema)
+
+1. **Validação de Colunas:** Nunca presuma que uma propriedade da interface TypeScript (ex: `ServiceOrder`) existe como coluna no banco de dados Supabase/PostgreSQL. Sempre verifique o esquema real (`information_schema.columns`) antes de tentar enviar ou mapear campos para as operações de insert/update (`supabase.from(tabela).insert()` ou `.update()`).
+2. **Deleção Segura de Chaves:** Em funções de serviço (como `addServiceOrder` e `updateServiceOrder`), ao utilizar loops para excluir propriedades (ex: `camelCaseKeys.forEach(key => delete payload[key])`), não remova propriedades que não correspondem a colunas válidas no banco de dados. Qualquer propriedade não mapeada ou inexistente na tabela **deve** permanecer na lista de exclusão para que não seja enviada na query, evitando erros fatais de SQL.
+3. **Restrição em Cascata:** Antes de modificar lógicas de salvamento ou atualização de dados principais (como OS, Clientes, Produtos), você deve obrigatoriamente testar as implicações e ter certeza absoluta de que não enviará chaves inválidas (como `color` e `imei2` em `service_orders`).
