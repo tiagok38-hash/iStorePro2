@@ -260,9 +260,9 @@ const ServiceOrderList: React.FC = () => {
     const [osTypes, setOsTypes] = useState<any[]>([]);
 
     // Date filters
-    const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'>('today');
-    const [startDate, setStartDate] = useState<string>(() => toDateValue(new Date()));
-    const [endDate, setEndDate] = useState<string>(() => toDateValue(new Date()));
+    const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom'>('all');
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
 
     const handlePeriodChange = (period: typeof periodFilter) => {
         setPeriodFilter(period);
