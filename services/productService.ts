@@ -154,8 +154,15 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
     } = params;
 
     return fetchWithRetry(async () => {
-        // Normalize query: remove accents and remove 'gb' or 'tb' from the end of numbers
-        const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/\b(\d+)\s*(gb|tb)\b/gi, '$1').trim();
+        // Normalize query: only remove accents. Storage units (GB, TB) are kept
+        // as-is (e.g. "1tb", "256gb") so the SQL can match them directly against
+        // the model name text, which already contains "1TB", "256GB" etc.
+        // This is necessary because many products have storage=NULL in the DB,
+        // so column-based filtering fails; text matching on model name is reliable.
+        const normalizedQuery = query
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim();
 
         // Strict Enforcement for iPhones: Fetch all, sort locally, slice.
         const isIphoneSearch = normalizedQuery.toLowerCase().includes('iphone');
