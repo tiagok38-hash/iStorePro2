@@ -340,16 +340,39 @@ const CreditDashboard: React.FC = () => {
                                             <tr className="bg-gray-100/30">
                                                 <th className="pl-6 sm:pl-10 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Parcela</th>
                                                 <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Vencimento</th>
-                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-right">Valor</th>
+                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-right">Valor Original</th>
+                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-amber-500 tracking-wider text-right">Juros</th>
+                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-red-500 tracking-wider text-right">Restante</th>
                                                 <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-center">Status</th>
                                                 <th className="pr-6 sm:pr-10 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-right">Ações</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
                                             {group.installments.map((inst) => {
-                                                const isLate = inst.status !== 'paid' && inst.dueDate < getTodayDateString();
+                                                const today = getTodayDateString();
+                                                const isLate = inst.status !== 'paid' && inst.dueDate < today;
+
+                                                // Cálculo de dias em atraso
+                                                const daysLate = isLate
+                                                    ? Math.floor(
+                                                        (new Date(today).getTime() - new Date(inst.dueDate).getTime()) /
+                                                        (1000 * 60 * 60 * 24)
+                                                    )
+                                                    : 0;
+
+                                                // Juros de mora acumulados: lateFeePercentage % ao mês sobre o saldo devedor
+                                                const remaining = Math.max(0, inst.amount - inst.amountPaid);
+                                                const lateInterest = isLate && settings.lateFeePercentage > 0
+                                                    ? parseFloat(
+                                                        (remaining * (settings.lateFeePercentage / 100) * (daysLate / 30)).toFixed(2)
+                                                    )
+                                                    : 0;
+
+                                                const hasPartialPayment = inst.amountPaid > 0;
+                                                const totalDue = remaining + lateInterest;
+
                                                 return (
-                                                    <tr key={inst.id} className="hover:bg-white transition-colors">
+                                                    <tr key={inst.id} className={`hover:bg-white transition-colors ${isLate ? 'bg-red-50/30' : ''}`}>
                                                         <td className="pl-6 sm:pl-10 py-4">
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm font-black text-gray-900">#{inst.installmentNumber}/{inst.totalInstallments}</span>
@@ -360,28 +383,86 @@ const CreditDashboard: React.FC = () => {
                                                             <div className="flex items-center gap-2">
                                                                 <CalendarIcon className={`h-4 w-4 ${isLate ? 'text-red-400' : 'text-gray-400'}`} />
                                                                 <span className={`text-sm font-bold ${isLate ? 'text-red-600' : 'text-gray-700'}`}>
-                                                                    {new Date(inst.dueDate).toLocaleDateString('pt-BR')}
+                                                                    {new Date(inst.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}
                                                                 </span>
                                                             </div>
                                                         </td>
+
+                                                        {/* Valor Original */}
                                                         <td className="px-6 py-4 text-right">
-                                                            <div className="flex flex-col items-end">
-                                                                <span className="text-sm font-black text-gray-900">{formatCurrency(inst.amount)}</span>
-                                                                {inst.status === 'partial' && (
-                                                                    <span className="text-[10px] font-bold text-orange-500">
-                                                                        Restam: {formatCurrency(inst.amount - inst.amountPaid)}
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                            <span className={`text-sm font-bold ${
+                                                                hasPartialPayment || lateInterest > 0
+                                                                    ? 'text-gray-400 line-through'
+                                                                    : 'text-gray-900 font-black'
+                                                            }`}>
+                                                                {formatCurrency(inst.amount)}
+                                                            </span>
+                                                            {hasPartialPayment && (
+                                                                <div className="text-[10px] text-gray-400 mt-0.5">
+                                                                    Pago: {formatCurrency(inst.amountPaid)}
+                                                                </div>
+                                                            )}
                                                         </td>
+
+                                                        {/* Juros de Mora */}
+                                                        <td className="px-6 py-4 text-right">
+                                                            {lateInterest > 0 ? (
+                                                                <div className="flex flex-col items-end">
+                                                                    <span className="text-sm font-black text-amber-600">
+                                                                        {formatCurrency(lateInterest)}
+                                                                    </span>
+                                                                    <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wide">
+                                                                        {settings.lateFeePercentage}%/mês
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-300 font-medium">—</span>
+                                                            )}
+                                                        </td>
+
+                                                        {/* Valor Restante (destaque) */}
+                                                        <td className="px-6 py-4 text-right">
+                                                            {inst.status !== 'paid' ? (
+                                                                <div className="flex flex-col items-end">
+                                                                    <span className={`font-black ${
+                                                                        lateInterest > 0
+                                                                            ? 'text-red-600 text-base'
+                                                                            : hasPartialPayment
+                                                                            ? 'text-orange-600 text-base'
+                                                                            : 'text-gray-900 text-sm'
+                                                                    }`}>
+                                                                        {formatCurrency(totalDue)}
+                                                                    </span>
+                                                                    {lateInterest > 0 && (
+                                                                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-wide">
+                                                                            c/ mora
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-sm font-black text-emerald-600">{formatCurrency(inst.amount)}</span>
+                                                            )}
+                                                        </td>
+
+                                                        {/* Status */}
                                                         <td className="px-6 py-4 text-center">
                                                             <div className="flex flex-col items-center gap-1">
-                                                                <StatusBadge status={isLate ? 'Atrasado' : inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Em Aberto'} />
+                                                                {isLate ? (
+                                                                    <span className="inline-flex flex-col items-center px-2.5 py-1 rounded-lg bg-red-100 border border-red-200">
+                                                                        <span className="text-[10px] font-black text-red-600 uppercase tracking-wider leading-tight">Atrasado</span>
+                                                                        <span className="text-[9px] font-bold text-red-400 leading-tight">
+                                                                            {daysLate} dia{daysLate !== 1 ? 's' : ''}
+                                                                        </span>
+                                                                    </span>
+                                                                ) : (
+                                                                    <StatusBadge status={inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Em Aberto'} />
+                                                                )}
                                                                 {inst.status === 'paid' && inst.paymentMethod && (
                                                                     <span className="text-[9px] font-bold text-gray-500 uppercase bg-gray-100 px-2 py-0.5 rounded-full">{inst.paymentMethod}</span>
                                                                 )}
                                                             </div>
                                                         </td>
+
                                                         <td className="pr-6 sm:pr-10 py-4 text-right">
                                                             <div className="flex items-center justify-end gap-2">
                                                                 {inst.status !== 'paid' && (
