@@ -4,6 +4,7 @@ import { formatCurrency, getCreditSettings, updateCustomer } from '../../service
 import CustomDatePicker from '../CustomDatePicker.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';
 import { calculateInstallmentDates } from '../../utils/creditUtils.ts';
+import { getTodayDateString } from '../../utils/dateUtils.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 
 interface NewCreditModalProps {
@@ -26,14 +27,21 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
     const [frequency, setFrequency] = useState<'mensal' | 'quinzenal'>('mensal');
     const { showToast } = useToast();
     
-    const getDefaultDate = (freq: 'mensal' | 'quinzenal') => {
-        const d = new Date();
+    const getDefaultDate = (freq: 'mensal' | 'quinzenal'): string => {
+        // Usa getTodayDateString() para garantir fuso de Brasília (America/Sao_Paulo).
+        // Evita bug do .toISOString() que retorna data UTC, causando drift após 21h.
+        const todayBR = getTodayDateString(); // YYYY-MM-DD em UTC-3
+        const [year, month, day] = todayBR.split('-').map(Number);
+        const d = new Date(year, month - 1, day); // meia-noite local, sem drift
         if (freq === 'mensal') {
             d.setMonth(d.getMonth() + 1);
         } else {
             d.setDate(d.getDate() + 15);
         }
-        return d.toISOString().split('T')[0];
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dd}`;
     };
 
     const [firstDueDate, setFirstDueDate] = useState(() => getDefaultDate('mensal'));

@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import CreditDashboard from '../components/CreditDashboard';
 import { supabase } from '../supabaseClient';
+import { getTodayDateString } from '../utils/dateUtils.ts';
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -287,7 +288,7 @@ export default function Financeiro() {
                 amount: Number(t.amount),
                 date: t.due_date,
                 paymentDate: t.payment_date,
-                status: t.status === 'paid' ? 'Pago' : (new Date(t.due_date) < new Date() ? 'Vencido' : 'Pendente'),
+                status: t.status === 'paid' ? 'Pago' : (t.due_date < getTodayDateString() ? 'Vencido' : 'Pendente'),
                 paymentMethod: t.payment_method || 'Diversos',
                 cogs: 0,
                 createdBy: t.created_by || 'Sistema'

@@ -18,6 +18,7 @@ import { CarnetPrintButton } from './print/CarnetPrintButton';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { openWhatsApp } from '../utils/whatsappUtils.ts';
+import { getTodayDateString } from '../utils/dateUtils.ts';
 
 const CreditDashboard: React.FC = () => {
     const { user } = useUser();
@@ -59,7 +60,7 @@ const CreditDashboard: React.FC = () => {
     useEffect(() => {
         if (!installments.length) return;
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDateString();
 
         const toReceive = installments
             .filter(i => i.status === 'pending' || i.status === 'partial')
@@ -68,7 +69,7 @@ const CreditDashboard: React.FC = () => {
         const overdue = installments
             .filter(i => {
                 if (i.status === 'paid') return false;
-                return new Date(i.dueDate) < new Date(today);
+                return i.dueDate < today;
             })
             .reduce((sum, i) => sum + (i.amount - i.amountPaid), 0);
 
@@ -94,8 +95,8 @@ const CreditDashboard: React.FC = () => {
             if (filterStatus === 'active') {
                 filtered = filtered.filter(i => i.status !== 'paid');
             } else if (filterStatus === 'overdue') {
-                const today = new Date().toISOString().split('T')[0];
-                filtered = filtered.filter(i => i.status !== 'paid' && new Date(i.dueDate) < new Date(today));
+                const today = getTodayDateString();
+                filtered = filtered.filter(i => i.status !== 'paid' && i.dueDate < today);
             } else {
                 filtered = filtered.filter(i => i.status === filterStatus || (filterStatus === 'pending' && i.status === 'partial'));
             }
@@ -148,7 +149,7 @@ const CreditDashboard: React.FC = () => {
             groups[cid].installments.push(inst);
             if (inst.status !== 'paid') {
                 groups[cid].totalOpen += (inst.amount - inst.amountPaid);
-                const isLate = new Date(inst.dueDate) < new Date(new Date().toISOString().split('T')[0]);
+                const isLate = inst.status !== 'paid' && inst.dueDate < getTodayDateString();
                 if (isLate) groups[cid].overdueCount++;
             }
         });
@@ -346,7 +347,7 @@ const CreditDashboard: React.FC = () => {
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
                                             {group.installments.map((inst) => {
-                                                const isLate = inst.status !== 'paid' && new Date(inst.dueDate) < new Date(new Date().toISOString().split('T')[0]);
+                                                const isLate = inst.status !== 'paid' && inst.dueDate < getTodayDateString();
                                                 return (
                                                     <tr key={inst.id} className="hover:bg-white transition-colors">
                                                         <td className="pl-6 sm:pl-10 py-4">

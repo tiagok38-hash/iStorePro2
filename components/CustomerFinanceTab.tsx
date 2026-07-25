@@ -3,6 +3,7 @@ import { Customer } from '../types.ts';
 import { formatCurrency, syncCustomerCreditLimit, updateCustomer } from '../services/mockApi.ts';
 import { TrendingUp, TrendingDown, ShieldCheck, RefreshCcw, Calendar, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '../supabaseClient.ts';
+import { getTodayDateString } from '../utils/dateUtils.ts';
 
 interface CustomerFinanceTabProps {
     customer: Customer;
@@ -53,7 +54,8 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
 
             if (error) throw error;
 
-            const today = new Date().toISOString().split('T')[0];
+            // Usa a data de hoje no fuso de Brasília (evita bug UTC: após 21h, toISOString() já retorna o dia seguinte)
+            const today = getTodayDateString(); // YYYY-MM-DD sempre em America/Sao_Paulo
             const mapped: Installment[] = (data || []).map((d: any) => ({
                 id: d.id,
                 saleId: d.sale_id,
@@ -142,7 +144,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
     }, {});
 
     const getStatusIcon = (status: string, dueDate: string) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDateString();
         const isOverdue = status === 'overdue' || (status !== 'paid' && dueDate < today);
         if (isOverdue) return <AlertCircle size={14} className="text-red-500" />;
         if (status === 'partial') return <Clock size={14} className="text-amber-500" />;
@@ -150,7 +152,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
     };
 
     const getStatusLabel = (status: string, dueDate: string) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDateString();
         if (status === 'overdue' || (status !== 'paid' && dueDate < today)) return 'Vencida';
         if (status === 'partial') return 'Parcial';
         return 'Em aberto';
@@ -272,7 +274,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                         {Object.entries(installmentsBySale).map(([saleId, saleInstallments]) => {
                             const saleTotal = saleInstallments.reduce((s, i) => s + Math.max(0, i.amount - i.amountPaid), 0);
                             const hasOverdue = saleInstallments.some(i => {
-                                const today = new Date().toISOString().split('T')[0];
+                                const today = getTodayDateString();
                                 return i.status === 'overdue' || i.dueDate < today;
                             });
 
@@ -293,7 +295,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                                         <tbody className="divide-y divide-gray-50">
                                             {saleInstallments.map(inst => {
                                                 const remaining = Math.max(0, inst.amount - inst.amountPaid);
-                                                const today = new Date().toISOString().split('T')[0];
+                                                const today = getTodayDateString();
                                                 const isOverdue = inst.status === 'overdue' || inst.dueDate < today;
 
                                                 return (
