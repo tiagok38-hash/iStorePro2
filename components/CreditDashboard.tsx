@@ -339,6 +339,7 @@ const CreditDashboard: React.FC = () => {
                                         <thead>
                                             <tr className="bg-gray-100/30">
                                                 <th className="pl-6 sm:pl-10 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Parcela</th>
+                                                <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Data</th>
                                                 <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Vencimento</th>
                                                 <th className="px-6 py-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider text-right">Valor Original</th>
                                                 <th className="px-6 py-3 text-[10px] uppercase font-bold text-amber-500 tracking-wider text-right">Juros</th>
@@ -378,6 +379,22 @@ const CreditDashboard: React.FC = () => {
                                                                 <span className="text-sm font-black text-gray-900">#{inst.installmentNumber}/{inst.totalInstallments}</span>
                                                                 <span className="text-[10px] font-bold text-gray-400 uppercase">Venda #{(inst as any).saleDisplayId}</span>
                                                             </div>
+                                                        </td>
+
+                                                        {/* Data do débito (created_at) */}
+                                                        <td className="px-6 py-4">
+                                                            {inst.createdAt ? (
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-bold text-gray-700">
+                                                                        {new Date(inst.createdAt).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-medium text-gray-400">
+                                                                        {new Date(inst.createdAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-300">—</span>
+                                                            )}
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-2">

@@ -728,6 +728,7 @@ export interface CreditInstallment {
     interestApplied: number;
     penaltyApplied: number;
     paidAt?: string;
+    createdAt?: string;
     paymentMethod?: string;
     observation?: string;
     amortizationValue?: number;

@@ -154,6 +154,7 @@ export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
         interestValue: Number(d.interest_value || 0),
         remainingBalance: Number(d.remaining_balance || 0),
         paidAt: d.paid_at,
+        createdAt: d.created_at,
         paymentMethod: d.payment_method,
         observation: d.observation
     }));
