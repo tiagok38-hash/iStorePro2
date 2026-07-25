@@ -20,6 +20,10 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { openWhatsApp } from '../utils/whatsappUtils.ts';
 import { getTodayDateString } from '../utils/dateUtils.ts';
 
+// Formatadores criados uma vez (fora do componente) para evitar re-instanciação a cada render
+const DATE_FMT = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
+const TIME_FMT = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+
 const CreditDashboard: React.FC = () => {
     const { user } = useUser();
     const { showToast } = useToast();
@@ -56,7 +60,7 @@ const CreditDashboard: React.FC = () => {
         fetchData();
     }, []);
 
-    // Calcula KPIs
+    // Calcula KPIs sempre que a lista de parcelas mudar
     useEffect(() => {
         if (!installments.length) return;
 
@@ -67,24 +71,15 @@ const CreditDashboard: React.FC = () => {
             .reduce((sum, i) => sum + (i.amount - i.amountPaid), 0);
 
         const overdue = installments
-            .filter(i => {
-                if (i.status === 'paid') return false;
-                return i.dueDate < today;
-            })
+            .filter(i => i.status !== 'paid' && i.dueDate < today)
             .reduce((sum, i) => sum + (i.amount - i.amountPaid), 0);
 
+        // Aproximação: considera o valor total pago caso o paidAt seja hoje
         const receivedToday = installments
-            .filter(i => i.paidAt && i.paidAt.startsWith(today))
-            .reduce((sum, i) => {
-                // This is an approximation since we don't track individual payments in separate table yet, 
-                // but for now let's assume if it was paid today, the whole amountPaid is recent
-                // A more correct approach would be to have a payment history table. 
-                // For this MVP, we use the `paidAt` timestamp.
-                return sum + i.amountPaid;
-            }, 0);
+            .filter(i => i.paidAt?.startsWith(today))
+            .reduce((sum, i) => sum + i.amountPaid, 0);
 
         setStats({ toReceive, overdue, receivedToday });
-
     }, [installments]);
 
 
@@ -125,6 +120,7 @@ const CreditDashboard: React.FC = () => {
     };
 
     const groupedData = useMemo(() => {
+        const today = getTodayDateString();
         const groups: Record<string, {
             customerId: string;
             customerName: string;
@@ -149,8 +145,7 @@ const CreditDashboard: React.FC = () => {
             groups[cid].installments.push(inst);
             if (inst.status !== 'paid') {
                 groups[cid].totalOpen += (inst.amount - inst.amountPaid);
-                const isLate = inst.status !== 'paid' && inst.dueDate < getTodayDateString();
-                if (isLate) groups[cid].overdueCount++;
+                if (inst.dueDate < today) groups[cid].overdueCount++;
             }
         });
 
@@ -349,19 +344,18 @@ const CreditDashboard: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {group.installments.map((inst) => {
+                                            {(() => {
                                                 const today = getTodayDateString();
+                                                return group.installments.map((inst) => {
                                                 const isLate = inst.status !== 'paid' && inst.dueDate < today;
 
-                                                // Cálculo de dias em atraso
                                                 const daysLate = isLate
                                                     ? Math.floor(
                                                         (new Date(today).getTime() - new Date(inst.dueDate).getTime()) /
-                                                        (1000 * 60 * 60 * 24)
+                                                        86_400_000
                                                     )
                                                     : 0;
 
-                                                // Juros de mora acumulados: lateFeePercentage % ao mês sobre o saldo devedor
                                                 const remaining = Math.max(0, inst.amount - inst.amountPaid);
                                                 const lateInterest = isLate && settings.lateFeePercentage > 0
                                                     ? parseFloat(
@@ -377,25 +371,21 @@ const CreditDashboard: React.FC = () => {
                                                         <td className="pl-6 sm:pl-10 py-4">
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm font-black text-gray-900">#{inst.installmentNumber}/{inst.totalInstallments}</span>
-                                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Venda #{(inst as any).saleDisplayId}</span>
+                                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Venda #{inst.saleDisplayId}</span>
                                                             </div>
                                                         </td>
 
-                                                        {/* Data do débito (created_at) */}
                                                         <td className="px-6 py-4">
                                                             {inst.createdAt ? (
                                                                 <div className="flex flex-col">
-                                                                    <span className="text-sm font-bold text-gray-700">
-                                                                        {new Date(inst.createdAt).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                                    </span>
-                                                                    <span className="text-[10px] font-medium text-gray-400">
-                                                                        {new Date(inst.createdAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
-                                                                    </span>
+                                                                    <span className="text-sm font-bold text-gray-700">{DATE_FMT.format(new Date(inst.createdAt))}</span>
+                                                                    <span className="text-[10px] font-medium text-gray-400">{TIME_FMT.format(new Date(inst.createdAt))}</span>
                                                                 </div>
                                                             ) : (
                                                                 <span className="text-xs text-gray-300">—</span>
                                                             )}
                                                         </td>
+
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-2">
                                                                 <CalendarIcon className={`h-4 w-4 ${isLate ? 'text-red-400' : 'text-gray-400'}`} />
@@ -405,7 +395,6 @@ const CreditDashboard: React.FC = () => {
                                                             </div>
                                                         </td>
 
-                                                        {/* Valor Original */}
                                                         <td className="px-6 py-4 text-right">
                                                             <span className={`text-sm font-bold ${
                                                                 hasPartialPayment || lateInterest > 0
@@ -421,23 +410,17 @@ const CreditDashboard: React.FC = () => {
                                                             )}
                                                         </td>
 
-                                                        {/* Juros de Mora */}
                                                         <td className="px-6 py-4 text-right">
                                                             {lateInterest > 0 ? (
                                                                 <div className="flex flex-col items-end">
-                                                                    <span className="text-sm font-black text-amber-600">
-                                                                        {formatCurrency(lateInterest)}
-                                                                    </span>
-                                                                    <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wide">
-                                                                        {settings.lateFeePercentage}%/mês
-                                                                    </span>
+                                                                    <span className="text-sm font-black text-amber-600">{formatCurrency(lateInterest)}</span>
+                                                                    <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wide">{settings.lateFeePercentage}%/mês</span>
                                                                 </div>
                                                             ) : (
                                                                 <span className="text-xs text-gray-300 font-medium">—</span>
                                                             )}
                                                         </td>
 
-                                                        {/* Valor Restante (destaque) */}
                                                         <td className="px-6 py-4 text-right">
                                                             {inst.status !== 'paid' ? (
                                                                 <div className="flex flex-col items-end">
@@ -451,9 +434,7 @@ const CreditDashboard: React.FC = () => {
                                                                         {formatCurrency(totalDue)}
                                                                     </span>
                                                                     {lateInterest > 0 && (
-                                                                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-wide">
-                                                                            c/ mora
-                                                                        </span>
+                                                                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-wide">c/ mora</span>
                                                                     )}
                                                                 </div>
                                                             ) : (
@@ -461,15 +442,12 @@ const CreditDashboard: React.FC = () => {
                                                             )}
                                                         </td>
 
-                                                        {/* Status */}
                                                         <td className="px-6 py-4 text-center">
                                                             <div className="flex flex-col items-center gap-1">
                                                                 {isLate ? (
                                                                     <span className="inline-flex flex-col items-center px-2.5 py-1 rounded-lg bg-red-100 border border-red-200">
                                                                         <span className="text-[10px] font-black text-red-600 uppercase tracking-wider leading-tight">Atrasado</span>
-                                                                        <span className="text-[9px] font-bold text-red-400 leading-tight">
-                                                                            {daysLate} dia{daysLate !== 1 ? 's' : ''}
-                                                                        </span>
+                                                                        <span className="text-[9px] font-bold text-red-400 leading-tight">{daysLate} dia{daysLate !== 1 ? 's' : ''}</span>
                                                                     </span>
                                                                 ) : (
                                                                     <StatusBadge status={inst.status === 'paid' ? 'Pago' : inst.status === 'partial' ? 'Parcial' : 'Em Aberto'} />
@@ -490,7 +468,6 @@ const CreditDashboard: React.FC = () => {
                                                                         Baixar
                                                                     </button>
                                                                 )}
-
                                                                 {(isLate || inst.status === 'pending' || inst.status === 'partial') && (
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleWhatsapp(inst); }}
@@ -500,7 +477,6 @@ const CreditDashboard: React.FC = () => {
                                                                         <WhatsAppIcon size={14} />
                                                                     </button>
                                                                 )}
-
                                                                 {inst.status === 'paid' && (
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); setEditMethodInstallment(inst); }}
@@ -510,16 +486,14 @@ const CreditDashboard: React.FC = () => {
                                                                         <SettingsIcon size={14} className="text-blue-600" />
                                                                     </button>
                                                                 )}
-
                                                                 <div onClick={(e) => e.stopPropagation()}>
                                                                     <CarnetPrintButton
-                                                                        saleId={(inst as any).saleId}
-                                                                        installments={group.installments.filter(i => (i as any).saleId === (inst as any).saleId)}
+                                                                        saleId={inst.saleId}
+                                                                        installments={group.installments.filter(i => i.saleId === inst.saleId)}
                                                                         buttonLabel=""
                                                                         className="h-8 px-3 border border-gray-300 text-gray-700 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-gray-100 transition-all flex items-center justify-center gap-2 shadow-sm"
                                                                     />
                                                                 </div>
-
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); setInstallmentToDelete(inst); }}
                                                                     className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-100 flex items-center justify-center"
@@ -531,7 +505,8 @@ const CreditDashboard: React.FC = () => {
                                                         </td>
                                                     </tr>
                                                 );
-                                            })}
+                                            });
+                                            })()}
                                         </tbody>
                                     </table>
                                 </div>
