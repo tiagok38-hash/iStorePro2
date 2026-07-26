@@ -895,6 +895,7 @@ const BillingChart: React.FC<{
 });
 
 const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentMethodParameter[]; creditInstallments: CreditInstallment[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ sales, activeMethods, creditInstallments, className, isPrivacyMode, onNavigate }) => {
+    const navigate = useNavigate();
     const [period, setPeriod] = useState<'day' | 'yesterday' | 'week' | 'month' | 'year'>('day');
 
     const normalizeName = (name: string) => {
@@ -911,20 +912,18 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
 
     const getColorForMethod = (method: string) => {
         const lower = method.toLowerCase();
-        if (lower.includes('pix')) return { color: 'bg-green-500', lightColor: 'bg-green-100 text-green-700' };
-        if (lower.includes('dinheiro') || lower.includes('espécie')) return { color: 'bg-yellow-500', lightColor: 'bg-yellow-100 text-yellow-700' };
-        if (lower.includes('débito')) return { color: 'bg-blue-500', lightColor: 'bg-blue-100 text-blue-700' };
-        if (lower.includes('crédito')) return { color: 'bg-purple-500', lightColor: 'bg-purple-100 text-purple-700' };
-        if (lower.includes('troca')) return { color: 'bg-orange-500', lightColor: 'bg-orange-100 text-orange-700' };
-        if (lower.includes('crediário') || lower.includes('crediario') || lower.includes('promissória')) return { color: 'bg-red-500', lightColor: 'bg-red-100 text-red-700' };
+        if (lower.includes('pix')) return { color: 'bg-emerald-500', barGradient: 'from-emerald-500 to-teal-400', lightColor: 'bg-emerald-50 text-emerald-700' };
+        if (lower.includes('dinheiro') || lower.includes('espécie')) return { color: 'bg-amber-500', barGradient: 'from-amber-500 to-yellow-400', lightColor: 'bg-amber-50 text-amber-700' };
+        if (lower.includes('débito')) return { color: 'bg-blue-500', barGradient: 'from-blue-500 to-cyan-400', lightColor: 'bg-blue-50 text-blue-700' };
+        if (lower.includes('crédito')) return { color: 'bg-purple-500', barGradient: 'from-purple-500 to-indigo-500', lightColor: 'bg-purple-50 text-purple-700' };
+        if (lower.includes('troca')) return { color: 'bg-orange-500', barGradient: 'from-orange-500 to-amber-500', lightColor: 'bg-orange-50 text-orange-700' };
+        if (lower.includes('crediário') || lower.includes('crediario') || lower.includes('promissória')) return { color: 'bg-rose-500', barGradient: 'from-rose-500 to-red-500', lightColor: 'bg-rose-50 text-rose-700' };
 
         const colors = [
-            { color: 'bg-pink-500', lightColor: 'bg-pink-100 text-pink-700' },
-            { color: 'bg-indigo-500', lightColor: 'bg-indigo-100 text-indigo-700' },
-            { color: 'bg-teal-500', lightColor: 'bg-teal-100 text-teal-700' },
-            { color: 'bg-cyan-500', lightColor: 'bg-cyan-100 text-cyan-700' },
-            { color: 'bg-rose-500', lightColor: 'bg-rose-100 text-rose-700' },
-            { color: 'bg-amber-500', lightColor: 'bg-amber-100 text-amber-700' },
+            { color: 'bg-pink-500', barGradient: 'from-pink-500 to-rose-400', lightColor: 'bg-pink-50 text-pink-700' },
+            { color: 'bg-indigo-500', barGradient: 'from-indigo-500 to-purple-400', lightColor: 'bg-indigo-50 text-indigo-700' },
+            { color: 'bg-teal-500', barGradient: 'from-teal-500 to-emerald-400', lightColor: 'bg-teal-50 text-teal-700' },
+            { color: 'bg-cyan-500', barGradient: 'from-cyan-500 to-blue-400', lightColor: 'bg-cyan-50 text-cyan-700' },
         ];
         const hash = method.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
         return colors[Math.abs(hash) % colors.length];
@@ -1014,6 +1013,10 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
         Object.values(paymentData.totals).reduce((sum: number, val: number) => sum + val, 0)
         , [paymentData.totals]);
 
+    const activeMethodsCount = useMemo(() =>
+        Object.values(paymentData.totals).filter(val => val > 0).length
+        , [paymentData.totals]);
+
     const renderedList = useMemo(() => {
         const keys = Object.keys(paymentData.totals);
         return keys.sort((a, b) => {
@@ -1038,7 +1041,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                         <CreditCardIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Metódos de Pagto</h3>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Métodos de Pagamento</h3>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Resumo por período</p>
                     </div>
                 </div>
@@ -1062,40 +1065,72 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                 </div>
             </div>
 
-            <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                {renderedList.map(({ key, label, color, lightColor, value, pendingValue }) => {
+            <div className="space-y-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                {renderedList.map(({ key, label, color, barGradient, value, pendingValue }) => {
                     const percentage = grandTotal > 0 ? (value / grandTotal) * 100 : 0;
+                    const isZero = value === 0;
 
                     return (
-                        <div key={key} className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${color} shrink-0`}></div>
-                            <div className="flex-grow">
-                                <div className="flex justify-between items-center mb-1">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <span className="text-sm font-medium text-secondary truncate">{label}</span>
-                                        {key === 'Crediário' && (
-                                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${pendingValue > 0 ? 'text-red-600 bg-red-50 border border-red-100' : 'text-emerald-600 bg-emerald-50 border border-emerald-100'}`}>
-                                                Aberto: {isPrivacyMode ? '***' : formatCurrency(pendingValue)}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <span className="text-sm font-bold text-primary">{isPrivacyMode ? 'R$ ****' : formatCurrency(value)}</span>
+                        <div key={key} className={`group/item transition-all ${isZero ? 'opacity-55 hover:opacity-100' : ''}`}>
+                            <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <div className={`w-2.5 h-2.5 rounded-full ${color} shrink-0`}></div>
+                                    <span className="text-xs font-bold text-gray-800 truncate">{label}</span>
+                                    {key === 'Crediário' && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate('/financeiro?tab=crediarios');
+                                            }}
+                                            className={`text-[9px] font-black px-2 py-0.5 rounded-lg shrink-0 transition-all flex items-center gap-1 active:scale-95 group/btn ${
+                                                pendingValue > 0
+                                                    ? 'text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 shadow-2xs'
+                                                    : 'text-emerald-600 bg-emerald-50 border border-emerald-100'
+                                            }`}
+                                            title="Clique para ir à gestão de crediários"
+                                        >
+                                            <span>Aberto: {isPrivacyMode ? '***' : formatCurrency(pendingValue)}</span>
+                                            {pendingValue > 0 && (
+                                                <svg className="w-2.5 h-2.5 opacity-70 group-hover/btn:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
-                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full ${color} transition-all duration-500`}
-                                        style={{ width: `${percentage}%` }}
-                                    ></div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {grandTotal > 0 && value > 0 && (
+                                        <span className="text-[10px] font-black text-gray-400 bg-gray-100/80 px-1.5 py-0.5 rounded-md">
+                                            {percentage.toFixed(1)}%
+                                        </span>
+                                    )}
+                                    <span className={`text-xs font-black ${isZero ? 'text-gray-400' : 'text-gray-900'}`}>
+                                        {isPrivacyMode ? 'R$ ****' : formatCurrency(value)}
+                                    </span>
                                 </div>
+                            </div>
+                            <div className="h-2 bg-gray-100/80 rounded-full overflow-hidden p-0.5 border border-gray-100">
+                                <div
+                                    className={`h-full rounded-full bg-gradient-to-r ${barGradient || 'from-indigo-500 to-purple-500'} transition-all duration-700 ease-out shadow-2xs`}
+                                    style={{ width: `${percentage}%` }}
+                                ></div>
                             </div>
                         </div>
                     );
                 })}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
-                <span className="text-sm font-bold text-muted uppercase">Total Geral</span>
-                <span className="text-lg font-bold text-success">{isPrivacyMode ? 'R$ ****' : formatCurrency(grandTotal)}</span>
+            <div className="mt-4 pt-3.5 border-t border-gray-100 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Total Geral</span>
+                    {activeMethodsCount > 0 && (
+                        <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                            {activeMethodsCount} método{activeMethodsCount > 1 ? 's' : ''}
+                        </span>
+                    )}
+                </div>
+                <span className="text-lg font-black text-emerald-600 tracking-tight">
+                    {isPrivacyMode ? 'R$ ****' : formatCurrency(grandTotal)}
+                </span>
             </div>
         </div>
     );
