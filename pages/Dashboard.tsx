@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { getProducts, getCustomers, getSales, formatCurrency, getPaymentMethods, getUsers, getServiceOrders, getServices, getSuppliers, getCreditInstallments } from '../services/mockApi.ts';
 import { Product, Customer, Sale, PaymentMethodParameter, PermissionSet, User, ServiceOrder, Service, Supplier, CreditInstallment } from '../types.ts';
 import { SmartphoneIcon, TagIcon, UserIcon, CubeIcon, ChartBarIcon, CurrencyDollarIcon, ClockIcon, CreditCardIcon, PlusIcon, DeviceExchangeIcon, ArchiveBoxIcon, UsersIcon, ShoppingCartIcon, EyeIcon, EyeSlashIcon, WrenchIcon, PackageIcon, TrendingUpIcon, BoltIcon } from '../components/icons.tsx';
@@ -831,23 +831,52 @@ const BillingTooltip: React.FC<any> = ({ active, payload, label }) => {
             return lbl;
         })();
 
+        const rawData = payload[0]?.payload || {};
+        const faturamento = rawData.faturamento || 0;
+        const lucro = rawData.lucro || 0;
+        const custo = rawData.custo !== undefined ? rawData.custo : Math.max(0, faturamento - lucro);
+        const marginPct = faturamento > 0 ? ((lucro / faturamento) * 100).toFixed(1) : '0';
+
         return (
-            <div className="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] animate-fade-in">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-2 flex items-center gap-2">
-                    <ClockIcon className="w-3 h-3" /> {formattedLabel}
-                </p>
-                <div className="space-y-2.5">
-                    {payload.map((entry: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between gap-10">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.fill }}></div>
-                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{entry.name}</span>
-                            </div>
-                            <span className="text-xs font-black tracking-tight" style={{ color: entry.dataKey === 'lucro' ? '#10b981' : '#3b82f6' }}>
-                                {formatCurrency(entry.value)}
-                            </span>
+            <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.12)] border border-gray-100 min-w-[220px]">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-3">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <ClockIcon className="w-3 h-3" /> {formattedLabel}
+                    </p>
+                    {faturamento > 0 && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                            Margem: {marginPct}%
+                        </span>
+                    )}
+                </div>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-sm"></div>
+                            <span className="text-[11px] font-bold text-gray-600 uppercase">Faturamento Total</span>
                         </div>
-                    ))}
+                        <span className="text-xs font-black text-blue-600">
+                            {formatCurrency(faturamento)}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></div>
+                            <span className="text-[11px] font-bold text-gray-600 uppercase">Lucro Líquido</span>
+                        </div>
+                        <span className="text-xs font-black text-emerald-600">
+                            {formatCurrency(lucro)}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-blue-300 shadow-sm"></div>
+                            <span className="text-[11px] font-bold text-gray-400 uppercase">Custo Estimado</span>
+                        </div>
+                        <span className="text-xs font-bold text-gray-500">
+                            {formatCurrency(custo)}
+                        </span>
+                    </div>
                 </div>
             </div>
         );
@@ -863,28 +892,73 @@ const BillingChart: React.FC<{
     isPrivacyMode?: boolean;
     onNavigate?: () => void;
 }> = React.memo(({ data, period, onPeriodChange, className, isPrivacyMode, onNavigate }) => {
+    const [chartMode, setChartMode] = useState<'stacked' | 'sideBySide' | 'line'>('stacked');
+
+    const chartData = useMemo(() => {
+        return (data || []).map(item => {
+            const faturamento = item.faturamento || 0;
+            const lucro = item.lucro || 0;
+            const custo = Math.max(0, faturamento - lucro);
+            return {
+                ...item,
+                faturamento,
+                lucro,
+                custo
+            };
+        });
+    }, [data]);
+
     return (
         <div className={`p-6 card-premium h-full flex flex-col ${className || ''}`}>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm">
                         <ChartBarIcon className="h-6 w-6" />
                     </div>
                     <div>
                         <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Faturamento x Lucro</h3>
-                        <div className="flex gap-4 mt-1.5">
+                        <div className="flex items-center gap-4 mt-1.5 flex-wrap">
                             <div className="flex items-center gap-1.5 font-bold">
-                                <div className="w-2.5 h-2.5 rounded-full bg-accent"></div>
-                                <span className="text-[10px] text-muted uppercase">Faturamento</span>
+                                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-2xs"></div>
+                                <span className="text-[10px] text-gray-500 font-bold uppercase">
+                                    {chartMode === 'stacked' ? 'Custo (Base da Barra)' : 'Faturamento'}
+                                </span>
                             </div>
                             <div className="flex items-center gap-1.5 font-bold">
-                                <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
-                                <span className="text-[10px] text-muted uppercase">Lucro</span>
+                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-2xs"></div>
+                                <span className="text-[10px] text-gray-500 font-bold uppercase">
+                                    {chartMode === 'stacked' ? 'Lucro Líquido (Topo da Barra)' : 'Lucro'}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-[10px] font-black uppercase">
+                        <button
+                            onClick={() => setChartMode('stacked')}
+                            className={`px-2.5 py-1 rounded-lg transition-all ${chartMode === 'stacked' ? 'bg-white text-blue-600 shadow-xs font-black' : 'text-gray-500 hover:text-gray-800 font-bold'}`}
+                            title="Exibe o lucro proporcionalmente dentro da barra de faturamento"
+                        >
+                            Empilhado
+                        </button>
+                        <button
+                            onClick={() => setChartMode('sideBySide')}
+                            className={`px-2.5 py-1 rounded-lg transition-all ${chartMode === 'sideBySide' ? 'bg-white text-blue-600 shadow-xs font-black' : 'text-gray-500 hover:text-gray-800 font-bold'}`}
+                            title="Barras individuais de Faturamento e Lucro"
+                        >
+                            Lado a Lado
+                        </button>
+                        <button
+                            onClick={() => setChartMode('line')}
+                            className={`px-2.5 py-1 rounded-lg transition-all ${chartMode === 'line' ? 'bg-white text-blue-600 shadow-xs font-black' : 'text-gray-500 hover:text-gray-800 font-bold'}`}
+                            title="Linha de Lucro com eixo duplo"
+                        >
+                            Linha
+                        </button>
+                    </div>
+
                     <select
                         value={period}
                         onChange={(e) => onPeriodChange(e.target.value as any)}
@@ -903,19 +977,116 @@ const BillingChart: React.FC<{
                     )}
                 </div>
             </div>
+
             <div className="flex-1 min-h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }} barGap={1} barCategoryGap="20%">
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
-                        <YAxis axisLine={false} tickLine={false} width={65} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} tickFormatter={(value) => isPrivacyMode ? '****' : formatCurrency(value).replace(',00', '')} />
-                        <Tooltip
-                            cursor={{ fill: '#9ca3af', opacity: 0.1, radius: 8 }}
-                            content={isPrivacyMode ? () => null : <BillingTooltip />}
-                        />
-                        <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
-                        <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
-                    </BarChart>
+                    {chartMode === 'stacked' ? (
+                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                            <defs>
+                                <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.85} />
+                                    <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.6} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                width={65}
+                                tick={{ fill: 'var(--color-muted)', fontSize: 10 }}
+                                tickFormatter={(value) => isPrivacyMode ? '****' : formatCurrency(value).replace(',00', '')}
+                            />
+                            <Tooltip
+                                cursor={{ fill: '#9ca3af', opacity: 0.1, radius: 8 }}
+                                content={isPrivacyMode ? () => null : <BillingTooltip />}
+                            />
+                            <Bar
+                                dataKey="custo"
+                                name="Custo / Operacional"
+                                stackId="a"
+                                fill="url(#costGradient)"
+                                radius={[0, 0, 4, 4]}
+                                maxBarSize={period === 'day' ? 12 : 36}
+                            />
+                            <Bar
+                                dataKey="lucro"
+                                name="Lucro Líquido"
+                                stackId="a"
+                                fill="#10b981"
+                                radius={[6, 6, 0, 0]}
+                                maxBarSize={period === 'day' ? 12 : 36}
+                            />
+                        </BarChart>
+                    ) : chartMode === 'sideBySide' ? (
+                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }} barGap={2} barCategoryGap="20%">
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                width={65}
+                                tick={{ fill: 'var(--color-muted)', fontSize: 10 }}
+                                tickFormatter={(value) => isPrivacyMode ? '****' : formatCurrency(value).replace(',00', '')}
+                            />
+                            <Tooltip
+                                cursor={{ fill: '#9ca3af', opacity: 0.1, radius: 8 }}
+                                content={isPrivacyMode ? () => null : <BillingTooltip />}
+                            />
+                            <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
+                            <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={period === 'day' ? 10 : 35} />
+                        </BarChart>
+                    ) : (
+                        <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                            <defs>
+                                <linearGradient id="billingGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9} />
+                                    <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.65} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+                            <YAxis
+                                yAxisId="left"
+                                axisLine={false}
+                                tickLine={false}
+                                width={65}
+                                tick={{ fill: '#3b82f6', fontSize: 10, fontWeight: 700 }}
+                                tickFormatter={(value) => isPrivacyMode ? '****' : formatCurrency(value).replace(',00', '')}
+                            />
+                            <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                axisLine={false}
+                                tickLine={false}
+                                width={65}
+                                tick={{ fill: '#10b981', fontSize: 10, fontWeight: 700 }}
+                                tickFormatter={(value) => isPrivacyMode ? '****' : formatCurrency(value).replace(',00', '')}
+                            />
+                            <Tooltip
+                                cursor={{ fill: '#9ca3af', opacity: 0.1, radius: 8 }}
+                                content={isPrivacyMode ? () => null : <BillingTooltip />}
+                            />
+                            <Bar
+                                yAxisId="left"
+                                dataKey="faturamento"
+                                name="Faturamento"
+                                fill="url(#billingGradient)"
+                                radius={[6, 6, 0, 0]}
+                                maxBarSize={period === 'day' ? 12 : 36}
+                            />
+                            <Line
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="lucro"
+                                name="Lucro"
+                                stroke="#10b981"
+                                strokeWidth={3}
+                                dot={{ r: 4, fill: '#10b981', stroke: '#ffffff', strokeWidth: 2 }}
+                                activeDot={{ r: 7, fill: '#059669', stroke: '#ffffff', strokeWidth: 2 }}
+                            />
+                        </ComposedChart>
+                    )}
                 </ResponsiveContainer>
             </div>
         </div>
@@ -1069,11 +1240,11 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                         <CreditCardIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Métodos de Pagamento</h3>
+                        <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">Métodos de Pagamento</h3>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Resumo por período</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col items-end gap-2 shrink-0">
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value as any)}
@@ -1174,48 +1345,45 @@ interface SoldItemInfo {
 
 const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ soldItems, className, isPrivacyMode }) => {
     return (
-
-        <div className={`p-6 card-premium flex flex-col h-full group hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
-            <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
-                    <TagIcon className="h-6 w-6" />
+        <div className={`p-6 card-premium flex flex-col h-full group hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-300 ${className || ''}`}>
+            <div className="flex items-center gap-4 mb-5">
+                <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 shadow-2xs">
+                    <TagIcon className="h-5 w-5" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Últimas Vendas</h3>
+                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">Últimas Vendas</h3>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Produtos vendidos recentemente</p>
                 </div>
             </div>
             {soldItems.length === 0 ? (
-                <p className="text-sm text-muted text-center py-4">Nenhum produto vendido recentemente.</p>
+                <div className="flex flex-col items-center justify-center flex-1 py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    <TagIcon className="w-8 h-8 text-gray-300 mb-2" />
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nenhum produto vendido recentemente</p>
+                </div>
             ) : (
-                <div className="overflow-x-auto flex-1">
-                    <table className="w-full text-sm">
-                        <thead className="w-full">
-                            <tr className="text-left text-muted text-[10px] uppercase tracking-wider">
-                                <th className="font-bold pb-2">Produto</th>
-                                <th className="font-bold pb-2 text-center">Qtd</th>
-                                <th className="font-bold pb-2 text-right whitespace-nowrap">ID Venda</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {soldItems.map((item, index) => (
-                                <tr key={`${item.saleId}-${item.productId}-${index}`} className="group hover:bg-gray-50/50 transition-colors">
-                                    <td className="py-2.5">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-gray-800 truncate max-w-[280px]" title={item.productName}>{item.productName}</span>
-                                            <div className="flex items-center gap-1 text-[8px] text-gray-400 font-bold mt-0.5">
-                                                <span>{new Date(item.saleDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                                                <span>•</span>
-                                                <span>{new Date(item.saleDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-2.5 text-center text-xs font-black text-primary">{isPrivacyMode ? '***' : item.quantity}</td>
-                                    <td className="py-2.5 text-right text-[10px] font-bold text-gray-400 whitespace-nowrap">#{item.saleId.slice(-4).toUpperCase()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="space-y-2 flex-1 overflow-y-auto max-h-[320px] pr-1 custom-scrollbar">
+                    {soldItems.map((item, index) => (
+                        <div key={`${item.saleId}-${item.productId}-${index}`} className="p-3 bg-gray-50/60 hover:bg-white rounded-2xl border border-gray-100/80 hover:border-gray-200 hover:shadow-sm transition-all flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-black text-gray-800 truncate" title={item.productName}>
+                                    {item.productName}
+                                </p>
+                                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold mt-1">
+                                    <span>{new Date(item.saleDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                                    <span>•</span>
+                                    <span>{new Date(item.saleDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg shadow-2xs">
+                                    {isPrivacyMode ? '***' : `x${item.quantity}`}
+                                </span>
+                                <span className="text-[10px] font-bold text-gray-500 bg-gray-200/70 border border-gray-200 px-2 py-0.5 rounded-lg">
+                                    #{item.saleId.slice(-4).toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>
@@ -1229,64 +1397,54 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; suppliers: Suppli
     };
 
     return (
-
-        <div className={`p-6 card-premium flex flex-col h-full group hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
-            <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm">
-                    <PlusIcon className="h-6 w-6" />
+        <div className={`p-6 card-premium flex flex-col h-full group hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-300 ${className || ''}`}>
+            <div className="flex items-center gap-4 mb-5">
+                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 shadow-2xs">
+                    <PlusIcon className="h-5 w-5" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Estoque Recente</h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Últimos produtos adicionados</p>
+                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">Estoque Recente</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Últimos produtos adicionados</p>
                 </div>
             </div>
             {products.length === 0 ? (
-                <p className="text-sm text-muted text-center py-4">Nenhum produto recente.</p>
+                <div className="flex flex-col items-center justify-center flex-1 py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    <PlusIcon className="w-8 h-8 text-gray-300 mb-2" />
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nenhum produto recente</p>
+                </div>
             ) : (
-                <div className="overflow-x-auto flex-1 -mx-2 px-2">
-                    <table className="w-full text-sm">
-                        <thead className="w-full">
-                            <tr className="text-left text-muted text-[10px] uppercase tracking-wider">
-                                <th className="font-bold pb-2 pl-1 w-auto">Produto</th>
-                                <th className="font-bold pb-2 text-right pr-1 w-auto whitespace-nowrap">Custo</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {products.map((product) => (
-                                <tr key={product.id} className="group hover:bg-gray-50/50 transition-colors">
-                                    <td className="py-2 pl-1 w-full">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-gray-800 text-xs sm:text-sm truncate max-w-[180px] xs:max-w-[280px] sm:max-w-[450px]" title={product.model}>{product.model}</span>
-                                            {product.variations && product.variations.length > 0 && (
-                                                <div className="text-[10px] italic text-gray-500 mt-0.5 truncate max-w-[180px] xs:max-w-[280px] sm:max-w-[450px]">
-                                                    {product.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
-                                                </div>
-                                            )}
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                {product.origin === 'Compra' ? (
-                                                    <span className="text-[7px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold uppercase tracking-tight shadow-sm shrink-0 border border-orange-200/50">
-                                                        {getSupplierName(product.supplierId || '')}
-                                                    </span>
-                                                ) : product.origin === 'Troca' ? (
-                                                    <span className="text-[6px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-black uppercase tracking-wide shadow-sm shrink-0">TROCA</span>
-                                                ) : (
-                                                    <span className="text-[6px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 font-black uppercase tracking-wide shadow-sm shrink-0">CLIENTE</span>
-                                                )}
-                                                <div className="flex items-center gap-1 text-[8px] text-gray-400 font-bold">
-                                                    <span>{new Date(product.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                                                    <span>•</span>
-                                                    <span>{new Date(product.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-2 text-right text-xs font-black text-primary whitespace-nowrap align-top sm:align-middle pr-1">
-                                        {isPrivacyMode ? 'R$ ****' : formatCurrency(product.costPrice)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="space-y-2 flex-1 overflow-y-auto max-h-[320px] pr-1 custom-scrollbar">
+                    {products.map((product) => (
+                        <div key={product.id} className="p-3 bg-gray-50/60 hover:bg-white rounded-2xl border border-gray-100/80 hover:border-gray-200 hover:shadow-sm transition-all flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-black text-gray-800 truncate" title={product.model}>
+                                    {product.model}
+                                </p>
+                                {product.variations && product.variations.length > 0 && (
+                                    <p className="text-[10px] text-gray-500 font-medium truncate mt-0.5">
+                                        {product.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
+                                    </p>
+                                )}
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    {product.origin === 'Compra' ? (
+                                        <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
+                                            {getSupplierName(product.supplierId || '')}
+                                        </span>
+                                    ) : product.origin === 'Troca' ? (
+                                        <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200/60">TROCA</span>
+                                    ) : (
+                                        <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60">CLIENTE</span>
+                                    )}
+                                    <span className="text-[10px] text-gray-400 font-bold">
+                                        {new Date(product.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} • {new Date(product.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                            </div>
+                            <span className="text-xs font-black text-gray-900 shrink-0">
+                                {isPrivacyMode ? 'R$ ****' : formatCurrency(product.costPrice)}
+                            </span>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>
@@ -1295,56 +1453,46 @@ const RecentAddedProductsCard: React.FC<{ products: Product[]; suppliers: Suppli
 
 const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean }> = React.memo(({ products, className, isPrivacyMode }) => {
     return (
-
-        <div className={`p-6 card-premium flex flex-col h-full group hover:shadow-[0_0_30px_rgba(0,0,0,0.25)] hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}>
-            <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-rose-50 text-rose-600 rounded-xl shadow-sm">
-                    <DeviceExchangeIcon className="h-6 w-6" />
+        <div className={`p-6 card-premium flex flex-col h-full group hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-300 ${className || ''}`}>
+            <div className="flex items-center gap-4 mb-5">
+                <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 shadow-2xs">
+                    <DeviceExchangeIcon className="h-5 w-5" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-black text-secondary uppercase tracking-wider">Trocas Recentes</h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Aparelhos recebidos na troca</p>
+                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">Trocas Recentes</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Aparelhos recebidos na troca</p>
                 </div>
             </div>
             {products.length === 0 ? (
-                <p className="text-sm text-muted text-center py-4">Nenhum aparelho Trade-in.</p>
+                <div className="flex flex-col items-center justify-center flex-1 py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    <DeviceExchangeIcon className="w-8 h-8 text-gray-300 mb-2" />
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nenhum aparelho Trade-in</p>
+                </div>
             ) : (
-                <div className="overflow-x-auto flex-1 -mx-2 px-2">
-                    <table className="w-full text-sm">
-                        <thead className="w-full">
-                            <tr className="text-left text-muted text-[10px] uppercase tracking-wider">
-                                <th className="font-bold pb-2 pl-1 w-auto">Aparelho</th>
-                                <th className="font-bold pb-2 text-right pr-1 w-auto whitespace-nowrap">Custo</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {products.map((product) => (
-                                <tr key={product.id} className="group hover:bg-gray-50/50 transition-colors">
-                                    <td className="py-2 pl-1 w-full">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-gray-800 text-xs sm:text-sm truncate max-w-[180px] xs:max-w-[280px] sm:max-w-[450px]" title={product.model}>{product.model}</span>
-                                            {product.variations && product.variations.length > 0 && (
-                                                <div className="text-[10px] italic text-gray-500 mt-0.5 truncate max-w-[180px] xs:max-w-[280px] sm:max-w-[450px]">
-                                                    {product.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
-                                                </div>
-                                            )}
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[6px] px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-black uppercase tracking-wide shadow-sm shrink-0">TROCA</span>
-                                                <div className="flex items-center gap-1 text-[8px] text-gray-400 font-bold">
-                                                    <span>{new Date(product.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                                                    <span>•</span>
-                                                    <span>{new Date(product.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-2 text-right text-xs font-black text-primary whitespace-nowrap align-top sm:align-middle pr-1">
-                                        {isPrivacyMode ? 'R$ ****' : formatCurrency(product.costPrice)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="space-y-2 flex-1 overflow-y-auto max-h-[320px] pr-1 custom-scrollbar">
+                    {products.map((product) => (
+                        <div key={product.id} className="p-3 bg-gray-50/60 hover:bg-white rounded-2xl border border-gray-100/80 hover:border-gray-200 hover:shadow-sm transition-all flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs font-black text-gray-800 truncate" title={product.model}>
+                                    {product.model}
+                                </p>
+                                {product.variations && product.variations.length > 0 && (
+                                    <p className="text-[10px] text-gray-500 font-medium truncate mt-0.5">
+                                        {product.variations.map(v => v.valueName ? `${v.gradeName}: ${v.valueName}` : v.gradeName).join(', ')}
+                                    </p>
+                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200/60">TROCA</span>
+                                    <span className="text-[10px] text-gray-400 font-bold">
+                                        {new Date(product.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} • {new Date(product.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                            </div>
+                            <span className="text-xs font-black text-gray-900 shrink-0">
+                                {isPrivacyMode ? 'R$ ****' : formatCurrency(product.costPrice)}
+                            </span>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>
@@ -1353,7 +1501,6 @@ const RecentTradeInProductsCard: React.FC<{ products: Product[]; className?: str
 
 const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPrivacyMode?: boolean; onNavigate?: () => void }> = React.memo(({ products, className, isPrivacyMode, onNavigate }) => {
     const stats = useMemo(() => {
-        // Status field does not strictly exist on Product type, use stock > 0
         const appleProducts = products.filter(p => p.stock > 0 && p.brand?.toLowerCase().includes('apple'));
         const otherProducts = products.filter(p => p.stock > 0 && !p.brand?.toLowerCase().includes('apple'));
 
@@ -1378,20 +1525,20 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
     }, [products]);
 
     return (
-        <div className={`p-5 card-premium flex flex-col h-full group transition-all duration-300 cursor-pointer ${className || ''}`}
+        <div className={`p-6 card-premium flex flex-col h-full group hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${className || ''}`}
             onClick={() => onNavigate?.()}
         >
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-5">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shadow-sm shrink-0">
-                        <ArchiveBoxIcon className="h-6 w-6" />
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100 shadow-2xs shrink-0">
+                        <ArchiveBoxIcon className="h-5 w-5" />
                     </div>
                     <div>
-                        <h3 className="text-xs font-black text-secondary uppercase tracking-wider">Estoque</h3>
-                        <p className="text-2xl font-black text-gray-800 tracking-tight leading-none mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
+                        <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">Estoque</h3>
+                        <p className="text-2xl font-black text-gray-900 tracking-tight leading-none mt-0.5">{isPrivacyMode ? '***' : stats.total.count}</p>
                     </div>
                 </div>
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wide border border-blue-100 flex items-center gap-1.5">
+                <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wide border border-blue-100 flex items-center gap-1.5 shadow-2xs">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
                     Em Tempo Real
                 </span>
@@ -1399,73 +1546,77 @@ const StockStatsCard: React.FC<{ products: Product[]; className?: string; isPriv
 
             <div className="grid grid-cols-2 gap-4 flex-1">
                 {/* Apple Section */}
-                <div className="flex flex-col p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-sm relative overflow-hidden">
-                    <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <div className="w-8 h-8 flex items-center justify-center rounded-xl overflow-hidden border border-gray-200 shadow-sm shrink-0 bg-black">
-                            <img src="/AppleLog.png" alt="Apple" className="w-full h-full object-contain p-0.5" />
+                <div className="flex flex-col p-4 bg-gray-50/80 rounded-2xl border border-gray-100 shadow-2xs relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-4 relative z-10">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 flex items-center justify-center bg-white rounded-xl border border-gray-200 shadow-2xs shrink-0 p-1.5">
+                                <img src="/apple-logo.svg" alt="Apple" className="w-full h-full object-contain" />
+                            </div>
+                            <span className="font-black text-xs uppercase tracking-wider text-gray-700">Apple</span>
                         </div>
-                        <p className="font-bold text-sm text-secondary uppercase tracking-wider">Apple</p>
-                        <span className="ml-auto font-black text-lg text-primary">{isPrivacyMode ? '**' : stats.apple.count}</span>
+                        <span className="font-black text-lg text-gray-900">{isPrivacyMode ? '**' : stats.apple.count}</span>
                     </div>
 
-                    <div className="space-y-3 mt-auto relative z-10">
-                        <div className="flex justify-between items-center text-xs leading-tight">
-                            <span className="text-gray-500 font-bold uppercase">Custo</span>
-                            <span className="font-black text-gray-800 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.apple.cost)}</span>
+                    <div className="space-y-2 mt-auto relative z-10">
+                        <div className="flex justify-between items-center text-[11px] leading-tight text-gray-500 font-medium">
+                            <span>Custo</span>
+                            <span className="font-bold text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.apple.cost)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs leading-tight">
-                            <span className="text-gray-500 font-bold uppercase">Venda</span>
-                            <span className="font-black text-green-700 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
+                        <div className="flex justify-between items-center text-[11px] leading-tight text-gray-500 font-medium">
+                            <span>Venda</span>
+                            <span className="font-black text-emerald-600">{isPrivacyMode ? '***' : formatCurrency(stats.apple.value)}</span>
                         </div>
-                        <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                        <div className="pt-2 border-t border-gray-200/80 flex justify-between items-center">
                             <span className="text-[10px] font-black text-gray-400 uppercase">Markup</span>
-                            <span className="text-xs font-black text-emerald-600">{isPrivacyMode ? '**' : stats.apple.markup.toFixed(1)}%</span>
+                            <span className="text-xs font-black text-emerald-600">{isPrivacyMode ? '**' : `${stats.apple.markup.toFixed(1)}%`}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Others Section */}
-                <div className="flex flex-col p-4 bg-white rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <div className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100 text-gray-400 shrink-0">
-                            <CubeIcon className="w-5 h-5" />
+                <div className="flex flex-col p-4 bg-gray-50/80 rounded-2xl border border-gray-100 shadow-2xs relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-4 relative z-10">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 flex items-center justify-center bg-white rounded-xl border border-gray-200 text-gray-500 shadow-2xs">
+                                <CubeIcon className="w-4 h-4" />
+                            </div>
+                            <span className="font-black text-xs uppercase tracking-wider text-gray-700">Outros</span>
                         </div>
-                        <p className="font-bold text-sm text-secondary uppercase tracking-wider">Outros</p>
-                        <span className="ml-auto font-black text-lg text-primary">{isPrivacyMode ? '**' : stats.others.count}</span>
+                        <span className="font-black text-lg text-blue-600">{isPrivacyMode ? '**' : stats.others.count}</span>
                     </div>
 
-                    <div className="space-y-3 mt-auto relative z-10">
-                        <div className="flex justify-between items-center text-xs leading-tight">
-                            <span className="text-gray-500 font-bold uppercase">Custo</span>
-                            <span className="font-black text-gray-800 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.others.cost)}</span>
+                    <div className="space-y-2 mt-auto relative z-10">
+                        <div className="flex justify-between items-center text-[11px] leading-tight text-gray-500 font-medium">
+                            <span>Custo</span>
+                            <span className="font-bold text-gray-800">{isPrivacyMode ? '***' : formatCurrency(stats.others.cost)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs leading-tight">
-                            <span className="text-gray-500 font-bold uppercase">Venda</span>
-                            <span className="font-black text-green-700 text-sm">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
+                        <div className="flex justify-between items-center text-[11px] leading-tight text-gray-500 font-medium">
+                            <span>Venda</span>
+                            <span className="font-black text-emerald-600">{isPrivacyMode ? '***' : formatCurrency(stats.others.value)}</span>
                         </div>
-                        <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                        <div className="pt-2 border-t border-gray-200/80 flex justify-between items-center">
                             <span className="text-[10px] font-black text-gray-400 uppercase">Markup</span>
-                            <span className="text-xs font-black text-emerald-600">{isPrivacyMode ? '**' : stats.others.markup.toFixed(1)}%</span>
+                            <span className="text-xs font-black text-emerald-600">{isPrivacyMode ? '**' : `${stats.others.markup.toFixed(1)}%`}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Total Footer */}
-            <div className="mt-5 pt-4 border-t border-border">
+            <div className="mt-5 pt-4 border-t border-gray-100">
                 <div className="flex items-end justify-between">
-                    <div className="space-y-1.5">
-                        <p className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-1.5">
-                            <ChartBarIcon className="w-3.5 h-3.5" /> Total Geral Estimado
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <ChartBarIcon className="w-3.5 h-3.5 text-gray-400" /> Total Geral Estimado
                         </p>
                         <div className="flex flex-col gap-0.5">
-                            <span className="text-xs text-gray-500 font-medium">Custo: <strong className="text-gray-700 font-black">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.cost)}</strong></span>
+                            <span className="text-xs text-gray-500 font-medium">Custo: <strong className="text-gray-800 font-black">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.cost)}</strong></span>
                             <span className="text-xs text-gray-500 font-medium">Markup Médio: <strong className="text-emerald-600 font-black">{isPrivacyMode ? '**' : `+${stats.total.markup.toFixed(2)}%`}</strong></span>
                         </div>
                     </div>
                     <div className="text-right">
-                        <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">Valor Total Venda</span>
-                        <div className="text-2xl font-black text-emerald-600 tracking-tighter leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Valor Total Venda</span>
+                        <div className="text-2xl font-black text-emerald-600 tracking-tight leading-none">{isPrivacyMode ? 'R$ ****' : formatCurrency(stats.total.value)}</div>
                     </div>
                 </div>
             </div>
