@@ -1108,7 +1108,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
                                     </span>
                                 </div>
                             </div>
-                            <div className="h-2 bg-gray-100/80 rounded-full overflow-hidden p-0.5 border border-gray-100">
+                            <div className="h-3 bg-gray-100/80 rounded-full overflow-hidden p-0.5 border border-gray-100/80">
                                 <div
                                     className={`h-full rounded-full bg-gradient-to-r ${barGradient || 'from-indigo-500 to-purple-500'} transition-all duration-700 ease-out shadow-2xs`}
                                     style={{ width: `${percentage}%` }}
