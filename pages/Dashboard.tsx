@@ -264,6 +264,8 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
         };
     }, [serviceOrders, services, products, period]);
 
+    const osGoalPct = metrics.projectedProfit > 0 ? (metrics.profit / metrics.projectedProfit) * 100 : 0;
+
     return (
         <div
             className={`p-5 card-premium flex flex-col h-full group ${to ? 'hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer' : ''}`}
@@ -276,12 +278,21 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro em OS</h3>
-                        <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight mt-0.5 whitespace-nowrap ${metrics.profit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                            {isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}
-                        </p>
-                        <p className={`text-xs font-bold mt-0.5 whitespace-nowrap ${metrics.profit < 0 ? 'text-red-400' : 'text-emerald-600'}`} title="Projeção baseada na média diária do mês atual">
-                            {isPrivacyMode ? '' : `↗ Proj.: ${formatCurrency(metrics.projectedProfit)}`}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight whitespace-nowrap ${metrics.profit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                {isPrivacyMode ? 'R$ ****' : formatCurrency(metrics.profit)}
+                            </p>
+                            {!isPrivacyMode && metrics.projectedProfit > 0 && (
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs shrink-0 ${metrics.profit < 0 ? 'text-red-700 bg-red-50 border-red-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
+                                    {osGoalPct.toFixed(0)}% da meta
+                                </span>
+                            )}
+                        </div>
+                        {!isPrivacyMode && (
+                            <p className="text-[11px] font-bold text-gray-400 mt-1 whitespace-nowrap" title="Projeção baseada na média diária do mês atual">
+                                Projetado: <span className="text-gray-700 font-bold">{formatCurrency(metrics.projectedProfit)}</span>
+                            </p>
+                        )}
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
@@ -310,8 +321,9 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                     <AreaChart data={metrics.chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                         <defs>
                             <linearGradient id="colorProfitOS" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.2} />
-                                <stop offset="95%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
+                                <stop offset="0%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.4} />
+                                <stop offset="70%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.08} />
+                                <stop offset="100%" stopColor={metrics.profit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <XAxis 
@@ -452,13 +464,18 @@ const ProfitTooltip: React.FC<any> = ({ active, payload, label, period }) => {
         const isNegative = payload[0].value < 0;
 
         return (
-            <div className="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.15)] animate-fade-in">
-                <p className={`text-[10px] font-black uppercase tracking-widest mb-2 border-b pb-2 flex items-center gap-2 ${isNegative ? 'text-red-600 border-red-50' : 'text-emerald-600 border-emerald-50'}`}>
-                    <ClockIcon className="w-3 h-3" /> {formattedLabel}
-                </p>
-                <div className="flex items-center gap-3 mt-1">
-                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${isNegative ? 'bg-red-500 shadow-red-200' : 'bg-emerald-500 shadow-emerald-200'}`}></div>
-                    <span className={`text-sm font-black tracking-tight ${isNegative ? 'text-red-700' : 'text-gray-800'}`}>
+            <div className="bg-white/95 backdrop-blur-md p-3.5 rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.12)] border border-gray-100 animate-fade-in">
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2 mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                        <ClockIcon className="w-3 h-3 text-indigo-500" /> {formattedLabel}
+                    </span>
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${isNegative ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                        {isNegative ? 'Prejuízo' : 'Lucro'}
+                    </span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                    <div className={`w-2.5 h-2.5 rounded-full shadow-xs ${isNegative ? 'bg-red-500 shadow-red-200' : 'bg-emerald-500 shadow-emerald-200'}`}></div>
+                    <span className={`text-sm font-black tracking-tight ${isNegative ? 'text-red-600' : 'text-gray-900'}`}>
                         {formatCurrency(payload[0].value)}
                     </span>
                 </div>
@@ -563,6 +580,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
     }, [sales, products, period]);
 
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    const profitGoalPct = projectedProfit > 0 ? (totalProfit / projectedProfit) * 100 : 0;
 
     return (
         <div 
@@ -576,12 +594,21 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-[10px] sm:text-xs font-black text-secondary uppercase tracking-wider">Lucro Estimado</h3>
-                        <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight mt-0.5 whitespace-nowrap ${totalProfit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                            {isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}
-                        </p>
-                        <p className={`text-xs font-bold mt-0.5 whitespace-nowrap ${totalProfit < 0 ? 'text-red-400' : 'text-emerald-600'}`} title="Projeção baseada na média diária do mês atual">
-                            {isPrivacyMode ? '' : `↗ Proj.: ${formatCurrency(projectedProfit)}`}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <p className={`text-base sm:text-lg lg:text-xl font-black tracking-tight whitespace-nowrap ${totalProfit < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                {isPrivacyMode ? 'R$ ****' : formatCurrency(totalProfit)}
+                            </p>
+                            {!isPrivacyMode && projectedProfit > 0 && (
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs shrink-0 ${totalProfit < 0 ? 'text-red-700 bg-red-50 border-red-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
+                                    {profitGoalPct.toFixed(0)}% da meta
+                                </span>
+                            )}
+                        </div>
+                        {!isPrivacyMode && (
+                            <p className="text-[11px] font-bold text-gray-400 mt-1 whitespace-nowrap" title="Projeção baseada na média diária do mês atual">
+                                Projetado: <span className="text-gray-700 font-bold">{formatCurrency(projectedProfit)}</span>
+                            </p>
+                        )}
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0 mt-1">
@@ -610,8 +637,9 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                     <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                         <defs>
                             <linearGradient id="colorProfitEstimated" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
+                                <stop offset="0%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.4} />
+                                <stop offset="70%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0.08} />
+                                <stop offset="100%" stopColor={totalProfit < 0 ? "#ef4444" : "#10b981"} stopOpacity={0} />
                             </linearGradient>
                         </defs>
                         <XAxis 
@@ -1584,11 +1612,12 @@ const CustomersStatsCard: React.FC<{ customers: Customer[]; sales: Sale[]; class
                         <AreaChart data={chartData}>
                             <defs>
                                 <linearGradient id="colorCustomers" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#4ade80" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#4ade80" stopOpacity={0} />
+                                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                                    <stop offset="70%" stopColor="#10b981" stopOpacity={0.08} />
+                                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <Area type="monotone" dataKey="count" stroke="#4ade80" fillOpacity={1} fill="url(#colorCustomers)" strokeWidth={2} />
+                            <Area type="monotone" dataKey="count" stroke="#10b981" fillOpacity={1} fill="url(#colorCustomers)" strokeWidth={2.5} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
