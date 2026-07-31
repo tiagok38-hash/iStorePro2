@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, AreaChart, Area } from 'recharts';
-import { Sale, Product, Customer, User, ProductModel } from '../types.ts';
-import { getSales, getProducts, getProductsInStock, getCustomers, getUsers, formatCurrency, getProductModels } from '../services/mockApi.ts';
+import { Sale, Product, Customer, User, ProductModel, Category } from '../types.ts';
+import { getSales, getProducts, getProductsInStock, getCustomers, getUsers, formatCurrency, getProductModels, getCategories } from '../services/mockApi.ts';
 import { SpinnerIcon, CalendarDaysIcon, TrophyIcon, SearchIcon, ClockIcon, DocumentTextIcon, CurrencyDollarIcon, TrendingUpIcon, ShoppingCartIcon, BanknotesIcon, PackageIcon, WalletIcon, AppleIcon, Squares2x2Icon } from '../components/icons.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import PriceListModal from '../components/PriceListModal.tsx';
@@ -248,8 +248,7 @@ const DonutCenterLabel: React.FC<{ cx?: number; cy?: number; total: number; topM
     </g>
 );
 
-// ─── VendasReport ─────────────────────────────────────────────────────────────
-const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Customer[], users: User[] }> = ({ sales, products, customers, users }) => {
+const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Customer[], users: User[], categories?: Category[] }> = ({ sales, products, customers, users, categories = [] }) => {
     const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>('estemes');
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -260,12 +259,15 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     const [productSearchTerm, setProductSearchTerm] = useState('');
     const [productSortBy, setProductSortBy] = useState<'faturamento' | 'quantidade'>('faturamento');
     const [productConditionFilter, setProductConditionFilter] = useState('todos');
+    const [productStorageFilter, setProductStorageFilter] = useState('todos');
+    const [productCategoryFilter, setProductCategoryFilter] = useState('todos');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(15);
-    const [chartMode, setChartMode] = useState<'bar' | 'area'>('bar');
+    const [chartMode, setChartMode] = useState<'bar' | 'area' | 'ticket'>('bar');
 
     const userMap = useMemo(() => users.reduce((acc, user) => ({ ...acc, [user.id]: user.name }), {} as Record<string, string>), [users]);
     const customerMap = useMemo(() => customers.reduce((acc, customer) => ({ ...acc, [customer.id]: customer.name }), {} as Record<string, string>), [customers]);
+    const categoryMap = useMemo(() => categories.reduce((acc, cat) => ({ ...acc, [cat.id]: cat.name }), {} as Record<string, string>), [categories]);
     const productMap = useMemo(() => products.reduce((acc: Record<string, Product>, p) => {
         acc[p.id] = p;
         return acc;
@@ -356,10 +358,10 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     const MONTHLY_REVENUE_GOAL = 1_500_000;
 
     const salesByDayData = useMemo(() => {
-        const salesByDay = filteredSales.reduce<Record<string, { faturamento: number; lucro: number; vendas: number }>>((acc, sale) => {
+        const salesByDay = filteredSales.reduce<Record<string, { faturamento: number; lucro: number; vendas: number; ticketMedio: number }>>((acc, sale) => {
             const day = new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
             if (!acc[day]) {
-                acc[day] = { faturamento: 0, lucro: 0, vendas: 0 };
+                acc[day] = { faturamento: 0, lucro: 0, vendas: 0, ticketMedio: 0 };
             }
             // Snapshot do custo na época da venda
             const saleCost = sale.items.reduce((cost, item) => {
@@ -374,12 +376,15 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             return acc;
         }, {});
 
-        return Object.entries(salesByDay).map(([name, data]) => ({ name, ...(data as any) }))
-            .sort((a, b) => {
-                const [dayA, monthA] = a.name.split('/');
-                const [dayB, monthB] = b.name.split('/');
-                return new Date(`${new Date().getFullYear()}-${monthA}-${dayA}`).getTime() - new Date(`${new Date().getFullYear()}-${monthB}-${dayB}`).getTime();
-            });
+        return Object.entries(salesByDay).map(([name, data]) => {
+            const ticketMedio = data.vendas > 0 ? data.faturamento / data.vendas : 0;
+            return { name, ...data, ticketMedio };
+        })
+        .sort((a, b) => {
+            const [dayA, monthA] = a.name.split('/');
+            const [dayB, monthB] = b.name.split('/');
+            return new Date(`${new Date().getFullYear()}-${monthA}-${dayA}`).getTime() - new Date(`${new Date().getFullYear()}-${monthB}-${dayB}`).getTime();
+        });
     }, [filteredSales, productMap]);
 
     const salesByPaymentMethodData = useMemo(() => {
@@ -399,26 +404,49 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     }, [filteredSales]);
 
     const topSellingProducts = useMemo(() => {
-        const productSales = filteredSales.flatMap(s => s.items).reduce<Record<string, { name: string; revenue: number; profit: number; quantity: number; condition: string }>>((acc, item) => {
+        const productSales = filteredSales.flatMap(s => s.items).reduce<Record<string, { name: string; revenue: number; profit: number; quantity: number; condition: string; storage: string; category: string; brand: string }>>((acc, item) => {
             const product = productMap[item.productId];
-            // Fallbacks for name logic using snapshot data if product was deleted
             let baseName = product?.model || item.productName || item.model || 'Produto Removido';
             
-            const storage = product?.storage || item.storage;
+            const brand = (product?.brand || (item as any).brand || '').trim();
+            const storage = String(product?.storage || item.storage || '').trim();
             const color = product?.color || item.color;
+            const rawCategory = (product?.category || (item as any).category || '').trim();
+            let category = categoryMap[rawCategory] || rawCategory;
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(category);
             
-            if (storage && !baseName.includes(storage.toString())) baseName += ` ${storage}`;
+            const lowerName = baseName.toLowerCase();
+            if (!category || isUuid || category === 'Geral') {
+                if (lowerName.includes('iphone')) category = 'iPhone';
+                else if (lowerName.includes('ipad')) category = 'iPad';
+                else if (lowerName.includes('macbook') || lowerName.includes('mac ')) category = 'MacBook';
+                else if (lowerName.includes('airpods')) category = 'AirPods';
+                else if (lowerName.includes('watch')) category = 'Apple Watch';
+                else if (lowerName.includes('cabo') || lowerName.includes('fonte') || lowerName.includes('case') || lowerName.includes('capa')) category = 'Acessórios';
+                else category = 'Geral';
+            }
+
+            let condition = product?.condition || item.condition || '';
+            if (!condition || condition === 'Não informada') {
+                if (lowerName.includes('novo') || lowerName.includes('lacrado') || lowerName.includes('cpo')) {
+                    condition = 'Novo';
+                } else if (lowerName.includes('seminovo') || lowerName.includes('usado')) {
+                    condition = 'Seminovo';
+                } else {
+                    condition = 'Novo';
+                }
+            }
+            
+            if (storage && !baseName.includes(storage)) baseName += ` ${storage}`;
             if (color && !baseName.includes(color)) baseName += ` ${color}`;
             
-            const condition = product?.condition || item.condition || 'Não informada';
             const uniqueKey = `${baseName.trim()}_${condition}`;
 
             if (!acc[uniqueKey]) {
-                acc[uniqueKey] = { name: baseName.trim(), revenue: 0, profit: 0, quantity: 0, condition };
+                acc[uniqueKey] = { name: baseName.trim(), revenue: 0, profit: 0, quantity: 0, condition, storage, category, brand };
             }
 
             const itemRevenue = item.quantity * item.unitPrice;
-            // Snapshot do custo na época da venda
             const itemCost = getItemCostSnapshot(item, product) * item.quantity;
             const itemProfit = itemRevenue - itemCost;
 
@@ -429,28 +457,74 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             return acc;
         }, {});
         return Object.values(productSales);
-    }, [filteredSales, productMap]);
+    }, [filteredSales, productMap, categoryMap]);
 
     const availableConditions = useMemo(() => {
         const conditions = new Set<string>();
         topSellingProducts.forEach(p => {
-            if (p.condition && p.condition !== 'Não informada') {
-                conditions.add(p.condition);
-            }
+            if (p.condition) conditions.add(p.condition);
         });
         return Array.from(conditions).sort();
+    }, [topSellingProducts]);
+
+    const availableStorages = useMemo(() => {
+        const storages = new Set<string>();
+        topSellingProducts.forEach(p => {
+            if (p.storage) storages.add(p.storage);
+        });
+        return Array.from(storages).sort((a, b) => {
+            const numA = parseInt(a, 10) || 0;
+            const numB = parseInt(b, 10) || 0;
+            return numA - numB;
+        });
+    }, [topSellingProducts]);
+
+    const availableCategories = useMemo(() => {
+        const categories = new Set<string>();
+        topSellingProducts.forEach(p => {
+            if (p.category) categories.add(p.category);
+        });
+        return Array.from(categories).sort();
     }, [topSellingProducts]);
 
     const filteredTopSellingProducts = useMemo(() => {
         let list = topSellingProducts;
         
         if (productConditionFilter !== 'todos') {
-            list = list.filter(p => p.condition === productConditionFilter);
+            const condTarget = productConditionFilter.toLowerCase();
+            list = list.filter(p => {
+                const cond = (p.condition || '').toLowerCase();
+                if (condTarget === 'novo') {
+                    return cond.includes('novo') || cond.includes('lacrado') || cond.includes('cpo');
+                }
+                if (condTarget === 'seminovo') {
+                    return cond.includes('seminovo') || cond.includes('usado');
+                }
+                return cond.includes(condTarget);
+            });
+        }
+
+        if (productStorageFilter !== 'todos') {
+            const stTarget = productStorageFilter.toLowerCase();
+            list = list.filter(p => p.storage.toLowerCase() === stTarget || p.name.toLowerCase().includes(stTarget));
+        }
+
+        if (productCategoryFilter !== 'todos') {
+            const catTarget = productCategoryFilter.toLowerCase();
+            list = list.filter(p => {
+                const cat = (p.category || '').toLowerCase();
+                const name = (p.name || '').toLowerCase();
+                return cat.includes(catTarget) || name.includes(catTarget);
+            });
         }
         
         if (productSearchTerm) {
             const term = productSearchTerm.toLowerCase();
-            list = list.filter(p => p.name.toLowerCase().includes(term));
+            list = list.filter(p => 
+                p.name.toLowerCase().includes(term) || 
+                p.brand.toLowerCase().includes(term) || 
+                p.category.toLowerCase().includes(term)
+            );
         }
         
         list = list.sort((a, b) => {
@@ -460,8 +534,9 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             return b.revenue - a.revenue;
         });
 
-        return list.slice(0, productSearchTerm ? 50 : 10); // Show top 10 by default, or up to 50 if searching
-    }, [topSellingProducts, productSearchTerm, productConditionFilter, productSortBy]);
+        const hasActiveFilter = Boolean(productSearchTerm || productConditionFilter !== 'todos' || productStorageFilter !== 'todos' || productCategoryFilter !== 'todos');
+        return list.slice(0, hasActiveFilter ? 100 : 10);
+    }, [topSellingProducts, productSearchTerm, productConditionFilter, productStorageFilter, productCategoryFilter, productSortBy]);
 
     // Faturamento total de TODOS os produtos do período (usado como denominador do % de participação)
     const totalAllProductsRevenue = useMemo(() => {
@@ -576,6 +651,14 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                         >
                             Área
                         </button>
+                        <button
+                            onClick={() => setChartMode('ticket')}
+                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 ${
+                                chartMode === 'ticket' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'
+                            }`}
+                        >
+                            Ticket Médio
+                        </button>
                     </div>
                 </div>
 
@@ -591,7 +674,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                             <Bar dataKey="lucro" fill={COLORS.success} name="Lucro" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         </BarChart>
                     </ResponsiveContainer>
-                ) : (
+                ) : chartMode === 'area' ? (
                     <ResponsiveContainer width="100%" height={350}>
                         <AreaChart data={salesByDayData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                             <defs>
@@ -611,6 +694,23 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                             <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
                             <Area type="monotone" dataKey="faturamento" stroke={COLORS.primary} strokeWidth={2.5} fill="url(#gradFaturamento)" name="Faturamento" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
                             <Area type="monotone" dataKey="lucro" stroke={COLORS.success} strokeWidth={2.5} fill="url(#gradLucro)" name="Lucro" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <ResponsiveContainer width="100%" height={350}>
+                        <AreaChart data={salesByDayData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="gradTicket" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.orange} stopOpacity={0.25} />
+                                    <stop offset="95%" stopColor={COLORS.orange} stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
+                            <YAxis tickFormatter={(v) => new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(v)} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                            <Area type="monotone" dataKey="ticketMedio" stroke={COLORS.orange} strokeWidth={2.5} fill="url(#gradTicket)" name="Ticket Médio" dot={true} activeDot={{ r: 6, strokeWidth: 0 }} />
                         </AreaChart>
                     </ResponsiveContainer>
                 )}
@@ -685,12 +785,36 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                                 onChange={e => setProductConditionFilter(e.target.value)}
                                 className="flex-1 sm:flex-none w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
                             >
-                                <option value="todos">Todas as Condições</option>
+                                <option value="todos">Condição: Todas</option>
                                 {availableConditions.map(c => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
                                 <option value="Não informada">Não informada</option>
                             </select>
+                            {availableStorages.length > 0 && (
+                                <select
+                                    value={productStorageFilter}
+                                    onChange={e => setProductStorageFilter(e.target.value)}
+                                    className="flex-1 sm:flex-none w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                                >
+                                    <option value="todos">Capacidade: Todas</option>
+                                    {availableStorages.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {availableCategories.length > 0 && (
+                                <select
+                                    value={productCategoryFilter}
+                                    onChange={e => setProductCategoryFilter(e.target.value)}
+                                    className="flex-1 sm:flex-none w-full sm:w-auto h-[34px] px-3 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                                >
+                                    <option value="todos">Categoria: Todas</option>
+                                    {availableCategories.map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                            )}
                             <select
                                 value={productSortBy}
                                 onChange={e => setProductSortBy(e.target.value as any)}
@@ -1417,6 +1541,7 @@ const Reports: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [productModels, setProductModels] = useState<ProductModel[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPriceListModalOpen, setIsPriceListModalOpen] = useState(false);
 
@@ -1437,18 +1562,20 @@ const Reports: React.FC = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [salesData, productsData, customersData, usersData, modelsData] = await Promise.all([
+                const [salesData, productsData, customersData, usersData, modelsData, categoriesData] = await Promise.all([
                     getSales(),
                     getProductsInStock(),
                     getCustomers(false),
                     getUsers(),
-                    getProductModels()
+                    getProductModels(),
+                    getCategories()
                 ]);
                 setSales(salesData);
                 setProducts(productsData);
                 setCustomers(customersData);
                 setUsers(usersData);
                 setProductModels(modelsData);
+                setCategories(categoriesData || []);
             } catch (error) {
                 console.error("Failed to fetch report data:", error);
             } finally {
@@ -1488,7 +1615,7 @@ const Reports: React.FC = () => {
                 <div className="flex justify-center items-center h-full py-10"><SpinnerIcon /></div>
             ) : (
                 <>
-                    {activeTab === 'vendas' && <VendasReport sales={sales} products={products} customers={customers} users={users} />}
+                    {activeTab === 'vendas' && <VendasReport sales={sales} products={products} customers={customers} users={users} categories={categories} />}
                     {activeTab === 'sales_reports' && <SalesReports sales={sales} products={products} customers={customers} users={users} productModels={productModels} />}
                     {activeTab === 'estoque' && <EstoqueReport products={products} sales={sales} productModels={productModels} initialFilter={searchParams.get('filter')} />}
                 </>
