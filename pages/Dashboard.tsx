@@ -75,12 +75,22 @@ const ProtectedLink: React.FC<{
     );
 };
 
-// --- Components ---
-const InfoBanner: React.FC = React.memo(() => (
-    <div className="bg-indigo-100 text-indigo-700 text-sm font-black px-4 py-2 rounded-2xl flex items-center gap-2 border border-indigo-200 shadow-sm flex-1 justify-center">
-        <SmartphoneIcon className="h-4 w-4" />
-        <span>Bem-vindo ao iStore! Fique de olho para novidades.</span>
-    </div>
+const PeakSalesBanner: React.FC<{ peakInfo: { day: string; hourRange: string; revenue: number; salesCount: number } | null }> = React.memo(({ peakInfo }) => (
+    <Link to="/reports?tab=vendas" className="bg-purple-100/90 text-purple-900 hover:bg-purple-200/90 text-xs sm:text-sm font-black px-4 py-2 rounded-2xl flex items-center gap-2 border border-purple-200/80 shadow-sm flex-1 justify-center transition-all group">
+        <span className="flex h-2 w-2 relative shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600"></span>
+        </span>
+        <span className="font-extrabold tracking-tight">
+            {peakInfo ? (
+                <>
+                    Pico de Vendas: <span className="text-purple-700 font-black">{peakInfo.day} às {peakInfo.hourRange}</span> — {formatCurrency(peakInfo.revenue)}
+                </>
+            ) : (
+                <span>Analisa Horários de Pico...</span>
+            )}
+        </span>
+    </Link>
 ));
 
 const LowStockBanner: React.FC<{ count: number; isPrivacyMode?: boolean }> = React.memo(({ count, isPrivacyMode }) => (
@@ -2130,6 +2140,58 @@ const Dashboard: React.FC = () => {
         }).length;
     }, [sales]);
 
+    const peakSalesInfo = React.useMemo(() => {
+        if (!sales || sales.length === 0) return null;
+        const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const hourRanges = [
+            { label: '08h-10h', min: 8, max: 10 },
+            { label: '10h-12h', min: 10, max: 12 },
+            { label: '12h-14h', min: 12, max: 14 },
+            { label: '14h-16h', min: 14, max: 16 },
+            { label: '16h-18h', min: 16, max: 18 },
+            { label: '18h-20h+', min: 18, max: 24 },
+        ];
+
+        const matrix: { sales: number; revenue: number }[][] = Array.from({ length: 7 }, () =>
+            Array.from({ length: hourRanges.length }, () => ({ sales: 0, revenue: 0 }))
+        );
+
+        let maxRevenueInSlot = 0;
+        let peakSlot = { dayIndex: 0, hourIndex: 0, revenue: 0, sales: 0 };
+
+        sales.forEach(s => {
+            if (s.status === 'Cancelada') return;
+            const date = new Date(s.date);
+            const dayIndex = date.getDay();
+            const hour = date.getHours();
+
+            const hourIndex = hourRanges.findIndex(r => hour >= r.min && hour < r.max);
+            if (hourIndex !== -1 && dayIndex >= 0 && dayIndex < 7) {
+                matrix[dayIndex][hourIndex].sales += 1;
+                matrix[dayIndex][hourIndex].revenue += s.total;
+
+                if (matrix[dayIndex][hourIndex].revenue > maxRevenueInSlot) {
+                    maxRevenueInSlot = matrix[dayIndex][hourIndex].revenue;
+                    peakSlot = {
+                        dayIndex,
+                        hourIndex,
+                        revenue: matrix[dayIndex][hourIndex].revenue,
+                        sales: matrix[dayIndex][hourIndex].sales
+                    };
+                }
+            }
+        });
+
+        if (maxRevenueInSlot === 0) return null;
+
+        return {
+            day: days[peakSlot.dayIndex],
+            hourRange: hourRanges[peakSlot.hourIndex].label,
+            revenue: peakSlot.revenue,
+            salesCount: peakSlot.sales
+        };
+    }, [sales]);
+
 
     if (loading) return <SuspenseFallback fullScreen />;
     if (error) return (
@@ -2174,7 +2236,7 @@ const Dashboard: React.FC = () => {
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {lowStockCount > 0 && <LowStockBanner count={lowStockCount} isPrivacyMode={isPrivacyMode} />}
                     {financialDiscrepancyCount > 0 && <FinancialDiscrepancyBanner count={financialDiscrepancyCount} isPrivacyMode={isPrivacyMode} />}
-                    <InfoBanner />
+                    <PeakSalesBanner peakInfo={peakSalesInfo} />
                 </div>
             </div>
 
