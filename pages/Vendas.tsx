@@ -4,6 +4,8 @@ import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Sale, Product, Customer, User, SaleItem, PermissionProfile, Brand, Category, ProductModel, Grade, GradeValue, Supplier, ReceiptTermParameter, PermissionSet } from '../types.ts';
 import { getSales, getProducts, getCustomers, getUsers, addCustomer, addProduct, formatCurrency, cancelSale, getPermissionProfiles, getBrands, getCategories, getProductModels, getGrades, getGradeValues, getSuppliers, getReceiptTerms, getPaymentMethods } from '../services/mockApi.ts';
+import { clearCache } from '../services/cacheUtils.ts';
+import { supabase } from '../supabaseClient.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
@@ -396,6 +398,41 @@ const Vendas: React.FC = () => {
         return () => {
             window.removeEventListener('company-data-updated', handleCompanyUpdate);
             window.removeEventListener('app-reloadData', handleSmartReload);
+        };
+    }, [fetchData]);
+
+    // ── Supabase Realtime: sincronização multi-dispositivo ──────────────────────
+    // Escuta INSERT/UPDATE na tabela `sales` de QUALQUER dispositivo/usuário.
+    // O BroadcastChannel do cache só funciona no mesmo navegador —
+    // esse hook resolve o problema de vendas sumindo em ambientes multi-caixa.
+    useEffect(() => {
+        let realtimeDebounce: ReturnType<typeof setTimeout> | null = null;
+
+        const channel = supabase
+            .channel('vendas-realtime-sync')
+            .on(
+                'postgres_changes' as any,
+                { event: '*', schema: 'public', table: 'sales' },
+                (_payload: any) => {
+                    // Debounce de 800ms para agrupar múltiplos eventos simultâneos
+                    if (realtimeDebounce) clearTimeout(realtimeDebounce);
+                    realtimeDebounce = setTimeout(() => {
+                        // Invalida o cache de vendas para forçar re-fetch limpo
+                        clearCache(['sales']);
+                        // Silent refresh — sem spinner, sem interrupção ao usuário
+                        fetchData(true);
+                    }, 800);
+                }
+            )
+            .subscribe((status: string) => {
+                if (status === 'CHANNEL_ERROR') {
+                    console.warn('Vendas Realtime: channel error, retrying...');
+                }
+            });
+
+        return () => {
+            if (realtimeDebounce) clearTimeout(realtimeDebounce);
+            supabase.removeChannel(channel);
         };
     }, [fetchData]);
 

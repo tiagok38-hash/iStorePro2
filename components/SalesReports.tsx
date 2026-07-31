@@ -351,7 +351,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                     data={paymentStats}
                                     dataKey="value"
                                     nameKey="name"
-                                    cx="50%" cy="50%"
+                                    cx="40%" cy="50%"
                                     innerRadius={70}
                                     outerRadius={100}
                                     paddingAngle={8}
@@ -380,7 +380,13 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                     layout="vertical"
                                     verticalAlign="middle"
                                     align="right"
-                                    formatter={(value) => <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">{value}</span>}
+                                    iconType="circle"
+                                    formatter={(value, entry: any) => (
+                                        <div className="inline-flex items-baseline gap-2 ml-2 mb-2.5">
+                                            <span className="text-base font-black text-gray-900">{formatCurrency(entry.payload.value)}</span>
+                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{value}</span>
+                                        </div>
+                                    )}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
@@ -397,7 +403,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                         {sellerStats.map((s, idx) => (
                             <div key={idx} className="group relative flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-orange-50 transition-all border border-transparent hover:border-orange-100">
                                 <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-sm
+                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-base transition-all shadow-sm
                                         ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-orange-200' :
                                             idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-gray-200' :
                                                 idx === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-700 text-white shadow-orange-100' :
@@ -405,18 +411,18 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                         {idx + 1}º
                                     </div>
                                     <div>
-                                        <p className="font-black text-gray-900 text-sm group-hover:text-orange-900 transition-colors uppercase tracking-tight">{s.name}</p>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="inline-block w-1 h-1 bg-gray-300 rounded-full"></span>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{s.count} vendas concretizadas</p>
+                                        <p className="font-black text-gray-900 text-base group-hover:text-orange-900 transition-colors uppercase tracking-tight">{s.name}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="inline-block w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{s.count} vendas concretizadas</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-black text-emerald-500 text-base tracking-tight">{formatCurrency(s.sales)}</p>
-                                    <p className="text-[11px] font-bold text-emerald-600 mt-0.5 tracking-tighter">Lucro: {formatCurrency(s.profit)}</p>
-                                    <div className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 group-hover:text-orange-600 transition-colors uppercase tracking-widest mt-0.5">
-                                        {s.percent.toFixed(1)}% <span className="opacity-50">do total</span>
+                                    <p className="font-black text-emerald-600 text-lg tracking-tight">{formatCurrency(s.sales)}</p>
+                                    <p className="text-xs font-bold text-emerald-700 mt-0.5 tracking-tighter">Lucro: {formatCurrency(s.profit)}</p>
+                                    <div className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 group-hover:text-orange-600 transition-colors uppercase tracking-widest mt-0.5">
+                                        {s.percent.toFixed(1)}% <span className="opacity-70">do total</span>
                                     </div>
                                 </div>
                             </div>
@@ -439,34 +445,34 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                 <>
                                     <div className="p-6 bg-gray-50/50 rounded-2xl flex justify-between items-center border border-gray-50 group hover:bg-blue-50 hover:border-blue-100 transition-all">
                                         <div>
-                                            <p className="font-black text-gray-900 uppercase text-xs tracking-widest group-hover:text-blue-900">Apple Inc.</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{typeStats.apple.count} produtos</span>
-                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                                <p className="text-xs font-black text-blue-600">
+                                            <p className="font-black text-gray-900 uppercase text-sm tracking-wider group-hover:text-blue-900">Apple Inc.</p>
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{typeStats.apple.count} produtos</span>
+                                                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
+                                                <p className="text-sm font-black text-blue-600">
                                                     {totalGross > 0 ? ((typeStats.apple.revenue / totalGross) * 100).toFixed(1) : '0.0'}%
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.apple.revenue)}</p>
-                                            <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mt-1">Lucro: {formatCurrency(typeStats.apple.profit)}</p>
+                                            <p className="font-black text-2xl text-gray-900 tracking-tight">{formatCurrency(typeStats.apple.revenue)}</p>
+                                            <p className="text-xs text-emerald-700 font-bold uppercase tracking-widest mt-1">Lucro: {formatCurrency(typeStats.apple.profit)}</p>
                                         </div>
                                     </div>
                                     <div className="p-6 bg-gray-50/50 rounded-2xl flex justify-between items-center border border-gray-50 group hover:bg-gray-100 hover:border-gray-200 transition-all">
                                         <div>
-                                            <p className="font-black text-gray-900 uppercase text-xs tracking-widest group-hover:text-gray-900">Multimarcas</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{typeStats.other.count} produtos</span>
-                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                                <p className="text-xs font-black text-gray-500">
+                                            <p className="font-black text-gray-900 uppercase text-sm tracking-wider group-hover:text-gray-900">Multimarcas</p>
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{typeStats.other.count} produtos</span>
+                                                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
+                                                <p className="text-sm font-black text-gray-600">
                                                     {totalGross > 0 ? ((typeStats.other.revenue / totalGross) * 100).toFixed(1) : '0.0'}%
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-black text-xl text-gray-900 tracking-tight">{formatCurrency(typeStats.other.revenue)}</p>
-                                            <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mt-1">Lucro: {formatCurrency(typeStats.other.profit)}</p>
+                                            <p className="font-black text-2xl text-gray-900 tracking-tight">{formatCurrency(typeStats.other.revenue)}</p>
+                                            <p className="text-xs text-emerald-700 font-bold uppercase tracking-widest mt-1">Lucro: {formatCurrency(typeStats.other.profit)}</p>
                                         </div>
                                     </div>
                                 </>
@@ -480,20 +486,20 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                         <span className="w-2 h-8 bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-full"></span>
                         Top Categorias
                     </h3>
-                    <div className="overflow-y-auto max-h-[220px] space-y-3 pr-2 custom-scrollbar">
+                    <div className="overflow-y-auto max-h-[300px] space-y-3 pr-2 custom-scrollbar">
                         {typeStats.categoryList.map((cat, idx) => (
-                            <div key={idx} className="flex justify-between items-center p-3 rounded-xl hover:bg-emerald-50/50 transition-colors border-b border-gray-50 last:border-0">
+                            <div key={idx} className="flex justify-between items-center p-3.5 rounded-xl hover:bg-emerald-50/50 transition-colors border-b border-gray-100 last:border-0">
                                 <div>
-                                    <span className="font-black text-gray-900 uppercase text-[11px] tracking-tight">{cat.name}</span>
-                                    <span className="inline-flex items-center ml-3 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase">
+                                    <span className="font-black text-gray-900 uppercase text-xs tracking-tight">{cat.name}</span>
+                                    <span className="inline-flex items-center ml-3 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
                                         {cat.margin.toFixed(0)}% Mg
                                     </span>
                                 </div>
                                 <div className="text-right">
-                                    <span className="font-black text-gray-900 text-sm tracking-tight block">{formatCurrency(cat.revenue)}</span>
+                                    <span className="font-black text-gray-900 text-base tracking-tight block">{formatCurrency(cat.revenue)}</span>
                                     <div className="flex flex-col items-end mt-1">
-                                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">Lucro: {formatCurrency(cat.profit)}</span>
-                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{cat.count} unidades</span>
+                                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-tighter">Lucro: {formatCurrency(cat.profit)}</span>
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-tighter mt-0.5">{cat.count} unidades</span>
                                     </div>
                                 </div>
                             </div>
@@ -511,11 +517,11 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                             <span className="w-2 h-10 bg-gradient-to-b from-red-400 to-red-600 rounded-full"></span>
                             <div>
                                 <h3 className="font-black text-2xl text-red-600 tracking-tight leading-none uppercase">Vendas Canceladas</h3>
-                                <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mt-1.5">{cancelledSales.length} registros encontrados</p>
+                                <p className="text-xs font-bold text-red-500 uppercase tracking-widest mt-1.5">{cancelledSales.length} registros encontrados</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Exibir:</span>
+                            <span className="text-xs font-black text-red-500 uppercase tracking-widest">Exibir:</span>
                             <select
                                 value={cancelItemsPerPage}
                                 onChange={(e) => setCancelItemsPerPage(Number(e.target.value))}
@@ -529,7 +535,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                     </div>
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left border-separate border-spacing-y-2">
-                            <thead className="text-[10px] text-red-300 font-black uppercase tracking-[0.2em]">
+                            <thead className="text-xs text-red-400 font-black uppercase tracking-[0.15em]">
                                 <tr>
                                     <th className="px-6 py-4">Data</th>
                                     <th className="px-6 py-4">Vendedor</th>
@@ -541,15 +547,15 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                                 {displayedCancelledSales.map(c => (
                                     <tr key={c.id} className="group">
                                         <td className="px-6 py-4 bg-white/50 rounded-l-2xl border-y border-l border-red-50 group-hover:bg-white transition-colors">
-                                            <span className="font-bold text-gray-600">{new Date(c.date).toLocaleDateString()}</span>
+                                            <span className="font-bold text-gray-700 text-sm">{new Date(c.date).toLocaleDateString()}</span>
                                         </td>
                                         <td className="px-6 py-4 bg-white/50 border-y border-red-50 group-hover:bg-white transition-colors">
-                                            <span className="font-black text-gray-900 uppercase text-xs">{users.find(u => u.id === c.salespersonId)?.name || 'N/A'}</span>
+                                            <span className="font-black text-gray-900 uppercase text-xs tracking-wider">{users.find(u => u.id === c.salespersonId)?.name || 'N/A'}</span>
                                         </td>
                                         <td className="px-6 py-4 bg-white/50 border-y border-red-50 group-hover:bg-white transition-colors text-right">
-                                            <span className="font-black text-red-600">{formatCurrency(c.total)}</span>
+                                            <span className="font-black text-red-600 text-base">{formatCurrency(c.total)}</span>
                                         </td>
-                                        <td className="px-6 py-4 bg-white/50 rounded-r-2xl border-y border-r border-red-50 group-hover:bg-white transition-colors max-w-xs truncate italic text-gray-400 font-medium">
+                                        <td className="px-6 py-4 bg-white/50 rounded-r-2xl border-y border-r border-red-50 group-hover:bg-white transition-colors max-w-xs truncate italic text-gray-500 font-semibold text-xs">
                                             {c.observations || 'Nenhum motivo detalhado'}
                                         </td>
                                     </tr>

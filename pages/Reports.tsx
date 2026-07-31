@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, AreaChart, Area } from 'recharts';
 import { Sale, Product, Customer, User, ProductModel } from '../types.ts';
-import { getSales, getProducts, getCustomers, getUsers, formatCurrency, getProductModels } from '../services/mockApi.ts';
+import { getSales, getProducts, getProductsInStock, getCustomers, getUsers, formatCurrency, getProductModels } from '../services/mockApi.ts';
 import { SpinnerIcon, CalendarDaysIcon, TrophyIcon, SearchIcon, ClockIcon, DocumentTextIcon, CurrencyDollarIcon, TrendingUpIcon, ShoppingCartIcon, BanknotesIcon, PackageIcon, WalletIcon, AppleIcon, Squares2x2Icon } from '../components/icons.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import PriceListModal from '../components/PriceListModal.tsx';
@@ -18,29 +18,64 @@ const PremiumKpiCard: React.FC<{
     color: 'blue' | 'emerald' | 'purple' | 'orange' | 'indigo' | 'red';
     subtitle?: React.ReactNode;
     onClick?: () => void;
-}> = ({ title, value, icon, color, subtitle, onClick }) => {
+    trend?: { value: number; label?: string };
+    progress?: { current: number; total: number; label: string };
+}> = ({ title, value, icon, color, subtitle, onClick, trend, progress }) => {
     const colorConfigs = {
-        blue: { bg: 'from-blue-600/10 to-blue-600/5', border: 'border-blue-100', text: 'text-blue-600', iconBg: 'bg-blue-600', shadow: 'shadow-blue-500/20' },
-        emerald: { bg: 'from-emerald-600/10 to-emerald-600/5', border: 'border-emerald-100', text: 'text-emerald-600', iconBg: 'bg-emerald-600', shadow: 'shadow-emerald-500/20' },
-        purple: { bg: 'from-purple-600/10 to-purple-600/5', border: 'border-purple-100', text: 'text-purple-600', iconBg: 'bg-purple-600', shadow: 'shadow-purple-500/20' },
-        orange: { bg: 'from-orange-600/10 to-orange-600/5', border: 'border-orange-100', text: 'text-orange-600', iconBg: 'bg-orange-600', shadow: 'shadow-orange-500/20' },
-        indigo: { bg: 'from-indigo-600/10 to-indigo-600/5', border: 'border-indigo-100', text: 'text-indigo-600', iconBg: 'bg-indigo-600', shadow: 'shadow-indigo-500/20' },
-        red: { bg: 'from-red-600/10 to-red-600/5', border: 'border-red-100', text: 'text-red-600', iconBg: 'bg-red-600', shadow: 'shadow-red-500/20' },
+        blue: { bg: 'from-blue-600/10 to-blue-600/5', border: 'border-blue-100', text: 'text-blue-600', iconBg: 'bg-blue-600', shadow: 'shadow-blue-500/20', progressBg: 'bg-blue-600' },
+        emerald: { bg: 'from-emerald-600/10 to-emerald-600/5', border: 'border-emerald-100', text: 'text-emerald-600', iconBg: 'bg-emerald-600', shadow: 'shadow-emerald-500/20', progressBg: 'bg-emerald-600' },
+        purple: { bg: 'from-purple-600/10 to-purple-600/5', border: 'border-purple-100', text: 'text-purple-600', iconBg: 'bg-purple-600', shadow: 'shadow-purple-500/20', progressBg: 'bg-purple-600' },
+        orange: { bg: 'from-orange-600/10 to-orange-600/5', border: 'border-orange-100', text: 'text-orange-600', iconBg: 'bg-orange-600', shadow: 'shadow-orange-500/20', progressBg: 'bg-orange-600' },
+        indigo: { bg: 'from-indigo-600/10 to-indigo-600/5', border: 'border-indigo-100', text: 'text-indigo-600', iconBg: 'bg-indigo-600', shadow: 'shadow-indigo-500/20', progressBg: 'bg-indigo-600' },
+        red: { bg: 'from-red-600/10 to-red-600/5', border: 'border-red-100', text: 'text-red-600', iconBg: 'bg-red-600', shadow: 'shadow-red-500/20', progressBg: 'bg-red-600' },
     };
 
     const config = colorConfigs[color];
+    const trendPositive = trend && trend.value >= 0;
+    const trendZero = trend && trend.value === 0;
+    const progressPct = progress ? Math.min(100, (progress.current / progress.total) * 100) : 0;
 
     return (
         <div className={`relative overflow-hidden group rounded-[2rem] h-full ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
             <div className={`absolute inset-0 bg-gradient-to-br ${config.bg} group-hover:scale-110 transition-transform duration-500`}></div>
-            <div className={`relative bg-white/40 backdrop-blur-md border ${config.border} p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all h-full`}>
-                <div className={`${config.iconBg} w-10 h-10 rounded-2xl flex items-center justify-center mb-4 shadow-lg ${config.shadow}`}>
-                    <div className="text-white">
-                        {React.cloneElement(icon as React.ReactElement, { size: 20 })}
+            <div className={`relative bg-white/40 backdrop-blur-md border ${config.border} p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all h-full flex flex-col`}>
+                <div className="flex items-start justify-between mb-4">
+                    <div className={`${config.iconBg} w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg ${config.shadow} flex-shrink-0`}>
+                        <div className="text-white">
+                            {React.cloneElement(icon as React.ReactElement, { size: 20 })}
+                        </div>
                     </div>
+                    {trend !== undefined && !trendZero && (
+                        <span className={`inline-flex items-center gap-0.5 text-[10px] font-black px-2 py-1 rounded-xl ${
+                            trendPositive
+                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                : 'bg-red-50 text-red-500 border border-red-200'
+                        }`}>
+                            {trendPositive ? '▲' : '▼'} {Math.abs(trend.value).toFixed(1)}%
+                        </span>
+                    )}
+                    {trend !== undefined && trendZero && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-black px-2 py-1 rounded-xl bg-gray-50 text-gray-400 border border-gray-200">
+                            — 0%
+                        </span>
+                    )}
                 </div>
                 <h3 className={`text-xs font-bold ${config.text} uppercase tracking-wider`}>{title}</h3>
-                <p className="text-2xl font-black text-gray-900 mt-1 tracking-tight">{value}</p>
+                <p className="text-2xl font-black text-gray-900 mt-1 tracking-tight flex-1">{value}</p>
+                {progress && (
+                    <div className="mt-3">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{progress.label}</span>
+                            <span className="text-[9px] font-black text-gray-500">{progressPct.toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full ${config.progressBg} rounded-full transition-all duration-700`}
+                                style={{ width: `${progressPct}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
                 {subtitle && <div className="mt-2">{subtitle}</div>}
             </div>
         </div>
@@ -84,7 +119,138 @@ const COLORS = {
 
 const PIE_COLORS = [COLORS.primary, COLORS.success, COLORS.orange, COLORS.purple, COLORS.pink, COLORS.cyan, COLORS.slate];
 
+// ─── Quick Date Filter Pill Component ────────────────────────────────────────
+type QuickPeriod = 'hoje' | 'ontem' | '7dias' | 'estemes' | 'mesanterior' | 'estano' | 'personalizado';
+
+const QuickDateFilter: React.FC<{
+    active: QuickPeriod;
+    onSelect: (period: QuickPeriod, start: string, end: string) => void;
+    showPickers: boolean;
+    startDate: string;
+    endDate: string;
+    onStartChange: (v: string) => void;
+    onEndChange: (v: string) => void;
+    users: User[];
+    sellerFilter: string;
+    onSellerChange: (v: string) => void;
+    onClear: () => void;
+}> = ({ active, onSelect, showPickers, startDate, endDate, onStartChange, onEndChange, users, sellerFilter, onSellerChange, onClear }) => {
+    const pills: { id: QuickPeriod; label: string }[] = [
+        { id: 'hoje', label: 'Hoje' },
+        { id: 'ontem', label: 'Ontem' },
+        { id: '7dias', label: '7 Dias' },
+        { id: 'estemes', label: 'Este Mês' },
+        { id: 'mesanterior', label: 'Mês Anterior' },
+        { id: 'estano', label: 'Este Ano' },
+        { id: 'personalizado', label: 'Personalizado' },
+    ];
+
+    return (
+        <div className="bg-white border border-gray-100 rounded-[2rem] p-4 shadow-sm space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mr-1">Período:</span>
+                {pills.map(pill => (
+                    <button
+                        key={pill.id}
+                        onClick={() => {
+                            const today = new Date();
+                            let s = today, e = today;
+                            if (pill.id === 'hoje') { s = e = today; }
+                            else if (pill.id === 'ontem') {
+                                const y = new Date(today); y.setDate(today.getDate() - 1);
+                                s = e = y;
+                            } else if (pill.id === '7dias') {
+                                const d7 = new Date(today); d7.setDate(today.getDate() - 6);
+                                s = d7; e = today;
+                            } else if (pill.id === 'estemes') {
+                                s = new Date(today.getFullYear(), today.getMonth(), 1);
+                                e = today;
+                            } else if (pill.id === 'mesanterior') {
+                                s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                                e = new Date(today.getFullYear(), today.getMonth(), 0);
+                            } else if (pill.id === 'estano') {
+                                s = new Date(today.getFullYear(), 0, 1);
+                                e = today;
+                            }
+                            if (pill.id !== 'personalizado') {
+                                onSelect(pill.id, toDateValue(s), toDateValue(e));
+                            } else {
+                                onSelect('personalizado', startDate, endDate);
+                            }
+                        }}
+                        className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-200 ${
+                            active === pill.id
+                                ? 'bg-primary text-white shadow-md shadow-blue-500/30'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-800'
+                        }`}
+                    >
+                        {pill.label}
+                    </button>
+                ))}
+            </div>
+            {showPickers && (
+                <div className="flex flex-wrap items-end gap-4 pt-1 border-t border-gray-100">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">De</label>
+                        <CustomDatePicker value={startDate} onChange={onStartChange} max={toDateValue()} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Até</label>
+                        <CustomDatePicker value={endDate} onChange={onEndChange} max={toDateValue()} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vendedor</label>
+                        <select
+                            value={sellerFilter}
+                            onChange={(e) => onSellerChange(e.target.value)}
+                            className="h-11 px-6 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                        >
+                            <option value="todos">Todos os Vendedores</option>
+                            {users.filter(u => u.active !== false).map(user => (
+                                <option key={user.id} value={user.id}>{user.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button onClick={onClear} className="h-11 px-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors">Limpar</button>
+                </div>
+            )}
+            {!showPickers && (
+                <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-gray-100">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vendedor</label>
+                        <select
+                            value={sellerFilter}
+                            onChange={(e) => onSellerChange(e.target.value)}
+                            className="h-11 px-6 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+                        >
+                            <option value="todos">Todos os Vendedores</option>
+                            {users.filter(u => u.active !== false).map(user => (
+                                <option key={user.id} value={user.id}>{user.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button onClick={onClear} className="h-11 px-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors self-end">Limpar</button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ─── Donut Center Label ───────────────────────────────────────────────────────
+const DonutCenterLabel: React.FC<{ cx?: number; cy?: number; total: number; topMethod: string }> = ({ cx = 0, cy = 0, total, topMethod }) => (
+    <g>
+        <text x={cx} y={cy - 10} textAnchor="middle" dominantBaseline="central" className="fill-gray-900" style={{ fontSize: 18, fontWeight: 900, fontFamily: 'inherit' }}>
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1 }).format(total)}
+        </text>
+        <text x={cx} y={cy + 14} textAnchor="middle" dominantBaseline="central" className="fill-gray-400" style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, fontFamily: 'inherit' }}>
+            {topMethod.toUpperCase()}
+        </text>
+    </g>
+);
+
+// ─── VendasReport ─────────────────────────────────────────────────────────────
 const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Customer[], users: User[] }> = ({ sales, products, customers, users }) => {
+    const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>('estemes');
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         return toDateValue(new Date(d.getFullYear(), d.getMonth(), 1));
@@ -96,6 +262,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
     const [productConditionFilter, setProductConditionFilter] = useState('todos');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(15);
+    const [chartMode, setChartMode] = useState<'bar' | 'area'>('bar');
 
     const userMap = useMemo(() => users.reduce((acc, user) => ({ ...acc, [user.id]: user.name }), {} as Record<string, string>), [users]);
     const customerMap = useMemo(() => customers.reduce((acc, customer) => ({ ...acc, [customer.id]: customer.name }), {} as Record<string, string>), [customers]);
@@ -104,85 +271,89 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
         return acc;
     }, {} as Record<string, Product>), [products]);
 
-    const filteredSales = useMemo(() => {
-        return sales.filter(sale => {
+    const filterSalesByDateRange = useCallback((saleList: Sale[], sDate: string, eDate: string, seller: string) => {
+        return saleList.filter(sale => {
             const saleDate = new Date(sale.date);
-
-            // Construct dates explicitly to avoid timezone issues with string parsing
-            const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
-            const start = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
-
-            const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
-            const end = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
-
-            const dateMatch = saleDate >= start && saleDate <= end;
-            const sellerMatch = sellerFilter === 'todos' || sale.salespersonId === sellerFilter;
-            // Alinhar com Relatórios de Vendas: tudo exceto Cancelada
-            const statusMatch = sale.status !== 'Cancelada';
-
-            return dateMatch && sellerMatch && statusMatch;
+            const [sY, sM, sD] = sDate.split('-').map(Number);
+            const start = new Date(sY, sM - 1, sD, 0, 0, 0, 0);
+            const [eY, eM, eD] = eDate.split('-').map(Number);
+            const end = new Date(eY, eM - 1, eD, 23, 59, 59, 999);
+            return saleDate >= start && saleDate <= end &&
+                (seller === 'todos' || sale.salespersonId === seller) &&
+                sale.status !== 'Cancelada';
         });
-    }, [sales, startDate, endDate, sellerFilter]);
+    }, []);
 
-    const { totalSales, totalProfit, salesCount, avgTicket, winnerCategory } = useMemo(() => {
+    const filteredSales = useMemo(() =>
+        filterSalesByDateRange(sales, startDate, endDate, sellerFilter),
+        [sales, startDate, endDate, sellerFilter, filterSalesByDateRange]
+    );
+
+    // ─── Previous Period (period-over-period) ────────────────────────────────
+    const previousPeriodSales = useMemo(() => {
+        const [sY, sM, sD] = startDate.split('-').map(Number);
+        const [eY, eM, eD] = endDate.split('-').map(Number);
+        const startMs = new Date(sY, sM - 1, sD).getTime();
+        const endMs = new Date(eY, eM - 1, eD).getTime();
+        const durationMs = endMs - startMs + 86400000; // +1 day
+        const prevEnd = new Date(startMs - 1);
+        const prevStart = new Date(startMs - durationMs);
+        return filterSalesByDateRange(sales, toDateValue(prevStart), toDateValue(prevEnd), sellerFilter);
+    }, [sales, startDate, endDate, sellerFilter, filterSalesByDateRange]);
+
+    const calcKpis = useCallback((saleList: Sale[]) => {
         let totalFaturamento = 0;
-        let totalRevenueForProfit = 0;
         let totalCost = 0;
-
         let appleStats = { faturamento: 0, lucro: 0 };
         let otherStats = { faturamento: 0, lucro: 0 };
 
-        filteredSales.forEach(sale => {
+        saleList.forEach(sale => {
             totalFaturamento += sale.total;
-            totalRevenueForProfit += sale.total;
-
             let saleCost = 0;
-
             sale.items.forEach(item => {
                 const product = productMap[item.productId];
-                // Snapshot do custo na época da venda (correto para histórico financeiro)
                 const itemCost = getItemCostSnapshot(item, product) * item.quantity;
-                const itemGrossRevenue = item.unitPrice * item.quantity;
-
-                // Receita: usa unitPrice * qty
-                const itemNetRevenue = itemGrossRevenue;
+                const itemNetRevenue = item.unitPrice * item.quantity;
                 const itemProfit = itemNetRevenue - itemCost;
-
-                // Determina a marca
-                const brand = product?.brand || (item as any).brand || '';
-                if (brand.toLowerCase().includes('apple')) {
+                const brand = (product?.brand || (item as any).brand || '').toLowerCase();
+                const model = (product?.model || (item as any).productName || (item as any).model || '').toLowerCase();
+                const isApple = brand.includes('apple') || 
+                                model.includes('iphone') || 
+                                model.includes('ipad') || 
+                                model.includes('macbook') || 
+                                model.includes('apple') || 
+                                model.includes('airpods') || 
+                                model.includes('watch');
+                if (isApple) {
                     appleStats.faturamento += itemNetRevenue;
                     appleStats.lucro += itemProfit;
                 } else {
                     otherStats.faturamento += itemNetRevenue;
                     otherStats.lucro += itemProfit;
                 }
-
                 saleCost += itemCost;
             });
             totalCost += saleCost;
         });
 
-        const salesCount = filteredSales.length;
-        const totalProfitOverall = totalRevenueForProfit - totalCost;
-        const avgTicket = salesCount > 0 ? totalFaturamento / salesCount : 0;
-
-        // Find winner based on net revenue
+        const count = saleList.length;
+        const profit = totalFaturamento - totalCost;
+        const avgTicket = count > 0 ? totalFaturamento / count : 0;
         const winner = appleStats.faturamento >= otherStats.faturamento ? 'Apple' : 'Não Apple';
         const winnerData = appleStats.faturamento >= otherStats.faturamento ? appleStats : otherStats;
+        return { totalSales: totalFaturamento, totalProfit: profit, salesCount: count, avgTicket, winnerCategory: { name: winner, ...winnerData } };
+    }, [productMap]);
 
-        return {
-            totalSales: totalFaturamento,
-            totalProfit: totalProfitOverall,
-            salesCount,
-            avgTicket,
-            winnerCategory: {
-                name: winner,
-                faturamento: winnerData.faturamento,
-                lucro: winnerData.lucro
-            }
-        };
-    }, [filteredSales, productMap]);
+    const { totalSales, totalProfit, salesCount, avgTicket, winnerCategory } = useMemo(() => calcKpis(filteredSales), [filteredSales, calcKpis]);
+    const prevKpis = useMemo(() => calcKpis(previousPeriodSales), [previousPeriodSales, calcKpis]);
+
+    const trendPct = useCallback((curr: number, prev: number) => {
+        if (prev === 0) return curr > 0 ? 100 : 0;
+        return ((curr - prev) / Math.abs(prev)) * 100;
+    }, []);
+
+    // Meta mensal de faturamento (ajustável no futuro)
+    const MONTHLY_REVENUE_GOAL = 1_500_000;
 
     const salesByDayData = useMemo(() => {
         const salesByDay = filteredSales.reduce<Record<string, { faturamento: number; lucro: number; vendas: number }>>((acc, sale) => {
@@ -309,30 +480,36 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
 
     return (
         <div className="space-y-6">
+            {/* ── KPI Cards ─────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
                 <PremiumKpiCard
                     title="Faturamento Total"
                     value={formatCurrency(totalSales)}
                     icon={<CurrencyDollarIcon />}
                     color="blue"
+                    trend={{ value: trendPct(totalSales, prevKpis.totalSales) }}
+                    progress={{ current: totalSales, total: MONTHLY_REVENUE_GOAL, label: `Meta ${formatCurrency(MONTHLY_REVENUE_GOAL)}` }}
                 />
                 <PremiumKpiCard
                     title="Lucro Líquido"
                     value={formatCurrency(totalProfit)}
                     icon={<TrendingUpIcon />}
                     color={totalProfit >= 0 ? "emerald" : "red"}
+                    trend={{ value: trendPct(totalProfit, prevKpis.totalProfit) }}
                 />
                 <PremiumKpiCard
                     title="Vendas Realizadas"
                     value={salesCount}
                     icon={<ShoppingCartIcon />}
                     color="purple"
+                    trend={{ value: trendPct(salesCount, prevKpis.salesCount) }}
                 />
                 <PremiumKpiCard
                     title="Ticket Médio"
                     value={formatCurrency(avgTicket)}
                     icon={<BanknotesIcon />}
                     color="orange"
+                    trend={{ value: trendPct(avgTicket, prevKpis.avgTicket) }}
                 />
                 <PremiumKpiCard
                     title="Categoria Vencedora"
@@ -340,12 +517,12 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                     icon={<TrophyIcon />}
                     color="indigo"
                     subtitle={
-                        <div className="space-y-0.5">
-                            <div className="flex justify-between text-[10px]">
+                        <div className="space-y-1 mt-1">
+                            <div className="flex justify-between text-xs">
                                 <span className="text-indigo-600 font-bold uppercase">Faturamento</span>
                                 <span className="text-indigo-900 font-black">{formatCurrency(winnerCategory.faturamento)}</span>
                             </div>
-                            <div className="flex justify-between text-[10px]">
+                            <div className="flex justify-between text-xs">
                                 <span className="text-indigo-600 font-bold uppercase">Lucro</span>
                                 <span className="text-emerald-700 font-black">{formatCurrency(winnerCategory.lucro)}</span>
                             </div>
@@ -354,65 +531,89 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 />
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-[2rem] p-4 flex flex-wrap items-end gap-6 shadow-sm">
-                <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">De</label>
-                    <CustomDatePicker
-                        value={startDate}
-                        onChange={setStartDate}
-                        max={toDateValue()}
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Até</label>
-                    <CustomDatePicker
-                        value={endDate}
-                        onChange={setEndDate}
-                        max={toDateValue()}
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vendedor</label>
-                    <select
-                        value={sellerFilter}
-                        onChange={(e) => setSellerFilter(e.target.value)}
-                        className="h-11 px-6 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-gray-500 outline-none focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
-                    >
-                        <option value="todos">Todos os Vendedores</option>
-                        {users.filter(u => u.active !== false).map(user => (
-                            <option key={user.id} value={user.id}>{user.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+            {/* ── Quick Date Filter ─────────────────────────────────────── */}
+            <QuickDateFilter
+                active={quickPeriod}
+                onSelect={(period, s, e) => { setQuickPeriod(period); setStartDate(s); setEndDate(e); }}
+                showPickers={quickPeriod === 'personalizado'}
+                startDate={startDate}
+                endDate={endDate}
+                onStartChange={setStartDate}
+                onEndChange={setEndDate}
+                users={users}
+                sellerFilter={sellerFilter}
+                onSellerChange={setSellerFilter}
+                onClear={() => {
+                    setSellerFilter('todos');
+                    const d = new Date();
+                    setStartDate(toDateValue(new Date(d.getFullYear(), d.getMonth(), 1)));
+                    setEndDate(toDateValue());
+                    setQuickPeriod('estemes');
+                }}
+            />
 
+            {/* ── Evolução Diária com toggle Bar / Area ─────────────────── */}
             <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
-                <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
-                    <span className="w-2 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full"></span>
-                    Evolução Diária
-                </h3>
-                <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={salesByDayData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }} barGap={0}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                        <XAxis
-                            dataKey="name"
-                            tick={{ fontSize: 11, fill: '#64748b' }}
-                            axisLine={false}
-                            tickLine={false}
-                            dy={10}
-                        />
-                        <YAxis
-                            tickFormatter={(value) => new Intl.NumberFormat('pt-BR', { notation: "compact", compactDisplay: "short" }).format(value)}
-                            tick={{ fontSize: 11, fill: '#64748b' }}
-                            axisLine={false}
-                            tickLine={false}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-                        <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
-                        <Bar dataKey="faturamento" fill={COLORS.primary} name="Faturamento" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                        <Bar dataKey="lucro" fill={COLORS.success} name="Lucro" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                    </BarChart>
-                </ResponsiveContainer>
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-black text-gray-900 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full"></span>
+                        Evolução Diária
+                    </h3>
+                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+                        <button
+                            onClick={() => setChartMode('bar')}
+                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 ${
+                                chartMode === 'bar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'
+                            }`}
+                        >
+                            Barras
+                        </button>
+                        <button
+                            onClick={() => setChartMode('area')}
+                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 ${
+                                chartMode === 'area' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'
+                            }`}
+                        >
+                            Área
+                        </button>
+                    </div>
+                </div>
+
+                {chartMode === 'bar' ? (
+                    <ResponsiveContainer width="100%" height={350}>
+                        <BarChart data={salesByDayData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }} barGap={0}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
+                            <YAxis tickFormatter={(v) => new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(v)} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+                            <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                            <Bar dataKey="faturamento" fill={COLORS.primary} name="Faturamento" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                            <Bar dataKey="lucro" fill={COLORS.success} name="Lucro" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <ResponsiveContainer width="100%" height={350}>
+                        <AreaChart data={salesByDayData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="gradFaturamento" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.18} />
+                                    <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="gradLucro" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={COLORS.success} stopOpacity={0.18} />
+                                    <stop offset="95%" stopColor={COLORS.success} stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} dy={10} />
+                            <YAxis tickFormatter={(v) => new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(v)} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                            <Area type="monotone" dataKey="faturamento" stroke={COLORS.primary} strokeWidth={2.5} fill="url(#gradFaturamento)" name="Faturamento" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                            <Area type="monotone" dataKey="lucro" stroke={COLORS.success} strokeWidth={2.5} fill="url(#gradLucro)" name="Lucro" dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -437,6 +638,10 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                                     {salesByPaymentMethodData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} strokeWidth={0} />
                                     ))}
+                                    <DonutCenterLabel
+                                        total={salesByPaymentMethodData.reduce((s, d) => s + (d.value as number), 0)}
+                                        topMethod={salesByPaymentMethodData[0]?.name || ''}
+                                    />
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
                                 <Legend
@@ -670,7 +875,14 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
             }
 
             let matchesStatus = true;
-            const createdAt = p.createdAt ? new Date(p.createdAt) : new Date();
+            const getProductDate = (item: Product) => {
+                const raw = item.createdAt || (item as any).created_at || (item as any).entry_date;
+                if (!raw) return new Date(0);
+                const d = new Date(raw);
+                return isNaN(d.getTime()) ? new Date(0) : d;
+            };
+
+            const createdAt = getProductDate(p);
             const productAgeDays = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
 
             switch (stockFilter) {
@@ -697,6 +909,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
             return matchesSearch && matchesStatus && matchesBrand;
         });
 
+        let resultList: Product[] = [];
         if (brandFilter === 'non_unique' || brandFilter === 'outros') {
             const groupedMap: Record<string, Product> = {};
             const finalFiltered: Product[] = [];
@@ -718,10 +931,26 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                 }
             });
 
-            return [...finalFiltered, ...Object.values(groupedMap)];
+            resultList = [...finalFiltered, ...Object.values(groupedMap)];
+        } else {
+            resultList = filtered;
         }
 
-        return filtered;
+        if (stockFilter === 'parado') {
+            resultList = [...resultList].sort((a, b) => {
+                const getProductDate = (item: Product) => {
+                    const raw = item.createdAt || (item as any).created_at || (item as any).entry_date;
+                    if (!raw) return new Date(0);
+                    const d = new Date(raw);
+                    return isNaN(d.getTime()) ? new Date(0) : d;
+                };
+                const timeA = getProductDate(a).getTime();
+                const timeB = getProductDate(b).getTime();
+                return timeA - timeB; // Mais antigo no topo (timestamp menor = data mais antiga no passado)
+            });
+        }
+
+        return resultList;
     }, [products, stockFilter, searchTerm, brandFilter, idleDays]);
 
     const displayedProducts = useMemo(() => {
@@ -752,8 +981,10 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
 
         // Calculate idle stock for the KPI specifically
         const idleCount = products.filter(p => {
-            const createdAt = p.createdAt ? new Date(p.createdAt) : new Date();
-            const age = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+            const raw = p.createdAt || (p as any).created_at || (p as any).entry_date;
+            const d = raw ? new Date(raw) : new Date(0);
+            const dateObj = isNaN(d.getTime()) ? new Date(0) : d;
+            const age = Math.floor((Date.now() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
             return age >= idleDays && p.stock > 0;
         }).length;
 
@@ -774,19 +1005,30 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
     }, [filteredProducts, products, idleDays]);
 
     const topSellingData = useMemo(() => {
-        const productCounts: Record<string, number> = {};
+        // Agrupa por productId, mas guarda também o nome snapshot do item
+        const productCounts: Record<string, { count: number; snapshotName: string }> = {};
         sales.forEach(sale => {
             if (sale.status === 'Cancelada') return;
             sale.items.forEach(item => {
-                productCounts[item.productId] = (productCounts[item.productId] || 0) + item.quantity;
+                if (!productCounts[item.productId]) {
+                    // Monta nome usando dados snapshot do item (caso o produto tenha sido deletado)
+                    let name = (item as any).productName || (item as any).model || '';
+                    const storage = (item as any).storage;
+                    const color = (item as any).color;
+                    if (storage && !name.includes(String(storage))) name += ` ${storage}`;
+                    if (color && !name.includes(color)) name += ` ${color}`;
+                    productCounts[item.productId] = { count: 0, snapshotName: name.trim() };
+                }
+                productCounts[item.productId].count += item.quantity;
             });
         });
 
-        // Map counts to product names and sort
         return Object.entries(productCounts)
-            .map(([id, count]) => {
+            .map(([id, { count, snapshotName }]) => {
+                // Prefere o nome do produto atual; usa snapshot se o produto foi removido
                 const product = products.find(p => p.id === id);
-                return { name: product?.model || 'Desconhecido', value: count };
+                const name = product?.model || snapshotName || 'Produto Removido';
+                return { name, value: count };
             })
             .sort((a, b) => b.value - a.value)
             .slice(0, 10);
@@ -994,18 +1236,31 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100 font-black text-gray-900 text-lg">{product.stock}</td>
-                                    {stockFilter === 'parado' && (
-                                        <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100">
-                                            <div className="flex flex-col items-center">
-                                                <span className="text-[10px] text-gray-500 font-medium">
-                                                    {product.createdAt ? new Date(product.createdAt).toLocaleDateString('pt-BR') : '-'}
-                                                </span>
-                                                <span className="mt-0.5 px-2 py-0.5 rounded-xl bg-red-100 text-red-700 text-[10px] font-black border border-red-200">
-                                                    {Math.floor((Date.now() - (product.createdAt ? new Date(product.createdAt).getTime() : Date.now())) / (1000 * 60 * 60 * 24))} DIAS
-                                                </span>
-                                            </div>
-                                        </td>
-                                    )}
+                                    {stockFilter === 'parado' && (() => {
+                                        const raw = product.createdAt || (product as any).created_at || (product as any).entry_date;
+                                        const d = raw ? new Date(raw) : null;
+                                        const validDate = d && !isNaN(d.getTime()) ? d : null;
+                                        const ageDays = validDate
+                                            ? Math.floor((Date.now() - validDate.getTime()) / (1000 * 60 * 60 * 24))
+                                            : null;
+                                        const ageSeverity = ageDays !== null
+                                            ? ageDays >= 180 ? 'bg-red-200 text-red-800 border-red-300'
+                                                : ageDays >= 90 ? 'bg-orange-100 text-orange-700 border-orange-200'
+                                                    : 'bg-red-100 text-red-700 border-red-200'
+                                            : 'bg-gray-100 text-gray-500 border-gray-200';
+                                        return (
+                                            <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100">
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <span className="text-[10px] text-gray-500 font-medium">
+                                                        {validDate ? validDate.toLocaleDateString('pt-BR') : '–'}
+                                                    </span>
+                                                    <span className={`px-2 py-0.5 rounded-xl text-[10px] font-black border ${ageSeverity}`}>
+                                                        {ageDays !== null ? `${ageDays} DIAS` : '–'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        );
+                                    })()}
                                     <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100 font-bold text-gray-400">{product.minimumStock || '-'}</td>
                                     <td className="px-6 py-4 bg-gray-50/30 text-center border-y border-transparent group-hover:border-gray-100">{getStatus(product)}</td>
                                     <td className="px-6 py-4 bg-gray-50/30 text-right border-y border-transparent group-hover:border-gray-100 font-bold text-gray-400">{formatCurrency(((product.costPrice || 0) + (product.additionalCostPrice || 0)) * product.stock)}</td>
@@ -1054,10 +1309,26 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                     </h3>
                     <div className="flex-1 w-full min-h-[450px]">
                         <ResponsiveContainer width="100%" height={450}>
-                            <BarChart data={topSellingData} layout="vertical" margin={{ top: 5, right: 40, left: 30, bottom: 5 }} barSize={24}>
+                            <BarChart data={topSellingData} layout="vertical" margin={{ top: 5, right: 40, left: 20, bottom: 5 }} barSize={24}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
                                 <XAxis type="number" hide />
-                                <YAxis type="category" dataKey="name" width={260} tick={{ fontSize: 11, fontWeight: 700, fill: '#1f2937' }} axisLine={false} tickLine={false} />
+                                <YAxis
+                                    type="category"
+                                    dataKey="name"
+                                    width={220}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={({ x, y, payload }: any) => {
+                                        const label: string = payload.value || '';
+                                        const max = 28;
+                                        const display = label.length > max ? label.slice(0, max) + '…' : label;
+                                        return (
+                                            <text x={x - 210} y={y} dy={4} textAnchor="start" fill="#1f2937" fontSize={12} fontWeight={700}>
+                                                {display}
+                                            </text>
+                                        );
+                                    }}
+                                />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                                 <Bar dataKey="value" fill={COLORS.purple} name="Quantidade" radius={[0, 4, 4, 0]} background={{ fill: '#f8fafc' }}>
                                     <LabelList dataKey="value" position="right" fontSize={12} fontWeight={800} fill="#111827" />
@@ -1074,10 +1345,26 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                     </h3>
                     <div className="flex-1 w-full min-h-[450px]">
                         <ResponsiveContainer width="100%" height={450}>
-                            <BarChart data={highMarginData} layout="vertical" margin={{ top: 5, right: 45, left: 30, bottom: 5 }} barSize={24}>
+                            <BarChart data={highMarginData} layout="vertical" margin={{ top: 5, right: 45, left: 20, bottom: 5 }} barSize={24}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
                                 <XAxis type="number" hide />
-                                <YAxis type="category" dataKey="name" width={260} tick={{ fontSize: 11, fontWeight: 700, fill: '#1f2937' }} axisLine={false} tickLine={false} />
+                                <YAxis
+                                    type="category"
+                                    dataKey="name"
+                                    width={220}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={({ x, y, payload }: any) => {
+                                        const label: string = payload.value || '';
+                                        const max = 28;
+                                        const display = label.length > max ? label.slice(0, max) + '…' : label;
+                                        return (
+                                            <text x={x - 210} y={y} dy={4} textAnchor="start" fill="#1f2937" fontSize={12} fontWeight={700}>
+                                                {display}
+                                            </text>
+                                        );
+                                    }}
+                                />
                                 <Tooltip
                                     content={({ active, payload, label }: any) => {
                                         if (active && payload && payload.length) {
@@ -1152,7 +1439,7 @@ const Reports: React.FC = () => {
             try {
                 const [salesData, productsData, customersData, usersData, modelsData] = await Promise.all([
                     getSales(),
-                    getProducts(),
+                    getProductsInStock(),
                     getCustomers(false),
                     getUsers(),
                     getProductModels()
