@@ -9,6 +9,7 @@ import {
 import CustomDatePicker from './CustomDatePicker';
 import { DocumentArrowUpIcon, SearchIcon } from './icons';
 import { getItemCostSnapshot } from '../utils/financialUtils.ts';
+import SalesHeatmapAnalytics from './SalesHeatmapAnalytics';
 
 interface SalesReportsProps {
     sales: Sale[];
@@ -231,51 +232,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             .sort((a, b) => b.sales - a.sales);
     }, [filteredSales, users, financials.totalSales]);
 
-    // 8. Sales Heatmap Data (Day of Week x Hour Range)
-    const heatmapData = useMemo(() => {
-        const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-        const hourRanges = [
-            { label: '08h-10h', min: 8, max: 10 },
-            { label: '10h-12h', min: 10, max: 12 },
-            { label: '12h-14h', min: 12, max: 14 },
-            { label: '14h-16h', min: 14, max: 16 },
-            { label: '16h-18h', min: 16, max: 18 },
-            { label: '18h-20h+', min: 18, max: 24 },
-        ];
 
-        // Matrix: 7 days x 6 hour ranges
-        const matrix: { sales: number; revenue: number }[][] = Array.from({ length: 7 }, () =>
-            Array.from({ length: hourRanges.length }, () => ({ sales: 0, revenue: 0 }))
-        );
-
-        let maxRevenueInSlot = 0;
-        let peakSlot = { dayIndex: 0, hourIndex: 0, revenue: 0, sales: 0 };
-
-        filteredSales.forEach(s => {
-            const date = new Date(s.date);
-            const rawDay = date.getDay(); // 0 = Sun
-            const dayIndex = (rawDay + 6) % 7; // Convert to 0 = Mon, 6 = Sun
-            const hour = date.getHours();
-
-            const hourIndex = hourRanges.findIndex(r => hour >= r.min && hour < r.max);
-            if (hourIndex !== -1 && dayIndex >= 0 && dayIndex < 7) {
-                matrix[dayIndex][hourIndex].sales += 1;
-                matrix[dayIndex][hourIndex].revenue += s.total;
-
-                if (matrix[dayIndex][hourIndex].revenue > maxRevenueInSlot) {
-                    maxRevenueInSlot = matrix[dayIndex][hourIndex].revenue;
-                    peakSlot = {
-                        dayIndex,
-                        hourIndex,
-                        revenue: matrix[dayIndex][hourIndex].revenue,
-                        sales: matrix[dayIndex][hourIndex].sales
-                    };
-                }
-            }
-        });
-
-        return { days, hourRanges, matrix, maxRevenueInSlot, peakSlot };
-    }, [filteredSales]);
 
     // Export Function
     const handleExport = () => {
@@ -583,68 +540,8 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                 </div>
             </div>
 
-            {/* 5. Sales Heatmap (Matriz Horário vs Dia da Semana) */}
-            <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                    <h3 className="font-black text-gray-900 flex items-center gap-3 text-lg uppercase tracking-tight">
-                        <span className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></span>
-                        Heatmap de Vendas (Horários de Pico)
-                    </h3>
-                    {heatmapData.maxRevenueInSlot > 0 && (
-                        <span className="inline-flex items-center gap-2 text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-2xl">
-                            🔥 Pico de Vendas: {heatmapData.days[heatmapData.peakSlot.dayIndex]} às {heatmapData.hourRanges[heatmapData.peakSlot.hourIndex].label} — {formatCurrency(heatmapData.peakSlot.revenue)} ({heatmapData.peakSlot.sales} vendas)
-                        </span>
-                    )}
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr>
-                                <th className="p-3 text-left font-black text-gray-400 uppercase tracking-widest text-[10px]">Horário</th>
-                                {heatmapData.days.map((day, dIdx) => (
-                                    <th key={dIdx} className="p-3 text-center font-black text-gray-700 uppercase tracking-wider text-xs">
-                                        {day}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {heatmapData.hourRanges.map((range, hIdx) => (
-                                <tr key={hIdx} className="border-t border-gray-50">
-                                    <td className="p-3 font-bold text-gray-500 whitespace-nowrap text-xs">{range.label}</td>
-                                    {heatmapData.days.map((_, dIdx) => {
-                                        const cell = heatmapData.matrix[dIdx][hIdx];
-                                        const intensity = heatmapData.maxRevenueInSlot > 0 ? (cell.revenue / heatmapData.maxRevenueInSlot) : 0;
-                                        let bgClass = "bg-gray-50 text-gray-300";
-                                        if (intensity > 0.75) bgClass = "bg-purple-600 text-white font-black shadow-sm shadow-purple-500/20";
-                                        else if (intensity > 0.4) bgClass = "bg-indigo-500 text-white font-black";
-                                        else if (intensity > 0.15) bgClass = "bg-indigo-100 text-indigo-800 font-bold";
-                                        else if (intensity > 0) bgClass = "bg-indigo-50 text-indigo-600 font-semibold";
-
-                                        return (
-                                            <td key={dIdx} className="p-1.5 text-center">
-                                                <div
-                                                    title={`${heatmapData.days[dIdx]} ${range.label}: ${formatCurrency(cell.revenue)} (${cell.sales} vendas)`}
-                                                    className={`h-11 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:scale-105 cursor-pointer ${bgClass}`}
-                                                >
-                                                    {cell.revenue > 0 ? (
-                                                        <>
-                                                            <span className="text-[11px] leading-none">{formatCurrency(cell.revenue)}</span>
-                                                            <span className="text-[9px] opacity-80 mt-0.5">{cell.sales} v.</span>
-                                                        </>
-                                                    ) : (
-                                                        <span className="text-[10px] text-gray-300">—</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        );
-                                    })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            {/* 5. Sales Heatmap Analytics Engine (BI Avançado) */}
+            <SalesHeatmapAnalytics sales={sales} products={products} users={users} />
 
 
             {/* 6. Cancelled Sales */}
