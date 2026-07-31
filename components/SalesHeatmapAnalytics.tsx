@@ -325,27 +325,27 @@ export const SalesHeatmapAnalytics: React.FC<SalesHeatmapAnalyticsProps> = ({
         if (peakSlotRev > 0) {
             insights.push({
                 type: 'fire',
-                text: `🔥 ${peakDay} das ${peakHour} representa um pico concentrado gerando ${peakShare}% do faturamento acumulado.`
+                text: `${peakDay} das ${peakHour} representa um pico concentrado gerando ${peakShare}% do faturamento acumulado.`
             });
         }
 
         if (highestProfitSlot.profit > 0) {
             insights.push({
                 type: 'profit',
-                text: `💰 ${highestProfitSlot.day} entre ${highestProfitSlot.hour} é a janela mais lucrativa da loja, gerando ${formatCurrency(highestProfitSlot.profit)} de lucro limpo.`
+                text: `${highestProfitSlot.day} entre ${highestProfitSlot.hour} é a janela mais lucrativa da loja, gerando ${formatCurrency(highestProfitSlot.profit)} de lucro limpo.`
             });
         }
 
         if (lowestVolumeSlot.sales < 999999) {
             insights.push({
                 type: 'warning',
-                text: `⚠️ Manhãs de ${lowestVolumeSlot.day} (${lowestVolumeSlot.hour}) têm menor fluxo. Ideal para contagem de estoque e treinamento da equipe.`
+                text: `Manhãs de ${lowestVolumeSlot.day} (${lowestVolumeSlot.hour}) têm menor fluxo. Ideal para contagem de estoque e treinamento da equipe.`
             });
         }
 
         insights.push({
             type: 'trend',
-            text: `📈 O horário das 14h–16h de Sexta-feira registrou um crescimento de +18% na busca por smartphones premium nos últimos 90 dias.`
+            text: `O horário das 14h–16h de Sexta-feira registrou um crescimento de +18% na busca por smartphones premium nos últimos 90 dias.`
         });
 
         return insights;
