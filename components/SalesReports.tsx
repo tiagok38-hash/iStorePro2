@@ -192,7 +192,7 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
     // Reset pages on filter changes
     React.useEffect(() => { setCancelCurrentPage(1); }, [startDate, endDate, cancelItemsPerPage]);
 
-    // 7. Salesperson Ranking
+    // 7. Salesperson Ranking & Targets
     const sellerStats = useMemo(() => {
         const stats: Record<string, { id: string, name: string, sales: number, count: number, profit: number }> = {};
 
@@ -213,19 +213,69 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             stats[sid].profit += (s.total - saleCost);
         });
 
+        // Target base: R$ 50.000 / vendedor
+        const SELLER_MONTHLY_GOAL = 50000;
+
         return Object.values(stats)
             .filter(s => {
                 if (s.id === 'unknown') return false;
                 const u = users.find(user => user.id === s.id);
                 return u?.active !== false;
             })
-            .map(s => ({
-                ...s,
-                avgTicket: s.count > 0 ? s.sales / s.count : 0,
-                percent: financials.totalSales > 0 ? (s.sales / financials.totalSales) * 100 : 0
-            }))
+            .map(s => {
+                const avgTicket = s.count > 0 ? s.sales / s.count : 0;
+                const percent = financials.totalSales > 0 ? (s.sales / financials.totalSales) * 100 : 0;
+                const goalProgress = Math.min(100, (s.sales / SELLER_MONTHLY_GOAL) * 100);
+                return { ...s, avgTicket, percent, goalProgress, goal: SELLER_MONTHLY_GOAL };
+            })
             .sort((a, b) => b.sales - a.sales);
     }, [filteredSales, users, financials.totalSales]);
+
+    // 8. Sales Heatmap Data (Day of Week x Hour Range)
+    const heatmapData = useMemo(() => {
+        const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+        const hourRanges = [
+            { label: '08h-10h', min: 8, max: 10 },
+            { label: '10h-12h', min: 10, max: 12 },
+            { label: '12h-14h', min: 12, max: 14 },
+            { label: '14h-16h', min: 14, max: 16 },
+            { label: '16h-18h', min: 16, max: 18 },
+            { label: '18h-20h+', min: 18, max: 24 },
+        ];
+
+        // Matrix: 7 days x 6 hour ranges
+        const matrix: { sales: number; revenue: number }[][] = Array.from({ length: 7 }, () =>
+            Array.from({ length: hourRanges.length }, () => ({ sales: 0, revenue: 0 }))
+        );
+
+        let maxRevenueInSlot = 0;
+        let peakSlot = { dayIndex: 0, hourIndex: 0, revenue: 0, sales: 0 };
+
+        filteredSales.forEach(s => {
+            const date = new Date(s.date);
+            const rawDay = date.getDay(); // 0 = Sun
+            const dayIndex = (rawDay + 6) % 7; // Convert to 0 = Mon, 6 = Sun
+            const hour = date.getHours();
+
+            const hourIndex = hourRanges.findIndex(r => hour >= r.min && hour < r.max);
+            if (hourIndex !== -1 && dayIndex >= 0 && dayIndex < 7) {
+                matrix[dayIndex][hourIndex].sales += 1;
+                matrix[dayIndex][hourIndex].revenue += s.total;
+
+                if (matrix[dayIndex][hourIndex].revenue > maxRevenueInSlot) {
+                    maxRevenueInSlot = matrix[dayIndex][hourIndex].revenue;
+                    peakSlot = {
+                        dayIndex,
+                        hourIndex,
+                        revenue: matrix[dayIndex][hourIndex].revenue,
+                        sales: matrix[dayIndex][hourIndex].sales
+                    };
+                }
+            }
+        });
+
+        return { days, hourRanges, matrix, maxRevenueInSlot, peakSlot };
+    }, [filteredSales]);
 
     // Export Function
     const handleExport = () => {
@@ -393,36 +443,61 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                     </div>
                 </div>
 
-                {/* Salesperson Rankings */}
+                {/* Salesperson Rankings & Targets */}
                 <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
-                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 text-lg uppercase tracking-tight">
-                        <span className="w-2 h-8 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></span>
-                        Ranking de Vendedores
-                    </h3>
-                    <div className="flex-1 flex flex-col gap-4 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="font-black text-gray-900 flex items-center gap-3 text-lg uppercase tracking-tight">
+                            <span className="w-2 h-8 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></span>
+                            Ranking & Metas dos Vendedores
+                        </h3>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-xl border border-gray-100">
+                            Meta Base: {formatCurrency(50000)}
+                        </span>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-4 overflow-y-auto max-h-[360px] pr-2 custom-scrollbar">
                         {sellerStats.map((s, idx) => (
-                            <div key={idx} className="group relative flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-orange-50 transition-all border border-transparent hover:border-orange-100">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-base transition-all shadow-sm
-                                        ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-orange-200' :
-                                            idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-gray-200' :
-                                                idx === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-700 text-white shadow-orange-100' :
-                                                    'bg-white text-gray-400 border border-gray-200'}`}>
-                                        {idx + 1}º
-                                    </div>
-                                    <div>
-                                        <p className="font-black text-gray-900 text-base group-hover:text-orange-900 transition-colors uppercase tracking-tight">{s.name}</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="inline-block w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
-                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{s.count} vendas concretizadas</p>
+                            <div key={idx} className="group relative p-4 rounded-2xl bg-gray-50/50 hover:bg-orange-50/50 transition-all border border-transparent hover:border-orange-100 flex flex-col gap-2.5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-sm transition-all shadow-sm shrink-0
+                                            ${idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-orange-200' :
+                                                idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-gray-200' :
+                                                    idx === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-700 text-white shadow-orange-100' :
+                                                        'bg-white text-gray-400 border border-gray-200'}`}>
+                                            {idx + 1}º
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-gray-900 text-sm group-hover:text-orange-900 transition-colors uppercase tracking-tight">{s.name}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-tighter">{s.count} vendas</span>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-tighter">Ticket: {formatCurrency(s.avgTicket)}</span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="text-right">
+                                        <p className="font-black text-emerald-600 text-base tracking-tight">{formatCurrency(s.sales)}</p>
+                                        <p className="text-[11px] font-bold text-emerald-700 mt-0.5 tracking-tighter">Lucro: {formatCurrency(s.profit)}</p>
+                                    </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-black text-emerald-600 text-lg tracking-tight">{formatCurrency(s.sales)}</p>
-                                    <p className="text-xs font-bold text-emerald-700 mt-0.5 tracking-tighter">Lucro: {formatCurrency(s.profit)}</p>
-                                    <div className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 group-hover:text-orange-600 transition-colors uppercase tracking-widest mt-0.5">
-                                        {s.percent.toFixed(1)}% <span className="opacity-70">do total</span>
+
+                                {/* Mini Barra de Progresso de Meta Individual */}
+                                <div className="space-y-1 pt-1 border-t border-gray-100/60">
+                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <span className="text-gray-400 uppercase tracking-widest">Meta Atingida</span>
+                                        <span className={s.goalProgress >= 100 ? "text-emerald-600 font-black" : "text-gray-600 font-black"}>
+                                            {s.goalProgress.toFixed(0)}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${
+                                                s.goalProgress >= 100
+                                                    ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
+                                                    : 'bg-gradient-to-r from-orange-400 to-orange-500'
+                                            }`}
+                                            style={{ width: `${s.goalProgress}%` }}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -505,6 +580,69 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
                             </div>
                         ))}
                     </div>
+                </div>
+            </div>
+
+            {/* 5. Sales Heatmap (Matriz Horário vs Dia da Semana) */}
+            <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                    <h3 className="font-black text-gray-900 flex items-center gap-3 text-lg uppercase tracking-tight">
+                        <span className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></span>
+                        Heatmap de Vendas (Horários de Pico)
+                    </h3>
+                    {heatmapData.maxRevenueInSlot > 0 && (
+                        <span className="inline-flex items-center gap-2 text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-2xl">
+                            🔥 Pico de Vendas: {heatmapData.days[heatmapData.peakSlot.dayIndex]} às {heatmapData.hourRanges[heatmapData.peakSlot.hourIndex].label} — {formatCurrency(heatmapData.peakSlot.revenue)} ({heatmapData.peakSlot.sales} vendas)
+                        </span>
+                    )}
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                        <thead>
+                            <tr>
+                                <th className="p-3 text-left font-black text-gray-400 uppercase tracking-widest text-[10px]">Horário</th>
+                                {heatmapData.days.map((day, dIdx) => (
+                                    <th key={dIdx} className="p-3 text-center font-black text-gray-700 uppercase tracking-wider text-xs">
+                                        {day}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {heatmapData.hourRanges.map((range, hIdx) => (
+                                <tr key={hIdx} className="border-t border-gray-50">
+                                    <td className="p-3 font-bold text-gray-500 whitespace-nowrap text-xs">{range.label}</td>
+                                    {heatmapData.days.map((_, dIdx) => {
+                                        const cell = heatmapData.matrix[dIdx][hIdx];
+                                        const intensity = heatmapData.maxRevenueInSlot > 0 ? (cell.revenue / heatmapData.maxRevenueInSlot) : 0;
+                                        let bgClass = "bg-gray-50 text-gray-300";
+                                        if (intensity > 0.75) bgClass = "bg-purple-600 text-white font-black shadow-sm shadow-purple-500/20";
+                                        else if (intensity > 0.4) bgClass = "bg-indigo-500 text-white font-black";
+                                        else if (intensity > 0.15) bgClass = "bg-indigo-100 text-indigo-800 font-bold";
+                                        else if (intensity > 0) bgClass = "bg-indigo-50 text-indigo-600 font-semibold";
+
+                                        return (
+                                            <td key={dIdx} className="p-1.5 text-center">
+                                                <div
+                                                    title={`${heatmapData.days[dIdx]} ${range.label}: ${formatCurrency(cell.revenue)} (${cell.sales} vendas)`}
+                                                    className={`h-11 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:scale-105 cursor-pointer ${bgClass}`}
+                                                >
+                                                    {cell.revenue > 0 ? (
+                                                        <>
+                                                            <span className="text-[11px] leading-none">{formatCurrency(cell.revenue)}</span>
+                                                            <span className="text-[9px] opacity-80 mt-0.5">{cell.sales} v.</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-[10px] text-gray-300">—</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

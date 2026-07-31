@@ -927,7 +927,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
                 </div>
 
                 {totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-8 border-t border-gray-100 pt-6">
+                    <div className="flex items-center justify-between mt-8 border-t border-gray-100 pt-6 print:hidden">
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                             Página {currentPage} de {totalPages}
                         </span>
@@ -1299,7 +1299,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{filteredProducts.length} itens encontrados</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 print:hidden">
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Exibir:</span>
                         <select
                             value={itemsPerPage}
@@ -1401,7 +1401,7 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
                 </div>
 
                 {totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-4 border-t pt-4">
+                    <div className="flex items-center justify-between mt-4 border-t pt-4 print:hidden">
                         <span className="text-sm text-muted">
                             Página {currentPage} de {totalPages}
                         </span>
@@ -1585,21 +1585,51 @@ const Reports: React.FC = () => {
         fetchData();
     }, []);
 
+    const handlePrintPDF = () => {
+        window.print();
+    };
+
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Relatórios</h1>
-                {activeTab === 'estoque' && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+                <div>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">Relatórios Executivos</h1>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Inteligência de Negócios & Performance da Loja</p>
+                </div>
+                <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setIsPriceListModalOpen(true)}
-                        className="h-12 px-6 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap"
+                        onClick={handlePrintPDF}
+                        className="h-12 px-6 bg-gray-900 text-white rounded-2xl hover:bg-black text-xs font-black flex items-center gap-2.5 shadow-lg shadow-gray-900/10 uppercase tracking-widest transition-all active:scale-95 border border-gray-800 whitespace-nowrap"
                     >
-                        <DocumentTextIcon className="h-6 w-6" /> Gerar Relatório
+                        <DocumentTextIcon className="h-5 w-5 text-indigo-400" /> Exportar PDF Executivo
                     </button>
-                )}
+                    {activeTab === 'estoque' && (
+                        <button
+                            onClick={() => setIsPriceListModalOpen(true)}
+                            className="h-12 px-6 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap"
+                        >
+                            <DocumentTextIcon className="h-6 w-6" /> Gerar Tabela Preços
+                        </button>
+                    )}
+                </div>
             </div>
 
-            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm">
+            {/* Cabeçalho exclusivo da versão impressa/PDF Executivo */}
+            <div className="hidden print:block mb-8 p-6 bg-gray-900 text-white rounded-2xl">
+                <div className="flex justify-between items-center border-b border-gray-800 pb-4 mb-4">
+                    <div>
+                        <h1 className="text-2xl font-black uppercase tracking-tight">iStorePro — Relatório Executivo</h1>
+                        <p className="text-xs text-gray-400">Emissão: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-xs font-bold uppercase tracking-widest bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-lg border border-indigo-500/30">
+                            {tabs.find(t => t.id === activeTab)?.label}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="inline-flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-sm print:hidden">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
