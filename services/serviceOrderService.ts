@@ -180,22 +180,38 @@ export const getServiceOrders = async (startDate?: string, options?: { select?: 
 
     return fetchWithCache(cacheKey, async () => {
         return fetchWithRetry(async () => {
-            let query = supabase
+            // Query 1: OS dentro da janela de data (histórico para gráficos e lucro)
+            const windowQuery = supabase
                 .from('service_orders')
                 .select(options?.select || '*')
-                .order('created_at', { ascending: false });
+                .gte('created_at', effectiveStartDate)
+                .order('created_at', { ascending: false })
+                .limit(500);
 
-            // Sempre aplica filtro: OS dos últimos N dias OU que ainda estão abertas
-            query = query.or(`status.not.in.(Concluído,Entregue e Faturado,Cancelada),created_at.gte.${effectiveStartDate}`);
+            // Query 2: OS em aberto SEM filtro de data (status real do banco: não são 'Entregue e Faturado', 'Concluído', 'Cancelada', 'Cancelado')
+            // Garante que OS abertas antigas (fora da janela) sempre apareçam no card do dashboard
+            const openQuery = supabase
+                .from('service_orders')
+                .select(options?.select || '*')
+                .not('status', 'in', '("Entregue e Faturado","Concluído","Cancelada","Cancelado")')
+                .order('created_at', { ascending: false })
+                .limit(200);
 
-            // Limite seguro para evitar payload massivo
-            query = query.limit(500);
+            const [windowResult, openResult] = await Promise.all([windowQuery, openQuery]);
 
-            const { data, error } = await query;
-            if (error) throw error;
-            return (data || []).map(mapServiceOrderData);
+            if (windowResult.error) throw windowResult.error;
+            // Erro na query de abertas não é fatal — usa array vazio como fallback
+            const openData = openResult.data || [];
+
+            // Mescla e deduplica por ID: abertas sempre entram, janela complementa
+            const mergedMap = new Map<string, any>();
+            (windowResult.data || []).forEach(os => mergedMap.set(os.id, os));
+            openData.forEach(os => mergedMap.set(os.id, os)); // sobrescreve com dado mais atual se duplicado
+
+            return Array.from(mergedMap.values()).map(mapServiceOrderData);
         });
     });
+
 };
 
 export const getServiceOrder = async (id: string): Promise<ServiceOrder | null> => {

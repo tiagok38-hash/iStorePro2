@@ -9,6 +9,7 @@ import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import { calculateOSProfit } from '../utils/formatters.ts';
+import { clearCache, getAllCacheKeys } from '../services/cacheUtils.ts';
 
 // --- Permission Guard ---
 const getPermissionForRoute = (to: string, permissions: PermissionSet | null): boolean => {
@@ -107,18 +108,30 @@ const FinancialDiscrepancyBanner: React.FC<{ count: number; isPrivacyMode?: bool
     </Link>
 ));
 
+// --- Status badge config para OS em aberto ---
+const OS_STATUS_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
+    'Orçamento': { bg: 'bg-blue-50 border-blue-100',     text: 'text-blue-700',    dot: 'bg-blue-400'    },
+    'Análise':   { bg: 'bg-purple-50 border-purple-100', text: 'text-purple-700',  dot: 'bg-purple-400'  },
+    'Aprovado':  { bg: 'bg-emerald-50 border-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+    'Em Reparo': { bg: 'bg-amber-50 border-amber-100',   text: 'text-amber-700',   dot: 'bg-amber-400'   },
+    'Pronto':    { bg: 'bg-green-50 border-green-100',   text: 'text-green-700',   dot: 'bg-green-500'   },
+};
+const FALLBACK_STATUS_STYLE = { bg: 'bg-gray-50 border-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
+const getOSStatusStyle = (status: string) => OS_STATUS_STYLES[status] ?? FALLBACK_STATUS_STYLE;
 
+// Status que indicam OS finalizada/cancelada (não aparecem no card OS em Aberto)
+const OS_CLOSED_STATUSES = ['Entregue e Faturado', 'Concluído', 'Cancelada', 'Cancelado'] as const;
 
 const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacyMode?: boolean; to?: string }> = React.memo(({ serviceOrders, isPrivacyMode, to }) => {
     const navigate = useNavigate();
 
     const openOrders = useMemo(() => {
         return serviceOrders
-            .filter(os => os.status === 'Aberto')
+            .filter(os => !(OS_CLOSED_STATUSES as readonly string[]).includes(os.status))
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [serviceOrders]);
 
-    const recentOrders = useMemo(() => openOrders.slice(0, 5), [openOrders]);
+    const recentOrders = useMemo(() => openOrders.slice(0, 10), [openOrders]);
 
     return (
         <div
@@ -153,28 +166,42 @@ const OpenServiceOrdersCard: React.FC<{ serviceOrders: ServiceOrder[]; isPrivacy
                 </div>
             </div>
 
-            <div className="space-y-2 flex-1 overflow-y-auto max-h-[120px] pr-1 custom-scrollbar" style={{ minHeight: "75px" }}>
+            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar" style={{ minHeight: '75px', maxHeight: '200px' }}>
                 {recentOrders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                         <WrenchIcon className="w-8 h-8 text-gray-300 mb-2" />
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nenhuma OS em aberto</p>
                     </div>
                 ) : (
-                    recentOrders.map(os => (
-                        <div key={os.id} className="p-3 bg-gray-50/50 hover:bg-white rounded-xl border border-gray-100 transition-all">
-                            <div className="flex justify-between items-start mb-1">
-                                <span className="text-[11px] font-black text-amber-600 uppercase tracking-wider">#{os.displayId}</span>
-                                <span className="text-[10px] font-bold text-gray-400">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                            <p className="text-xs font-black text-gray-800 truncate">{os.deviceModel}</p>
-                            <p className="text-[10px] text-gray-500 truncate font-medium mt-0.5">{os.customerName}</p>
-                        </div>
-                    ))
+                    <div className="grid grid-cols-2 gap-2">
+                        {recentOrders.map(os => {
+                            const style = getOSStatusStyle(os.status);
+                            return (
+                                <div
+                                    key={os.id}
+                                    className="p-3 rounded-xl border border-gray-100 bg-gray-50/60 hover:bg-white transition-all hover:shadow-sm hover:scale-[1.01] cursor-pointer"
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/service-orders/${os.id}`); }}
+                                >
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <span className="text-[11px] font-black text-amber-600 uppercase tracking-wider">#{os.displayId}</span>
+                                        <span className="text-[9px] font-bold text-gray-400">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</span>
+                                    </div>
+                                    <p className="text-[11px] font-black text-gray-800 truncate leading-tight">{os.deviceModel}</p>
+                                    <p className="text-[10px] text-gray-500 truncate font-medium mt-0.5 mb-2">{os.customerName}</p>
+                                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${style.bg}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
+                                        <span className={`text-[9px] font-black uppercase tracking-wider ${style.text}`}>{os.status}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
         </div>
     );
 });
+
 
 const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services: Service[]; products: Product[]; isPrivacyMode?: boolean; to?: string }> = React.memo(({ serviceOrders, services, products, isPrivacyMode, to }) => {
     const navigate = useNavigate();
@@ -208,22 +235,30 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                 endDate   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
         }
 
-        // Projeção baseada na média diária do mês atual
-        const monthStart        = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-        const monthEnd          = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        const daysPassedInMonth = now.getDate();
-        const daysInMonth       = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-
+        // Projeção baseada na média diária dos meses anteriores do ano atual
+        // Base: 01/jan/ano até último dia do mês anterior
         const isFinishedOS = (os: ServiceOrder) =>
             os.status === 'Entregue e Faturado' || os.status === 'Concluído';
 
-        const monthlyProfit = serviceOrders
-            .filter(os => isFinishedOS(os) && new Date(os.exitDate || os.updatedAt || os.createdAt) >= monthStart
-                       && new Date(os.exitDate || os.updatedAt || os.createdAt) <= monthEnd)
+        const yearStart          = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+        const prevMonthEnd       = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59); // último dia do mês anterior
+        const hasPrevMonthData   = now.getMonth() > 0; // só calcula se já passou pelo menos 1 mês no ano
+        const daysInBaseWindow   = hasPrevMonthData
+            ? Math.round((prevMonthEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+            : now.getDate(); // fallback: usa dias passados do mês atual se for janeiro
+        const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+        const baseWindowStart = hasPrevMonthData ? yearStart : new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        const baseWindowEnd   = hasPrevMonthData ? prevMonthEnd : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        const basePeriodProfit = serviceOrders
+            .filter(os => isFinishedOS(os)
+                && new Date(os.exitDate || os.updatedAt || os.createdAt) >= baseWindowStart
+                && new Date(os.exitDate || os.updatedAt || os.createdAt) <= baseWindowEnd)
             .reduce((sum, os) => sum + calculateOSProfit(os), 0);
 
-        const dailyAvg = daysPassedInMonth > 0 ? monthlyProfit / daysPassedInMonth : 0;
-        const projectionDaysMap: Record<string, number> = { today: 1, yesterday: 1, day_before: 1, week: 7, month: daysInMonth };
+        const dailyAvg = daysInBaseWindow > 0 ? basePeriodProfit / daysInBaseWindow : 0;
+        const projectionDaysMap: Record<string, number> = { today: 1, yesterday: 1, day_before: 1, week: 7, month: daysInCurrentMonth };
         const projectedProfit = dailyAvg * (projectionDaysMap[period] ?? 1);
 
         const validOS = serviceOrders.filter(os =>
@@ -299,7 +334,7 @@ const ServiceOrderProfitCard: React.FC<{ serviceOrders: ServiceOrder[]; services
                             )}
                         </div>
                         {!isPrivacyMode && (
-                            <p className="text-[11px] font-bold text-gray-400 mt-1 whitespace-nowrap" title="Projeção baseada na média diária do mês atual">
+                            <p className="text-[11px] font-bold text-gray-400 mt-1 whitespace-nowrap" title="Projeção baseada na média diária dos meses anteriores do ano atual (01/jan até último dia do mês anterior)">
                                 Projetado: <span className="text-gray-700 font-bold">{formatCurrency(metrics.projectedProfit)}</span>
                             </p>
                         )}
@@ -547,18 +582,25 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                 return sum + (snapshotCost ?? fallback) * item.quantity;
             }, 0);
 
-        // Projeção baseada na média diária do mês atual
-        const monthStart        = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        const monthEnd          = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        const daysPassedInMonth = now.getDate();
-        const daysInMonth       = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        // Projeção baseada na média diária dos meses anteriores do ano atual
+        // Base: 01/jan/ano até último dia do mês anterior
+        const yearStart          = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        const prevMonthEnd       = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999); // último dia do mês anterior
+        const hasPrevMonthData   = now.getMonth() > 0; // só calcula se já passou pelo menos 1 mês no ano
+        const daysInBaseWindow   = hasPrevMonthData
+            ? Math.round((prevMonthEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+            : now.getDate(); // fallback: usa dias passados do mês atual se for janeiro
+        const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-        const monthlyProfit = sales
-            .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= monthStart && new Date(s.date) <= monthEnd)
+        const baseWindowStart = hasPrevMonthData ? yearStart : new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const baseWindowEnd   = hasPrevMonthData ? prevMonthEnd : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        const basePeriodProfit = sales
+            .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= baseWindowStart && new Date(s.date) <= baseWindowEnd)
             .reduce((sum, sale) => sum + sale.total - getSaleCost(sale), 0);
 
-        const dailyAvg = daysPassedInMonth > 0 ? monthlyProfit / daysPassedInMonth : 0;
-        const projectionDaysMap: Record<string, number> = { day: 1, yesterday: 1, week: 7, month: daysInMonth, year: 365 };
+        const dailyAvg = daysInBaseWindow > 0 ? basePeriodProfit / daysInBaseWindow : 0;
+        const projectionDaysMap: Record<string, number> = { day: 1, yesterday: 1, week: 7, month: daysInCurrentMonth, year: 365 };
         const projectedProfit = dailyAvg * (projectionDaysMap[period] ?? 1);
 
         const validSales = sales.filter(s =>
@@ -615,7 +657,7 @@ const ProfitCard: React.FC<{ sales: Sale[]; products: Product[]; className?: str
                             )}
                         </div>
                         {!isPrivacyMode && (
-                            <p className="text-[11px] font-bold text-gray-400 mt-1 whitespace-nowrap" title="Projeção baseada na média diária do mês atual">
+                            <p className="text-[11px] font-bold text-gray-400 mt-1 whitespace-nowrap" title="Projeção baseada na média diária dos meses anteriores do ano atual (01/jan até último dia do mês anterior)">
                                 Projetado: <span className="text-gray-700 font-bold">{formatCurrency(projectedProfit)}</span>
                             </p>
                         )}
@@ -1938,6 +1980,9 @@ const Dashboard: React.FC = () => {
 
     useEffect(() => {
         if (canViewDashboard) {
+            // Invalida cache de OS para garantir que a query com filtro corrigido seja executada
+            const osKeys = getAllCacheKeys().filter(k => k.startsWith('service_orders_'));
+            if (osKeys.length > 0) clearCache(osKeys);
             fetchData();
         }
 
