@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PurchaseOrder, PurchaseItem, Supplier, ProductCondition, Product, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation, Customer, ProductConditionParameter, StorageLocationParameter, WarrantyParameter, ReceiptTermParameter } from '../types.ts';
@@ -8,6 +7,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { XCircleIcon, TrashIcon, PlusIcon, SpinnerIcon, BarcodeIcon, PrinterIcon, ArrowRightCircleIcon, CheckIcon, ChevronLeftIcon, ArchiveBoxIcon } from './icons.tsx';
 import StockSearchModal from './StockSearchModal.tsx';
+import { appleProductHierarchy } from '../services/constants.ts';
 import CurrencyInput from './CurrencyInput.tsx';
 import SearchableDropdown from './SearchableDropdown.tsx';
 import CustomerModal from './CustomerModal.tsx';
@@ -44,8 +44,6 @@ const emptyItem: CurrentItemType = {
     minimumStock: 1,
     controlByBarcode: false,
 };
-
-import { appleProductHierarchy } from '../services/constants.ts';
 
 export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ suppliers, customers = [], products = [], brands, categories, productModels, grades, gradeValues, onClose, purchaseOrderToEdit, onAddNewSupplier, mode = 'erp', userId, userName }) => {
     const isOsMode = mode === 'os';
@@ -515,24 +513,60 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         if (productType === 'Apple') {
             const categoryName = currentItem.productDetails?.category || '';
             const modelName = currentItem.productDetails?.model || '';
+            const storageName = currentItem.storage || '';
+            const colorName = currentItem.productDetails?.color || '';
+
+            // Validação obrigatória: todos os filtros hierárquicos Apple devem estar selecionados
+            if (!categoryName) {
+                showToast('Selecione a categoria do produto Apple (ex: iPhone, iPad).', 'warning');
+                return;
+            }
+            if (!modelName) {
+                showToast('Selecione o modelo do produto Apple.', 'warning');
+                return;
+            }
+            if (!storageName) {
+                showToast('Selecione o armazenamento do produto Apple.', 'warning');
+                return;
+            }
+            if (!colorName) {
+                showToast('Selecione a cor do produto Apple.', 'warning');
+                return;
+            }
+
             if (modelName.includes(categoryName)) {
-                modelString = `${modelName} ${currentItem.storage || ''} ${currentItem.productDetails?.color || ''} ${variationString}`.trim().replace(/\s+/g, ' ');
+                modelString = `${modelName} ${storageName} ${colorName} ${variationString}`.trim().replace(/\s+/g, ' ');
             } else {
-                modelString = `${categoryName} ${modelName} ${currentItem.storage || ''} ${currentItem.productDetails?.color || ''} ${variationString}`.trim().replace(/\s+/g, ' ');
+                modelString = `${categoryName} ${modelName} ${storageName} ${colorName} ${variationString}`.trim().replace(/\s+/g, ' ');
             }
             finalProductDetails.model = modelString;
             finalProductDetails.brand = 'Apple';
         } else {
             const brandObj = localBrands.find(b => String(b.id) === String(currentItem.productDetails?.brand));
             const brandName = brandObj?.name || (currentItem.productDetails?.brand && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(currentItem.productDetails.brand) ? currentItem.productDetails.brand : '');
-            finalProductDetails.brand = brandName;
 
             const categoryObj = localCategories.find(c => String(c.id) === String(currentItem.productDetails?.category));
             const categoryName = categoryObj?.name || (currentItem.productDetails?.category && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(currentItem.productDetails.category) ? currentItem.productDetails.category : '');
-            finalProductDetails.category = categoryName;
 
             const modelObj = localModels.find(m => String(m.id) === String(currentItem.productDetails?.model));
             const modelName = modelObj?.name || (currentItem.productDetails?.model && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(currentItem.productDetails.model) ? currentItem.productDetails.model : '');
+
+            // Validação obrigatória: Marca, Categoria e Modelo devem ser selecionados
+            if (!brandName) {
+                showToast('Selecione a marca do produto.', 'warning');
+                return;
+            }
+            if (!categoryName) {
+                showToast('Selecione a categoria do produto.', 'warning');
+                return;
+            }
+            if (!modelName) {
+                showToast('Selecione o modelo do produto.', 'warning');
+                return;
+            }
+
+            finalProductDetails.brand = brandName;
+            finalProductDetails.category = categoryName;
 
             modelString = [categoryName, brandName, modelName, variationString].filter(Boolean).join(' ').trim().replace(/\s+/g, ' ');
 
@@ -597,7 +631,6 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
         setIsSaving(true);
         try {
             const sanitizedItems = items.map((item) => {
-                const { ...rest } = item; // Keep ID
                 return {
                     id: item.id, // Preserve ID
                     productDetails: {
