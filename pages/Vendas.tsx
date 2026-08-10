@@ -174,6 +174,7 @@ const SaleActionsDropdown: React.FC<{ onEdit: () => void; onView: () => void; on
 
 const Vendas: React.FC = () => {
     const [sales, setSales] = useState<Sale[]>([]);
+    const [historicalSales, setHistoricalSales] = useState<Sale[]>([]); // vendas do período base para projeção (01/jan → fim mês anterior)
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [users, setUsers] = useState<User[]>([]);
@@ -333,15 +334,26 @@ const Vendas: React.FC = () => {
             // Stage 3: Dados de suporte em background (2 requests por vez para não sobrecarregar)
             const productSelect = 'id,sku,brand,category,model,price,wholesalePrice,costPrice,additionalCostPrice,stock,minimumStock,serialNumber,imei1,imei2,batteryHealth,condition,warranty,createdAt,updatedAt,createdBy,color,storageLocation,storage,purchaseOrderId,purchaseItemId,supplierId,origin,commission_enabled,commission_type,commission_value,discount_limit_type,discount_limit_value,barcodes';
 
-            // Grupo A: os dois fetchs de produtos (mais pesados) primeiro
-            const [allProductsData, productsData] = await Promise.all([
+            // Calcula o período base para projeção: 01/jan → último dia do mês anterior
+            const nowBase = new Date();
+            const yearStartStr = new Date(nowBase.getFullYear(), 0, 1).toISOString().split('T')[0];
+            const prevMonthEndDate = new Date(nowBase.getFullYear(), nowBase.getMonth(), 0); // último dia do mês anterior
+            const prevMonthEndStr = prevMonthEndDate.toISOString().split('T')[0];
+            const hasPrevMonth = nowBase.getMonth() > 0; // false em janeiro
+
+            // Grupo A: os dois fetchs de produtos + vendas históricas em paralelo
+            const [allProductsData, productsData, historicalSalesData] = await Promise.all([
                 fetchItem('ProductsAll', () => getProducts({ select: productSelect, onlyInStock: false }), []),
-                fetchItem('Products', () => getProducts({ select: productSelect, onlyInStock: true }), [])
+                fetchItem('Products', () => getProducts({ select: productSelect, onlyInStock: true }), []),
+                hasPrevMonth
+                    ? fetchItem('HistoricalSales', () => getSales(undefined, undefined, yearStartStr, prevMonthEndStr), [])
+                    : Promise.resolve([] as Sale[]),
             ]);
             const pMap: Record<string, Product> = {};
             allProductsData.forEach((p: Product) => { pMap[p.id] = p; });
             setProductMap(pMap);
             setProducts(productsData);
+            setHistoricalSales(historicalSalesData);
 
             // Grupo B: clientes e usuários
             const [customersData, usersData] = await Promise.all([
@@ -591,28 +603,39 @@ const Vendas: React.FC = () => {
         }, 0);
 
         // Projeção baseada na média diária dos meses anteriores do ano atual
-        // Base: 01/jan/ano até último dia do mês anterior (idêntico ao Dashboard)
+        // Base: 01/jan/ano até último dia do mês anterior
+        // Usa historicalSales (carregado em background) para ter dados independente do filtro ativo
         const now = new Date();
-        const yearStart        = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        const prevMonthEnd     = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999); // último dia do mês anterior
         const hasPrevMonthData = now.getMonth() > 0; // false em janeiro
         const daysInBaseWindow = hasPrevMonthData
-            ? Math.round((prevMonthEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+            ? Math.round((new Date(now.getFullYear(), now.getMonth(), 0).getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (1000 * 60 * 60 * 24)) + 1
             : now.getDate(); // fallback: dias passados no mês atual (janeiro)
-        const daysInMonth      = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-        const baseWindowStart = hasPrevMonthData ? yearStart : new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        const baseWindowEnd   = hasPrevMonthData ? prevMonthEnd : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        // Em janeiro, sem histórico anterior, usa as vendas do mês atual como base
+        const baseSource = hasPrevMonthData ? historicalSales : sales;
+        const baseWindowStartFallback = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const baseWindowEndFallback   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-        const basePeriodProfit = sales
-            .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= baseWindowStart && new Date(s.date) <= baseWindowEnd)
-            .reduce((sum, sale) => {
-                const cost = (sale.items || []).reduce((itemSum, item) => {
-                    const product = productMap[item.productId];
-                    return itemSum + getItemCostSnapshot(item, product) * item.quantity;
+        const basePeriodProfit = hasPrevMonthData
+            ? historicalSales
+                .filter(s => s.status !== 'Cancelada')
+                .reduce((sum, sale) => {
+                    const cost = (sale.items || []).reduce((itemSum, item) => {
+                        const product = productMap[item.productId];
+                        return itemSum + getItemCostSnapshot(item, product) * item.quantity;
+                    }, 0);
+                    return sum + sale.total - cost;
+                }, 0)
+            : baseSource
+                .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= baseWindowStartFallback && new Date(s.date) <= baseWindowEndFallback)
+                .reduce((sum, sale) => {
+                    const cost = (sale.items || []).reduce((itemSum, item) => {
+                        const product = productMap[item.productId];
+                        return itemSum + getItemCostSnapshot(item, product) * item.quantity;
+                    }, 0);
+                    return sum + sale.total - cost;
                 }, 0);
-                return sum + sale.total - cost;
-            }, 0);
 
         const dailyAvg = daysInBaseWindow > 0 ? basePeriodProfit / daysInBaseWindow : 0;
 
@@ -626,7 +649,7 @@ const Vendas: React.FC = () => {
         const lucroProjection = dailyAvg * (periodDaysMap[activePeriod] ?? 1);
 
         return { faturamento, lucro, taxas, ticketMedio, lucroProjection };
-    }, [filteredSales, productMap, sales, activePeriod, startDate, endDate]);
+    }, [filteredSales, productMap, sales, historicalSales, activePeriod, startDate, endDate]);
 
     // KPIs por forma de pagamento (apenas vendas ativas no período filtrado)
     const paymentKpis = useMemo(() => {
