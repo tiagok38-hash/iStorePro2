@@ -590,15 +590,22 @@ const Vendas: React.FC = () => {
             return sum + (sale.payments || []).reduce((acc, p) => acc + (p.fees || 0), 0);
         }, 0);
 
-        // Projeção baseada na média diária do mês atual
+        // Projeção baseada na média diária dos meses anteriores do ano atual
+        // Base: 01/jan/ano até último dia do mês anterior (idêntico ao Dashboard)
         const now = new Date();
-        const monthStart        = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        const monthEnd          = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        const daysPassedInMonth = now.getDate();
-        const daysInMonth       = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const yearStart        = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        const prevMonthEnd     = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999); // último dia do mês anterior
+        const hasPrevMonthData = now.getMonth() > 0; // false em janeiro
+        const daysInBaseWindow = hasPrevMonthData
+            ? Math.round((prevMonthEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+            : now.getDate(); // fallback: dias passados no mês atual (janeiro)
+        const daysInMonth      = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-        const monthlyProfit = sales
-            .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= monthStart && new Date(s.date) <= monthEnd)
+        const baseWindowStart = hasPrevMonthData ? yearStart : new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const baseWindowEnd   = hasPrevMonthData ? prevMonthEnd : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        const basePeriodProfit = sales
+            .filter(s => s.status !== 'Cancelada' && new Date(s.date) >= baseWindowStart && new Date(s.date) <= baseWindowEnd)
             .reduce((sum, sale) => {
                 const cost = (sale.items || []).reduce((itemSum, item) => {
                     const product = productMap[item.productId];
@@ -607,7 +614,7 @@ const Vendas: React.FC = () => {
                 return sum + sale.total - cost;
             }, 0);
 
-        const dailyAvg = daysPassedInMonth > 0 ? monthlyProfit / daysPassedInMonth : 0;
+        const dailyAvg = daysInBaseWindow > 0 ? basePeriodProfit / daysInBaseWindow : 0;
 
         const periodDaysMap: Record<string, number> = {
             hoje: 1, '7dias': 7, '15dias': 15, Mes: daysInMonth, personalizado: (() => {
