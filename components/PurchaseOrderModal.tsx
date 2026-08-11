@@ -525,7 +525,9 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 showToast('Selecione o modelo do produto Apple.', 'warning');
                 return;
             }
-            if (!storageName) {
+            // Armazenamento só é obrigatório em categorias que possuem esse atributo
+            // (AirPods, Watch, EarPods e Acessórios são memoryless — não têm storage)
+            if (!isMemoryless && !storageName) {
                 showToast('Selecione o armazenamento do produto Apple.', 'warning');
                 return;
             }
@@ -534,10 +536,12 @@ export const PurchaseOrderModal: React.FC<PurchaseOrderModalProps> = ({ supplier
                 return;
             }
 
+            // Para categorias memoryless, omite o storageName da string do modelo
+            const storageToken = isMemoryless ? '' : storageName;
             if (modelName.includes(categoryName)) {
-                modelString = `${modelName} ${storageName} ${colorName} ${variationString}`.trim().replace(/\s+/g, ' ');
+                modelString = `${modelName} ${storageToken} ${colorName} ${variationString}`.trim().replace(/\s+/g, ' ');
             } else {
-                modelString = `${categoryName} ${modelName} ${storageName} ${colorName} ${variationString}`.trim().replace(/\s+/g, ' ');
+                modelString = `${categoryName} ${modelName} ${storageToken} ${colorName} ${variationString}`.trim().replace(/\s+/g, ' ');
             }
             finalProductDetails.model = modelString;
             finalProductDetails.brand = 'Apple';
