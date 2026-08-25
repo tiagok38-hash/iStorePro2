@@ -164,6 +164,59 @@ export const searchProductsRPC = async (params: SearchProductsParams): Promise<S
             .replace(/[\u0300-\u036f]/g, '')
             .trim();
 
+        // ================================================================
+        // BUSCA POR CÓDIGO LOCALIZADOR DE COMPRA (ex: L1787335993651)
+        // Quando o termo digitado é um locatorId (L + dígitos), buscamos
+        // a ordem de compra correspondente e retornamos todos os produtos
+        // vinculados a ela via purchaseOrderId.
+        // ================================================================
+        if (/^L\d{5,}$/i.test(normalizedQuery)) {
+            try {
+                // Busca a ordem de compra pelo locatorId (case-insensitive)
+                const { data: poResult } = await supabase
+                    .from('purchase_orders')
+                    .select('id')
+                    .ilike('locatorId', normalizedQuery)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (poResult) {
+                    // Busca os produtos da compra com filtros opcionais
+                    let prodQuery = supabase
+                        .from('products')
+                        .select('*')
+                        .eq('purchaseOrderId', poResult.id)
+                        .order('createdAt', { ascending: false });
+
+                    if (stockFilter === 'in_stock') prodQuery = prodQuery.gt('stock', 0);
+                    else if (stockFilter === 'out_of_stock') prodQuery = prodQuery.eq('stock', 0);
+                    if (conditionFilter !== 'Todos') prodQuery = prodQuery.eq('condition', conditionFilter);
+                    if (locationFilter !== 'Todos') prodQuery = prodQuery.eq('storageLocation', locationFilter);
+
+                    const { data: prodData, error: prodError } = await prodQuery;
+                    if (prodError) throw prodError;
+
+                    let mapped: Product[] = (prodData || []).map(mapProduct);
+
+                    // Aplica filtro de tipo localmente
+                    if (typeFilter === 'Produtos Apple') mapped = mapped.filter(p => (p.brand || '').toLowerCase() === 'apple');
+                    else if (typeFilter === 'Produtos Variados') mapped = mapped.filter(p => (p.brand || '').toLowerCase() !== 'apple');
+                    else if (typeFilter === 'Produtos de troca') mapped = mapped.filter(p => p.origin === 'Troca' || p.origin === 'Comprado de Cliente');
+                    else if (typeFilter === 'Com Comissão') mapped = mapped.filter(p => p.commission_enabled === true);
+
+                    const totalCount = mapped.length;
+                    const paginated = mapped.slice(offset, offset + limit);
+                    return { products: paginated, totalCount };
+                }
+
+                // locatorId não encontrado → retorna vazio
+                return { products: [], totalCount: 0 };
+            } catch (err) {
+                console.warn('[searchProductsRPC] Locator ID search failed:', err);
+                return { products: [], totalCount: 0 };
+            }
+        }
+
         // Strict Enforcement for iPhones: Fetch all, sort locally, slice.
         const isIphoneSearch = normalizedQuery.toLowerCase().includes('iphone');
         const fetchLimit = isIphoneSearch ? 2000 : limit;
