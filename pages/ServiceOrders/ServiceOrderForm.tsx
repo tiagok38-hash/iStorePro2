@@ -1598,6 +1598,33 @@ const ServiceOrderForm: React.FC = () => {
                             <h3 className="font-black text-lg text-primary flex items-center gap-2 border-b border-gray-100 pb-2">
                                 <Wrench size={18} className="text-accent" /> Diagnóstico
                             </h3>
+
+                            {/* Fotos do aparelho — visíveis para o técnico sem precisar rolar */}
+                            {photos.length > 0 && (
+                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <ImageIcon size={15} className="text-blue-500" />
+                                        <span className="text-sm font-bold text-blue-700">Fotos do Aparelho ({photos.length})</span>
+                                    </div>
+                                    <div className="flex gap-3 overflow-x-auto pb-1">
+                                        {photos.map((photo, index) => (
+                                            <div
+                                                key={index}
+                                                className="relative w-20 h-20 flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                                                onClick={() => setPreviewPhoto(photo)}
+                                                title={`Foto ${index + 1} — clique para ampliar`}
+                                            >
+                                                <img
+                                                    src={photo}
+                                                    alt={`Foto ${index + 1}`}
+                                                    className="w-full h-full object-cover rounded-lg border border-blue-200 shadow-sm"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-4 flex-1">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>

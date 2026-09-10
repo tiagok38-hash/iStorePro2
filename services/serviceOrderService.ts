@@ -168,8 +168,8 @@ export const getServiceOrders = async (startDate?: string, options?: { select?: 
     // Busca o company_id para isolar o cache por tenant
     const { data: companyId } = await supabase.rpc('get_my_company_id');
 
-    // Janela padrão: últimos 90 dias (sempre inclui OS abertas independente da data)
-    const DEFAULT_WINDOW_DAYS = 90;
+    // Janela padrão: últimos 365 dias (sempre inclui OS abertas independente da data)
+    const DEFAULT_WINDOW_DAYS = 365;
     const effectiveStartDate = startDate ?? (() => {
         const d = new Date();
         d.setDate(d.getDate() - DEFAULT_WINDOW_DAYS);
