@@ -195,6 +195,7 @@ const CreditDashboard: React.FC = () => {
     if (loading) return <div className="p-10 text-center text-gray-500">Carregando carteira de crediário...</div>;
 
     return (
+        <>
         <div className="space-y-6 animate-fade-in bg-white border border-gray-100 rounded-[32px] p-6 shadow-lg">
             {/* Header Actions */}
             <div className="flex justify-end mb-4 gap-2">
@@ -622,6 +623,7 @@ const CreditDashboard: React.FC = () => {
                 onSuccess={fetchData}
             />
         )}
+    </>
     );
 };
 
