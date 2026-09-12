@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Product, Supplier } from '../types.ts';
 import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, ClockIcon } from './icons.tsx';
-import { formatCurrency, getBulkUpdateLogs } from '../services/mockApi.ts';
+import { formatCurrency, getBulkUpdateLogs, getProductsInStock } from '../services/mockApi.ts';
 import CurrencyInput from './CurrencyInput.tsx';
 import { AuditLog } from '../types.ts';
 import { parseSearchTerms, getProductSearchDescription, matchesSearchTerms, sortProductsByRelevance } from '../utils/searchUtils.ts';
@@ -57,6 +57,37 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
         }
     }, [showHistory]);
 
+    const [productsList, setProductsList] = useState<Product[]>(allProducts || []);
+
+    useEffect(() => {
+        let isMounted = true;
+        getProductsInStock().then(inStockProducts => {
+            if (isMounted && inStockProducts && inStockProducts.length > 0) {
+                setProductsList(prev => {
+                    const map = new Map<string, Product>();
+                    prev.forEach(p => map.set(p.id, p));
+                    (allProducts || []).forEach(p => map.set(p.id, p));
+                    inStockProducts.forEach(p => map.set(p.id, p));
+                    return Array.from(map.values());
+                });
+            }
+        }).catch(err => {
+            console.warn('Erro ao carregar estoque em BulkPriceUpdateModal:', err);
+        });
+        return () => { isMounted = false; };
+    }, []);
+
+    useEffect(() => {
+        if (allProducts && allProducts.length > 0) {
+            setProductsList(prev => {
+                const map = new Map<string, Product>();
+                prev.forEach(p => map.set(p.id, p));
+                allProducts.forEach(p => map.set(p.id, p));
+                return Array.from(map.values());
+            });
+        }
+    }, [allProducts]);
+
     useEffect(() => {
         document.body.style.overflow = 'hidden';
         return () => {
@@ -74,7 +105,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
                 return;
             }
 
-            const results = allProducts.filter(p => {
+            const results = productsList.filter(p => {
                 const conditionMatch = conditionFilter === 'todas' || p.condition === conditionFilter;
                 const stockMatch = p.stock > 0;
                 
@@ -94,7 +125,7 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
         }, 400);
 
         return () => clearTimeout(timer);
-    }, [searchTerm, conditionFilter, allProducts]);
+    }, [searchTerm, conditionFilter, productsList]);
 
     const handleSearch = () => {
         // Now handled automatically by the useEffect

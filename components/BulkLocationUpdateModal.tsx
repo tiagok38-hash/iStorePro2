@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Product, StorageLocationParameter, PurchaseOrder, AuditLog, Supplier } from '../types.ts';
 import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, MapPinIcon, CheckIcon, ClockIcon, ChevronLeftIcon, PlusIcon, CubeIcon } from './icons.tsx';
-import { getStorageLocations, getAuditLogs, getProducts } from '../services/mockApi.ts';
+import { getStorageLocations, getAuditLogs, getProducts, getProductsInStock, searchProductsRPC } from '../services/mockApi.ts';
 import { parseSearchTerms, getProductSearchDescription, matchesSearchTerms, sortProductsByRelevance } from '../utils/searchUtils.ts';
 
 interface BulkLocationUpdateModalProps {
@@ -27,6 +27,7 @@ interface LocationChangeHistoryItem {
 }
 
 const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allProducts, purchases, suppliers = [], onClose, onBulkUpdate }) => {
+    const [productsList, setProductsList] = useState<Product[]>(allProducts || []);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<Product[]>([]);
     const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
@@ -45,12 +46,42 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
     useEffect(() => {
         document.body.style.overflow = 'hidden';
         getStorageLocations().then(setStorageLocations).catch(() => { });
+        
+        // Carrega TODOS os produtos em estoque do banco para garantir que nenhum produto fique invisível
+        let isMounted = true;
+        getProductsInStock().then(inStockProducts => {
+            if (isMounted && inStockProducts && inStockProducts.length > 0) {
+                setProductsList(prev => {
+                    const map = new Map<string, Product>();
+                    prev.forEach(p => map.set(p.id, p));
+                    (allProducts || []).forEach(p => map.set(p.id, p));
+                    inStockProducts.forEach(p => map.set(p.id, p));
+                    return Array.from(map.values());
+                });
+            }
+        }).catch(err => {
+            console.warn('Erro ao carregar todos os produtos em estoque no modal:', err);
+        });
+
         // Focus on input when modal opens
         setTimeout(() => inputRef.current?.focus(), 100);
         return () => {
+            isMounted = false;
             document.body.style.overflow = 'unset';
         };
     }, []);
+
+    // Sincroniza se a lista allProducts recebida por props for atualizada
+    useEffect(() => {
+        if (allProducts && allProducts.length > 0) {
+            setProductsList(prev => {
+                const map = new Map<string, Product>();
+                prev.forEach(p => map.set(p.id, p));
+                allProducts.forEach(p => map.set(p.id, p));
+                return Array.from(map.values());
+            });
+        }
+    }, [allProducts]);
 
     // Clear the "added" feedback after 2 seconds
     useEffect(() => {
@@ -145,7 +176,7 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
                 .map(po => po.id)
         );
 
-        const results = allProducts.filter(p => {
+        const results = productsList.filter(p => {
             if (p.stock <= 0) return false;
             // Skip if already selected
             if (selectedProducts.some(sp => sp.id === p.id)) return false;
@@ -162,9 +193,35 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
         // Sort by relevance
         const sortedResults = sortProductsByRelevance(results, searchPhrase, terms);
 
-        // Limit to top 20 results for performance
-        setSearchResults(sortedResults.slice(0, 20));
+        // Allow up to 50 results
+        setSearchResults(sortedResults.slice(0, 50));
         setIsSearching(false);
+
+        // Fallback no servidor caso não encontre localmente e o termo tenha pelo menos 2 caracteres
+        if (results.length === 0 && currentTerm.trim().length >= 2) {
+            const queryTerm = currentTerm.trim();
+            searchProductsRPC({
+                query: queryTerm,
+                stockFilter: 'in_stock',
+                limit: 30
+            }).then(rpcRes => {
+                if (rpcRes && rpcRes.products && rpcRes.products.length > 0) {
+                    const filtered = rpcRes.products.filter(p => 
+                        p.stock > 0 && !selectedProducts.some(sp => sp.id === p.id)
+                    );
+                    if (filtered.length > 0) {
+                        setSearchResults(filtered);
+                        setProductsList(prev => {
+                            const map = new Map(prev.map(p => [p.id, p]));
+                            filtered.forEach(p => map.set(p.id, p));
+                            return Array.from(map.values());
+                        });
+                    }
+                }
+            }).catch(err => {
+                console.warn('Erro na busca de fallback no servidor:', err);
+            });
+        }
     };
 
     const addProductToSelected = (product: Product) => {
@@ -194,9 +251,9 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
         }
 
         // Immediate exact match logic (Scanner behavior)
-        if (trimmedValue.length >= 6) {
+        if (trimmedValue.length >= 4) {
             const normalizedInput = trimmedValue.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const matches = allProducts.filter(p => {
+            const matches = productsList.filter(p => {
                 if (p.stock <= 0) return false;
                 if (selectedProducts.some(sp => sp.id === p.id)) return false;
 
@@ -217,14 +274,18 @@ const BulkLocationUpdateModal: React.FC<BulkLocationUpdateModalProps> = ({ allPr
             if (matches.length === 1) {
                 addProductToSelected(matches[0]);
             }
-            // If multiple matches (e.g. same EAN for multiple devices), handleSearch will show them in the results list
         }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            handleSearch();
+            // Se houver exatamente 1 resultado de busca, seleciona automaticamente
+            if (searchResults.length === 1) {
+                addProductToSelected(searchResults[0]);
+            } else {
+                handleSearch();
+            }
             // Clear search after Enter for scanner workflow
             setTimeout(() => {
                 setSearchTerm('');

@@ -58,9 +58,36 @@ export const matchesSearchTerms = (
         return desc.includes(term) || descNoSpaces.includes(term.replace(/\s+/g, ''));
     });
 
-    // Strict modifier check: if product model has 'pro', 'max', 'plus' or 'mini', 
-    // the search terms MUST also include it.
-    if (searchMatch) {
+    if (!searchMatch) return false;
+
+    // Check if any search term matched identifier fields (IMEI, Serial, Barcodes, SKU)
+    const isIdentifierMatch = terms.some(term => {
+        const cleanTerm = term.replace(/[^a-z0-9]/gi, '').toLowerCase();
+        if (cleanTerm.length >= 2) {
+            const imei1 = (product.imei1 || '').toLowerCase();
+            const imei2 = (product.imei2 || '').toLowerCase();
+            const sn = (product.serialNumber || '').toLowerCase();
+            const sku = (product.sku || '').toLowerCase();
+            const barcodes = (product.barcodes || []).map(b => b.toLowerCase());
+            return imei1.includes(cleanTerm) || 
+                   imei2.includes(cleanTerm) || 
+                   sn.includes(cleanTerm) || 
+                   sku.includes(cleanTerm) || 
+                   barcodes.some(b => b.includes(cleanTerm));
+        }
+        return false;
+    });
+
+    // If search term matched an identifier, never filter out by modifiers
+    if (isIdentifierMatch) {
+        return true;
+    }
+
+    // Strict modifier check: ONLY apply if searching specifically for a base iPhone model
+    // (e.g. "iphone 15" shouldn't match "iphone 15 pro").
+    // Do NOT apply to accessories/categories like AirPods, MacBook, iPad, cables or partial text.
+    const isIphoneBaseModelQuery = terms.some(t => t.includes('iphone')) && terms.some(t => /^\d+$/.test(t));
+    if (isIphoneBaseModelQuery) {
         const modelStr = `${product.model || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
         for (const mod of missingModifiers) {
             const regex = new RegExp(`\\b${mod}\\b`);
