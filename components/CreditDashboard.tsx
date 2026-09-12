@@ -13,6 +13,7 @@ import {
 import InstallmentPaymentModal from './modals/InstallmentPaymentModal.tsx';
 import CreditSettingsModal from './modals/CreditSettingsModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
+import ManualDebitModal from './modals/ManualDebitModal.tsx';
 import StatusBadge from './StatusBadge.tsx';
 import { CarnetPrintButton } from './print/CarnetPrintButton';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -39,6 +40,7 @@ const CreditDashboard: React.FC = () => {
     const [submittingMethod, setSubmittingMethod] = useState(false);
     const [installmentToDelete, setInstallmentToDelete] = useState<CreditInstallment | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isManualDebitOpen, setIsManualDebitOpen] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -195,7 +197,14 @@ const CreditDashboard: React.FC = () => {
     return (
         <div className="space-y-6 animate-fade-in bg-white border border-gray-100 rounded-[32px] p-6 shadow-lg">
             {/* Header Actions */}
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-4 gap-2">
+                <button
+                    onClick={() => setIsManualDebitOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 rounded-xl text-xs font-black text-white shadow-md shadow-violet-300/40 transition-all"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Novo Débito
+                </button>
                 <button
                     onClick={() => setIsSettingsOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 hover:border-violet-200 transition-all shadow-sm"
@@ -371,7 +380,18 @@ const CreditDashboard: React.FC = () => {
                                                         <td className="pl-6 sm:pl-10 py-4">
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm font-black text-gray-900">#{inst.installmentNumber}/{inst.totalInstallments}</span>
-                                                                <span className="text-[10px] font-bold text-gray-400 uppercase">Venda #{inst.saleDisplayId}</span>
+                                                                {(inst as any).debitOrigin === 'manual' ? (
+                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-black bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full uppercase tracking-wider w-fit mt-0.5">
+                                                                        ✦ Manual
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Venda #{inst.saleDisplayId}</span>
+                                                                )}
+                                                                {(inst as any).description && (
+                                                                    <span className="text-[10px] font-medium text-gray-500 mt-0.5 max-w-[120px] truncate" title={(inst as any).description}>
+                                                                        {(inst as any).description}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </td>
 
@@ -595,6 +615,13 @@ const CreditDashboard: React.FC = () => {
                 </div>
             )}
         </div>
+
+        {isManualDebitOpen && (
+            <ManualDebitModal
+                onClose={() => setIsManualDebitOpen(false)}
+                onSuccess={fetchData}
+            />
+        )}
     );
 };
 

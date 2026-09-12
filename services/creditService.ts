@@ -79,8 +79,8 @@ export const updateCreditSettings = async (settings: Partial<CreditSettings>): P
 
 export const addCreditInstallments = async (installments: Partial<CreditInstallment>[]): Promise<CreditInstallment[]> => {
     const payload = installments.map(i => ({
-        id: i.id, // Include ID if provided
-        sale_id: i.saleId,
+        id: i.id,
+        sale_id: i.saleId || null,
         customer_id: i.customerId,
         installment_number: i.installmentNumber,
         total_installments: i.totalInstallments,
@@ -89,7 +89,9 @@ export const addCreditInstallments = async (installments: Partial<CreditInstallm
         status: i.status,
         amount_paid: i.amountPaid,
         interest_applied: i.interestApplied,
-        penalty_applied: i.penaltyApplied
+        penalty_applied: i.penaltyApplied,
+        description: (i as any).description || null,
+        debit_origin: (i as any).debitOrigin || 'sale',
     }));
 
     const { data, error } = await supabase
@@ -116,9 +118,12 @@ export const addCreditInstallments = async (installments: Partial<CreditInstallm
         penaltyApplied: Number(d.penalty_applied),
         paidAt: d.paid_at,
         paymentMethod: d.payment_method,
-        observation: d.observation
+        observation: d.observation,
+        description: d.description || null,
+        debitOrigin: d.debit_origin || 'sale',
     }));
 };
+
 
 export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
     const { data, error } = await supabase
@@ -156,7 +161,9 @@ export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
         paidAt: d.paid_at,
         createdAt: d.created_at,
         paymentMethod: d.payment_method,
-        observation: d.observation
+        observation: d.observation,
+        description: d.description || null,
+        debitOrigin: d.debit_origin || 'sale',
     }));
 };
 
@@ -381,3 +388,66 @@ export const deleteInstallment = async (id: string, userId?: string, userName?: 
     clearCache(['credit_installments']);
 };
 
+// ============================================================
+// MANUAL DEBIT — Débito avulso sem venda associada
+// ============================================================
+
+export interface ManualDebitInput {
+    customerId: string;
+    debitDate: string;          // ISO date (YYYY-MM-DD)
+    description: string;        // tipo/nome do débito
+    totalAmount: number;
+    installments: number;       // número de parcelas (1..36)
+}
+
+export const addManualDebit = async (
+    input: ManualDebitInput,
+    userId: string = 'system',
+    userName: string = 'Sistema'
+): Promise<void> => {
+    const { customerId, debitDate, description, totalAmount, installments } = input;
+
+    if (!customerId) throw new Error('Cliente obrigatório.');
+    if (!description?.trim()) throw new Error('Tipo/nome do débito obrigatório.');
+    if (totalAmount <= 0) throw new Error('Valor deve ser maior que zero.');
+    if (installments < 1 || installments > 36) throw new Error('Número de parcelas inválido.');
+
+    const installmentAmount = Math.round((totalAmount / installments) * 100) / 100;
+    const baseDate = new Date(debitDate + 'T12:00:00');
+
+    const payload = Array.from({ length: installments }, (_, k) => {
+        const dueDate = new Date(baseDate);
+        dueDate.setMonth(dueDate.getMonth() + k);
+        return {
+            id: crypto.randomUUID(),
+            saleId: undefined as any,
+            customerId,
+            installmentNumber: k + 1,
+            totalInstallments: installments,
+            dueDate: dueDate.toISOString().split('T')[0],
+            amount: installmentAmount,
+            status: 'pending' as const,
+            amountPaid: 0,
+            interestApplied: 0,
+            penaltyApplied: 0,
+            description,
+            debitOrigin: 'manual',
+        };
+    });
+
+    await addCreditInstallments(payload);
+
+    if (_syncCustomerCreditLimit) {
+        const totalUsed = await _syncCustomerCreditLimit(customerId);
+        await addAuditLog(
+            AuditActionType.UPDATE,
+            AuditEntityType.CUSTOMER,
+            customerId,
+            `Débito manual criado: "${description}" — ${installments}x de ${formatCurrency(installmentAmount)} | Novo saldo devedor: ${formatCurrency(totalUsed)}`,
+            userId,
+            userName
+        );
+    }
+
+    clearCache(['credit_installments', 'customers']);
+};
