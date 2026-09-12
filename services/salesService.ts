@@ -1067,79 +1067,6 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             } catch (e) { console.error('[updateSale] Error creating installments:', e); }
         }
 
-        // Reconcile payments if they changed between Finalizada/Editada states
-        if ((oldStatus === 'Finalizada' || oldStatus === 'Editada') && (newStatus === 'Finalizada' || newStatus === 'Editada')) {
-            const oldCreditPayments = originalSale?.payments?.filter((p: any) => p.method === 'Crediário') || [];
-            const newCreditPayments = updated.payments?.filter((p: any) => p.method === 'Crediário') || [];
-
-            const oldCreditJSON = JSON.stringify(oldCreditPayments);
-            const newCreditJSON = JSON.stringify(newCreditPayments);
-
-            if (oldCreditJSON !== newCreditJSON) {
-                try {
-                    const oldCreditTotal = oldCreditPayments.reduce((s: number, p: any) => s + (p.value || 0), 0);
-                    if (oldCreditTotal > 0 && originalSale?.customer_id) {
-                        await supabase.from('credit_installments').delete().eq('sale_id', updated.id);
-                        // We will recalculate the customer credit_used at the end via syncCustomerCreditLimit
-                    }
-
-                    if (newCreditPayments.length > 0 && updated.customer_id) {
-                        let totalAdded = 0;
-                        for (const credPayment of newCreditPayments) {
-                            const cDetails = credPayment.creditDetails || {};
-                            let cPreviews = cDetails.installmentsPreview || [];
-
-                            if (!cPreviews.length) {
-                                const amt = Number(cDetails.financedAmount) || Number(credPayment.value) || 0;
-                                const cnt = Number(cDetails.totalInstallments) || 1;
-                                const val = amt / cnt;
-                                const dt = new Date(updated.date || new Date().toISOString());
-                                dt.setDate(dt.getDate() + 30);
-
-                                for (let k = 0; k < cnt; k++) {
-                                    const d = new Date(dt);
-                                    d.setMonth(d.getMonth() + k);
-                                    cPreviews.push({ number: k + 1, date: d.toISOString().split('T')[0], amount: val });
-                                }
-                            }
-
-                            const iPayload = cPreviews.map((p: any) => ({
-                                id: crypto.randomUUID(),
-                                saleId: updated.id,
-                                customerId: updated.customer_id,
-                                installmentNumber: p.number,
-                                totalInstallments: cPreviews.length,
-                                dueDate: p.date,
-                                amount: p.amount,
-                                status: 'pending',
-                                amountPaid: 0,
-                                interestApplied: Number(cDetails.interestRate || 0) > 0 ? (p.amount * (Number(cDetails.interestRate) / 100)) / cPreviews.length : 0,
-                                penaltyApplied: 0
-                            }));
-
-                            await addCreditInstallments(iPayload);
-                            totalAdded += iPayload.reduce((s: number, i: any) => s + i.amount, 0);
-                        }
-
-                        if (totalAdded > 0) {
-                            await supabase.from('sales').update({ current_debt_balance: totalAdded }).eq('id', updated.id);
-                            await syncCustomerCreditLimit(updated.customer_id);
-                            await addAuditLog(AuditActionType.UPDATE, AuditEntityType.CUSTOMER, updated.customer_id, `Crédito re-aplicado em edição de venda #${updated.display_id}`, userId, userName);
-                        } else {
-                            await supabase.from('sales').update({ current_debt_balance: 0 }).eq('id', updated.id);
-                            await syncCustomerCreditLimit(updated.customer_id);
-                        }
-                    } else if (originalSale?.customer_id && oldCreditTotal > 0) {
-                        // All credit payments were removed
-                        await supabase.from('sales').update({ current_debt_balance: 0 }).eq('id', updated.id);
-                        await syncCustomerCreditLimit(originalSale.customer_id);
-                    }
-                } catch (err) {
-                    console.error('[updateSale] Error reconciling credit installments during edit:', err);
-                }
-            }
-        }
-
         // TELEGRAM NOTIFICATION: Send notification when pending sale is finalized
         try {
             let totalProfit = 0;
@@ -1241,6 +1168,115 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
             });
         } catch (telegramError) {
             console.warn('[updateSale] Telegram notification failed:', telegramError);
+        }
+    }
+
+    // CREDIÁRIO RECONCILIATION: Runs independently whenever sale stays/becomes Finalizada or Editada.
+    // This block is intentionally OUTSIDE the Pendente→Finalizada block above so it executes
+    // on every edit regardless of how many times the sale has been edited.
+    // Covers: Finalizada/Editada → Finalizada/Editada (including adding crediário after multiple edits)
+    if (
+        (oldStatus === 'Finalizada' || oldStatus === 'Editada') &&
+        (newStatus === 'Finalizada' || newStatus === 'Editada') &&
+        updated.customer_id
+    ) {
+        const oldCreditPayments = (originalSale?.payments || []).filter((p: any) =>
+            ['Crediário', 'Crediario'].includes(p.method)
+        );
+        const newCreditPayments = (updated.payments || []).filter((p: any) =>
+            ['Crediário', 'Crediario'].includes(p.method)
+        );
+
+        const oldCreditJSON = JSON.stringify(oldCreditPayments);
+        const newCreditJSON = JSON.stringify(newCreditPayments);
+
+        // Only reconcile if something actually changed (avoids unnecessary DB work)
+        if (oldCreditJSON !== newCreditJSON) {
+            try {
+                // Step 1: Remove all existing PENDING installments for this sale
+                // (paid installments are preserved — they must not be deleted)
+                await supabase
+                    .from('credit_installments')
+                    .delete()
+                    .eq('sale_id', updated.id)
+                    .eq('status', 'pending');
+
+                if (newCreditPayments.length > 0) {
+                    // Step 2: Recreate installments based on current credit details
+                    let totalAdded = 0;
+                    for (const credPayment of newCreditPayments) {
+                        const cDetails = credPayment.creditDetails || {};
+                        let cPreviews = cDetails.installmentsPreview || [];
+
+                        // Fallback: generate preview if not provided
+                        if (!cPreviews.length) {
+                            const amt = Number(cDetails.financedAmount) || Number(credPayment.value) || 0;
+                            const cnt = Number(cDetails.totalInstallments) || 1;
+                            const val = amt / cnt;
+                            const dt = new Date(updated.date || new Date().toISOString());
+                            dt.setDate(dt.getDate() + 30);
+
+                            for (let k = 0; k < cnt; k++) {
+                                const d = new Date(dt);
+                                d.setMonth(d.getMonth() + k);
+                                cPreviews.push({ number: k + 1, date: d.toISOString().split('T')[0], amount: val });
+                            }
+                        }
+
+                        const iPayload = cPreviews.map((p: any) => ({
+                            id: crypto.randomUUID(),
+                            saleId: updated.id,
+                            customerId: updated.customer_id,
+                            installmentNumber: p.number,
+                            totalInstallments: cPreviews.length,
+                            dueDate: p.date,
+                            amount: p.amount,
+                            status: 'pending',
+                            amountPaid: 0,
+                            interestApplied:
+                                Number(cDetails.interestRate || 0) > 0
+                                    ? (p.amount * (Number(cDetails.interestRate) / 100)) / cPreviews.length
+                                    : 0,
+                            penaltyApplied: 0
+                        }));
+
+                        await addCreditInstallments(iPayload);
+                        totalAdded += iPayload.reduce((s: number, i: any) => s + i.amount, 0);
+                    }
+
+                    // Step 3: Update debt balance on the sale + sync customer limit
+                    await supabase
+                        .from('sales')
+                        .update({ current_debt_balance: totalAdded })
+                        .eq('id', updated.id);
+                    await syncCustomerCreditLimit(updated.customer_id);
+                    await addAuditLog(
+                        AuditActionType.UPDATE,
+                        AuditEntityType.CUSTOMER,
+                        updated.customer_id,
+                        `Crediário atualizado na edição da venda #${updated.display_id}`,
+                        userId,
+                        userName
+                    );
+                } else {
+                    // Crediário foi removido: zerar saldo devedor desta venda
+                    await supabase
+                        .from('sales')
+                        .update({ current_debt_balance: 0 })
+                        .eq('id', updated.id);
+                    await syncCustomerCreditLimit(updated.customer_id);
+                    await addAuditLog(
+                        AuditActionType.UPDATE,
+                        AuditEntityType.CUSTOMER,
+                        updated.customer_id,
+                        `Crediário removido na edição da venda #${updated.display_id}`,
+                        userId,
+                        userName
+                    );
+                }
+            } catch (err) {
+                console.error('[updateSale] Error reconciling credit installments:', err);
+            }
         }
     }
 
