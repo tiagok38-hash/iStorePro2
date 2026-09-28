@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Product, Category, Brand, ProductModel, ProductConditionParameter, StorageLocationParameter } from '../types.ts';
 import { getCategories, getBrands, getProductModels, getProductConditions, getStorageLocations, formatCurrency, getProductsInStock } from '../services/mockApi.ts';
 import { formatStorageUnit } from '../utils/formatters.ts';
-import { CloseIcon, AppleIcon, SmartphoneIcon, DocumentTextIcon, CheckIcon, ChevronRightIcon, ChevronLeftIcon, SpinnerIcon } from './icons.tsx';
+import { CloseIcon, AppleIcon, SmartphoneIcon, DocumentTextIcon, CheckIcon, ChevronRightIcon, ChevronLeftIcon, SpinnerIcon, SuccessIcon } from './icons.tsx';
 
 interface PriceListModalProps {
     isOpen: boolean;
@@ -837,6 +837,38 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
         }
     };
 
+    const handleOpenStockCheck = () => {
+        const locationName = (showStockLocation && selectedLocationId)
+            ? locations.find(l => l.id === selectedLocationId)?.name
+            : undefined;
+
+        const filteredIds = filteredForStep.map(p => p.id);
+
+        const filterPayload = {
+            active: true,
+            source: 'pricelist',
+            selectedType,
+            categories: selectedCategories,
+            conditions: selectedConditions,
+            models: selectedModels,
+            storages: selectedStorages,
+            colors: selectedColors,
+            brands: selectedBrands,
+            locationName,
+            productIds: filteredIds,
+            timestamp: Date.now(),
+            totalCount: filteredIds.length
+        };
+
+        try {
+            localStorage.setItem('istore_stock_check_filters', JSON.stringify(filterPayload));
+        } catch (e) {
+            console.error('Erro ao salvar filtros para conferência:', e);
+        }
+
+        window.open('#/conferencia-estoque?from=pricelist&t=' + Date.now(), '_blank');
+    };
+
     const toggleSelection = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, item: string) => {
         if (list.includes(item)) {
             setList(list.filter(i => i !== item));
@@ -1231,12 +1263,22 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ isOpen, onClose, produc
                             </>
                         )}
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <button
                             onClick={onClose}
-                            className="px-3 sm:px-6 py-2 text-xs sm:text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+                            className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
                         >
                             Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleOpenStockCheck}
+                            disabled={step === 'type' || filteredForStep.length === 0 || isLoadingProducts}
+                            className="h-12 px-4 sm:px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-600/20 uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap border border-emerald-500/30 disabled:opacity-50 disabled:shadow-none"
+                            title="Abrir Conferência de Estoque com os produtos selecionados"
+                        >
+                            <SuccessIcon className="w-5 h-5 text-white" />
+                            <span>Conferência ({filteredForStep.length})</span>
                         </button>
                         <button
                             onClick={handleGenerate}

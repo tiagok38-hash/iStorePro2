@@ -72,6 +72,7 @@ const AvaliacaoLayout = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoL
 const AvaliacaoConfig = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoConfig.tsx'), 'AvaliacaoConfig');
 const AvaliacaoLeads = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoLeads.tsx'), 'AvaliacaoLeads');
 const AvaliacaoPublic = lazyWithRetry(() => import('./pages/Avaliacao/AvaliacaoPublic.tsx'), 'AvaliacaoPublic');
+const StockCheck = lazyWithRetry(() => import('./pages/StockCheck.tsx'), 'StockCheck');
 
 const GlobalChat = () => {
     const { isChatOpen, closeChat } = useChat();
@@ -195,6 +196,11 @@ const App: React.FC = () => {
                                                 <Route path="config" element={<AvaliacaoConfig />} />
                                                 <Route path="leads" element={<AvaliacaoLeads />} />
                                             </Route>
+                                        </Route>
+
+                                        {/* Conferência de Estoque (Immersive) */}
+                                        <Route element={<ProtectedRoute permissionKey="canAccessEstoque" />}>
+                                            <Route path="/conferencia-estoque" element={<StockCheck />} />
                                         </Route>
                                     </Route>
 

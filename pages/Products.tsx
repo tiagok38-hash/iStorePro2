@@ -29,7 +29,7 @@ import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
     TicketIcon, DocumentArrowUpIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,
     BanknotesIcon, DocumentTextIcon, ArrowsUpDownIcon, ShoppingCartIcon, ChevronLeftIcon, ChevronRightIcon,
-    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon, ClockIcon, PrinterIcon
+    ArrowUturnLeftIcon, AdjustmentsHorizontalIcon, CurrencyDollarIcon, MapPinIcon, ChevronDownIcon, ClockIcon, PrinterIcon, SuccessIcon
 } from '../components/icons.tsx';
 
 import { lazyWithRetry, lazyWithRetryNamed } from '../utils/lazyWithRetry.ts';
@@ -1516,12 +1516,22 @@ const Products: React.FC = () => {
                     ))}
                 </div>
 
-                <button
-                    onClick={() => setIsPriceListModalOpen(true)}
-                    className="h-12 px-6 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap"
-                >
-                    <DocumentTextIcon className="h-6 w-6" /> Gerar Relatório
-                </button>
+                <div className="flex items-center gap-2.5">
+                    <button
+                        onClick={() => window.open('#/conferencia-estoque?full=true', '_blank')}
+                        className="h-12 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black flex items-center gap-2.5 shadow-lg shadow-emerald-600/20 uppercase tracking-widest transition-all active:scale-95 border border-emerald-500/30 whitespace-nowrap"
+                        title="Abrir ferramenta de conferência de estoque geral em nova aba"
+                    >
+                        <SuccessIcon className="h-5 w-5 text-white" /> Conferência
+                    </button>
+
+                    <button
+                        onClick={() => setIsPriceListModalOpen(true)}
+                        className="h-12 px-6 bg-gradient-to-br from-[#9c89ff] to-[#7B61FF] text-white rounded-2xl hover:opacity-95 text-xs font-black flex items-center gap-3 shadow-lg shadow-indigo-500/20 uppercase tracking-widest transition-all active:scale-95 border border-white/20 whitespace-nowrap"
+                    >
+                        <DocumentTextIcon className="h-6 w-6" /> Gerar Relatório
+                    </button>
+                </div>
             </div>
 
             {(loading || authLoading) ? (
