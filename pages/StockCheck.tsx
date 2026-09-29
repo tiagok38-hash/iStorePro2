@@ -678,8 +678,21 @@ export const StockCheck: React.FC = () => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Bipe com leitor de código de barras ou digite IMEI, Serial, SKU..."
-                            className="w-full pl-12 pr-28 py-3.5 bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-slate-100 placeholder-slate-500 rounded-xl text-sm font-medium transition-all shadow-inner outline-none"
+                            className="w-full pl-12 pr-28 py-3.5 bg-slate-900 border border-slate-700/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-slate-100 placeholder-slate-500 rounded-xl text-sm font-medium transition-all shadow-inner outline-none"
                         />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    searchInputRef.current?.focus();
+                                }}
+                                className="absolute right-24 p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 transition-colors"
+                                title="Limpar campo de busca"
+                            >
+                                <CloseIcon className="w-4 h-4" />
+                            </button>
+                        )}
                         <button
                             type="submit"
                             className="absolute right-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-lg uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-emerald-600/20"
@@ -857,7 +870,7 @@ export const StockCheck: React.FC = () => {
 
                                                         {/* Linhas de Produtos Individuais */}
                                                         {!isModelCollapsed && (
-                                                            <div className="divide-y divide-slate-800/50">
+                                                            <div className="divide-y divide-slate-800/60">
                                                                 {items.map((product) => {
                                                                     const isChecked = !!session.checkedMap[product.id];
                                                                     const checkMeta = session.checkedMap[product.id];
@@ -868,115 +881,134 @@ export const StockCheck: React.FC = () => {
                                                                             key={product.id}
                                                                             id={`product-row-${product.id}`}
                                                                             onClick={() => handleToggleCheck(product.id)}
-                                                                            className={`p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 transition-all cursor-pointer select-none ${
+                                                                            className={`p-3.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all cursor-pointer select-none ${
                                                                                 isChecked
-                                                                                    ? 'bg-emerald-950/20 hover:bg-emerald-950/30 border-l-4 border-l-emerald-500'
-                                                                                    : 'hover:bg-slate-800/40 border-l-4 border-l-transparent'
+                                                                                    ? 'bg-emerald-950/25 hover:bg-emerald-950/35 border-l-4 border-l-emerald-500'
+                                                                                    : 'hover:bg-slate-850/50 border-l-4 border-l-transparent'
                                                                             } ${isRecent ? 'ring-2 ring-emerald-400 bg-emerald-900/30' : ''}`}
                                                                         >
                                                                             {/* Detalhes do Produto */}
-                                                                            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                                                            <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+                                                                                {/* Linha 1: Título do modelo e especificações de acabamento */}
                                                                                 <div className="flex flex-wrap items-center gap-2">
-                                                                                    <span className={`text-sm font-bold tracking-tight ${isChecked ? 'text-emerald-300 line-through decoration-emerald-500/40' : 'text-slate-100'}`}>
+                                                                                    <span className={`text-base sm:text-lg font-black tracking-tight ${isChecked ? 'text-emerald-300 line-through decoration-emerald-500/40' : 'text-slate-100'}`}>
                                                                                         {product.model}
                                                                                     </span>
 
                                                                                     {product.storage && (
-                                                                                        <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-extrabold border border-slate-700">
+                                                                                        <span className="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-100 text-xs font-black border border-slate-700 shadow-sm">
                                                                                             {formatStorageUnit(product.storage)}
                                                                                         </span>
                                                                                     )}
 
                                                                                     {product.color && (
-                                                                                        <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-bold border border-slate-700">
+                                                                                        <span className="px-2.5 py-0.5 rounded-lg bg-slate-800/90 text-slate-200 text-xs font-bold border border-slate-700/80">
                                                                                             {product.color}
                                                                                         </span>
                                                                                     )}
 
                                                                                     {product.condition && (
-                                                                                        <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 text-[10px] font-bold border border-indigo-500/20 uppercase">
+                                                                                        <span className="px-2.5 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-300 text-[11px] font-black border border-indigo-500/30 uppercase tracking-wider">
                                                                                             {product.condition}
                                                                                         </span>
                                                                                     )}
 
                                                                                     {product.batteryHealth > 0 && (
-                                                                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${
+                                                                                        <span className={`px-2 py-0.5 rounded-lg text-[11px] font-black border ${
                                                                                             product.batteryHealth >= 80
-                                                                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                                                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                                                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                                                                                : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                                                                                         }`}>
                                                                                             🔋 {product.batteryHealth}%
                                                                                         </span>
                                                                                     )}
-                                                                                </div>
-
-                                                                                {/* Identificadores (IMEI, Serial, SKU, Localização) */}
-                                                                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 font-mono">
-                                                                                    {product.imei1 && (
-                                                                                        <span className="flex items-center gap-1">
-                                                                                            <span className="text-slate-500 font-sans font-semibold">IMEI 1:</span>
-                                                                                            <strong className="text-slate-200 select-all">{product.imei1}</strong>
-                                                                                        </span>
-                                                                                    )}
-
-                                                                                    {product.imei2 && (
-                                                                                        <span className="flex items-center gap-1">
-                                                                                            <span className="text-slate-500 font-sans font-semibold">IMEI 2:</span>
-                                                                                            <strong className="text-slate-300 select-all">{product.imei2}</strong>
-                                                                                        </span>
-                                                                                    )}
-
-                                                                                    {product.serialNumber && (
-                                                                                        <span className="flex items-center gap-1">
-                                                                                            <span className="text-slate-500 font-sans font-semibold">S/N:</span>
-                                                                                            <strong className="text-slate-200 select-all">{product.serialNumber}</strong>
-                                                                                        </span>
-                                                                                    )}
-
-                                                                                    {product.sku && (
-                                                                                        <span className="flex items-center gap-1">
-                                                                                            <span className="text-slate-500 font-sans font-semibold">SKU:</span>
-                                                                                            <span className="text-slate-300">{product.sku}</span>
-                                                                                        </span>
-                                                                                    )}
 
                                                                                     {product.storageLocation && (
-                                                                                        <span className="flex items-center gap-1 font-sans text-amber-400/90 font-bold">
+                                                                                        <span className="px-2.5 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 text-xs font-bold border border-amber-500/30 flex items-center gap-1">
                                                                                             📍 {product.storageLocation}
                                                                                         </span>
                                                                                     )}
                                                                                 </div>
 
+                                                                                {/* Linha 2: IDENTIFICADORES DESTACADOS E MAIORES (IMEI, SN, SKU) */}
+                                                                                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                                                                                    {product.imei1 && (
+                                                                                        <div className="inline-flex items-center gap-2 bg-slate-900/95 hover:bg-slate-900 border border-slate-700/90 px-3 py-1.5 rounded-xl shadow-sm transition-colors">
+                                                                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                                                                                                IMEI
+                                                                                            </span>
+                                                                                            <span className="text-sm sm:text-base font-mono font-black text-white tracking-widest select-all">
+                                                                                                {product.imei1}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    {product.imei2 && (
+                                                                                        <div className="inline-flex items-center gap-2 bg-slate-900/95 hover:bg-slate-900 border border-slate-700/90 px-3 py-1.5 rounded-xl shadow-sm transition-colors">
+                                                                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                                                                                                IMEI 2
+                                                                                            </span>
+                                                                                            <span className="text-sm sm:text-base font-mono font-black text-slate-300 tracking-widest select-all">
+                                                                                                {product.imei2}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    {product.serialNumber && (
+                                                                                        <div className="inline-flex items-center gap-2 bg-slate-900/95 hover:bg-slate-900 border border-sky-500/40 px-3 py-1.5 rounded-xl shadow-sm transition-colors">
+                                                                                            <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded">
+                                                                                                S/N
+                                                                                            </span>
+                                                                                            <span className="text-sm sm:text-base font-mono font-black text-sky-200 tracking-widest select-all">
+                                                                                                {product.serialNumber}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    {product.sku && (
+                                                                                        <div className="inline-flex items-center gap-2 bg-slate-900/95 hover:bg-slate-900 border border-amber-500/30 px-3 py-1.5 rounded-xl shadow-sm transition-colors">
+                                                                                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                                                                                SKU
+                                                                                            </span>
+                                                                                            <span className="text-xs sm:text-sm font-mono font-bold text-amber-200 select-all">
+                                                                                                {product.sku}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+
+                                                                                {/* Status do Check */}
                                                                                 {isChecked && checkMeta && (
-                                                                                    <span className="text-[10px] text-emerald-400/80 font-medium">
-                                                                                        Conferido às {new Date(checkMeta.checkedAt).toLocaleTimeString('pt-BR')}
+                                                                                    <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5 pt-0.5">
+                                                                                        <SuccessIcon className="w-3.5 h-3.5" />
+                                                                                        Conferido às {new Date(checkMeta.checkedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                                                     </span>
                                                                                 )}
                                                                             </div>
 
-                                                                            {/* Botão de Check Grande para Toque no Celular */}
-                                                                            <div className="w-full sm:w-auto flex items-center justify-end">
+                                                                            {/* Botão de Check Grande e Confortável */}
+                                                                            <div className="w-full sm:w-auto flex items-center justify-end flex-shrink-0">
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
                                                                                         handleToggleCheck(product.id);
                                                                                     }}
-                                                                                    className={`w-full sm:w-12 h-12 rounded-xl flex items-center justify-center transition-all border shadow-md active:scale-90 ${
+                                                                                    className={`w-full sm:w-14 h-12 sm:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-lg active:scale-90 ${
                                                                                         isChecked
                                                                                             ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-400 shadow-emerald-500/30'
-                                                                                            : 'bg-slate-900 hover:bg-slate-800 text-slate-500 hover:text-slate-300 border-slate-700'
+                                                                                            : 'bg-slate-900 hover:bg-slate-800 text-slate-500 hover:text-slate-300 border-slate-700/80'
                                                                                     }`}
                                                                                     title={isChecked ? 'Desmarcar check' : 'Marcar como conferido'}
                                                                                 >
                                                                                     {isChecked ? (
                                                                                         <div className="flex items-center gap-2 sm:gap-0">
-                                                                                            <CheckIcon className="w-6 h-6 stroke-[3]" />
+                                                                                            <CheckIcon className="w-7 h-7 stroke-[3]" />
                                                                                             <span className="sm:hidden text-xs font-black uppercase tracking-wider">Conferido</span>
                                                                                         </div>
                                                                                     ) : (
                                                                                         <div className="flex items-center gap-2 sm:gap-0">
-                                                                                            <div className="w-5 h-5 rounded-md border-2 border-slate-600" />
+                                                                                            <div className="w-6 h-6 rounded-lg border-2 border-slate-600" />
                                                                                             <span className="sm:hidden text-xs font-bold uppercase tracking-wider">Marcar Check</span>
                                                                                         </div>
                                                                                     )}
