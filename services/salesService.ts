@@ -214,14 +214,30 @@ const adjustProductStock = async (
         details: `Cliente: ${customerName} | Pagamento: ${paymentMethods}`
     };
 
-    const { error } = await supabase.from('products').update({
-        stock: newStock,
-        stockHistory: [...(product.stockHistory || []), stockHistoryEntry]
-    }).eq('id', productId);
+    // Retry loop: até 3 tentativas com backoff exponencial para evitar inconsistências silenciosas
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        const { error } = await supabase.from('products').update({
+            stock: newStock,
+            stockHistory: [...(product.stockHistory || []), stockHistoryEntry]
+        }).eq('id', productId);
 
-    if (error) {
-        console.error(`[adjustProductStock] Error updating stock for ${productId}:`, error);
-        throw error;
+        if (!error) {
+            lastError = null;
+            break;
+        }
+
+        lastError = error;
+        console.warn(`[adjustProductStock] Attempt ${attempt}/3 failed for ${productId}:`, error.message);
+
+        if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 400 * attempt)); // 400ms, 800ms
+        }
+    }
+
+    if (lastError) {
+        console.error(`[adjustProductStock] All retries failed for ${productId}:`, lastError);
+        throw lastError;
     }
 
     await addAuditLog(
@@ -440,9 +456,17 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 userId
             ));
 
-        // Wait for all stock updates AND audit logs to complete
-        await Promise.allSettled([...stockUpdatePromises, ...auditLogs])
-            .catch(err => console.warn('[addSale] Stock/audit partial failure:', err));
+        // Stock updates são CRÍTICOS: falhas lançam erro e evitam inconsistências de dados.
+        // adjustProductStock já tem retry interno de 3x com backoff exponencial.
+        await Promise.all(stockUpdatePromises)
+            .catch(err => {
+                console.error('[addSale] CRITICAL: Stock update failed after retries:', err);
+                throw err; // Re-lança para abortar a venda se o stock não puder ser atualizado
+            });
+
+        // Audit logs são best-effort: falhas não devem bloquear a venda
+        await Promise.allSettled(auditLogs)
+            .catch(err => console.warn('[addSale] Audit log partial failure (non-critical):', err));
     }
 
     // COMMISSION GENERATION: Generate commissions for finalized or pending sales
