@@ -101,50 +101,43 @@ export const getProductsInStock = async (): Promise<Product[]> => {
                 if (page > 20) break;
             }
 
-            // ── AUTO-HEALING: Detecta e corrige inconsistências stock vs stockHistory ──
-            // Se o último entry do stockHistory de um produto tem newStock=0, mas o campo
-            // stock no banco ainda está > 0, houve uma falha de escrita silenciosa anterior.
-            // Corrigimos o banco assincronamente e removemos da lista de estoque disponível.
+            // AUTO-HEALING: detecta produtos onde stockHistory mostra newStock=0 mas
+            // o campo stock ainda está > 0 (falha de escrita silenciosa). Corrige o banco
+            // de forma assíncrona e remove esses produtos da lista retornada imediatamente.
             const inconsistentProducts = allProducts.filter(p => {
-                const history = (p as any).stockHistory;
+                const history = (p as any).stockHistory as Array<{ newStock?: number }> | undefined;
                 if (!Array.isArray(history) || history.length === 0) return false;
-                const lastEntry = history[history.length - 1];
-                return typeof lastEntry.newStock === 'number' && lastEntry.newStock === 0;
+                const last = history[history.length - 1];
+                return last.newStock === 0;
             });
 
             if (inconsistentProducts.length > 0) {
                 console.warn(
-                    `[getProductsInStock] Auto-healing: ${inconsistentProducts.length} produto(s) com stock inconsistente detectado(s) e removido(s) da conferência:`,
+                    `[getProductsInStock] Auto-healing: corrigindo ${inconsistentProducts.length} produto(s) com stock inconsistente:`,
                     inconsistentProducts.map(p => `${p.model} (${p.id})`)
                 );
 
-                // Corrige o banco de forma assíncrona (best-effort, não bloqueia o usuário)
-                Promise.all(
+                // Corrige o banco assincronamente — best-effort, não bloqueia o usuário
+                Promise.allSettled(
                     inconsistentProducts.map(p =>
-                        supabase
-                            .from('products')
-                            .update({ stock: 0 })
-                            .eq('id', p.id)
-                            .then(({ error }) => {
-                                if (error) {
-                                    console.error(`[getProductsInStock] Falha ao corrigir stock do produto ${p.id}:`, error);
-                                } else {
-                                    console.info(`[getProductsInStock] Stock corrigido para 0: ${p.model} (${p.id})`);
-                                }
-                            })
+                        supabase.from('products').update({ stock: 0 }).eq('id', p.id)
                     )
-                ).catch(err => console.error('[getProductsInStock] Auto-healing batch error:', err));
+                ).then(results => {
+                    results.forEach((r, i) => {
+                        if (r.status === 'rejected') {
+                            console.error(`[getProductsInStock] Falha ao corrigir ${inconsistentProducts[i].id}:`, r.reason);
+                        }
+                    });
+                });
 
-                // Remove imediatamente da lista retornada para que não apareçam na conferência
-                const inconsistentIds = new Set(inconsistentProducts.map(p => p.id));
-                allProducts = allProducts.filter(p => !inconsistentIds.has(p.id));
+                const badIds = new Set(inconsistentProducts.map(p => p.id));
+                allProducts = allProducts.filter(p => !badIds.has(p.id));
             }
 
             return allProducts;
         });
-    }, 2 * 60 * 1000); // Cache de 2 minutos (mais curto para dados de estoque)
+    }, 2 * 60 * 1000); // Cache de 2 min — curto para dados de estoque em tempo real
 };
-
 
 // Specialized Search for high-volume data
 export const searchProducts = async (term: string): Promise<Product[]> => {

@@ -214,29 +214,23 @@ const adjustProductStock = async (
         details: `Cliente: ${customerName} | Pagamento: ${paymentMethods}`
     };
 
-    // Retry loop: até 3 tentativas com backoff exponencial para evitar inconsistências silenciosas
+    // Retry com backoff exponencial (3x): garante consistência mesmo em falhas transitórias
     let lastError: any = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
-        const { error } = await supabase.from('products').update({
-            stock: newStock,
-            stockHistory: [...(product.stockHistory || []), stockHistoryEntry]
-        }).eq('id', productId);
+        const { error } = await supabase
+            .from('products')
+            .update({ stock: newStock, stockHistory: [...(product.stockHistory || []), stockHistoryEntry] })
+            .eq('id', productId);
 
-        if (!error) {
-            lastError = null;
-            break;
-        }
+        if (!error) { lastError = null; break; }
 
         lastError = error;
-        console.warn(`[adjustProductStock] Attempt ${attempt}/3 failed for ${productId}:`, error.message);
-
-        if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 400 * attempt)); // 400ms, 800ms
-        }
+        console.warn(`[adjustProductStock] Tentativa ${attempt}/3 falhou para ${productId}:`, error.message);
+        if (attempt < 3) await new Promise(r => setTimeout(r, 400 * attempt));
     }
 
     if (lastError) {
-        console.error(`[adjustProductStock] All retries failed for ${productId}:`, lastError);
+        console.error(`[adjustProductStock] Falha após 3 tentativas para ${productId}:`, lastError);
         throw lastError;
     }
 
@@ -456,17 +450,14 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 userId
             ));
 
-        // Stock updates são CRÍTICOS: falhas lançam erro e evitam inconsistências de dados.
-        // adjustProductStock já tem retry interno de 3x com backoff exponencial.
-        await Promise.all(stockUpdatePromises)
-            .catch(err => {
-                console.error('[addSale] CRITICAL: Stock update failed after retries:', err);
-                throw err; // Re-lança para abortar a venda se o stock não puder ser atualizado
-            });
+        // Stock: crítico — falha após retries aborta a venda (evita inconsistência de dados)
+        await Promise.all(stockUpdatePromises).catch(err => {
+            console.error('[addSale] Falha crítica no ajuste de estoque:', err);
+            throw err;
+        });
 
-        // Audit logs são best-effort: falhas não devem bloquear a venda
-        await Promise.allSettled(auditLogs)
-            .catch(err => console.warn('[addSale] Audit log partial failure (non-critical):', err));
+        // Audit logs: best-effort — falhas não devem bloquear a finalizacão da venda
+        await Promise.allSettled(auditLogs);
     }
 
     // COMMISSION GENERATION: Generate commissions for finalized or pending sales

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Product } from '../types.ts';
-import { getProductsInStock } from '../services/mockApi.ts';
+import { getProductsInStock } from '../services/productService.ts';
 import { formatStorageUnit } from '../utils/formatters.ts';
 import {
     CheckIcon,
@@ -28,7 +28,6 @@ interface InventorySession {
     startedAt: string;
     lastUpdatedAt: string;
     checkedMap: Record<string, CheckedItemMeta>;
-    notes?: Record<string, string>;
 }
 
 interface StockCheckFilters {
@@ -145,6 +144,19 @@ export const StockCheck: React.FC = () => {
     const [copiedReport, setCopiedReport] = useState(false);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const scanMessageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Limpa o highlight de bip recente após 1.5s
+    useEffect(() => {
+        if (!recentCheckedId) return;
+        const t = setTimeout(() => setRecentCheckedId(null), 1500);
+        return () => clearTimeout(t);
+    }, [recentCheckedId]);
+
+    // Cancela timer de scanMessage ao desmontar
+    useEffect(() => () => {
+        if (scanMessageTimerRef.current) clearTimeout(scanMessageTimerRef.current);
+    }, []);
 
     // Atualiza filtros com base na URL ao abrir
     useEffect(() => {
@@ -261,23 +273,15 @@ export const StockCheck: React.FC = () => {
     const handleToggleCheck = (productId: string) => {
         setSession(prev => {
             const nextChecked = { ...prev.checkedMap };
-            const isCurrentlyChecked = !!nextChecked[productId];
-
-            if (isCurrentlyChecked) {
+            const wasChecked = !!nextChecked[productId];
+            if (wasChecked) {
                 delete nextChecked[productId];
                 playBeep('uncheck');
             } else {
-                nextChecked[productId] = {
-                    checkedAt: new Date().toISOString()
-                };
+                nextChecked[productId] = { checkedAt: new Date().toISOString() };
                 playBeep('success');
             }
-
-            return {
-                ...prev,
-                lastUpdatedAt: new Date().toISOString(),
-                checkedMap: nextChecked
-            };
+            return { ...prev, lastUpdatedAt: new Date().toISOString(), checkedMap: nextChecked };
         });
     };
 
@@ -346,23 +350,18 @@ export const StockCheck: React.FC = () => {
         }, 4000);
     };
 
-    // Reiniciar conferência
+    // Reinicia a sessão de conferência (o useEffect de [session] persiste automaticamente)
     const handleResetSession = () => {
-        const newSession: InventorySession = {
+        setSession({
             sessionId: 'inv_' + Date.now(),
             startedAt: new Date().toISOString(),
             lastUpdatedAt: new Date().toISOString(),
             checkedMap: {}
-        };
-        setSession(newSession);
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(newSession));
-        } catch (e) {
-            console.error(e);
-        }
+        });
         setShowResetConfirm(false);
         setScanMessage({ text: 'Nova conferência iniciada!', type: 'success' });
-        setTimeout(() => setScanMessage(null), 3000);
+        if (scanMessageTimerRef.current) clearTimeout(scanMessageTimerRef.current);
+        scanMessageTimerRef.current = setTimeout(() => setScanMessage(null), 3000);
     };
 
     // Estatísticas gerais
