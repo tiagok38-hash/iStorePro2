@@ -15,7 +15,7 @@ import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
 import SaleReceiptModal from '../components/SaleReceiptModal.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
-import { toDateValue } from '../utils/dateUtils.ts';
+import { toDateValue, formatDateBR, formatTimeBR } from '../utils/dateUtils.ts';
 import { getWhatsAppLink } from '../utils/whatsappUtils.ts';
 import { getItemCostSnapshot } from '../utils/financialUtils.ts';
 
@@ -967,8 +967,8 @@ const Vendas: React.FC = () => {
                                                 <td className="px-6 py-5 font-bold text-primary border-0">{sale.id}</td>
                                                 <td className="px-6 py-5 text-muted border-0">
                                                     <div className="flex items-center gap-1.5 whitespace-nowrap">
-                                                        <span className="font-bold text-gray-700">{new Date(sale.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
-                                                        <span className="font-semibold text-gray-500 text-[11px] sm:text-xs bg-gray-100 px-1.5 py-0.5 rounded-md">{new Date(sale.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <span className="font-bold text-gray-700">{formatDateBR(sale.date, { day: '2-digit', month: '2-digit' })}</span>
+                                                        <span className="font-semibold text-gray-500 text-[11px] sm:text-xs bg-gray-100 px-1.5 py-0.5 rounded-md">{formatTimeBR(sale.date)}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-5 text-primary hidden sm:table-cell border-0">

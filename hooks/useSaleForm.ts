@@ -11,21 +11,7 @@ import {
     getNextSaleId, cancelSaleReservation
 } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';
-import { toDateValue } from '../utils/dateUtils.ts';
-
-/**
- * Retorna o timestamp correto para gravar a venda:
- * - Venda no dia atual → horário real exato (new Date())
- * - Venda retroativa (admin escolheu data passada) → data escolhida + hora local atual
- * Garante timezone-awareness sem hardcode de offset UTC.
- */
-const buildSaleTimestamp = (saleDate: string): string => {
-    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD no timezone local
-    if (saleDate === todayStr) return new Date().toISOString();
-    const now = new Date();
-    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-    return `${saleDate}T${localNow.toISOString().split('T')[1]}`;
-};
+import { toDateValue, toLocalDateString, buildSaleDateTimestamp } from '../utils/dateUtils.ts';
 
 interface UseSaleFormProps {
     customers: Customer[];
@@ -116,7 +102,7 @@ export const useSaleForm = ({
     useEffect(() => {
         if (!initializedRef.current) {
             if (saleToEdit) {
-                setSaleDate(saleToEdit.date.split('T')[0]);
+                setSaleDate(toLocalDateString(saleToEdit.date));
                 setSelectedCustomerId(saleToEdit.customerId);
                 setSelectedSalespersonId(saleToEdit.salespersonId);
                 const reconstructedCart = saleToEdit.items.map(item => {
@@ -518,8 +504,12 @@ export const useSaleForm = ({
                 };
             }),
             subtotal, total, payments,
-            // Usa horário real da venda: hoje = now() exato; retroativa = data escolhida + hora local atual.
-            date: buildSaleTimestamp(saleDate),
+            // Preserva timestamp original em edições sem alteração de dia, ou calcula UTC exato para novas/retroativas
+            date: buildSaleDateTimestamp({
+                selectedDate: saleDate,
+                originalDate: saleToEdit?.date,
+                isEdit: !!saleToEdit,
+            }),
             posTerminal: saleToEdit?.posTerminal || 'Caixa 1',
             status: isPending ? 'Pendente' : (saleToEdit ? 'Editada' : 'Finalizada'),
             origin: saleToEdit?.origin || (openCashSessionId ? 'PDV' : 'Balcão'), warrantyTerm, observations, internalObservations,

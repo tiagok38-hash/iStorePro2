@@ -10,6 +10,7 @@ import { SuspenseFallback } from '../components/GlobalLoading.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import { calculateOSProfit } from '../utils/formatters.ts';
 import { clearCache, getAllCacheKeys } from '../services/cacheUtils.ts';
+import { formatDateBR, formatTimeBR } from '../utils/dateUtils.ts';
 
 // --- Permission Guard ---
 const getPermissionForRoute = (to: string, permissions: PermissionSet | null): boolean => {
@@ -1421,9 +1422,9 @@ const RecentSoldProductsCard: React.FC<{ soldItems: SoldItemInfo[]; className?: 
                                     {item.productName}
                                 </p>
                                 <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold mt-1">
-                                    <span>{new Date(item.saleDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+                                    <span>{formatDateBR(item.saleDate, { day: '2-digit', month: '2-digit' })}</span>
                                     <span>•</span>
-                                    <span>{new Date(item.saleDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span>{formatTimeBR(item.saleDate)}</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">

@@ -13,7 +13,7 @@ import {
     createOrcamento, updateOrcamento
 } from '../services/orcamentosService.ts';
 import { useUser } from '../contexts/UserContext.tsx';
-import { toDateValue } from '../utils/dateUtils.ts';
+import { toDateValue, toLocalDateString } from '../utils/dateUtils.ts';
 
 interface UseOrcamentoFormProps {
     customers: Customer[];
@@ -96,7 +96,7 @@ export const useOrcamentoForm = ({
     useEffect(() => {
         if (!initializedRef.current) {
             if (orcamentoToEdit) {
-                setOrcamentoDate(orcamentoToEdit.created_at.split('T')[0]);
+                setOrcamentoDate(toLocalDateString(orcamentoToEdit.created_at));
                 setSelectedCustomerId(orcamentoToEdit.cliente_id || null);
                 setSelectedSalespersonId(orcamentoToEdit.vendedor_id);
                 const reconstructedCart = (orcamentoToEdit.itens || []).map((item: any) => {

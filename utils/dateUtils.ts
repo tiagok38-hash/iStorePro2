@@ -185,14 +185,124 @@ export const toDateTimeLocalValue = (date?: Date | string): string => {
 };
 
 /**
- * Retorna a data formatada para input date
+ * Retorna a data formatada para input date (YYYY-MM-DD) no timezone especificado
  */
-export const toDateValue = (date?: Date | string): string => {
-    const d = date ? (typeof date === 'string' ? new Date(date) : date) : new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+export const toLocalDateString = (date?: Date | string | null, timeZone: string = BRAZIL_TIMEZONE): string => {
+    if (!date) return '';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-CA', { timeZone });
+};
+
+/**
+ * Retorna a data formatada para input date (compatibilidade retroativa)
+ */
+export const toDateValue = (date?: Date | string, timeZone: string = BRAZIL_TIMEZONE): string => {
+    if (!date) {
+        return new Date().toLocaleDateString('en-CA', { timeZone });
+    }
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-CA', { timeZone });
+};
+
+/**
+ * Converte data local (YYYY-MM-DD) e hora local (HH:mm:ss) no timezone especificado
+ * para string ISO UTC exata (YYYY-MM-DDTHH:mm:ss.sssZ).
+ * Garante que a conversão independa das configurações de fuso da máquina do cliente.
+ */
+export const parseLocalDateToUTC = (
+    dateStr: string,
+    timeStr: string = '12:00:00',
+    timeZone: string = BRAZIL_TIMEZONE
+): string => {
+    if (!dateStr) return new Date().toISOString();
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const [h, min, s] = (timeStr || '12:00:00').split(':').map(Number);
+
+    const utcGuess = new Date(Date.UTC(y, m - 1, d, h || 0, min || 0, s || 0));
+
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false
+    });
+
+    const parts = formatter.formatToParts(utcGuess);
+    const getPart = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+
+    const tzYear = getPart('year');
+    const tzMonth = getPart('month');
+    const tzDay = getPart('day');
+    let tzHour = getPart('hour');
+    if (tzHour === 24) tzHour = 0;
+    const tzMin = getPart('minute');
+    const tzSec = getPart('second');
+
+    const tzAsUtc = Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMin, tzSec);
+    const offsetMs = tzAsUtc - utcGuess.getTime();
+
+    const correctUtcMs = utcGuess.getTime() - offsetMs;
+    return new Date(correctUtcMs).toISOString();
+};
+
+/**
+ * Constrói o timestamp ideal para salvar a venda em padrão SaaS Premium:
+ * - Edição de venda existente:
+ *   Se a data não foi modificada pelo usuário, mantém estritamente o timestamp original da venda.
+ *   Se o usuário alterou a data no seletor, preserva o horário da venda original no novo dia selecionado.
+ * - Nova venda hoje:
+ *   Retorna o instante atual em tempo real (ISO UTC).
+ * - Nova venda retroativa:
+ *   Combina a data escolhida com o horário local atual no timezone oficial.
+ */
+export const buildSaleDateTimestamp = (params: {
+    selectedDate: string;
+    originalDate?: string | null;
+    isEdit?: boolean;
+    timeZone?: string;
+}): string => {
+    const { selectedDate, originalDate, isEdit = false, timeZone = BRAZIL_TIMEZONE } = params;
+    const todayStr = getTodayDateString();
+
+    if (isEdit && originalDate) {
+        const originalLocalDate = toLocalDateString(originalDate, timeZone);
+        // Se a data selecionada for idêntica à data local original da venda, preserva o timestamp original
+        if (selectedDate === originalLocalDate) {
+            return originalDate;
+        }
+        // Se o usuário mudou a data, transfere o horário original da venda para o novo dia
+        const origDateObj = new Date(originalDate);
+        const timeParts = origDateObj.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone,
+            hour12: false
+        });
+        return parseLocalDateToUTC(selectedDate, timeParts, timeZone);
+    }
+
+    // Se nova venda realizada na data de hoje
+    if (selectedDate === todayStr) {
+        return new Date().toISOString();
+    }
+
+    // Se nova venda retroativa
+    const now = new Date();
+    const currentTimeStr = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone,
+        hour12: false
+    });
+    return parseLocalDateToUTC(selectedDate, currentTimeStr, timeZone);
 };
 
 export const calculateWarrantyExpiry = (startDate: string | Date, warranty: string): Date | null => {
