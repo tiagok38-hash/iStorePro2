@@ -731,6 +731,7 @@ export interface CreditInstallment {
     createdAt?: string;
     paymentMethod?: string;
     observation?: string;
+    description?: string; // Aviso de data retroativa ou alteração de data
     amortizationValue?: number;
     interestValue?: number;
     remainingBalance?: number;

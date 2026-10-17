@@ -15,6 +15,23 @@
     content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="manifest" href="/manifest.json" />
   <title>iStore - Gerenciador de Vendas e Estoque</title>
+  <script>
+    // Polyfill seguro para crypto.randomUUID quando acessado via IP em HTTP (ex: 192.168.x.x)
+    (function () {
+      if (typeof window !== 'undefined') {
+        if (!window.crypto) window.crypto = {};
+        if (typeof window.crypto.randomUUID !== 'function') {
+          window.crypto.randomUUID = function () {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+              var r = (Math.random() * 16) | 0;
+              var v = c === 'x' ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            });
+          };
+        }
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Global Reset & Optimizations */

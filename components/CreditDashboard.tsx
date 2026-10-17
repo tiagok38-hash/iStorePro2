@@ -388,9 +388,16 @@ const CreditDashboard: React.FC = () => {
                                                                 ) : (
                                                                     <span className="text-[10px] font-bold text-gray-400 uppercase">Venda #{inst.saleDisplayId}</span>
                                                                 )}
-                                                                {(inst as any).description && (
-                                                                    <span className="text-[10px] font-medium text-gray-500 mt-0.5 max-w-[120px] truncate" title={(inst as any).description}>
-                                                                        {(inst as any).description}
+                                                                {inst.description && (
+                                                                    <span
+                                                                        title={inst.description}
+                                                                        className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider w-fit mt-0.5 cursor-help ${
+                                                                            inst.description.includes('retroativ')
+                                                                                ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                                                                : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                        }`}
+                                                                    >
+                                                                        {inst.description.includes('retroativ') ? '⚠️ Retroativo' : 'ℹ️ Data alterada'}
                                                                     </span>
                                                                 )}
                                                             </div>

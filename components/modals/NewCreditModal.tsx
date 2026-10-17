@@ -15,12 +15,13 @@ interface NewCreditModalProps {
     customerLimit?: number;
     customerUsed?: number;
     customerId?: string;
+    saleDate?: string;
     isLoadingCustomer?: boolean;
     onConfirm: (details: any) => void;
     onUpdateLimit?: (newLimit: number) => void | Promise<void>;
 }
 
-const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalAmount, availableLimit, customerLimit, customerUsed, customerId, isLoadingCustomer = false, onConfirm, onUpdateLimit }) => {
+const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalAmount, availableLimit, customerLimit, customerUsed, customerId, saleDate, isLoadingCustomer = false, onConfirm, onUpdateLimit }) => {
     const [entryAmount, setEntryAmount] = useState(0);
     const [financedAmount, setFinancedAmount] = useState(totalAmount);
     const [installments, setInstallments] = useState(1);
@@ -28,10 +29,9 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
     const { showToast } = useToast();
     
     const getDefaultDate = (freq: 'mensal' | 'quinzenal'): string => {
-        // Usa getTodayDateString() para garantir fuso de Brasília (America/Sao_Paulo).
-        // Evita bug do .toISOString() que retorna data UTC, causando drift após 21h.
-        const todayBR = getTodayDateString(); // YYYY-MM-DD em UTC-3
-        const [year, month, day] = todayBR.split('-').map(Number);
+        // Usa a data da venda se fornecida (suporta retroativo); senão usa a data de hoje no fuso de Brasília
+        const baseDateStr = (saleDate && saleDate.length === 10) ? saleDate : getTodayDateString();
+        const [year, month, day] = baseDateStr.split('-').map(Number);
         const d = new Date(year, month - 1, day); // meia-noite local, sem drift
         if (freq === 'mensal') {
             d.setMonth(d.getMonth() + 1);

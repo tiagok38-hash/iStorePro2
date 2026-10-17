@@ -1165,6 +1165,7 @@ export const NewSaleView: React.FC<NewSaleViewProps> = (props) => {
                     };
                 })()}
                 customerId={selectedCustomerId}
+                saleDate={saleDate}
                 isLoadingCustomer={isFetchingCustomer}
                 onUpdateLimit={async (newLimit) => {
                     if (selectedCustomerId) {

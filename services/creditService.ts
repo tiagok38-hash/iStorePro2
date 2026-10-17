@@ -92,6 +92,7 @@ export const addCreditInstallments = async (installments: Partial<CreditInstallm
         penalty_applied: i.penaltyApplied,
         description: (i as any).description || null,
         debit_origin: (i as any).debitOrigin || 'sale',
+        ...((i as any).companyId || (i as any).company_id ? { company_id: (i as any).companyId || (i as any).company_id } : {}),
     }));
 
     const { data, error } = await supabase

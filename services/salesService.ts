@@ -9,6 +9,7 @@ import { fetchWithCache, clearCache, fetchWithRetry } from './cacheUtils.ts';
 import { formatCurrency } from '../utils/formatters.ts';
 import { addAuditLog } from './auditService.ts';
 import { getProfile, resolvePermissions } from './authService.ts';
+import { generateUUID } from '../utils/uuidUtils.ts';
 
 export const mapSale = (sale: any): Sale => {
     try {
@@ -203,7 +204,7 @@ const adjustProductStock = async (
     }
 
     const stockHistoryEntry = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         oldStock: currentStock,
         newStock: newStock,
         adjustment: adjustment,
@@ -531,7 +532,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     const stockHistory = tradeInProduct.stockHistory || [];
 
                     const newStockEntry = {
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         oldStock: 0,
                         newStock: 1,
                         adjustment: 1,
@@ -691,6 +692,21 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                 const combinedAmortizationTable: any[] = [];
                 const allInstallmentsPayload: CreditInstallment[] = [];
 
+                // Detecta venda retroativa: data da venda é anterior a hoje (calculado uma vez, fora do loop)
+                const saleDateTime = new Date(newSale.date || new Date().toISOString());
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const isRetroactiveSale = saleDateTime < todayStart;
+                const saleDateFormatted = isRetroactiveSale
+                    ? saleDateTime.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+                    : null;
+                const nowFormatted = isRetroactiveSale
+                    ? new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+                    : null;
+                const retroDescription = isRetroactiveSale
+                    ? `⚠️ Venda registrada retroativamente. Data da venda: ${saleDateFormatted}. Lançamento feito em: ${nowFormatted}.`
+                    : null;
+
                 for (const creditPayment of creditPayments) {
                     const { creditDetails } = creditPayment;
                     const interestRate = Number(creditDetails.interestRate || 0);
@@ -710,7 +726,7 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                     combinedAmortizationTable.push({ paymentValue: productValue, table: amortizationTable });
 
                     const installmentsPayload: CreditInstallment[] = amortizationTable.map((entry: any) => ({
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         saleId: newSale.id,
                         customerId: newSale.customer_id,
                         installmentNumber: entry.number,
@@ -722,8 +738,9 @@ export const addSale = async (data: any, userId: string = 'system', userName: st
                         interestApplied: entry.interest,
                         amortizationValue: entry.amortization,
                         remainingBalance: entry.remainingBalance,
-                        penaltyApplied: 0
-                    }));
+                        penaltyApplied: 0,
+                        ...(retroDescription ? { description: retroDescription } : {})
+                    } as any));
 
                     allInstallmentsPayload.push(...installmentsPayload);
                 }
@@ -809,7 +826,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                     } else {
                         if (product.stock > 0) {
                             const newStockEntry = {
-                                id: crypto.randomUUID(),
+                                id: generateUUID(),
                                 oldStock: product.stock,
                                 newStock: 0,
                                 adjustment: -product.stock,
@@ -1057,7 +1074,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                     }
 
                     const iPayload = cPreviews.map((p: any) => ({
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         saleId: updated.id,
                         customerId: updated.customer_id,
                         installmentNumber: p.number,
@@ -1205,10 +1222,27 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
         const oldCreditJSON = JSON.stringify(oldCreditPayments);
         const newCreditJSON = JSON.stringify(newCreditPayments);
 
-        // Only reconcile if something actually changed (avoids unnecessary DB work)
-        if (oldCreditJSON !== newCreditJSON) {
+        // Detecta se a DATA da venda foi alterada
+        const originalDateStr = originalSale?.date
+            ? new Date(originalSale.date).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+            : null;
+        const newDateStr = data.date
+            ? new Date(data.date).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+            : originalDateStr;
+        const dateChanged = !!(originalDateStr && newDateStr && originalDateStr !== newDateStr);
+
+        // Reconstrói parcelas quando: crediário mudou OU data mudou (com crediário ativo)
+        if (oldCreditJSON !== newCreditJSON || (dateChanged && oldCreditPayments.length > 0)) {
             try {
-                // Step 1: Remove all existing PENDING installments for this sale
+                // Step 1: Check existing paid installments to avoid duplicating them
+                const { data: paidInstallments } = await supabase
+                    .from('credit_installments')
+                    .select('installment_number')
+                    .eq('sale_id', updated.id)
+                    .eq('status', 'paid');
+                const paidNumbers = new Set((paidInstallments || []).map((p: any) => p.installment_number));
+
+                // Step 1b: Remove existing PENDING installments for this sale
                 // (paid installments are preserved — they must not be deleted)
                 await supabase
                     .from('credit_installments')
@@ -1219,6 +1253,22 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 if (newCreditPayments.length > 0) {
                     // Step 2: Recreate installments based on current credit details
                     let totalAdded = 0;
+
+                    // Prepara metadados de data retroativa (se a nova data for anterior a hoje)
+                    const newSaleDateTime = new Date(data.date || updated.date || new Date().toISOString());
+                    const isRetroactiveEdit = newSaleDateTime < new Date(new Date().setHours(0, 0, 0, 0));
+                    const originalSaleDateFormatted = originalSale?.date
+                        ? new Date(originalSale.date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+                        : null;
+                    const newSaleDateFormatted = newSaleDateTime.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                    const editNowFormatted = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+                    const retroDateDescription: string | null = dateChanged
+                        ? isRetroactiveEdit
+                            ? `⚠️ Data da venda alterada de ${originalSaleDateFormatted} para ${newSaleDateFormatted} (retroativo). Edição feita em ${editNowFormatted} por ${userName}.`
+                            : `ℹ️ Data da venda alterada de ${originalSaleDateFormatted} para ${newSaleDateFormatted}. Edição feita em ${editNowFormatted} por ${userName}.`
+                        : null;
+
                     for (const credPayment of newCreditPayments) {
                         const cDetails = credPayment.creditDetails || {};
                         let cPreviews = cDetails.installmentsPreview || [];
@@ -1228,7 +1278,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                             const amt = Number(cDetails.financedAmount) || Number(credPayment.value) || 0;
                             const cnt = Number(cDetails.totalInstallments) || 1;
                             const val = amt / cnt;
-                            const dt = new Date(updated.date || new Date().toISOString());
+                            const dt = new Date(newSaleDateTime);
                             dt.setDate(dt.getDate() + 30);
 
                             for (let k = 0; k < cnt; k++) {
@@ -1236,12 +1286,41 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                                 d.setMonth(d.getMonth() + k);
                                 cPreviews.push({ number: k + 1, date: d.toISOString().split('T')[0], amount: val });
                             }
+                        } else if (dateChanged && originalSale?.date) {
+                            // Data mudou: desloca parcelas proporcionalmente ao novo dia da venda
+                            const dayDiff = Math.round(
+                                (new Date(newSaleDateTime).getTime() - new Date(originalSale.date).getTime()) / 86_400_000
+                            );
+                            if (dayDiff !== 0) {
+                                cPreviews = cPreviews.map((p: any) => {
+                                    if (typeof p.date !== 'string' || !p.date.includes('-')) return p;
+                                    try {
+                                        const [py, pm, pd] = p.date.split('-').map(Number);
+                                        const d = new Date(py, pm - 1, pd);
+                                        d.setDate(d.getDate() + dayDiff);
+                                        return {
+                                            ...p,
+                                            date: [
+                                                d.getFullYear(),
+                                                String(d.getMonth() + 1).padStart(2, '0'),
+                                                String(d.getDate()).padStart(2, '0')
+                                            ].join('-')
+                                        };
+                                    } catch {
+                                        return p;
+                                    }
+                                });
+                            }
                         }
 
-                        const iPayload = cPreviews.map((p: any) => ({
-                            id: crypto.randomUUID(),
+                        // Filtra apenas parcelas que ainda não foram pagas
+                        const pendingPreviews = cPreviews.filter((p: any) => !paidNumbers.has(p.number));
+
+                        const iPayload = pendingPreviews.map((p: any) => ({
+                            id: generateUUID(),
                             saleId: updated.id,
                             customerId: updated.customer_id,
+                            companyId: updated.company_id || null,
                             installmentNumber: p.number,
                             totalInstallments: cPreviews.length,
                             dueDate: p.date,
@@ -1252,11 +1331,15 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                                 Number(cDetails.interestRate || 0) > 0
                                     ? (p.amount * (Number(cDetails.interestRate) / 100)) / cPreviews.length
                                     : 0,
-                            penaltyApplied: 0
+                            penaltyApplied: 0,
+                            // Aviso de data retroativa registrado na description da parcela
+                            ...(retroDateDescription ? { description: retroDateDescription } : {})
                         }));
 
-                        await addCreditInstallments(iPayload);
-                        totalAdded += iPayload.reduce((s: number, i: any) => s + i.amount, 0);
+                        if (iPayload.length > 0) {
+                            await addCreditInstallments(iPayload);
+                            totalAdded += iPayload.reduce((s: number, i: any) => s + i.amount, 0);
+                        }
                     }
 
                     // Step 3: Update debt balance on the sale + sync customer limit
@@ -1269,7 +1352,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                         AuditActionType.UPDATE,
                         AuditEntityType.CUSTOMER,
                         updated.customer_id,
-                        `Crediário atualizado na edição da venda #${updated.display_id}`,
+                        `Crediário atualizado na edição da venda #${updated.display_id || data.id}${dateChanged ? ` | Data alterada: ${originalSaleDateFormatted} → ${newSaleDateFormatted}` : ''}`,
                         userId,
                         userName
                     );
@@ -1284,7 +1367,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                         AuditActionType.UPDATE,
                         AuditEntityType.CUSTOMER,
                         updated.customer_id,
-                        `Crediário removido na edição da venda #${updated.display_id}`,
+                        `Crediário removido na edição da venda #${updated.display_id || data.id}`,
                         userId,
                         userName
                     );
@@ -1293,6 +1376,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                 console.error('[updateSale] Error reconciling credit installments:', err);
             }
         }
+        // Se data mudou mas não há crediário: nada a reconciliar (date já atualizado no updatePayload)
     }
 
     // If sale is Cancelada or changed to Pendente (from Finalizada), we need to revert Credit Limit
@@ -1424,7 +1508,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                     // stock === 0 means it was already sold to another customer
                     if (product.stock > 0) {
                         const newStockEntry = {
-                            id: crypto.randomUUID(),
+                            id: generateUUID(),
                             oldStock: product.stock,
                             newStock: 0,
                             adjustment: -product.stock,
@@ -1457,7 +1541,7 @@ export const updateSale = async (data: any, userId: string = 'system', userName:
                     const stockHistory = product.stockHistory || [];
 
                     const newStockEntry = {
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         oldStock: 0,
                         newStock: 1,
                         adjustment: 1,
@@ -1636,7 +1720,7 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
 
                 const existingStockHistory = product.stockHistory || [];
                 const newStockEntry = {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     oldStock: currentStock,
                     newStock: newStock,
                     adjustment: item.quantity,
@@ -1700,7 +1784,7 @@ export const cancelSale = async (id: string, reason: string, userId: string = 's
                         stockHistory: [
                             ...stockHistory,
                             {
-                                id: crypto.randomUUID(),
+                                id: generateUUID(),
                                 oldStock: tradeInProduct.stock,
                                 newStock: 0,
                                 adjustment: -tradeInProduct.stock,

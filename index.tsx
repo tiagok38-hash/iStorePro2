@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './utils/uuidUtils.ts';
 import App from './App.tsx';
 
 // Disable console.log in production for performance and security

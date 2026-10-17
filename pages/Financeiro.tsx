@@ -493,8 +493,8 @@ export default function Financeiro() {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
                                     <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><TrendingUp className="text-blue-500" /> Receitas vs Despesas (Mês)</h3>
-                                    <div className="h-72 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                    <div className="h-72 w-full min-w-0" style={{ minWidth: 0, minHeight: 0 }}>
+                                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                             <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} dy={10} />

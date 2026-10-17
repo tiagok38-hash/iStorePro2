@@ -600,10 +600,11 @@ export const useSaleForm = ({
             setIsSaving(false);
         }
     }, [
-        selectedCustomerId, selectedSalespersonId, cart, balance, subtotal,
+        saleDate, selectedCustomerId, selectedSalespersonId, cart, balance, subtotal,
         totalItemDiscounts, total, payments, saleToEdit,
         warrantyTerm, observations, internalObservations, openCashSessionId,
-        openCashSessionDisplayId, pendingTradeInProduct, users, onSaleSaved, showToast, editReason
+        openCashSessionDisplayId, pendingTradeInProduct, users, customers, onSaleSaved,
+        onAddProduct, showToast, editReason, reservedId, user
     ]);
 
     return {

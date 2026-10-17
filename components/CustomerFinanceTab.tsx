@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Customer } from '../types.ts';
 import { formatCurrency, syncCustomerCreditLimit, updateCustomer } from '../services/mockApi.ts';
 import { TrendingUp, TrendingDown, ShieldCheck, RefreshCcw, Calendar, AlertCircle, CheckCircle, Clock } from 'lucide-react';
@@ -19,6 +19,7 @@ interface Installment {
     amount: number;
     amountPaid: number;
     status: 'pending' | 'partial' | 'overdue' | 'paid';
+    description?: string | null;
 }
 
 const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpdate }) => {
@@ -47,7 +48,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
         try {
             const { data, error } = await supabase
                 .from('credit_installments')
-                .select('id, sale_id, installment_number, total_installments, due_date, amount, amount_paid, status')
+                .select('id, sale_id, installment_number, total_installments, due_date, amount, amount_paid, status, description')
                 .eq('customer_id', customer.id)
                 .in('status', ['pending', 'partial', 'overdue'])
                 .order('due_date', { ascending: true });
@@ -66,6 +67,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                 amountPaid: Number(d.amount_paid),
                 // Reclassifica como overdue se vencida mas não marcada ainda
                 status: (d.status !== 'paid' && d.due_date < today) ? 'overdue' : d.status,
+                description: d.description || null,
             }));
 
             setOpenInstallments(mapped);
@@ -136,24 +138,26 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
     const creditAvailable = Math.max(0, creditLimit - creditUsed);
     const usagePercentage = creditLimit > 0 ? (creditUsed / creditLimit) * 100 : 0;
 
-    // Agrupa parcelas por venda para exibição clara
-    const installmentsBySale = openInstallments.reduce<Record<string, Installment[]>>((acc, inst) => {
-        if (!acc[inst.saleId]) acc[inst.saleId] = [];
-        acc[inst.saleId].push(inst);
-        return acc;
-    }, {});
+    // Data de hoje memoizada (recalculada apenas uma vez por render)
+    const today = useMemo(() => getTodayDateString(), []);
 
-    const getStatusIcon = (status: string, dueDate: string) => {
-        const today = getTodayDateString();
-        const isOverdue = status === 'overdue' || (status !== 'paid' && dueDate < today);
+    // Agrupa parcelas por venda para exibição clara
+    const installmentsBySale = useMemo(() =>
+        openInstallments.reduce<Record<string, Installment[]>>((acc, inst) => {
+            if (!acc[inst.saleId]) acc[inst.saleId] = [];
+            acc[inst.saleId].push(inst);
+            return acc;
+        }, {})
+    , [openInstallments]);
+
+    const getStatusIcon = (isOverdue: boolean, status: string) => {
         if (isOverdue) return <AlertCircle size={14} className="text-red-500" />;
         if (status === 'partial') return <Clock size={14} className="text-amber-500" />;
         return <Clock size={14} className="text-blue-400" />;
     };
 
-    const getStatusLabel = (status: string, dueDate: string) => {
-        const today = getTodayDateString();
-        if (status === 'overdue' || (status !== 'paid' && dueDate < today)) return 'Vencida';
+    const getStatusLabel = (isOverdue: boolean, status: string) => {
+        if (isOverdue) return 'Vencida';
         if (status === 'partial') return 'Parcial';
         return 'Em aberto';
     };
@@ -271,12 +275,12 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                     </div>
                 ) : (
                     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                        {Object.entries(installmentsBySale).map(([saleId, saleInstallments]) => {
+                        {Object.entries(installmentsBySale).map(([saleId, rawInstallments]) => {
+                            const saleInstallments = rawInstallments as Installment[];
                             const saleTotal = saleInstallments.reduce((s, i) => s + Math.max(0, i.amount - i.amountPaid), 0);
-                            const hasOverdue = saleInstallments.some(i => {
-                                const today = getTodayDateString();
-                                return i.status === 'overdue' || i.dueDate < today;
-                            });
+                            const hasOverdue = saleInstallments.some(i =>
+                                i.status === 'overdue' || i.dueDate < today
+                            );
 
                             return (
                                 <div key={saleId} className={`border-b border-gray-100 last:border-b-0 ${hasOverdue ? 'bg-red-50/30' : ''}`}>
@@ -295,17 +299,28 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                                         <tbody className="divide-y divide-gray-50">
                                             {saleInstallments.map(inst => {
                                                 const remaining = Math.max(0, inst.amount - inst.amountPaid);
-                                                const today = getTodayDateString();
                                                 const isOverdue = inst.status === 'overdue' || inst.dueDate < today;
 
                                                 return (
                                                     <tr key={inst.id} className="hover:bg-gray-50">
                                                         <td className="px-4 py-2.5">
                                                             <div className="flex items-center gap-2">
-                                                                {getStatusIcon(inst.status, inst.dueDate)}
+                                                                {getStatusIcon(isOverdue, inst.status)}
                                                                 <span className="text-xs font-bold text-gray-700">
                                                                     Parcela {inst.installmentNumber}/{inst.totalInstallments}
                                                                 </span>
+                                                                {inst.description && (
+                                                                    <span
+                                                                        title={inst.description}
+                                                                        className={`inline-flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider cursor-help ${
+                                                                            inst.description.includes('retroativ')
+                                                                                ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                                                                : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                        }`}
+                                                                    >
+                                                                        {inst.description.includes('retroativ') ? '⚠️' : 'ℹ️'}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-2.5">
@@ -332,7 +347,7 @@ const CustomerFinanceTab: React.FC<CustomerFinanceTabProps> = ({ customer, onUpd
                                                                 inst.status === 'partial' ? 'bg-amber-100 text-amber-700' :
                                                                 'bg-blue-100 text-blue-700'
                                                             }`}>
-                                                                {getStatusLabel(inst.status, inst.dueDate)}
+                                                                {getStatusLabel(isOverdue, inst.status)}
                                                             </span>
                                                         </td>
                                                     </tr>
