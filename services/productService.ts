@@ -641,7 +641,7 @@ export const addProduct = async (data: any, userId: string = 'system', userName:
     ).catch(e => console.warn('[addProduct] Audit log failed:', e));
 
     clearCache(['products']);
-    return createdProduct as Product;
+    return mapProduct(createdProduct);
 };
 
 export const updateProduct = async (data: any, userId?: string, userName?: string) => {
@@ -847,7 +847,7 @@ export const updateProduct = async (data: any, userId?: string, userName?: strin
         console.warn('[productService] Product updated successfully but returned no data (likely RLS). Using local payload.');
     }
     clearCache(['products']);
-    return updated;
+    return mapProduct(updated);
 };
 
 export const deleteProduct = async (id: string, userId: string = 'system', userName: string = 'Sistema') => {

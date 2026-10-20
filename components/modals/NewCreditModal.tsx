@@ -390,7 +390,7 @@ const NewCreditModal: React.FC<NewCreditModalProps> = ({ isOpen, onClose, totalA
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">1º Vencimento</label>
-                            <CustomDatePicker value={firstDueDate} onChange={setFirstDueDate} className="w-full h-12" />
+                            <CustomDatePicker value={firstDueDate} onChange={setFirstDueDate} className="w-full h-12" align="right" />
                         </div>
                     </div>
 

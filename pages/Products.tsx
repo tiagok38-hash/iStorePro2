@@ -268,8 +268,9 @@ const Products: React.FC = () => {
 
     // Server-side search effect
     const useServerSearch = debouncedSearchTerm.trim().length > 0;
+    const [searchTrigger, setSearchTrigger] = useState(0);
 
-    useEffect(() => {
+    const refreshSearch = useCallback(async () => {
         if (!useServerSearch) {
             setServerSearchResults([]);
             setServerSearchTotal(0);
@@ -284,28 +285,45 @@ const Products: React.FC = () => {
         const stockMap: Record<string, string> = { 'Em estoque': 'in_stock', 'Sem estoque': 'out_of_stock', 'Todos': 'all' };
 
         setServerSearching(true);
-        searchProductsRPC({
-            query: debouncedSearchTerm.trim(),
-            stockFilter: (stockMap[filters.stock] || 'in_stock') as any,
-            conditionFilter: filters.condition,
-            locationFilter: filters.location,
-            typeFilter: filters.type,
-            sortOrder: 'relevance',
-            limit: itemsPerPage,
-            offset: (currentPage - 1) * itemsPerPage
-        }).then(result => {
-            if (abortController.signal.aborted) return;
-            setServerSearchResults(result.products);
-            setServerSearchTotal(result.totalCount);
-        }).catch(err => {
-            if (abortController.signal.aborted) return;
-            console.warn('Server search failed, keeping client-side:', err);
-        }).finally(() => {
-            if (!abortController.signal.aborted) setServerSearching(false);
-        });
+        try {
+            const result = await searchProductsRPC({
+                query: debouncedSearchTerm.trim(),
+                stockFilter: (stockMap[filters.stock] || 'in_stock') as any,
+                conditionFilter: filters.condition,
+                locationFilter: filters.location,
+                typeFilter: filters.type,
+                sortOrder: 'relevance',
+                limit: itemsPerPage,
+                offset: (currentPage - 1) * itemsPerPage
+            });
+            if (!abortController.signal.aborted) {
+                setServerSearchResults(result.products);
+                setServerSearchTotal(result.totalCount);
+            }
+        } catch (err) {
+            if (!abortController.signal.aborted) {
+                console.warn('Server search failed, keeping client-side:', err);
+            }
+        } finally {
+            if (!abortController.signal.aborted) {
+                setServerSearching(false);
+            }
+        }
+    }, [useServerSearch, debouncedSearchTerm, filters, currentPage, itemsPerPage]);
 
-        return () => { abortController.abort(); };
-    }, [debouncedSearchTerm, filters, currentPage, itemsPerPage]);
+    useEffect(() => {
+        if (!useServerSearch) {
+            setServerSearchResults([]);
+            setServerSearchTotal(0);
+            return;
+        }
+
+        refreshSearch();
+
+        return () => {
+            if (serverSearchAbort.current) serverSearchAbort.current.abort();
+        };
+    }, [useServerSearch, debouncedSearchTerm, filters, currentPage, itemsPerPage, searchTrigger, refreshSearch]);
 
 
     const [isNewPurchaseModalOpen, setIsNewPurchaseModalOpen] = useState(false);
@@ -398,18 +416,23 @@ const Products: React.FC = () => {
         const handleCompanyUpdate = () => {
             if (document.visibilityState !== 'visible') return;
             fetchData(true);
+            setSearchTrigger(t => t + 1);
         };
         window.addEventListener('company-data-updated', handleCompanyUpdate);
 
         const handleSmartReload = () => {
             if (document.visibilityState !== 'visible') return;
             fetchData(true);
+            setSearchTrigger(t => t + 1);
         };
         window.addEventListener('app-reloadData', handleSmartReload);
 
         const bc = new BroadcastChannel('app-updates');
         bc.onmessage = (event) => {
-            if (event.data === 'company-data-updated') fetchData(true);
+            if (event.data === 'company-data-updated') {
+                fetchData(true);
+                setSearchTrigger(t => t + 1);
+            }
         };
 
         return () => {
@@ -538,15 +561,35 @@ const Products: React.FC = () => {
     const handleCloseProductModal = () => { setIsProductModalOpen(false); };
     const handleSaveProduct = async (productData: any) => {
         try {
+            let savedProduct: Product | null = null;
             if (editingProduct && 'id' in editingProduct) {
-                await updateProduct({ ...editingProduct, ...productData } as Product, user?.id, user?.name);
+                savedProduct = await updateProduct({ ...editingProduct, ...productData } as Product, user?.id, user?.name);
                 showToast('Produto atualizado com sucesso!', 'success');
             } else {
                 const newProductData = { ...productData };
-                await addProduct(newProductData, user?.id, user?.name);
+                savedProduct = await addProduct(newProductData, user?.id, user?.name);
                 showToast('Produto adicionado com sucesso!', 'success');
             }
-            fetchData(); handleCloseProductModal();
+
+            // Atualização imediata no estado local da interface (tanto na lista geral quanto no resultado de busca)
+            if (savedProduct) {
+                const updated = savedProduct;
+                setProducts(prev => {
+                    const idx = prev.findIndex(p => p.id === updated.id);
+                    if (idx >= 0) {
+                        const copy = [...prev];
+                        copy[idx] = { ...copy[idx], ...updated };
+                        return copy;
+                    }
+                    return [updated, ...prev];
+                });
+                setServerSearchResults(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+            }
+
+            handleCloseProductModal();
+            // Recarrega todos os dados do banco para garantir total sincronização
+            await fetchData(true);
+            setSearchTrigger(t => t + 1);
         } catch (error: any) {
             showToast(error.message || 'Erro ao salvar produto.', 'error');
         }
@@ -564,7 +607,13 @@ const Products: React.FC = () => {
         try {
             await deleteProduct(productToDelete.id, user?.id, user?.name);
             showToast('Produto excluído com sucesso!', 'success');
-            fetchData(); setIsDeleteModalOpen(false); setProductToDelete(null);
+            const deletedId = productToDelete.id;
+            setProducts(prev => prev.filter(p => p.id !== deletedId));
+            setServerSearchResults(prev => prev.filter(p => p.id !== deletedId));
+            setIsDeleteModalOpen(false);
+            setProductToDelete(null);
+            await fetchData(true);
+            setSearchTrigger(t => t + 1);
         } catch (error) { showToast('Erro ao excluir produto.', 'error'); }
     };
     const handleViewHistory = async (product: Product) => {
@@ -578,7 +627,9 @@ const Products: React.FC = () => {
         try {
             await updateMultipleProducts(updates, user?.id, user?.name);
             showToast(`${updates.length} produtos atualizados com sucesso!`, 'success');
-            setIsBulkUpdateModalOpen(false); fetchData();
+            setIsBulkUpdateModalOpen(false);
+            await fetchData(true);
+            setSearchTrigger(t => t + 1);
         } catch (error) { showToast('Erro ao atualizar produtos em massa.', 'error'); }
     };
 
@@ -586,7 +637,9 @@ const Products: React.FC = () => {
         try {
             await updateMultipleProducts(updates, user?.id, user?.name);
             showToast(`Local de estoque atualizado para ${updates.length} produto(s)!`, 'success');
-            setIsBulkLocationUpdateModalOpen(false); fetchData();
+            setIsBulkLocationUpdateModalOpen(false);
+            await fetchData(true);
+            setSearchTrigger(t => t + 1);
         } catch (error) { showToast('Erro ao atualizar local em massa.', 'error'); }
     };
 
@@ -601,7 +654,10 @@ const Products: React.FC = () => {
             showToast('Estoque atualizado com sucesso!', 'success');
             setIsUpdateStockModalOpen(false);
             setProductForStockUpdate(null);
-            fetchData();
+            setProducts(prev => prev.map(p => p.id === productToUpdate.id ? { ...p, stock: newStock } : p));
+            setServerSearchResults(prev => prev.map(p => p.id === productToUpdate.id ? { ...p, stock: newStock } : p));
+            await fetchData(true);
+            setSearchTrigger(t => t + 1);
         } catch (error: any) {
             showToast(error.message || 'Erro ao atualizar o estoque.', 'error');
         }

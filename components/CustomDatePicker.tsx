@@ -6,14 +6,28 @@ interface CustomDatePickerProps {
     value: string;
     onChange: (date: string) => void;
     max?: string;
+    min?: string;
     label?: string;
     className?: string;
     title?: string;
     disabled?: boolean;
+    align?: 'left' | 'right' | 'auto';
 }
 
-const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, max, label, className, title, disabled }) => {
+const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
+    value,
+    onChange,
+    max,
+    min,
+    label,
+    className,
+    title,
+    disabled,
+    align = 'auto'
+}) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
+    const [horizontalAlign, setHorizontalAlign] = useState<'left' | 'right'>('left');
     const [viewDate, setViewDate] = useState(() => {
         if (value) {
             const parsed = new Date(value + 'T12:00:00');
@@ -22,6 +36,29 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
         return new Date();
     });
     const containerRef = useRef<HTMLDivElement>(null);
+
+    const handleToggle = () => {
+        if (disabled) return;
+        if (!isOpen && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            // Se o espaço abaixo for menor que 260px e houver mais espaço em cima, abre para cima
+            setOpenUpward(spaceBelow < 260 && spaceAbove > spaceBelow);
+
+            // Alinhamento horizontal
+            if (align === 'right') {
+                setHorizontalAlign('right');
+            } else if (align === 'left') {
+                setHorizontalAlign('left');
+            } else {
+                const spaceRight = window.innerWidth - rect.left;
+                setHorizontalAlign(spaceRight < 250 ? 'right' : 'left');
+            }
+        }
+        setIsOpen(!isOpen);
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -76,9 +113,15 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
     };
 
     const isDisabled = (day: number) => {
-        if (!max) return false;
-        const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-        return d > new Date(max + 'T23:59:59');
+        if (max) {
+            const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+            if (d > new Date(max + 'T23:59:59')) return true;
+        }
+        if (min) {
+            const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+            if (d < new Date(min + 'T00:00:00')) return true;
+        }
+        return false;
     };
 
     const monthName = viewDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
@@ -89,7 +132,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
             <button
                 type="button"
                 disabled={disabled}
-                onClick={() => !disabled && setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 className={`flex items-center gap-2 px-3 border rounded-xl text-sm font-medium w-full h-[48px] shadow-sm transition-colors ${
                     disabled 
                         ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed opacity-80' 
@@ -105,44 +148,68 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
 
             {isOpen && (
                 <div
-                    className="absolute top-full left-0 mt-2 p-4 bg-white border border-gray-100 rounded-xl shadow-2xl z-[9999] w-64 animate-in fade-in slide-in-from-top-2 duration-200"
+                    className={`absolute p-2.5 bg-white border border-gray-200/90 rounded-2xl shadow-xl shadow-black/10 z-[9999] w-[236px] max-w-[calc(100vw-2rem)] select-none animate-in fade-in duration-150 ${
+                        openUpward ? 'bottom-full mb-1.5 slide-in-from-bottom-2' : 'top-full mt-1.5 slide-in-from-top-2'
+                    } ${
+                        horizontalAlign === 'right' ? 'right-0 left-auto' : 'left-0 right-auto max-sm:right-0 max-sm:left-auto'
+                    }`}
                 >
-                    <div className="flex items-center justify-between mb-4">
-                        <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-xl transition-colors">
-                            <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
+                    {/* Cabeçalho do mês */}
+                    <div className="flex items-center justify-between mb-1.5 px-0.5">
+                        <button
+                            type="button"
+                            onClick={handlePrevMonth}
+                            className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
+                        >
+                            <ChevronLeftIcon className="w-3.5 h-3.5" />
                         </button>
-                        <span className="text-xs font-black uppercase text-gray-800">{monthName}</span>
-                        <button type="button" onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded-xl transition-colors">
-                            <ChevronRightIcon className="w-4 h-4 text-gray-600" />
+                        <span className="text-xs font-black uppercase tracking-wider text-gray-800 capitalize truncate">
+                            {monthName}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleNextMonth}
+                            className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
+                        >
+                            <ChevronRightIcon className="w-3.5 h-3.5" />
                         </button>
                     </div>
 
+                    {/* Dias da semana */}
                     <div className="grid grid-cols-7 gap-1 text-center mb-1">
                         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                            <span key={i} className="text-[10px] font-black text-gray-400">{d}</span>
+                            <span key={i} className="text-[10px] font-bold text-gray-400 py-0.5">{d}</span>
                         ))}
                     </div>
 
+                    {/* Grade de dias */}
                     <div className="grid grid-cols-7 gap-1">
                         {days.map((day, idx) => {
-                            if (day === null) return <div key={`empty-${idx}`} />;
-                            const disabled = isDisabled(day);
+                            if (day === null) return <div key={`empty-${idx}`} className="h-7 w-7" />;
+                            const dayDisabled = isDisabled(day);
                             const selected = isSelected(day);
+                            const today = isToday(day);
+
                             return (
                                 <button
                                     key={day}
                                     type="button"
-                                    disabled={disabled}
+                                    disabled={dayDisabled}
                                     onClick={() => {
                                         const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
                                         onChange(toDateValue(d));
                                         setIsOpen(false);
                                     }}
                                     className={`
-                                        h-8 w-8 text-[11px] font-bold rounded-xl transition-all
-                                        ${disabled ? 'text-gray-200 cursor-not-allowed' :
-                                            selected ? 'bg-primary text-white shadow-lg shadow-primary/30' :
-                                                isToday(day) ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}
+                                        h-7 w-7 text-xs font-semibold rounded-lg flex items-center justify-center transition-all
+                                        ${dayDisabled
+                                            ? 'text-gray-300 cursor-not-allowed'
+                                            : selected
+                                                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/30 scale-105'
+                                                : today
+                                                    ? 'bg-indigo-50 text-indigo-600 font-bold border border-indigo-200/80 hover:bg-indigo-100'
+                                                    : 'text-gray-700 hover:bg-gray-100'
+                                        }
                                     `}
                                 >
                                     {day}
@@ -151,14 +218,15 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
                         })}
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between gap-2">
+                    {/* Rodapé: Limpar e Hoje */}
+                    <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between gap-1.5">
                         <button
                             type="button"
                             onClick={() => {
                                 onChange('');
                                 setIsOpen(false);
                             }}
-                            className="flex-1 px-2 py-1.5 text-[10px] font-black uppercase text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                            className="flex-1 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors text-center"
                         >
                             Limpar
                         </button>
@@ -170,7 +238,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange, ma
                                 setViewDate(today);
                                 setIsOpen(false);
                             }}
-                            className="flex-1 px-2 py-1.5 text-[10px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 rounded-xl transition-colors"
+                            className="flex-1 py-1 text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors text-center"
                         >
                             Hoje
                         </button>
