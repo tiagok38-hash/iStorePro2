@@ -14,6 +14,7 @@ import InstallmentPaymentModal from './modals/InstallmentPaymentModal.tsx';
 import CreditSettingsModal from './modals/CreditSettingsModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
 import ManualDebitModal from './modals/ManualDebitModal.tsx';
+import SaleViewModal from './modals/SaleViewModal.tsx';
 import StatusBadge from './StatusBadge.tsx';
 import { CarnetPrintButton } from './print/CarnetPrintButton';
 import { useUser } from '../contexts/UserContext.tsx';
@@ -41,6 +42,8 @@ const CreditDashboard: React.FC = () => {
     const [installmentToDelete, setInstallmentToDelete] = useState<CreditInstallment | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isManualDebitOpen, setIsManualDebitOpen] = useState(false);
+    const [viewSaleId, setViewSaleId] = useState<string | null>(null);
+    const [viewSaleDisplayId, setViewSaleDisplayId] = useState<string | number | null>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -514,6 +517,19 @@ const CreditDashboard: React.FC = () => {
                                                                         <SettingsIcon size={14} className="text-blue-600" />
                                                                     </button>
                                                                 )}
+                                                                {/* Botão visualizar venda original — somente para parcelas de venda (não manual) */}
+                                                                {(inst as any).debitOrigin !== 'manual' && inst.saleId && (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setViewSaleId(inst.saleId); setViewSaleDisplayId(inst.saleDisplayId ?? null); }}
+                                                                        className="p-1.5 text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100 flex items-center justify-center"
+                                                                        title="Ver venda original"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                                            <circle cx="12" cy="12" r="3"/>
+                                                                        </svg>
+                                                                    </button>
+                                                                )}
                                                                 <div onClick={(e) => e.stopPropagation()}>
                                                                     <CarnetPrintButton
                                                                         saleId={inst.saleId}
@@ -628,6 +644,14 @@ const CreditDashboard: React.FC = () => {
             <ManualDebitModal
                 onClose={() => setIsManualDebitOpen(false)}
                 onSuccess={fetchData}
+            />
+        )}
+
+        {viewSaleId && (
+            <SaleViewModal
+                saleId={viewSaleId}
+                saleDisplayId={viewSaleDisplayId}
+                onClose={() => { setViewSaleId(null); setViewSaleDisplayId(null); }}
             />
         )}
     </>
