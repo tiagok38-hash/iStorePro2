@@ -157,10 +157,12 @@ const A4Layout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, customer, sa
                                                     {product?.description || item.description}
                                                 </p>
                                             )}
-                                            {warrantyExp && (
+                                            {(warrantyExp || (product?.batteryHealth !== undefined && product?.batteryHealth > 0 && product?.condition !== 'Novo' && product?.condition !== 'CPO')) && (
                                                 <p className="text-[8px] text-gray-700 leading-tight">
-                                                    Garantia até {warrantyExp}
-                                                    {product?.batteryHealth && product?.condition !== 'Novo' ? ` • Bat: ${product.batteryHealth}%` : ''}
+                                                    {warrantyExp && `Garantia até ${warrantyExp}`}
+                                                    {product?.batteryHealth !== undefined && product?.batteryHealth > 0 && product?.condition !== 'Novo' && product?.condition !== 'CPO' && (
+                                                        <span>{warrantyExp ? ' • ' : ''}🔋 Saúde da Bateria: {product.batteryHealth}%</span>
+                                                    )}
                                                 </p>
                                             )}
                                             {product?.observations && (
@@ -322,6 +324,9 @@ const ThermalLayout: React.FC<ReceiptLayoutProps> = ({ sale, productMap, custome
                                 )}
                                 {warrantyExp && (
                                     <p className="font-semibold italic">Garantia válida até {warrantyExp}</p>
+                                )}
+                                {product?.batteryHealth !== undefined && product?.batteryHealth > 0 && product?.condition !== 'Novo' && product?.condition !== 'CPO' && (
+                                    <p className="font-semibold">Bateria: {product.batteryHealth}%</p>
                                 )}
                                 {product?.observations && (
                                     <p className="italic text-[9px] text-amber-700">Obs: {product.observations}</p>
