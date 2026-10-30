@@ -257,21 +257,21 @@ export const payInstallment = async (
                     amortization_value: amortizationPart,
                     remaining_balance: newDebtBalance
                 }).eq('id', id);
-
-                // Regra 6: Atualizar total credit_used do cliente
-                if (current.customer_id && _syncCustomerCreditLimit) {
-                    const newTotalUsed = await _syncCustomerCreditLimit(current.customer_id);
-
-                    await addAuditLog(
-                        AuditActionType.UPDATE,
-                        AuditEntityType.CUSTOMER,
-                        current.customer_id,
-                        `Pagamento efetuado: Amortizado ${formatCurrency(amortizationPart)} | Juros: ${formatCurrency(calculatedInterest)} | Novo total devedor: ${formatCurrency(newTotalUsed)}`,
-                        userId,
-                        userName
-                    );
-                }
             }
+        }
+
+        // Regra 6: Atualizar total credit_used do cliente (para vendas ou débitos manuais)
+        if (current.customer_id && _syncCustomerCreditLimit) {
+            const newTotalUsed = await _syncCustomerCreditLimit(current.customer_id);
+
+            await addAuditLog(
+                AuditActionType.UPDATE,
+                AuditEntityType.CUSTOMER,
+                current.customer_id,
+                `Pagamento efetuado: Parcela de ${formatCurrency(amountPaid)} | Novo total devedor: ${formatCurrency(newTotalUsed)}`,
+                userId,
+                userName
+            );
         }
     } catch (restorationError) {
         console.error('payInstallment: Amortization logic error:', restorationError);
