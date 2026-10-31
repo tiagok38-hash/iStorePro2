@@ -134,7 +134,7 @@ export const getCreditInstallments = async (): Promise<CreditInstallment[]> => {
             customer:customers(name, phone),
             sale:sales(id)
         `)
-        .order('due_date', { ascending: true });
+        .order('created_at', { ascending: true });
 
     if (error) {
         console.error('Error getting credit installments:', error);

@@ -154,6 +154,15 @@ const CreditDashboard: React.FC = () => {
             }
         });
 
+        // Garante que dentro de cada cliente as parcelas fiquem ordenadas da mais antiga para a mais recente por created_at
+        Object.values(groups).forEach(g => {
+            g.installments.sort((a, b) => {
+                const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return timeA - timeB;
+            });
+        });
+
         return Object.values(groups).sort((a, b) => a.customerName.localeCompare(b.customerName));
     }, [filteredInstallments]);
 
