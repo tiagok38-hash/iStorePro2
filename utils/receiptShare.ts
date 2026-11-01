@@ -2,8 +2,7 @@
  * Receipt PDF Generation & Sharing Utility
  * Generates a PDF from the receipt HTML and shares via WhatsApp, Email, or downloads.
  */
-import html2canvas from 'html2canvas-pro';
-import { jsPDF } from 'jspdf';
+import type { jsPDF as JsPDFInstance } from 'jspdf';
 import { getWhatsAppLink } from './whatsappUtils.ts';
 
 interface ShareReceiptOptions {
@@ -28,6 +27,12 @@ async function generateReceiptPDF(elementId: string, format: 'A4' | 'thermal'): 
         throw new Error('Elemento do recibo não encontrado');
     }
 
+    // Bibliotecas pesadas (~400 KB) carregadas sob demanda: só quando o usuário gera/compartilha o PDF
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas-pro'),
+        import('jspdf'),
+    ]);
+
     // Capture the HTML as a canvas image
     const canvas = await html2canvas(element, {
         scale: 1.5, // Lower scale for smaller file + faster generation
@@ -43,7 +48,7 @@ async function generateReceiptPDF(elementId: string, format: 'A4' | 'thermal'): 
     const imgWidth = canvas.width;
     const imgHeight = canvas.height;
 
-    let pdf: jsPDF;
+    let pdf: JsPDFInstance;
 
     if (format === 'thermal') {
         const pdfWidth = 80;
