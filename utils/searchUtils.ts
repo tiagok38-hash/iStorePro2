@@ -31,7 +31,7 @@ export const parseSearchTerms = (searchTerm: string) => {
  */
 export const getProductSearchDescription = (p: Product): string => {
     return normalizeForSearch(
-        `${p.name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`
+        `${(p as Product & { name?: string }).name || ''} ${p.brand || ''} ${p.model || ''} ${p.color || ''} ${p.storage || ''} ${p.sku || ''} ${p.category || ''} ${p.serialNumber || ''} ${p.imei1 || ''} ${p.imei2 || ''} ${(p.barcodes || []).join(' ')}`
     );
 };
 

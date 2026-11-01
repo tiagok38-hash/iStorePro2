@@ -159,7 +159,7 @@ const ResumoCaixaView: React.FC<ResumoCaixaViewProps> = ({
                                                 {method}
                                             </span>
                                             <span className={`text-xs md:text-sm font-black shrink-0 ${isCash ? 'text-success' : isCrediario ? 'text-red-600' : 'text-gray-800'}`}>
-                                                {formatCurrency(value)}
+                                                {formatCurrency(Number(value))}
                                             </span>
                                         </div>
                                     );

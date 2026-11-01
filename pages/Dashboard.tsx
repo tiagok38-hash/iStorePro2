@@ -1266,7 +1266,7 @@ const PaymentMethodTotalsCard: React.FC<{ sales: Sale[]; activeMethods: PaymentM
         , [paymentData.totals]);
 
     const activeMethodsCount = useMemo(() =>
-        Object.values(paymentData.totals).filter(val => val > 0).length
+        Object.values(paymentData.totals).filter((val: number) => val > 0).length
         , [paymentData.totals]);
 
     const renderedList = useMemo(() => {

@@ -201,11 +201,12 @@ export const getServiceOrders = async (startDate?: string, options?: { select?: 
 
             if (windowResult.error) throw windowResult.error;
             // Erro na query de abertas não é fatal — usa array vazio como fallback
-            const openData = openResult.data || [];
+            // select dinâmico (options.select) impede a inferência de tipos do Supabase → tipa como any[]
+            const openData = (openResult.data || []) as any[];
 
             // Mescla e deduplica por ID: abertas sempre entram, janela complementa
             const mergedMap = new Map<string, any>();
-            (windowResult.data || []).forEach(os => mergedMap.set(os.id, os));
+            ((windowResult.data || []) as any[]).forEach(os => mergedMap.set(os.id, os));
             openData.forEach(os => mergedMap.set(os.id, os)); // sobrescreve com dado mais atual se duplicado
 
             return Array.from(mergedMap.values()).map(mapServiceOrderData);

@@ -376,7 +376,7 @@ const VendasReport: React.FC<{ sales: Sale[], products: Product[], customers: Cu
             return acc;
         }, {});
 
-        return Object.entries(salesByDay).map(([name, data]) => {
+        return (Object.entries(salesByDay) as [string, { faturamento: number; lucro: number; vendas: number; ticketMedio: number }][]).map(([name, data]) => {
             const ticketMedio = data.vendas > 0 ? data.faturamento / data.vendas : 0;
             return { name, ...data, ticketMedio };
         })

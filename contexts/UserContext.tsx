@@ -89,6 +89,7 @@ const fullPermissions: PermissionSet = {
   canCreateBancoHoras: true,
   canPayBancoHoras: true,
   osCanViewStockStats: true,
+  canViewCrediarios: true, canSettleCrediarios: true, canPrintCrediarios: true,
   isTechnicianProfile: false,
 };
 

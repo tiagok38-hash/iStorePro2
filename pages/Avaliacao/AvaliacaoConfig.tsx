@@ -110,7 +110,7 @@ const DevicesTab: React.FC<{ devices: AvaliacaoDevice[]; onRefresh: () => void }
             const colorOptions = form.colorsRaw.split(',').map(c => c.trim()).filter(Boolean);
             const parsedBaseValues: Record<string, number> = {};
             Object.entries(baseValues).forEach(([k, v]) => {
-                const n = parseFloat(v.replace(',', '.'));
+                const n = parseFloat((v as string).replace(',', '.'));
                 if (!isNaN(n)) parsedBaseValues[k] = n;
             });
 
@@ -259,7 +259,7 @@ const DevicesTab: React.FC<{ devices: AvaliacaoDevice[]; onRefresh: () => void }
                                 </p>
                                 {Object.keys(d.baseValues).length > 0 && (
                                     <p className="text-xs text-violet-600 font-medium mt-1">
-                                        {Object.entries(d.baseValues).slice(0, 2).map(([k, v]) => `${k.replace('__', '/')} → ${formatCurrency(v)}`).join(' · ')}
+                                        {Object.entries(d.baseValues).slice(0, 2).map(([k, v]) => `${k.replace('__', '/')} → ${formatCurrency(v as number)}`).join(' · ')}
                                         {Object.keys(d.baseValues).length > 2 && ` +${Object.keys(d.baseValues).length - 2} variantes`}
                                     </p>
                                 )}

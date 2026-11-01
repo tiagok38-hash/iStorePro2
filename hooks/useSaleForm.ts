@@ -129,14 +129,14 @@ export const useSaleForm = ({
                         imei1: (item as any).imei1 || product?.imei1 || '',
                         imei2: (item as any).imei2 || product?.imei2 || '',
                         serialNumber: (item as any).serialNumber || product?.serialNumber || '',
-                        barcode: (item as any).barcode || product?.barcode || '',
+                        barcode: (item as any).barcode || (product as any)?.barcode || '',
                         sku: (item as any).sku || product?.sku || '',
-                        description: (item as any).description || product?.description || '',
+                        description: (item as any).description || (product as any)?.description || '',
                         color: (item as any).color || product?.color || '',
                         storage: (item as any).storage ?? product?.storage ?? null,
                         condition: (item as any).condition || product?.condition || '',
                         batteryHealth: (item as any).batteryHealth ?? product?.batteryHealth ?? null,
-                    } as CartItem;
+                    } as unknown as CartItem;
                 }).filter((item): item is CartItem => item !== null);
                 setCart(reconstructedCart as CartItem[]);
                 setPayments(saleToEdit.payments.map(p => ({ ...p })));
