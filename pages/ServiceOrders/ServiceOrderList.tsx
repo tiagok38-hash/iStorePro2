@@ -20,10 +20,9 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getServiceOrders, getCustomers, getCustomerDevices, updateServiceOrder, returnOsPartsStock, deductOsPartsStock } from '../../services/mockApi';
-import { ServiceOrder, Customer, CustomerDevice } from '../../types';
+import { Customer, CustomerDevice } from '../../types';
 import Modal from '../../components/Modal';
 import CustomerModal from '../../components/CustomerModal';
-import { ServiceOrderElectronicDevicesModal } from '../../components/ServiceOrderElectronicDevicesModal';
 import {
     calculateWarrantyExpiry,
     getRemainingDays,

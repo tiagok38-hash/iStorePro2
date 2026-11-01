@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
 import { Cog6ToothIcon, DocumentTextIcon, PrinterIcon, CheckIcon } from '../icons';
-import { User, ReceiptTermParameter } from '../../types';
+import { User } from '../../types';
 import { getUsers, getPermissionProfiles as getProfiles } from '../../services/mockApi';
 import { getOsReceiptTerms } from '../../services/parametersService';
 

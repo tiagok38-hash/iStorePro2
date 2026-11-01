@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { XIcon, CalculatorIcon, CalendarIcon, PercentIcon, AlertCircleIcon, Edit2Icon, CheckIcon, InfoIcon } from 'lucide-react';
+import { XIcon, CalculatorIcon, PercentIcon, AlertCircleIcon, Edit2Icon, CheckIcon, InfoIcon } from 'lucide-react';
 import { formatCurrency, getCreditSettings, updateCustomer } from '../../services/mockApi.ts';
 import CustomDatePicker from '../CustomDatePicker.tsx';
 import CurrencyInput from '../CurrencyInput.tsx';

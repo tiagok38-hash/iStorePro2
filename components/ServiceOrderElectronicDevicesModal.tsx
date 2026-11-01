@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Smartphone, XCircleIcon, PlusIcon, Search, Cpu, User, Image as ImageIcon, Check, X } from 'lucide-react';
+import { Smartphone, XCircleIcon, PlusIcon, Check, X } from 'lucide-react';
 import { Customer, Brand, Category, ProductModel, Grade, GradeValue, ProductVariation } from '../types';
 import { appleProductHierarchy } from '../services/constants';
 import SearchableDropdown from './SearchableDropdown';

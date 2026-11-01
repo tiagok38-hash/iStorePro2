@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Customer, Supplier, Address } from '../types.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
-import { SpinnerIcon, SearchIcon, EditIcon, CheckIcon, UserCircleIcon, PhotographIcon, CameraIcon, TrashIcon, CloseIcon } from './icons.tsx';
+import { SearchIcon, EditIcon, CheckIcon, UserCircleIcon, PhotographIcon, CameraIcon, TrashIcon, CloseIcon } from './icons.tsx';
 import { formatPhone } from '../services/mockApi.ts';
 import CameraModal from './CameraModal.tsx';
 import { compressImage } from '../utils/imageUtils.ts';

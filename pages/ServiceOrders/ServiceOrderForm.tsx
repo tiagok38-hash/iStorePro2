@@ -19,7 +19,6 @@ import {
     ChevronLeft,
     Printer,
     Tag,
-    Zap,
     DollarSign,
     PencilLine,
     ShieldCheck,

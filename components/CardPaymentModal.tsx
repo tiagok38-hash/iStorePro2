@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { Payment, PaymentMethodParameter, CardConfigData, PaymentMethodType } from '../types.ts';
-import { CloseIcon, CreditCardIcon, CheckIcon, ChevronDownIcon, InfoIcon } from './icons.tsx';
+import { Payment, PaymentMethodParameter, PaymentMethodType } from '../types.ts';
+import { CloseIcon, CreditCardIcon, CheckIcon, InfoIcon } from './icons.tsx';
 import { formatCurrency, getPaymentMethods } from '../services/mockApi.ts';
 import CurrencyInput from './CurrencyInput.tsx';
 

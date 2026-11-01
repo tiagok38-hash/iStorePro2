@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { OsPart } from '../services/osPartsService';
 import { getCategories, getBrands, formatCurrency } from '../services/mockApi';
-import { CloseIcon, DocumentTextIcon, CheckIcon, ChevronRightIcon, ChevronLeftIcon } from './icons';
+import { CloseIcon, DocumentTextIcon, CheckIcon } from './icons';
 import { Category, Brand } from '../types';
 
 interface OsPartReportModalProps {

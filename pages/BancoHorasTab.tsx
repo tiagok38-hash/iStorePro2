@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import Button from '../components/Button.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import {
-    PlusIcon, CheckIcon, SpinnerIcon, UserCircleIcon, EditIcon, TrashIcon, FilterIcon
+    CheckIcon, SpinnerIcon, UserCircleIcon, EditIcon, TrashIcon, FilterIcon
 } from '../components/icons.tsx';
 import {
     getBancoHoras, addBancoHoras, updateBancoHoras, deleteBancoHoras,
@@ -13,7 +13,6 @@ import {
 import { BancoHoras, BancoHorasFuncionario } from '../types.ts';
 import { formatDateBR, getTodayDateString, formatTimeBR } from '../utils/dateUtils.ts';
 
-import MoneyInput from '../components/MoneyInput.tsx';
 
 // --- Funcionario Modal ---
 // This component is removed as per instruction.

@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     ClockIcon, ErrorIcon as AlertCircleIcon, CalendarDaysIcon as CalendarIcon, SearchIcon, WhatsAppIcon,
-    FilterIcon, CheckIcon as CheckCircleIcon, Cog6ToothIcon as SettingsIcon,
+    CheckIcon as CheckCircleIcon, Cog6ToothIcon as SettingsIcon,
     ChevronDownIcon, TrashIcon
 } from './icons';
 import {
-    CreditInstallment, Customer
-} from '../types.ts';
+    CreditInstallment} from '../types.ts';
 import {
-    getCreditInstallments, formatCurrency, getCustomers, updateCreditSettings, getCreditSettings, updateInstallmentPaymentMethod, deleteInstallment
+    getCreditInstallments, formatCurrency, getCreditSettings, updateInstallmentPaymentMethod, deleteInstallment
 } from '../services/mockApi.ts';
 import InstallmentPaymentModal from './modals/InstallmentPaymentModal.tsx';
 import CreditSettingsModal from './modals/CreditSettingsModal.tsx';

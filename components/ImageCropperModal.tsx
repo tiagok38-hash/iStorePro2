@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, TouchEvent, MouseEvent } from 'react';
 import ReactDOM from 'react-dom';
-import Button from './Button.tsx';
 import { CheckIcon, CloseIcon, SearchIcon } from './icons.tsx';
 
 // If Button.js doesn't exist, I'll fallback to HTML button

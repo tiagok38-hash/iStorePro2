@@ -2,7 +2,7 @@
 import { supabase } from '../supabaseClient.ts';
 import { InventoryMovement, AuditActionType, AuditEntityType } from '../types.ts';
 import { getNowISO } from '../utils/dateUtils.ts';
-import { fetchWithCache, clearCache, CACHE_TTL, fetchWithRetry } from './cacheUtils.ts';
+import { fetchWithCache, clearCache, CACHE_TTL } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';
 
 // --- INVENTORY MOVEMENTS ---

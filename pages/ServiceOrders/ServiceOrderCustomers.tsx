@@ -12,7 +12,6 @@ import {
     EditIcon,
     TrashIcon,
     UserCircleIcon,
-    FilterIcon,
     ClockIcon,
     WhatsAppIcon,
     EnvelopeIcon,

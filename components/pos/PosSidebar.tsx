@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    CashRegisterIcon, CalculatorIcon, ShoppingCartPlusIcon, ArchiveBoxIcon, Cog6ToothIcon, LogoutIcon, UserCircleIcon, ComputerDesktopIcon
+    CashRegisterIcon, ShoppingCartPlusIcon, Cog6ToothIcon, LogoutIcon, UserCircleIcon, ComputerDesktopIcon
 } from '../icons.tsx';
 import { useUser } from '../../contexts/UserContext.tsx';
 

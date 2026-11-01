@@ -9,7 +9,7 @@ import {
     getPurchaseOrders, getSuppliers, deletePurchaseOrder, updatePurchaseFinancialStatus, addSupplier,
     cancelPurchaseOrder,
     getBrands, getCategories, getProductModels, getGrades, getGradeValues, revertPurchaseLaunch,
-    formatCurrency, findOrCreateSupplierFromCustomer,
+    formatCurrency, 
     getSales, getStorageLocations, getProductsByPurchaseForLabels,
     searchProductsRPC
 } from '../services/mockApi.ts';
@@ -23,8 +23,7 @@ import BulkPriceUpdateModal from '../components/BulkPriceUpdateModal.tsx';
 import BulkLocationUpdateModal from '../components/BulkLocationUpdateModal.tsx';
 import PurchaseOrderDetailModal from '../components/PurchaseOrderDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';
-import GlobalLoading from '../components/GlobalLoading.tsx';
-import { toDateValue, getNowISO, formatDateBR } from '../utils/dateUtils.ts';
+import { toDateValue, formatDateBR } from '../utils/dateUtils.ts';
 import {
     SpinnerIcon, EditIcon, TrashIcon, SearchIcon, PlusIcon, TagIcon, EllipsisVerticalIcon, Cog6ToothIcon,
     TicketIcon, DocumentArrowUpIcon, ArchiveBoxIcon, XCircleIcon, EyeIcon,

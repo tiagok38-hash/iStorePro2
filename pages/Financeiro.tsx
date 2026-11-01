@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
     ChevronLeft, ChevronRight, Search, Plus,
-    TrendingUp, TrendingDown, DollarSign, Percent, Scale,
+    TrendingUp, TrendingDown, DollarSign, Scale,
     ShoppingBag, Wrench, BarChart2, Package
 } from 'lucide-react';
 import { format, isSameMonth, parseISO, isToday, startOfMonth, endOfMonth, endOfDay } from 'date-fns';

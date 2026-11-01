@@ -3,11 +3,10 @@ import React, { useState, useMemo } from 'react';
 import { Sale, Product, Customer, User } from '../types';
 import { formatCurrency } from '../services/mockApi';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    PieChart, Pie, Cell, LineChart, Line
-} from 'recharts';
+    Tooltip, Legend, ResponsiveContainer,
+    PieChart, Pie, Cell} from 'recharts';
 import CustomDatePicker from './CustomDatePicker';
-import { DocumentArrowUpIcon, SearchIcon } from './icons';
+import { DocumentArrowUpIcon } from './icons';
 import { getItemCostSnapshot } from '../utils/financialUtils.ts';
 import SalesHeatmapAnalytics from './SalesHeatmapAnalytics';
 

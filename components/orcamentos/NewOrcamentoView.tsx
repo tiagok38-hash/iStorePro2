@@ -12,7 +12,7 @@ import {
 } from '../../services/mockApi.ts';
 import {
     PlusIcon, MinusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon, SpinnerIcon,
-    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon
+    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon
 } from '../icons.tsx';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import SearchableDropdown from '../SearchableDropdown.tsx';
@@ -24,7 +24,6 @@ import ProductModal from '../ProductModal.tsx';
 import CardPaymentModal from '../CardPaymentModal.tsx';
 import NewCreditModal from '../modals/NewCreditModal.tsx';
 import CreditLimitWarning from '../modals/CreditLimitWarning.tsx';
-import { checkCreditLimit } from '../../utils/creditUtils.ts';
 
 
 import { useOrcamentoForm } from '../../hooks/useOrcamentoForm.ts';

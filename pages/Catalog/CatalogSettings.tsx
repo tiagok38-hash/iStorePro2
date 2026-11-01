@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Save, Loader2, Phone, Store, Globe, Layers, Plus, Pencil, Trash2, X, Check, GripVertical, ChevronDown, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, Loader2, Phone, Store, Globe, Layers, Plus, Pencil, Trash2, X, Check, GripVertical, ExternalLink } from 'lucide-react';
 import { getCompanyInfo, updateCompanyInfo, getCatalogSections, addCatalogSection, updateCatalogSection, deleteCatalogSection } from '../../services/mockApi.ts';
-import { CompanyInfo } from '../../types.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 
 interface Section {

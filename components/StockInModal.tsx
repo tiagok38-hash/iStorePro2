@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { PurchaseOrder, Product, PurchaseItem, ProductConditionParameter, StorageLocationParameter, WarrantyParameter } from '../types.ts';
+import { PurchaseOrder, Product, ProductConditionParameter, StorageLocationParameter, WarrantyParameter } from '../types.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { launchPurchaseToStock, formatCurrency, getProductConditions, getStorageLocations, getWarranties } from '../services/mockApi.ts';
-import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon, BoltIcon, SearchIcon, ArchiveBoxIcon } from './icons.tsx';
+import { SpinnerIcon, DocumentArrowUpIcon, XCircleIcon, BoltIcon, ArchiveBoxIcon } from './icons.tsx';
 import CurrencyInput from './CurrencyInput.tsx';
 import StockSearchModal from './StockSearchModal.tsx';
 

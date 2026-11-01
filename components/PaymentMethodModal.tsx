@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PaymentMethodParameter, CardConfigData, PaymentMethodCategory, InstallmentRate } from '../types.ts';
+import { PaymentMethodParameter, CardConfigData, InstallmentRate } from '../types.ts';
 import { CloseIcon, CheckIcon, CreditCardIcon } from './icons.tsx';
 import PercentageInput from './PercentageInput.tsx';
 import Button from './Button.tsx';

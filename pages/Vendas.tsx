@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Sale, Product, Customer, User, SaleItem, PermissionProfile, Brand, Category, ProductModel, Grade, GradeValue, Supplier, ReceiptTermParameter, PermissionSet } from '../types.ts';
+import { Sale, Product, Customer, User, PermissionProfile, Brand, Category, ProductModel, Grade, GradeValue, Supplier, ReceiptTermParameter, PermissionSet } from '../types.ts';
 import { getSales, getProducts, getCustomers, getUsers, addCustomer, addProduct, formatCurrency, cancelSale, getPermissionProfiles, getBrands, getCategories, getProductModels, getGrades, getGradeValues, getSuppliers, getReceiptTerms, getPaymentMethods } from '../services/mockApi.ts';
 import { clearCache } from '../services/cacheUtils.ts';
 import { supabase } from '../supabaseClient.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { SuspenseFallback } from '../components/GlobalLoading.tsx';
-import { SpinnerIcon, EllipsisVerticalIcon, CalendarDaysIcon, ChevronDownIcon, CloseIcon, PlusIcon, TrashIcon, SearchIcon, MinusIcon, EyeIcon, EditIcon, PrinterIcon, XCircleIcon, DocumentTextIcon, TicketIcon, ChevronLeftIcon, ChevronRightIcon, WhatsAppIcon, CreditCardIcon, SmartphoneIcon } from '../components/icons.tsx';
+import { SpinnerIcon, EllipsisVerticalIcon, SearchIcon, EyeIcon, EditIcon, PrinterIcon, XCircleIcon, DocumentTextIcon, TicketIcon, ChevronLeftIcon, ChevronRightIcon, WhatsAppIcon, CreditCardIcon, SmartphoneIcon } from '../components/icons.tsx';
 import CardPaymentModal from '../components/CardPaymentModal.tsx';
 import SaleDetailModal from '../components/SaleDetailModal.tsx';
 import DeleteWithReasonModal from '../components/DeleteWithReasonModal.tsx';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogoIcon, UserCircleIcon, LogoutIcon } from './icons.tsx';
+import { UserCircleIcon, LogoutIcon } from './icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useChat } from '../contexts/ChatContext.tsx';
 import { CompanyInfo } from '../types.ts';

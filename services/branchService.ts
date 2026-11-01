@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient.ts';
-import { Branch, BranchInventory, InventoryMovement, Product } from '../types.ts';
+import { Branch, InventoryMovement } from '../types.ts';
 import { getNowISO } from '../utils/dateUtils.ts';
 import { clearCache } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';

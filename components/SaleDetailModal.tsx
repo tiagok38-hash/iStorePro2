@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Sale, Product, Customer, User, CompanyInfo, ReceiptTermParameter, Supplier } from '../types.ts';
+import { Sale, Product, Customer, User, Supplier } from '../types.ts';
 import { formatCurrency } from '../services/mockApi.ts';
 import { CloseIcon, PrinterIcon, DocumentTextIcon, TicketIcon } from './icons.tsx';
 import SaleReceiptModal from './SaleReceiptModal.tsx';

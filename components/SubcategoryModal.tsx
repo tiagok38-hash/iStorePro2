@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProductModel } from '../types.ts';
-import { CloseIcon, EyeIcon, EyeSlashIcon, EditIcon } from './icons.tsx';
+import { EyeIcon, EyeSlashIcon, EditIcon } from './icons.tsx';
 
 interface SubcategoryModalProps {
     item: Partial<ProductModel> | null;

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList, AreaChart, Area } from 'recharts';
 import { Sale, Product, Customer, User, ProductModel, Category } from '../types.ts';
-import { getSales, getProducts, getProductsInStock, getCustomers, getUsers, formatCurrency, getProductModels, getCategories } from '../services/mockApi.ts';
-import { SpinnerIcon, CalendarDaysIcon, TrophyIcon, SearchIcon, ClockIcon, DocumentTextIcon, CurrencyDollarIcon, TrendingUpIcon, ShoppingCartIcon, BanknotesIcon, PackageIcon, WalletIcon, AppleIcon, Squares2x2Icon } from '../components/icons.tsx';
+import { getSales, getProductsInStock, getCustomers, getUsers, formatCurrency, getProductModels, getCategories } from '../services/mockApi.ts';
+import { SpinnerIcon, TrophyIcon, SearchIcon, ClockIcon, DocumentTextIcon, CurrencyDollarIcon, TrendingUpIcon, ShoppingCartIcon, BanknotesIcon, PackageIcon, WalletIcon, AppleIcon, Squares2x2Icon } from '../components/icons.tsx';
 import CustomDatePicker from '../components/CustomDatePicker.tsx';
 import PriceListModal from '../components/PriceListModal.tsx';
 import { toDateValue } from '../utils/dateUtils.ts';

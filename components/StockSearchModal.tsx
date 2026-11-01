@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Product } from '../types.ts';
-import { SearchIcon, XCircleIcon, ArchiveBoxIcon, CheckIcon } from './icons.tsx';
+import { SearchIcon, XCircleIcon, ArchiveBoxIcon } from './icons.tsx';
 import { formatCurrency } from '../services/mockApi.ts';
 
 interface StockSearchModalProps {

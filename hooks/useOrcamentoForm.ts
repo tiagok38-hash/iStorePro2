@@ -2,13 +2,10 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
     Product, Customer, User, Orcamento, Payment, PaymentMethodType,
-    Supplier, CartItem, PaymentMethodParameter, CardConfigData,
-    AuditActionType, AuditEntityType
-} from '../types.ts';
+    Supplier, CartItem, PaymentMethodParameter} from '../types.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import {
-    findOrCreateSupplierFromCustomer, updateProduct, addAuditLog
-} from '../services/mockApi.ts';
+    findOrCreateSupplierFromCustomer} from '../services/mockApi.ts';
 import {
     createOrcamento, updateOrcamento
 } from '../services/orcamentosService.ts';

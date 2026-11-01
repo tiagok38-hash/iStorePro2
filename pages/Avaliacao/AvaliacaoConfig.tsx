@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Settings, Smartphone, Plus, Trash2, Edit3, Check, X, ChevronDown,
-    ChevronUp, ToggleLeft, ToggleRight, Save, Copy, ExternalLink, AlertCircle,
-    Zap, Tag, Sliders
+    Settings, Smartphone, Plus, Trash2, Edit3, Check, 
+    ToggleLeft, ToggleRight, Save, Copy, ExternalLink, AlertCircle,
+    Zap, Sliders
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import { useUser } from '../../contexts/UserContext.tsx';

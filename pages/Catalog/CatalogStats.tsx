@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient.ts';
-import { Calendar, BarChart3, MessageCircle, ShoppingBag, Eye } from 'lucide-react';
-import { CatalogEvent, CatalogItem } from '../../types.ts';
+import { MessageCircle, ShoppingBag, Eye } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

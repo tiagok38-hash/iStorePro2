@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext.tsx';
-import { PlusIcon, DocumentTextIcon, SuccessIcon, XCircleIcon, ArrowPathIcon, TrashIcon, WhatsAppIcon, PrinterIcon, CalendarDaysIcon, TrendingUpIcon, ChartBarIcon } from '../components/icons.tsx';
+import { PlusIcon, DocumentTextIcon, SuccessIcon, XCircleIcon, ArrowPathIcon, TrashIcon, WhatsAppIcon, PrinterIcon, TrendingUpIcon } from '../components/icons.tsx';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import OrcamentoPrintModal from '../components/orcamentos/OrcamentoPrintModal.tsx';
 import { Orcamento } from '../types.ts';

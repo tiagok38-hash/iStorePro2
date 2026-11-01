@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import { formatCurrency } from '../../services/mockApi.ts';
 

@@ -22,7 +22,6 @@ import OsPurchaseModal from '../../components/OsPurchaseModal';
 import DeleteWithReasonModal from '../../components/DeleteWithReasonModal';
 import OsPurchaseDetailModal from '../../components/OsPurchaseDetailModal';
 import OsPartReportModal from '../../components/OsPartReportModal';
-import { formatDateBR } from '../../utils/dateUtils';
 import { getOsWarranties } from '../../services/mockApi';
 import { useUser } from '../../contexts/UserContext';
 import { deduplicateWarranties, cleanUUIDs } from '../../utils/formatters.ts';

@@ -2,21 +2,20 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
     getCrmDeals, addCrmDeal, updateCrmDeal, deleteCrmDeal,
-    getCrmActivities, addCrmActivity, formatCurrency, getCustomers,
+    addCrmActivity, formatCurrency,
 } from '../services/mockApi.ts';
-import { CrmDeal, CrmActivity, CrmColumn, CrmPriority, CrmOrigin, Customer } from '../types.ts';
+import { CrmDeal, CrmColumn, CrmPriority, CrmOrigin, Customer } from '../types.ts';
 import {
     PlusIcon, SearchIcon, CloseIcon, CheckIcon, TrashIcon,
 } from './icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
-import { openWhatsApp, getWhatsAppLink } from '../utils/whatsappUtils.ts';
+import { openWhatsApp } from '../utils/whatsappUtils.ts';
 import {
     Sparkles, MessageCircle, Package, Clock, CheckCircle2, Archive,
-    Phone, Flame, Snowflake, Thermometer, Send, Calendar,
+    Phone, Send, Calendar,
     MoreVertical, ExternalLink, Instagram, Globe, User as UserIcon,
-    ChevronDown, AlertCircle, Pencil, MessageSquare, History
-} from 'lucide-react';
+    AlertCircle, Pencil, MessageSquare} from 'lucide-react';
 
 
 // ============================================================

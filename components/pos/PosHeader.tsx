@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CashRegisterIcon, ArchiveBoxIcon, CreditCardIcon } from '../icons.tsx';
+import { ArchiveBoxIcon, CreditCardIcon } from '../icons.tsx';
 import { useChat } from '../../contexts/ChatContext.tsx';
 import ChatBadge from '../chat/ChatBadge.tsx';
 

@@ -8,8 +8,7 @@ import { useToast } from '../contexts/ToastContext.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import {
     PlusIcon, EditIcon, TrashIcon, SpinnerIcon, UserPlusIcon,
-    XCircleIcon, CheckIcon, MapPinIcon
-} from '../components/icons.tsx';
+    XCircleIcon, CheckIcon} from '../components/icons.tsx';
 import Button from '../components/Button.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import MoneyInput from '../components/MoneyInput.tsx';

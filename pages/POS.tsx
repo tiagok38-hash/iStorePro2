@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    SpinnerIcon, XCircleIcon, CheckIcon, ArchiveBoxIcon, DocumentTextIcon, PrinterIcon, WhatsAppIcon, EnvelopeIcon
-} from '../components/icons.tsx';
+    XCircleIcon, ArchiveBoxIcon} from '../components/icons.tsx';
 import { useUser } from '../contexts/UserContext.tsx';
 import {
     getCashSessions, getUsers, addCashSession, updateCashSession,

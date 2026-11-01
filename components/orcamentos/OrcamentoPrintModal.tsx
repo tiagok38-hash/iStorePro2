@@ -1,9 +1,9 @@
 
-import React, { useId, useMemo, useState, useEffect } from 'react';
+import React, { useId, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Customer, User, CompanyInfo, ReceiptTermParameter, WarrantyParameter } from '../../types.ts';
-import { formatCurrency, getCompanyInfo, getReceiptTerms, getWarranties } from '../../services/mockApi.ts';
-import { CloseIcon, PrinterIcon, SpinnerIcon, WhatsAppIcon, DocumentTextIcon, SuccessIcon } from '../icons.tsx';
+import { Customer, CompanyInfo } from '../../types.ts';
+import { formatCurrency, getCompanyInfo } from '../../services/mockApi.ts';
+import { CloseIcon, PrinterIcon, SpinnerIcon, DocumentTextIcon } from '../icons.tsx';
 
 const formatDateTime = (dateString?: string) => {
     const d = dateString ? new Date(dateString) : new Date();

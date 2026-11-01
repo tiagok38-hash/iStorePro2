@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
-    LayoutGrid, Package, Settings, ChevronLeft, ShoppingBag, ExternalLink, Copy, List,
+    LayoutGrid, Settings, ShoppingBag, List,
     BarChart3, ArrowLeft
 } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext.tsx';

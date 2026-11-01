@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
-import { Product, StorageLocationParameter, PurchaseOrder, AuditLog, Supplier } from '../types.ts';
-import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, MapPinIcon, CheckIcon, ClockIcon, ChevronLeftIcon, PlusIcon, CubeIcon } from './icons.tsx';
+import { Product, StorageLocationParameter, PurchaseOrder, Supplier } from '../types.ts';
+import { SpinnerIcon, SearchIcon, CloseIcon, InfoIcon, MapPinIcon, CheckIcon, ClockIcon, ChevronLeftIcon, PlusIcon } from './icons.tsx';
 import { getStorageLocations, getAuditLogs, getProducts, getProductsInStock, searchProductsRPC } from '../services/mockApi.ts';
 import { parseSearchTerms, getProductSearchDescription, matchesSearchTerms, sortProductsByRelevance } from '../utils/searchUtils.ts';
 

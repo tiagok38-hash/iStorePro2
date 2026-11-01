@@ -2,11 +2,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-    LogoIcon, ChevronLeftIcon, ChevronDownIcon,
+    ChevronLeftIcon, ChevronDownIcon,
     UserCircleIcon, LogoutIcon,
-    Squares2x2Icon, ArchiveBoxIcon, ShoppingCartIcon, CashRegisterIcon, ChartBarIcon,
-    UsersIcon, BuildingOffice2Icon, BanknotesIcon, WrenchIcon, WalletIcon, DocumentTextIcon, ReceiptIcon
-} from './icons.tsx';
+    Squares2x2Icon, ArchiveBoxIcon, ShoppingCartIcon, ChartBarIcon,
+    UsersIcon, BuildingOffice2Icon, WrenchIcon, WalletIcon} from './icons.tsx';
 
 type NavItemDefinition = {
     name: string;
@@ -54,7 +53,7 @@ const NAV_ITEMS: NavItemDefinition[] = [
     { name: 'Empresa', to: '/company', icon: <BuildingOffice2Icon />, permissionKey: ['canAccessEmpresa', 'canEditOwnProfile', 'canManageMarcasECategorias'] },
 ];
 
-import { User, PermissionSet } from '../types.ts';
+import { PermissionSet } from '../types.ts';
 import { getPermissionProfiles } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';

@@ -6,10 +6,8 @@ import { getServiceOrdersByCustomer } from '../services/serviceOrderService.ts';
 import { getDevicesByCustomer } from '../services/customerDeviceService.ts';
 import { ServiceOrder, CustomerDevice, Customer } from '../types';
 import { 
-    HistoryIcon, 
     SmartphoneIcon, 
     WrenchIcon, 
-    CalendarDaysIcon, 
     SuccessIcon, 
     ClockIcon,
     ArrowRightCircleIcon,
@@ -17,7 +15,6 @@ import {
 } from './icons';
 import { formatCurrency } from '../utils/formatters';
 import StatusBadge from './StatusBadge';
-import GlobalLoading from './GlobalLoading';
 
 interface CustomerHistoryModalProps {
     customer: Customer;

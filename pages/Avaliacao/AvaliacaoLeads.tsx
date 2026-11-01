@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     List, RefreshCw, Phone, User, Smartphone, Calendar, ChevronDown,
-    CheckCircle, Clock, XCircle, TrendingUp, FileText, MessageSquare,
-    Filter, Search
+    CheckCircle, Clock, XCircle, FileText, MessageSquare,
+    Search
 } from 'lucide-react';
 import { getAvaliacaoLeads, updateAvaliacaoLeadStatus } from '../../services/avaliacaoService.ts';
 import { AvaliacaoLead, AvaliacaoLeadStatus } from '../../types.ts';

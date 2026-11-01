@@ -1,6 +1,6 @@
-import React, { useId, useState, useEffect, useMemo } from 'react';
+import React, { useId, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ServiceOrder, CompanyInfo, Product, Customer, ChecklistItemParameter, ReceiptTermParameter } from '../../types.ts';
+import { ServiceOrder, CompanyInfo, Customer, ChecklistItemParameter, ReceiptTermParameter } from '../../types.ts';
 import { formatCurrency, getCompanyInfo, getCustomers, getChecklistItems } from '../../services/mockApi.ts';
 import { cleanUUIDs } from '../../utils/formatters.ts';
 import { getOsReceiptTerms } from '../../services/parametersService.ts';

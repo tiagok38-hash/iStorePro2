@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Smartphone, ChevronRight, ChevronLeft, Check, Phone, User, Mail, Loader2, AlertCircle, MessageCircle, Share2 } from 'lucide-react';
+import { Smartphone, ChevronRight, ChevronLeft, Check, Phone, User, Mail, Loader2, AlertCircle, MessageCircle } from 'lucide-react';
 import { getPublicAvaliacaoData, submitAvaliacaoLead, PublicAvaliacaoData } from '../../services/avaliacaoService.ts';
 import { AvaliacaoDevice, AvaliacaoCondition, AvaliacaoPart } from '../../types.ts';
 

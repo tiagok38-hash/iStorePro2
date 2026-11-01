@@ -5,7 +5,7 @@ import { getBranches, createBranch, transferStockToBranch, transferStockFromBran
 import { searchProductsRPC } from '../services/mockApi.ts';
 import { toDateValue } from '../utils/dateUtils.ts';
 import {
-    SearchIcon, CloseIcon, XCircleIcon, ClockIcon,
+    SearchIcon, CloseIcon, 
     ChevronLeftIcon, ChevronRightIcon, ArrowsUpDownIcon,
     ArchiveBoxIcon, SpinnerIcon, PlusIcon, MinusIcon, HomeIcon, PlusCircleIcon
 } from './icons.tsx';

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Plus, Search, Copy, ExternalLink, MoreVertical, Pencil, Trash2, Eye, EyeOff,
-    Package, Filter, ChevronDown, Loader2, Check, X, ShoppingBag, Link as LinkIcon, Image as ImageIcon
+    Plus, Search, Copy, ExternalLink, MoreVertical, Pencil, Trash2, 
+    Loader2, Check, ShoppingBag, Link as LinkIcon, Image as ImageIcon
 } from 'lucide-react';
-import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, getCatalogSections, deleteCatalogItems, getCompanyInfo, getPaymentMethods } from '../../services/mockApi.ts';
+import { getCatalogItems, updateCatalogItem, deleteCatalogItem, getProducts, getBrands, deleteCatalogItems, getCompanyInfo, getPaymentMethods } from '../../services/mockApi.ts';
 import { CatalogItem, Product, Brand, CompanyInfo, PaymentMethodParameter } from '../../types.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
 import CatalogItemModal from './CatalogItemModal.tsx';

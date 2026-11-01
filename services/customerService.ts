@@ -3,7 +3,6 @@ import { supabase } from '../supabaseClient.ts';
 import { Customer, TradeInEntry, AuditActionType, AuditEntityType } from '../types.ts';
 import { fetchWithCache, fetchWithRetry, clearCache } from './cacheUtils.ts';
 import { addAuditLog } from './auditService.ts';
-import { isCreditMethod } from '../utils/creditUtils.ts';
 
 // --- CUSTOMERS ---
 // --- MAPPING HELPERS ---

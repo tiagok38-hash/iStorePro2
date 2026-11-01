@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { PrinterIcon } from '../icons';
 import { useReactToPrint } from 'react-to-print';
 import { CreditInstallment, Sale, Customer, CompanyInfo } from '../../types';
-import { formatCurrency, getCompanyInfo, getSale, getCustomer } from '../../services/mockApi';
+import { getCompanyInfo, getSale, getCustomer } from '../../services/mockApi';
 import { CarnetPrintDocs } from './CarnetPrintDocs';
 import { useToast } from '../../contexts/ToastContext';
 

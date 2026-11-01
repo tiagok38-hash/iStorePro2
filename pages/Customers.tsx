@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { getWhatsAppLink } from '../utils/whatsappUtils.ts';
-import { Customer, Sale, Product, Supplier, PurchaseOrder, PermissionSet, User } from '../types.ts';
+import { Customer, Sale, Product, Supplier, PurchaseOrder, User } from '../types.ts';
 import {
     getCustomers, addCustomer, updateCustomer, deleteCustomer, getCustomerSales, getCustomerById,
     getProducts, getSuppliers, addSupplier, updateSupplier, deleteSupplier,

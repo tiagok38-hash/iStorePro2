@@ -8,7 +8,7 @@ import {
 import { formatCurrency } from '../../services/mockApi.ts';
 import {
     PlusIcon, MinusIcon, EditIcon, ShoppingCartIcon, CalculatorIcon, CreditCardIcon,
-    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, DeviceExchangeIcon, ChevronDownIcon, ChevronRightIcon, SpinnerIcon
+    TrashIcon, SearchIcon, XCircleIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, SpinnerIcon
 } from '../icons.tsx';
 import { searchProducts } from '../../services/productService.ts';
 import { getCustomerById, updateCustomer } from '../../services/customerService.ts';

@@ -2,12 +2,12 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
     Product, Customer, User, Sale, Payment, PaymentMethodType,
-    Supplier, CartItem, PaymentMethodParameter, CardConfigData,
+    Supplier, CartItem, PaymentMethodParameter, 
     AuditActionType, AuditEntityType
 } from '../types.ts';
 import { useToast } from '../contexts/ToastContext.tsx';
 import {
-    findOrCreateSupplierFromCustomer, addSale, updateSale, updateProduct, addAuditLog,
+    findOrCreateSupplierFromCustomer, addSale, updateSale, addAuditLog,
     getNextSaleId, cancelSaleReservation
 } from '../services/mockApi.ts';
 import { useUser } from '../contexts/UserContext.tsx';

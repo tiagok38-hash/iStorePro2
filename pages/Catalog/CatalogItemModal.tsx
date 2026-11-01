@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Search, Upload, Loader2, Package, ImageIcon, Trash2, CreditCard } from 'lucide-react';
+import { X, Search, Upload, Loader2, Package, CreditCard } from 'lucide-react';
 import { addCatalogItem, updateCatalogItem, getPaymentMethods, getCatalogSections } from '../../services/mockApi.ts';
 import { CatalogItem, Product, PaymentMethodParameter } from '../../types.ts';
 import { useToast } from '../../contexts/ToastContext.tsx';
