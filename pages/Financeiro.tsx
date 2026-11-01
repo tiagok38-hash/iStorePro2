@@ -370,20 +370,6 @@ export default function Financeiro() {
         setCurrentPage(1);
     };
 
-    const handleDeleteTransaction = async (unifiedId: string, originalId: string, source: string) => {
-        if (source !== 'Manual') {
-            alert('Não é possível excluir Lançamentos automáticos (Vendas/OS) por aqui. Cancele a Venda ou OS na respectiva tela.');
-            return;
-        }
-        if (window.confirm('Deseja realmente excluir este lançamento financeiro?')) {
-            const { error } = await supabase.from('financial_transactions').delete().eq('id', originalId);
-            if (!error) {
-                setTransactions(transactions.filter(t => t.id !== originalId));
-            } else {
-                alert('Erro ao excluir transação.');
-            }
-        }
-    };
 
     // --- CHARTS DATA ---
     const monthlyChartData = useMemo(() => {

@@ -141,12 +141,6 @@ const ServiceOrderDevices: React.FC = () => {
         setSelectedDevice(null);
     };
 
-    const handleSaveDevice = () => {
-        // Implement save logic for add/edit
-        setIsAddModalOpen(false);
-        setFormData({ type: 'Smartphone', model: '', brand: '', color: '', imei: '', customerName: '' });
-        showToast("Eletrônico salvo com sucesso!", 'success');
-    };
 
     const handleSaveNewDevice = async (deviceData: any) => {
         try {

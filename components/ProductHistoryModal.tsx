@@ -306,55 +306,6 @@ const StockHistoryTab: React.FC<{ product: Product, auditLogs?: AuditLog[], sale
     );
 };
 
-const AuditHistoryTab: React.FC<{ logs: AuditLog[]; typeFilter?: AuditActionType[] }> = ({ logs, typeFilter }) => {
-    const filteredLogs = typeFilter
-        ? logs.filter(log => typeFilter.includes(log.action))
-        : logs;
-
-    const actionTranslations: Record<string, string> = {
-        [AuditActionType.CREATE]: 'Criação',
-        [AuditActionType.UPDATE]: 'Edição',
-        [AuditActionType.DELETE]: 'Exclusão',
-        [AuditActionType.SALE_CREATE]: 'Venda Realizada',
-        [AuditActionType.SALE_CANCEL]: 'Venda Cancelada',
-        [AuditActionType.STOCK_ADJUST]: 'Ajuste de Estoque',
-        [AuditActionType.STOCK_LAUNCH]: 'Lançamento em Estoque',
-        [AuditActionType.STOCK_REVERT]: 'Reversão de Estoque',
-    };
-
-    if (filteredLogs.length === 0) {
-        return <div className="text-center text-muted py-8">Nenhum registro encontrado.</div>;
-    }
-
-    return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-muted">
-                <thead className="text-xs text-secondary uppercase bg-surface-secondary">
-                    <tr>
-                        <th scope="col" className="px-6 py-3">Data/Hora</th>
-                        <th scope="col" className="px-6 py-3">Ação</th>
-                        <th scope="col" className="px-6 py-3">Detalhes</th>
-                        <th scope="col" className="px-6 py-3">Usuário</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredLogs.map(log => (
-                        <tr key={log.id} className="bg-surface border-b border-border">
-                            <td className="px-6 py-4">{formatDateTime(log.timestamp)}</td>
-                            <td className="px-6 py-4">
-                                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold whitespace-nowrap">
-                                    {actionTranslations[log.action] || log.action}
-                                </span>
-                            </td>
-                            <td className="px-6 py-4 text-primary font-medium">{log.details}</td>
-                            <td className="px-6 py-4">{log.userName}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-};
 
 // Component for Inventory Movements (from inventory_movements table)
 const MovementHistoryTab: React.FC<{ productId: string, movements: InventoryMovement[] }> = ({ productId, movements }) => {

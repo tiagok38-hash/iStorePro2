@@ -127,9 +127,6 @@ const BulkPriceUpdateModal: React.FC<BulkPriceUpdateModalProps> = ({ allProducts
         return () => clearTimeout(timer);
     }, [searchTerm, conditionFilter, productsList]);
 
-    const handleSearch = () => {
-        // Now handled automatically by the useEffect
-    };
 
     const handlePriceUpdate = async () => {
         if (searchedProducts.length === 0) return;

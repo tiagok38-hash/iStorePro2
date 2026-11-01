@@ -17,7 +17,6 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
     const [loading, setLoading] = useState(false);
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
-    const [showSettings, setShowSettings] = useState(false);
 
     const stopCamera = useCallback(() => {
         if (streamRef.current) {
@@ -54,14 +53,6 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 // Ensure we wait a tick to allow previous tracks to fully stop
                 await new Promise(resolve => setTimeout(resolve, 100));
-
-                const mobileConstraints: MediaTrackConstraints = {
-                    facingMode: { ideal: 'environment' }
-                };
-
-                const desktopConstraints: MediaTrackConstraints = deviceId
-                    ? { deviceId: { exact: deviceId } }
-                    : { facingMode: 'user' }; // fallback for desktop initial if no ID
 
                 // If deviceId is provided, use it. 
                 // If not, and we are on mobile (heuristic), prefer environment.

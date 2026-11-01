@@ -219,9 +219,6 @@ const permissionSections: {
         },
     ];
 
-// Also keep a flat list reference for backwards compat
-const permissionGroups = permissionSections;
-
 // --- Reusable Lilac Toggle (cor #7B61FF = sidebar) ---
 const LilacToggle: React.FC<{
     checked: boolean;

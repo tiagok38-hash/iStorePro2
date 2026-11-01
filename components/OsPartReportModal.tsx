@@ -86,7 +86,6 @@ const OsPartReportModal: React.FC<OsPartReportModalProps> = ({ isOpen, onClose, 
         return ids.map(id => ({ id, name: brandMap[id] || id })).sort((a, b) => a.name.localeCompare(b.name));
     }, [parts, brandMap]);
 
-    const availableConditions = useMemo(() => Array.from(new Set(parts.map(p => p.condition).filter(Boolean))).sort(), [parts]);
 
     const handlePrint = () => {
         const title = "RELATÓRIO DE ESTOQUE - PEÇAS E INSUMOS (OS)";

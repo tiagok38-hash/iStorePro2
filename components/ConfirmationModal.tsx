@@ -17,9 +17,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, 
 
   if (!isOpen) return null;
 
-  const confirmButtonClasses = variant === 'success'
-    ? 'bg-success text-white hover:bg-success/90'
-    : 'bg-danger text-white hover:bg-danger/90';
 
   return (
     <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-fade-in transition-all duration-300 ${!isCollapsed ? 'lg:pl-72' : 'lg:pl-24'}`} aria-modal="true" role="dialog">

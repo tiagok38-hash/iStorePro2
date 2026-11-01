@@ -61,7 +61,6 @@ const ProductCard: React.FC<{ item: CatalogItem; onClick: () => void; onAdd: (e:
     };
 
     const imageUrl = item.imageUrls?.[0] || item.imageUrl;
-    const hasManyLines = item.productName.length > 50;
 
     const whatsappNumber = whatsapp.replace(/\D/g, '');
 

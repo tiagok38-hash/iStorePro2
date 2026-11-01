@@ -46,7 +46,6 @@ const StockInModal: React.FC<{
     const [isMinimumStockEnabled, setIsMinimumStockEnabled] = useState(false);
     const { showToast } = useToast();
     const [isContinuousScanEnabled, setIsContinuousScanEnabled] = useState(false);
-    const inputRefs = React.useRef<{ [key: string]: HTMLInputElement | null }>({});
     const { user } = useUser();
 
     // Dynamic parameters from Empresa > Parâmetros
@@ -285,23 +284,6 @@ const StockInModal: React.FC<{
     const inputClassesCompact = "w-full px-2 border rounded-md bg-transparent border-gray-200 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary text-sm transition-all outline-none";
 
 
-    const handleToggleMinimumStock = (checked: boolean) => {
-        setIsMinimumStockEnabled(checked);
-        if (!checked) {
-            setDetails(prevDetails => prevDetails.map(d => {
-                const { minimumStock, ...rest } = d;
-                return rest;
-            }));
-        } else {
-            setDetails(prevDetails => prevDetails.map(d => {
-                const originalItem = purchaseOrder.items.find(i => i.id === d.purchaseItemId);
-                return {
-                    ...d,
-                    minimumStock: d.isApple ? undefined : (d.minimumStock || originalItem?.minimumStock || 1)
-                }
-            }));
-        }
-    };
 
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: string) => {

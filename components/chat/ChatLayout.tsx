@@ -72,7 +72,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ isOpen, onClose }) => {
         return ok;
     }, [sendMessage, refetchMessages]);
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const prevScrollHeightRef = useRef<number>(0);
     const isInitialScrollRef = useRef(true);

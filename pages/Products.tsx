@@ -150,16 +150,6 @@ const SkeletonRow: React.FC<{ columns: number }> = ({ columns }) => (
     </tr>
 );
 
-const SkeletonKPI: React.FC = () => (
-    <div className="animate-pulse bg-white p-6 rounded-3xl border border-border">
-        <div className="flex justify-between items-start mb-4">
-            <div className="h-4 bg-gray-200 rounded w-24"></div>
-            <div className="h-10 w-10 bg-gray-200 rounded-xl"></div>
-        </div>
-        <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
-        <div className="h-4 bg-gray-200 rounded w-40"></div>
-    </div>
-);
 
 // --- Supplier Label Logic ---
 const getSupplierColorClass = (supplier: Supplier | undefined) => {
@@ -527,9 +517,6 @@ const Products: React.FC = () => {
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
     }, [products, filters, inventorySortOrder, useServerSearch]);
-
-    // Unified: use server results when searching, client results otherwise
-    const filteredProducts = useServerSearch ? serverSearchResults : filteredProductsLocal;
 
     // Pagination: server handles pagination when searching
     const totalPages = useMemo(() => {

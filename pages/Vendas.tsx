@@ -240,8 +240,6 @@ const Vendas: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const SALES_PER_PAGE = 10;
 
-    const [longLoading, setLongLoading] = useState(false);
-
     // Unified loading handled by SuspenseFallback
 
     const showToastRef = useRef(showToast);
@@ -249,8 +247,6 @@ const Vendas: React.FC = () => {
 
     // Ref to prevent concurrent fetches
     const isFetchingRef = useRef(false);
-    // Debounce ref for broadcast channel
-    const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const fetchData = useCallback(async (silent = false, retryCount = 0) => {
         // Prevent concurrent fetches
@@ -485,10 +481,6 @@ const Vendas: React.FC = () => {
         setCustomerSearch('');
     }, [handlePeriodChange]);
 
-    const handleDateInputChange = useCallback((setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setter(e.target.value);
-        setActivePeriod('personalizado'); // Custom range
-    }, []);
 
     const filteredSales = useMemo(() => {
         return sales.filter(sale => {

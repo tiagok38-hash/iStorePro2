@@ -99,7 +99,6 @@ const SalesReports: React.FC<SalesReportsProps> = ({ sales, products, customers,
             });
         });
 
-        const grossProfit = (totalSales + totalDiscounts) - totalCost - totalDiscounts; // Revenue - Cost (Discount already deducted from Total)
         // Wait, s.total is (subtotal - discount). 
         // Profit = s.total - Cost.
         const profit = totalSales - totalCost;

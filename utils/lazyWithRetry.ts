@@ -1,6 +1,5 @@
 import { lazy, ComponentType } from 'react';
 
-type ModuleFactory<T = any> = () => Promise<{ default: ComponentType<T> }>;
 
 /**
  * Wrapper around React.lazy() that automatically retries failed dynamic imports.

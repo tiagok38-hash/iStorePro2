@@ -1525,12 +1525,6 @@ const EstoqueReport: React.FC<{ products: Product[], sales: Sale[], productModel
 };
 
 
-const PlaceholderReport: React.FC<{ title: string }> = ({ title }) => (
-    <div className="bg-surface p-6 rounded-2xl border border-border text-center text-muted mt-6">
-        <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        <p>Este relatório está em desenvolvimento.</p>
-    </div>
-);
 
 
 const Reports: React.FC = () => {

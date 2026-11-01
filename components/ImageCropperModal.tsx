@@ -20,7 +20,6 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ isOpen, imageUrl,
     const [imgSize, setImgSize] = useState({ width: 0, height: 0 });
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-    const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
 
     // Crop box size in visual pixels
